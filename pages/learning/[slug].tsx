@@ -262,7 +262,7 @@ export default function CourseDetailPage() {
                 </Link>
 
                 {/* Mock tests */}
-                <Link href="/mock-tests" passHref>
+                <Link href="/mock" passHref>
                   <Button as="a" variant="secondary" className="rounded-ds-xl">
                     Try a Mock Test
                   </Button>

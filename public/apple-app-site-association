@@ -25,8 +25,10 @@
           "/teacher/*",
           "/learning",
           "/learning/*",
-          "/mock-tests",
-          "/mock-tests/*",
+          "/mock",
+          "/mock/*",
+          "/writing/mock",
+          "/writing/mock/*",
           "/challenge",
           "/challenge/*"
         ]
@@ -54,8 +56,10 @@
           "/teacher/*",
           "/learning",
           "/learning/*",
-          "/mock-tests",
-          "/mock-tests/*",
+          "/mock",
+          "/mock/*",
+          "/writing/mock",
+          "/writing/mock/*",
           "/challenge",
           "/challenge/*"
         ]

@@ -12,7 +12,7 @@ export const routes = {
   // Mocks
   listeningMock: (id: string) => `/mock/listening/${id}`,
   readingMock: (id: string) => `/mock/reading/${id}`,
-  writingMock: (id: string) => `/mock/writing/${id}`,
+  writingMock: (testId: string) => `/writing/mock/${testId}/start`,
   speakingMock: (id: string) => `/mock/speaking/${id}`,
 
   // Reviews

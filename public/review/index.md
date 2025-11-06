@@ -171,9 +171,11 @@
 | Attemptid (param) | /mock/reading/review/:attemptId  | todo   |
 | Resume            | /mock/resume                     | todo   |
 | Id (param)        | /mock/speaking/:id               | todo   |
-| Id (param)        | /mock/writing/:id                | todo   |
-| Attemptid (param) | /mock/writing/results/:attemptId | todo   |
-| Attemptid (param) | /mock/writing/review/:attemptId  | todo   |
+| Mock start (param) | /writing/mock/:mockId/start         | todo   |
+| Workspace (param)  | /writing/mock/:attemptId/workspace  | todo   |
+| Evaluating (param) | /writing/mock/evaluating/:attemptId | todo   |
+| Results (param)    | /writing/mock/results/:attemptId    | todo   |
+| Review (param)     | /writing/mock/review/:attemptId     | todo   |
 
 ### Notifications (Progress: 0%)
 
@@ -507,14 +509,14 @@
 
 | Name            | Path                  | Status |
 | --------------- | --------------------- | ------ |
-| Mock Tests      | /mock-tests           | todo   |
-| Section (param) | /mock-tests/:section  | todo   |
-| Analytics       | /mock-tests/analytics | todo   |
-| Full            | /mock-tests/full      | todo   |
-| Listening       | /mock-tests/listening | todo   |
-| Reading         | /mock-tests/reading   | todo   |
-| Speaking        | /mock-tests/speaking  | todo   |
-| Writing         | /mock-tests/writing   | todo   |
+| Mock Tests      | /mock                 | todo   |
+| Section (param) | /mock/:section        | todo   |
+| Analytics       | /mock/analytics       | todo   |
+| Full            | /mock/full            | todo   |
+| Listening       | /mock/listening       | todo   |
+| Reading         | /mock/reading         | todo   |
+| Speaking        | /mock/speaking        | todo   |
+| Writing         | /writing/mock         | todo   |
 
 ### Placement (Progress: 0%)
 

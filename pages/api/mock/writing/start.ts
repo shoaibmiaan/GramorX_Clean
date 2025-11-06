@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid payload', issues: parsed.error.flatten() });
   }
 
-  const { promptId, goalBand } = parsed.data;
+  const { promptId, goalBand, mockId } = parsed.data;
 
   const { data: task1Row, error: task1Error } = await supabase
     .from('writing_prompts')
@@ -89,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       duration_seconds: durationSeconds,
       goal_band: goalBand ?? null,
       metadata: {
+        mockId: mockId ?? null,
         promptIds: {
           task1: task1Row.id,
           task2: task2Row.id,
@@ -107,6 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     user_id: user.id,
     event_type: 'start',
     payload: {
+      mockId: mockId ?? null,
       promptIds: {
         task1: task1Row.id,
         task2: task2Row.id,

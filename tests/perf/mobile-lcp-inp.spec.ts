@@ -7,7 +7,7 @@ test('mobile writing flows enforce LCP/INP guardrails', () => {
   assert.ok(Array.isArray(budgets.routes), 'Route budgets missing');
 
   const guardrails = [
-    { pattern: '/mock/writing/*', maxLcp: 2500, maxInp: 200 },
+    { pattern: '/writing/mock/*', maxLcp: 2500, maxInp: 200 },
     { pattern: '/writing/results/*', maxLcp: 2600, maxInp: 220 },
   ];
 

@@ -14,6 +14,7 @@ import { planAllows, writingMockLimit } from '@/lib/plan/gates';
 import { withPlanPage } from '@/lib/withPlanPage';
 import { useInstalledApp } from '@/hooks/useInstalledApp';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import { clearMockAttemptId } from '@/lib/mock/state';
 
 type PageProps = {
   attemptId: string;
@@ -24,6 +25,7 @@ type PageProps = {
     task2?: { essay: string; wordCount: number };
     updatedAt?: string | null;
   } | null;
+  mockId?: string | null;
 };
 
 const mapPrompt = (row: any) => ({
@@ -41,12 +43,13 @@ const mapPrompt = (row: any) => ({
   metadata: row.metadata ?? undefined,
 });
 
-const WritingMockPage: React.FC<PageProps & { __plan?: PlanId }> = ({
+const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
   __plan = 'starter',
   attemptId,
   prompts,
   durationSeconds,
   initialDraft,
+  mockId = null,
 }) => {
   const router = useRouter();
   const plan = __plan;
@@ -141,7 +144,10 @@ const WritingMockPage: React.FC<PageProps & { __plan?: PlanId }> = ({
         durationSeconds={durationSeconds}
         initialDraft={initialDraft ?? undefined}
         onSubmitSuccess={(result) => {
-          void router.push(`/mock/writing/results/${result.attemptId}`);
+          if (mockId) {
+            clearMockAttemptId('writing', mockId);
+          }
+          void router.push(`/writing/mock/${result.attemptId}/evaluating`);
         }}
       />
       <KeyboardAwareSheet
@@ -175,12 +181,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
     };
   }
 
-  const { id } = ctx.params as { id: string };
+  const { mockId: attemptId } = ctx.params as { mockId: string };
 
   const { data: attempt, error } = await supabase
     .from('exam_attempts')
     .select('*')
-    .eq('id', id)
+    .eq('id', attemptId)
     .maybeSingle();
 
   if (error || !attempt || attempt.user_id !== user.id) {
@@ -188,6 +194,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   }
 
   const metadata = (attempt.metadata as any) ?? {};
+  const mockId = typeof metadata.mockId === 'string' ? metadata.mockId : null;
   const promptIds = metadata.promptIds ?? {};
 
   const promptRows = await supabase
@@ -210,7 +217,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   const { data: autosaveEvent } = await supabase
     .from('exam_events')
     .select('payload, occurred_at')
-    .eq('attempt_id', id)
+    .eq('attempt_id', attemptId)
     .eq('event_type', 'autosave')
     .order('occurred_at', { ascending: false })
     .limit(1)
@@ -233,7 +240,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
     const { data: responseRows } = await supabase
       .from('writing_responses')
       .select('task, answer_text, word_count')
-      .eq('exam_attempt_id', id);
+      .eq('exam_attempt_id', attemptId);
 
     if (responseRows && responseRows.length > 0) {
       const draft: Record<string, { essay: string; wordCount: number }> = {};
@@ -257,12 +264,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
 
   return {
     props: {
-      attemptId: id,
+      attemptId,
       durationSeconds: attempt.duration_seconds ?? 60 * 60,
       prompts,
       initialDraft: initialDraft ?? null,
+      mockId,
     },
   };
 });
 
-export default WritingMockPage;
+export default WritingMockWorkspacePage;

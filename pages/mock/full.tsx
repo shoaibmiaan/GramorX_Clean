@@ -39,22 +39,22 @@ const sectionMeta: Record<SectionKey, { title: string; description: string; prac
   listening: {
     title: 'Listening',
     description: '4 parts · 40 minutes · Academic + General Training audio tasks.',
-    practiceHref: '/mock-tests/listening',
+    practiceHref: '/mock/listening',
   },
   reading: {
     title: 'Reading',
     description: '3 passages · 60 minutes · Band-calibrated comprehension sets.',
-    practiceHref: '/mock-tests/reading',
+    practiceHref: '/mock/reading',
   },
   writing: {
     title: 'Writing',
     description: 'Tasks 1 & 2 · AI scoring with coherence and lexical feedback.',
-    practiceHref: '/mock-tests/writing',
+    practiceHref: '/writing/mock',
   },
   speaking: {
     title: 'Speaking',
     description: 'Parts 1–3 · Interactive prompts with instant transcripts.',
-    practiceHref: '/mock-tests/speaking',
+    practiceHref: '/mock/speaking',
   },
 };
 
@@ -383,7 +383,7 @@ export default function FullTestPage() {
           </Card>
 
           <div className="flex flex-wrap gap-3">
-            <Button href="/mock-tests" variant="secondary" tone="primary" as={Link}>
+            <Button href="/mock" variant="secondary" tone="primary" as={Link}>
               Back to mock tests
             </Button>
             <Button onClick={resetToMenu} variant="primary">

@@ -47,7 +47,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  const { attemptId } = ctx.params as { attemptId: string };
+  const { mockId: attemptId } = ctx.params as { mockId: string };
 
   const { data: attempt, error: attemptError } = await supabase
     .from('exam_attempts')

@@ -10,7 +10,7 @@ const authenticatedGate = { requiresAuth: true } as const;
 const headerMain: NavItemConfig[] = [
   { id: 'home', label: 'Home', href: '/' },
   { id: 'practice', label: 'Practice', href: '/learning' },
-  { id: 'mock-tests', label: 'Mock Tests', href: '/mock-tests' },
+  { id: 'mock-tests', label: 'Mock Tests', href: '/mock' },
   {
     id: 'challenge',
     label: 'Challenge',
@@ -86,7 +86,7 @@ export const navigationSchema: AppNavigationSchema = {
       icon: 'BookOpen',
       items: [
         { id: 'practice-modules', label: 'Practice Modules', href: '/learning' },
-        { id: 'mock-exams', label: 'Mock Exams', href: '/mock-tests' },
+        { id: 'mock-exams', label: 'Mock Exams', href: '/mock' },
         {
           id: 'my-mistakes',
           label: 'My Mistakes',
@@ -173,7 +173,7 @@ export const navigationSchema: AppNavigationSchema = {
       items: [
         { id: 'pricing', label: 'Pricing', href: '/pricing' },
         { id: 'practice', label: 'Practice Modules', href: '/learning' },
-        { id: 'mock-tests', label: 'Mock Tests', href: '/mock-tests' },
+        { id: 'mock-tests', label: 'Mock Tests', href: '/mock' },
         { id: 'premium-plans', label: 'Premium Plans', href: '/premium' },
       ],
     },

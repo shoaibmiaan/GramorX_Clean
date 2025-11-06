@@ -29,6 +29,7 @@ export const writingExplainRequestSchema = z.object({
 
 export const writingStartSchema = z.object({
   promptId: z.string().min(1),
+  mockId: z.string().min(1).optional(),
   goalBand: z.number().min(0).max(9).optional(),
 });
 

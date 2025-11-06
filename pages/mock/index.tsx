@@ -1,4 +1,4 @@
-// pages/mock-tests/index.tsx
+// pages/mock/index.tsx
 import Head from 'next/head';
 import Link from 'next/link';
 import { Container } from '@/components/design-system/Container';

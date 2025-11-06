@@ -152,7 +152,7 @@ export default function Dashboard() {
             <p className="text-grayish mt-1">Jump back in with one click.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button as="a" href="/learning" variant="primary" className="rounded-ds-xl">Start Today’s Lesson</Button>
-              <Button as="a" href="/mock-tests" variant="secondary" className="rounded-ds-xl">Take a Mock Test</Button>
+              <Button as="a" href="/mock" variant="secondary" className="rounded-ds-xl">Take a Mock Test</Button>
               <Button as="a" href="/writing" variant="accent" className="rounded-ds-xl">Practice Writing</Button>
             </div>
           </Card>

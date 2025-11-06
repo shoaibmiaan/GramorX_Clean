@@ -11,7 +11,7 @@ const quickActions = [
   {
     title: 'Full mock tests',
     description: 'Run the official 40-minute flow with auto-marking and review.',
-    href: '/mock-tests/listening',
+    href: '/mock/listening',
   },
   {
     title: 'Question bank',
@@ -110,7 +110,7 @@ export default function ListeningPracticePage() {
                 Attempt a mock today and unlock personalised review cards that drop into your daily study plan automatically.
               </p>
             </div>
-            <Button href="/mock-tests/listening" variant="primary" className="mt-4 rounded-ds md:mt-0">
+            <Button href="/mock/listening" variant="primary" className="mt-4 rounded-ds md:mt-0">
               Browse mock tests
             </Button>
           </Card>

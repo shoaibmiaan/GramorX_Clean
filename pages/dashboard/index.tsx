@@ -335,7 +335,7 @@ export default function Dashboard(): JSX.Element {
         body: daysUntilExam !== null && daysUntilExam > 0
           ? 'Lock in your mock tests and speaking practice so every week ladders up to exam day.'
           : 'Exam day is here. Complete a confidence run-through and review your checklist.',
-        primaryCta: { label: 'View checklist', href: '/mock-tests' },
+        primaryCta: { label: 'View checklist', href: '/mock' },
         secondaryCta: { label: 'Manage calendar', href: '#study-calendar' },
         supporting: <div className="text-small text-muted-foreground">Exam date: {examDate.toLocaleDateString()}</div>,
       });
@@ -785,7 +785,7 @@ export default function Dashboard(): JSX.Element {
                   <div className="mt-6 flex flex-wrap gap-3">
                     <QuickDrillButton />
                     <Link href="/learning"><Button variant="primary" className="rounded-ds-xl">Start Today’s Lesson</Button></Link>
-                    <Link href="/mock-tests"><Button variant="secondary" className="rounded-ds-xl">Take a Mock Test</Button></Link>
+                    <Link href="/mock"><Button variant="secondary" className="rounded-ds-xl">Take a Mock Test</Button></Link>
                     <Link href="/writing"><Button variant="accent" className="rounded-ds-xl">Practice Writing</Button></Link>
                     <Link href="/reading"><Button variant="secondary" className="rounded-ds-xl">Practice Reading</Button></Link>
                     <Link href="/progress"><Button variant="ghost" className="rounded-ds-xl">Review progress report</Button></Link>

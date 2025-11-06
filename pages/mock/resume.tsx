@@ -46,6 +46,9 @@ export default function MockResumePage() {
 
   const resumeHref = useMemo(() => {
     if (!checkpoint) return '#';
+    if (checkpoint.section === 'writing') {
+      return `/writing/mock/${checkpoint.attemptId}/workspace`;
+    }
     return `/mock/${checkpoint.section}/${checkpoint.mockId}`;
   }, [checkpoint]);
 
