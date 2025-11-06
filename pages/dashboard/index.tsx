@@ -1,5 +1,5 @@
 // pages/dashboard/index.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { NextPage } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,6 +10,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import Icon, { type IconName } from '@/components/design-system/Icon';
 import { Alert } from '@/components/design-system/Alert';
 import { StreakIndicator } from '@/components/design-system/StreakIndicator';
 
@@ -245,9 +246,7 @@ export default function Dashboard(): JSX.Element {
   }, [ai.sessionMix, profile?.focus_topics]);
 
   const goalBand = typeof profile?.goal_band === 'number' ? profile.goal_band : ai.suggestedGoal ?? null;
-  const englishLevel = profile?.english_level ?? null;
   const targetStudyTime = profile?.time_commitment || '1–2h/day';
-  const dailyQuota = ai.dailyQuota ?? profile?.daily_quota_goal ?? null;
 
   const examDate = useMemo(() => {
     if (!profile?.exam_date) return null;
@@ -264,110 +263,204 @@ export default function Dashboard(): JSX.Element {
     return diffDays >= 0 ? diffDays : 0;
   }, [examDate]);
 
-  type SummaryCard = {
+  type ActionItem = {
     id: string;
     title: string;
-    headline: string;
-    body: string;
-    primaryCta: { label: string; href: string };
-    secondaryCta?: { label: string; href: string };
-    supporting?: React.ReactNode;
+    caption: string;
+    icon: IconName;
+    accent: NonNullable<InnovationTile['accent']>;
+    primary: TileAction;
+    secondary?: TileAction;
+    chip?: string | null;
+    done?: boolean;
   };
 
-  const summaryCards: SummaryCard[] = useMemo(() => {
-    const cards: SummaryCard[] = [
+  const todayKey = useMemo(() => getDayKeyInTZ(), []);
+  const streakProtected = lastDayKey === todayKey;
+
+  const actionItems: ActionItem[] = useMemo(() => {
+    const items: ActionItem[] = [
       {
-        id: 'goal-progress',
-        title: 'Goal progress',
-        headline: typeof goalBand === 'number' ? `Band ${goalBand.toFixed(1)}` : 'Set your target',
-        body: englishLevel
-          ? `You’re currently tracking at ${englishLevel}. Review your recent scores and lock the next milestone.`
-          : 'Tell us your current level so we can chart the fastest route to your target band.',
-        primaryCta: {
-          label: typeof goalBand === 'number' ? 'Review progress' : 'Set your goal',
-          href: typeof goalBand === 'number' ? '/progress' : '/profile/setup',
-        },
-        secondaryCta: { label: 'Edit goal', href: '/profile/setup' },
-        supporting: englishLevel ? <Badge variant="info" size="sm">{englishLevel}</Badge> : null,
+        id: 'streak',
+        title: streakProtected ? 'Streak protected' : 'Protect your streak today',
+        caption: streakProtected
+          ? `You’ve locked in your ${streak} day streak. Keep the rhythm going tomorrow.`
+          : `Log a focused session to keep your ${streak} day streak alive.`,
+        icon: 'Flame',
+        accent: 'primary',
+        primary: { label: streakProtected ? 'View streak history' : 'Log a session', href: '#streak-panel' },
+        secondary: streakProtected ? { label: 'Plan tomorrow', href: '#study-calendar' } : undefined,
+        done: streakProtected,
       },
       {
-        id: 'weekly-focus',
-        title: 'This week’s focus',
-        headline: sessionMixEntries.length ? `${sessionMixEntries[0]?.skill ?? 'Custom'}` : 'Pick skills',
-        body: sessionMixEntries.length
-          ? 'Follow this recommended order to close your biggest gaps faster.'
-          : 'Choose the skills you want to prioritise so we can prepare drills for you.',
-        primaryCta: { label: 'Open practice path', href: '/learning' },
-        secondaryCta: { label: 'Plan study week', href: '#study-calendar' },
-        supporting: sessionMixEntries.length ? (
-          <div className="flex flex-wrap gap-2">
-            {sessionMixEntries.map((entry, index) => (
-              <Badge key={`${entry.skill}-${entry.topic || index}`} size="sm">
-                {entry.topic ? `${entry.skill} • ${entry.topic}` : entry.skill}
-              </Badge>
-            ))}
-          </div>
-        ) : null,
-      },
-      {
-        id: 'daily-habit',
-        title: 'Daily habit',
-        headline: typeof dailyQuota === 'number' ? `${dailyQuota} sessions` : 'Define your quota',
-        body: `Stay on rhythm with ${targetStudyTime} of focussed study. Protect your streak by logging today’s practice.`,
-        primaryCta: { label: 'Track streak', href: '#streak-panel' },
-        secondaryCta: { label: 'Schedule sessions', href: '#study-calendar' },
-        supporting: focusTopics.length ? (
-          <div className="flex flex-wrap gap-2">
-            {focusTopics.map((topic) => (
-              <Badge key={topic} variant="secondary" size="sm" className="capitalize">{topic}</Badge>
-            ))}
-          </div>
-        ) : null,
+        id: 'weekly-plan',
+        title: 'Shape this week’s plan',
+        caption: 'Drop study blocks into your calendar so AI drills land where you can complete them.',
+        icon: 'CalendarCheck',
+        accent: 'secondary',
+        primary: { label: 'Open calendar', href: '#study-calendar' },
+        secondary: { label: 'Adjust availability', href: '/study-plan' },
       },
     ];
 
-    if (examDate) {
-      cards.push({
-        id: 'exam-timeline',
-        title: 'Exam timeline',
-        headline: daysUntilExam !== null ? `${daysUntilExam} day${daysUntilExam === 1 ? '' : 's'}` : examDate.toLocaleDateString(),
-        body: daysUntilExam !== null && daysUntilExam > 0
-          ? 'Lock in your mock tests and speaking practice so every week ladders up to exam day.'
-          : 'Exam day is here. Complete a confidence run-through and review your checklist.',
-        primaryCta: { label: 'View checklist', href: '/mock-tests' },
-        secondaryCta: { label: 'Manage calendar', href: '#study-calendar' },
-        supporting: <div className="text-small text-muted-foreground">Exam date: {examDate.toLocaleDateString()}</div>,
-      });
-    }
+    const sessionHeadline = sessionMixEntries.length ? `${sessionMixEntries[0]?.skill ?? 'IELTS'}` : null;
+    items.push({
+      id: 'skill-focus',
+      title: sessionHeadline ? `Focus: ${sessionHeadline}` : 'Pick a focus skill',
+      caption: sessionMixEntries.length
+        ? 'Follow the next skill in the queue to close gaps faster.'
+        : 'Choose the skills you want to prioritise so we can prep tailored drills.',
+      icon: 'Target',
+      accent: 'success',
+      primary: sessionMixEntries.length
+        ? { label: 'Start recommended drill', href: '/learning' }
+        : { label: 'Set focus skills', href: '/profile/setup' },
+      secondary: sessionMixEntries.length ? { label: 'View full queue', href: '#next-sessions' } : undefined,
+      chip: focusTopics.length ? focusTopics.join(' • ') : null,
+    });
 
-    return cards;
-  }, [dailyQuota, daysUntilExam, englishLevel, examDate, focusTopics, goalBand, sessionMixEntries, targetStudyTime]);
+    items.push({
+      id: 'exam-plan',
+      title: examDate ? `Exam in ${daysUntilExam ?? 0} days` : 'Set your exam timeline',
+      caption: examDate
+        ? 'Lock your mock tests and speaking run-through so each week ladders up to exam day.'
+        : 'Add your exam target so we can back-plan the milestones for you.',
+      icon: 'Flag',
+      accent: 'info',
+      primary: examDate
+        ? { label: 'Open checklist', href: '/mock-tests' }
+        : { label: 'Add exam date', href: '/profile/setup' },
+      secondary: examDate ? { label: 'Update date', href: '/profile/setup' } : undefined,
+      chip: examDate ? examDate.toLocaleDateString() : null,
+    });
 
-  if (loading) return loadingSkeleton;
+    return items;
+  }, [daysUntilExam, examDate, focusTopics, sessionMixEntries, streak, streakProtected]);
 
-  // telemetry helper
-  const trackFeatureOpen = (feature: string) => {
+  const trackFeatureOpen = useCallback((feature: string) => {
     // window.analytics?.track('feature_open', { feature, userId: sessionUserId });
     // eslint-disable-next-line no-console
     console.log('[feature] open', feature);
-  };
+  }, []);
 
-  const openAICoach = () => {
+  const openAICoach = useCallback(() => {
     setShowAICoach(true);
     trackFeatureOpen('ai_coach');
-  };
-  const openStudyBuddy = () => {
+  }, [trackFeatureOpen]);
+
+  const openStudyBuddy = useCallback(() => {
     setShowStudyBuddy(true);
     trackFeatureOpen('study_buddy');
-  };
-  const openMistakesBook = () => {
+  }, [trackFeatureOpen]);
+
+  const openMistakesBook = useCallback(() => {
     setShowMistakesBook(true);
     trackFeatureOpen('mistakes_book');
-  };
-  const openWhatsAppTasks = () => {
+  }, [trackFeatureOpen]);
+
+  const openWhatsAppTasks = useCallback(() => {
     setShowWhatsAppTasks(true);
     trackFeatureOpen('whatsapp_tasks');
+  }, [trackFeatureOpen]);
+
+  const shareDashboard = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const shareUrl = window.location.href;
+    if (typeof navigator !== 'undefined') {
+      if ('share' in navigator) {
+        void (navigator as any).share({ title: 'Gramor_X Dashboard', url: shareUrl }).catch(() => {});
+      } else if (navigator.clipboard?.writeText) {
+        void navigator.clipboard.writeText(shareUrl).catch(() => {});
+      }
+    }
+    trackFeatureOpen('share_dashboard');
+  }, [trackFeatureOpen]);
+
+  type TileAction =
+    | { label: string; href: string; action?: never }
+    | { label: string; action: () => void; href?: never };
+
+  type InnovationTile = {
+    id: string;
+    title: string;
+    description: string;
+    icon: IconName;
+    accent?: 'primary' | 'secondary' | 'success' | 'info';
+    badge?: string;
+    meta?: string;
+    primary: TileAction;
+    secondary?: TileAction;
   };
+
+  const innovationTiles = useMemo<InnovationTile[]>(() => {
+    const isFreeTier = subscriptionTier === 'free';
+
+    return [
+      {
+        id: 'ai-coach',
+        title: 'AI Coach',
+        description: 'Personalised feedback, micro-actions, and next-step prompts tailored to your current goal band.',
+        icon: 'Sparkles',
+        accent: 'primary',
+        badge: isFreeTier ? 'Rocket' : undefined,
+        meta: isFreeTier ? 'Upgrade to Rocket for unlimited deep feedback.' : 'Included in your plan.',
+        primary: { label: 'Open AI Coach', action: openAICoach },
+        secondary: { label: 'Full workspace', href: '/ai/coach' },
+      },
+      {
+        id: 'study-buddy',
+        title: 'Study Buddy',
+        description: 'Build a perfect session with smart prompts, question sequencing, and instant drill generation.',
+        icon: 'Users',
+        accent: 'secondary',
+        badge: 'Adaptive',
+        meta: 'Draft a study plan in minutes and sync it with your calendar.',
+        primary: { label: 'Launch Study Buddy', action: openStudyBuddy },
+        secondary: { label: 'Explore workspace', href: '/ai/study-buddy' },
+      },
+      {
+        id: 'mistakes-book',
+        title: 'Mistakes Book',
+        description: 'Capture errors automatically, tag weak spots, and generate targeted remediation drills.',
+        icon: 'NotebookPen',
+        accent: 'success',
+        badge: 'New',
+        meta: 'Turn every mistake into a coached action item.',
+        primary: { label: 'Review Mistakes', action: openMistakesBook },
+        secondary: { label: 'See all notes', href: '/ai/mistakes-book' },
+      },
+      {
+        id: 'whatsapp-tasks',
+        title: 'WhatsApp Tasks',
+        description: 'Stay accountable with daily nudges, micro-tasks, and quick replies direct to your phone.',
+        icon: 'MessageCircle',
+        accent: 'info',
+        meta: 'Customise reminders and track completions from one place.',
+        primary: { label: 'Open tasks', action: openWhatsAppTasks },
+        secondary: { label: 'Manage channel', href: '/whatsapp-tasks' },
+      },
+    ];
+  }, [openAICoach, openMistakesBook, openStudyBuddy, openWhatsAppTasks, subscriptionTier]);
+
+  if (loading) return loadingSkeleton;
+
+  const accentClass: Record<NonNullable<InnovationTile['accent']>, string> = {
+    primary: 'bg-primary/15 text-primary',
+    secondary: 'bg-secondary/15 text-secondary',
+    success: 'bg-success/15 text-success',
+    info: 'bg-electricBlue/15 text-electricBlue',
+  };
+
+  const renderTileAction = (key: string, action: TileAction, variant: 'primary' | 'ghost') =>
+    'href' in action ? (
+      <Button key={key} size="sm" variant={variant} className="rounded-ds-xl" asChild>
+        <Link href={action.href}>{action.label}</Link>
+      </Button>
+    ) : (
+      <Button key={key} size="sm" variant={variant} className="rounded-ds-xl" onClick={action.action}>
+        {action.label}
+      </Button>
+    );
 
   return (
     <>
@@ -433,13 +526,57 @@ export default function Dashboard(): JSX.Element {
                     </div>
                   ) : null}
 
-                  <div className="flex gap-2 items-center">
-                    <Button onClick={openAICoach} variant="primary" size="sm" className="rounded-ds-xl">Open AI Coach</Button>
-                    <Button onClick={openStudyBuddy} variant="secondary" size="sm" className="rounded-ds-xl">Study Buddy</Button>
-                    <Button onClick={openMistakesBook} variant="ghost" size="sm" className="rounded-ds-xl">Mistakes Book</Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      onClick={openAICoach}
+                      variant="soft"
+                      tone="primary"
+                      size="sm"
+                      className="rounded-ds-xl"
+                      leadingIcon={<Icon name="Sparkles" size={16} className="text-primary" />}
+                    >
+                      AI Coach
+                    </Button>
+                    <Button
+                      onClick={openStudyBuddy}
+                      variant="soft"
+                      tone="secondary"
+                      size="sm"
+                      className="rounded-ds-xl"
+                      leadingIcon={<Icon name="Users" size={16} className="text-secondary" />}
+                    >
+                      Study Buddy
+                    </Button>
+                    <Button
+                      onClick={openMistakesBook}
+                      variant="soft"
+                      tone="success"
+                      size="sm"
+                      className="rounded-ds-xl"
+                      leadingIcon={<Icon name="NotebookPen" size={16} className="text-success" />}
+                    >
+                      Mistakes Book
+                    </Button>
+                    <Button
+                      onClick={openWhatsAppTasks}
+                      variant="soft"
+                      tone="info"
+                      size="sm"
+                      className="rounded-ds-xl"
+                      leadingIcon={<Icon name="MessageCircle" size={16} className="text-electricBlue" />}
+                    >
+                      WhatsApp Tasks
+                    </Button>
+                    <Button
+                      onClick={shareDashboard}
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-ds-xl"
+                      leadingIcon={<Icon name="Share2" size={16} />}
+                    >
+                      Share progress
+                    </Button>
                   </div>
-
-                  <Button onClick={() => { navigator.clipboard?.writeText(window.location.href); }} variant="ghost" size="sm" className="rounded-ds-xl">Share progress</Button>
                 </div>
               </div>
 
@@ -454,46 +591,54 @@ export default function Dashboard(): JSX.Element {
                 onRefresh={() => refreshNextTask()}
               />
 
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Card className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold">AI Coach</h3>
-                      <p className="text-sm text-muted-foreground">Personalised feedback, micro-actions and next-step prompts.</p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button size="sm" onClick={openAICoach} className="rounded-ds-xl">Open</Button>
-                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/ai/coach'}>Full view</Button>
-                    </div>
+              <section className="space-y-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-slab text-h2">AI workspace</h2>
+                    <p className="text-grayish">Keep your adaptive tools in one consistent hub—jump in wherever you need support.</p>
                   </div>
-                </Card>
+                  <Badge variant="neutral" size="sm">Always improving</Badge>
+                </div>
 
-                <Card className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold">Study Buddy</h3>
-                      <p className="text-sm text-muted-foreground">Smart session builder and on-demand practice partner.</p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button size="sm" onClick={openStudyBuddy} className="rounded-ds-xl">Open</Button>
-                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/ai/study-buddy'}>Full view</Button>
-                    </div>
-                  </div>
-                </Card>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {innovationTiles.map((tile) => {
+                    const iconBg = tile.accent ? accentClass[tile.accent] : accentClass.primary;
+                    const badgeVariant: 'accent' | 'success' | 'neutral' = tile.badge === 'Rocket'
+                      ? 'accent'
+                      : tile.badge === 'New'
+                        ? 'success'
+                        : 'neutral';
 
-                <Card className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold">Mistakes Book</h3>
-                      <p className="text-sm text-muted-foreground">Collect errors, auto-categorise, and generate remediation drills.</p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button size="sm" onClick={openMistakesBook} className="rounded-ds-xl">Open</Button>
-                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/ai/mistakes-book'}>Full view</Button>
-                    </div>
-                  </div>
-                </Card>
-              </div>
+                    return (
+                      <Card
+                        key={tile.id}
+                        className="group flex h-full flex-col justify-between gap-6 rounded-ds-2xl border border-border/60 bg-card/60 p-6 shadow-sm transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
+                              <Icon name={tile.icon} size={20} />
+                            </span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-lg text-foreground">{tile.title}</h3>
+                                {tile.badge ? <Badge variant={badgeVariant} size="xs">{tile.badge}</Badge> : null}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{tile.description}</p>
+                            </div>
+                          </div>
+                          {tile.meta ? <p className="text-xs text-muted-foreground">{tile.meta}</p> : null}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {renderTileAction(`${tile.id}-primary`, tile.primary, 'primary')}
+                          {tile.secondary ? renderTileAction(`${tile.id}-secondary`, tile.secondary, 'ghost') : null}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
 
               <div id="streak-panel">
                 <StreakCounter current={streak} longest={longest} loading={streakLoading} shields={shields} />
@@ -537,30 +682,41 @@ export default function Dashboard(): JSX.Element {
 
               <div className="mt-6"><DailyWeeklyChallenges /></div>
 
-              <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4" id="goal-summary">
-                {summaryCards.map((card) => (
-                  <Card key={card.id} className="flex h-full flex-col justify-between gap-5 rounded-ds-2xl p-6">
-                    <div className="space-y-3">
-                      <div>
-                        <div className="text-small opacity-70">{card.title}</div>
-                        <div className="text-h1 font-semibold">{card.headline}</div>
+              <section className="mt-10 space-y-4" id="goal-summary">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-slab text-h2">Today’s priorities</h2>
+                    <p className="text-grayish">Move the needle with the highest leverage actions first.</p>
+                  </div>
+                  <Badge variant="neutral" size="sm">Action-first view</Badge>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {actionItems.map((item) => (
+                    <Card key={item.id} className="flex h-full flex-col justify-between gap-5 rounded-ds-2xl border border-border/60 bg-card/60 p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${accentClass[item.accent]}`}>
+                            <Icon name={item.icon} size={20} />
+                          </span>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold text-lg text-foreground">{item.title}</h3>
+                              {item.done ? <Badge variant="success" size="xs">Done</Badge> : null}
+                              {item.chip ? <Badge variant="neutral" size="xs">{item.chip}</Badge> : null}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{item.caption}</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-small text-muted-foreground">{card.body}</p>
-                      {card.supporting}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={card.primaryCta.href} className="inline-flex">
-                        <Button variant="soft" tone="primary" size="sm" className="rounded-ds-xl">{card.primaryCta.label}</Button>
-                      </Link>
-                      {card.secondaryCta ? (
-                        <Link href={card.secondaryCta.href} className="inline-flex">
-                          <Button variant="ghost" size="sm" className="rounded-ds-xl">{card.secondaryCta.label}</Button>
-                        </Link>
-                      ) : null}
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {renderTileAction(`${item.id}-primary`, item.primary, 'primary')}
+                        {item.secondary ? renderTileAction(`${item.id}-secondary`, item.secondary, 'ghost') : null}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </section>
 
               {((ai.sessionMix ?? ai.sequence) ?? []).length > 0 && (
                 <div className="mt-10" id="next-sessions">
@@ -638,7 +794,7 @@ export default function Dashboard(): JSX.Element {
                     <Link href="/reading"><Button variant="secondary" className="rounded-ds-xl">Practice Reading</Button></Link>
                     <Link href="/progress"><Button variant="ghost" className="rounded-ds-xl">Review progress report</Button></Link>
                     <Link href="#visa-target"><Button variant="ghost" className="rounded-ds-xl">Check visa target</Button></Link>
-                    <Button onClick={() => { navigator.clipboard?.writeText(window.location.href); }} variant="secondary" className="rounded-ds-xl">Share Progress</Button>
+                    <Button onClick={shareDashboard} variant="secondary" className="rounded-ds-xl">Share Progress</Button>
                   </div>
 
                   <div className="mt-8 rounded-ds-2xl border border-border/60 bg-muted/40 p-4">
@@ -667,16 +823,22 @@ export default function Dashboard(): JSX.Element {
                 <div>
                   <WhatsAppOptIn />
                   <div className="mt-4">
-                    <Card className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">WhatsApp Tasks</h4>
+                    <Card className="flex flex-col gap-4 rounded-ds-2xl border border-border/60 bg-card/60 p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
+                          <Icon name="MessageCircle" size={18} />
+                        </span>
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-foreground">WhatsApp Tasks</h4>
                           <p className="text-sm text-muted-foreground">Receive daily micro-tasks and reminders via WhatsApp.</p>
+                          <p className="text-xs text-muted-foreground">Also available in the AI workspace section above.</p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={openWhatsAppTasks} className="rounded-ds-xl">Open Tasks</Button>
-                          <Button size="sm" variant="ghost" onClick={() => window.location.href = '/whatsapp-tasks'}>Manage</Button>
-                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" variant="primary" className="rounded-ds-xl" onClick={openWhatsAppTasks}>Open tasks</Button>
+                        <Button size="sm" variant="ghost" className="rounded-ds-xl" asChild>
+                          <Link href="/whatsapp-tasks">Manage channel</Link>
+                        </Button>
                       </div>
                     </Card>
                   </div>
