@@ -76,3 +76,7 @@ supabase/.temp/
 *.pem
 *.key
 .idea/
+# Auto-generated build artifacts
+public/premium.css
+public/review/gramorx_all_routes_seed.json
+public/review/index.html
