@@ -130,7 +130,7 @@ export function StudyPlanEmptyState({
             </p>
           )}
           <Button asChild fullWidth variant="soft" tone="info">
-            <Link href="/mock-tests">{t('studyPlan.empty.actions.baseline', 'Take baseline mock')}</Link>
+            <Link href="/mock">{t('studyPlan.empty.actions.baseline', 'Take baseline mock')}</Link>
           </Button>
         </div>
       </Card>

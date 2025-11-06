@@ -64,14 +64,19 @@ export default function MockTestAnalytics() {
           <div>
             <h2 className="font-slab text-h3 mb-2">Weak Sections</h2>
             <ul className="list-disc list-inside space-y-1">
-              {weakSections.map((s) => (
-                <li key={s.section}>
-                  {s.section} (avg band {s.avgBand.toFixed(1)}) —{' '}
-                  <Link className="text-primary underline" href={`/mock-tests/${s.section}`}>
-                    Practice {s.section}
-                  </Link>
-                </li>
-              ))}
+              {weakSections.map((s) => {
+                const sectionSlug = s.section.toLowerCase();
+                const practiceHref =
+                  sectionSlug === 'writing' ? '/writing/mock' : `/mock/${sectionSlug}`;
+                return (
+                  <li key={s.section}>
+                    {s.section} (avg band {s.avgBand.toFixed(1)}) —{' '}
+                    <Link className="text-primary underline" href={practiceHref}>
+                      Practice {s.section}
+                    </Link>
+                  </li>
+                );
+              })}
               {weakSections.length === 0 && <li>No attempts yet.</li>}
             </ul>
           </div>

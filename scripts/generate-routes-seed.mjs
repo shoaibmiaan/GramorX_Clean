@@ -46,7 +46,7 @@ const areaMap = {
   speaking: "Core Learning",
   vocab: "Core Learning",
   vocabulary: "Core Learning",
-  "mock-tests": "Practice & Assessment",
+  mock: "Practice & Assessment",
   "study-plan": "Practice & Assessment",
   challenge: "Practice & Assessment",
   leaderboard: "Practice & Assessment",

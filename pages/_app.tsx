@@ -229,9 +229,10 @@ function InnerApp({ Component, pageProps }: AppProps) {
     [pathname]
   );
 
-  const isMockTestsRoute = useMemo(() => pathname.startsWith('/mock-tests'), [pathname]);
-  const isMockTestsLanding = pathname === '/mock-tests';
-  const isMockTestsFlowRoute = isMockTestsRoute && !isMockTestsLanding;
+  const isMockTestsRoute = useMemo(() => pathname.startsWith('/mock'), [pathname]);
+  const isMockTestsLanding = pathname === '/mock';
+  const isWritingMockRoute = useMemo(() => pathname.startsWith('/writing/mock'), [pathname]);
+  const isMockTestsFlowRoute = (isMockTestsRoute && !isMockTestsLanding) || isWritingMockRoute;
 
   const isNoChromeRoute = useMemo(
     () =>

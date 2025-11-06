@@ -22,14 +22,14 @@ const quickPrompts = [
 
 const moduleShortcuts = [
   { href: '/study-plan', label: 'Study Plan' },
-  { href: '/mock-tests', label: 'Mock Tests' },
+  { href: '/mock', label: 'Mock Tests' },
   { href: '/predictor', label: 'Band Predictor' },
   { href: '/speaking', label: 'Speaking Lab' },
   { href: '/writing', label: 'Writing Coach' },
 ];
 
 const INITIAL_ASSISTANT =
-  'Hi! I\'m your IELTS AI Coach. Ask me about planning, feedback, or skill drills and I\'ll point you to the right modules such as [Study Plan](/study-plan), [Mock Tests](/mock-tests), or [Writing Coach](/writing).';
+  'Hi! I\'m your IELTS AI Coach. Ask me about planning, feedback, or skill drills and I\'ll point you to the right modules such as [Study Plan](/study-plan), [Mock Tests](/mock), or [Writing Coach](/writing).';
 
 type ChatMessage = {
   id: string;

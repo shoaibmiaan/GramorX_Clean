@@ -97,7 +97,7 @@ export default function MistakesPage() {
           title="You&apos;re all caught up"
           description="Incorrect answers from practice will appear here for review."
           actionLabel="Start a mock test"
-          onAction={() => window.open('/mock-tests', '_self')}
+          onAction={() => window.open('/mock', '_self')}
         />
       ) : (
         <div className="space-y-4">

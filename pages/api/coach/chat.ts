@@ -31,7 +31,7 @@ const DAILY_QUOTA: Record<SubscriptionTier, number> = {
 
 const MODULE_REFERENCES = `You can reference these GramorX modules using Markdown links:
 - Study Plan (/study-plan) for structured weekly actions.
-- Mock Tests (/mock-tests) for timed exam simulation.
+- Mock Tests (/mock) for timed exam simulation.
 - Predictor (/predictor) to estimate their current band.
 - Speaking Lab (/speaking) for fluency drills.
 - Writing Coach (/writing) for Task 1 & 2 exemplars.`;
@@ -160,6 +160,6 @@ function buildMockResponse(history: CoachMessage[]): string {
   const prompt = lastUser?.content ?? 'your IELTS preparation';
   return `Here is a quick idea for ${prompt}:
 - Map today\'s tasks inside your [Study Plan](/study-plan) so the steps stay visible.
-- Schedule a timed run in [Mock Tests](/mock-tests) to collect new timing data.
+- Schedule a timed run in [Mock Tests](/mock) to collect new timing data.
 - Log your takeaways in [Writing Coach](/writing) and compare with band 8 samples.`;
 }

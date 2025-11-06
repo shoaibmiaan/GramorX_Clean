@@ -8,7 +8,7 @@ const quickActions = [
   {
     title: 'Mock exam room',
     description: 'Sit the full 60-minute module with planner, timer, and distraction controls.',
-    href: '/mock-tests/writing',
+    href: '/writing/mock',
   },
   {
     title: 'Essay bank',
@@ -81,7 +81,7 @@ export default function WritingPracticePage() {
                   <p className="mt-2 text-sm text-muted-foreground">Task 1: {paper.task1Focus}</p>
                   <p className="mt-1 text-sm text-muted-foreground">Task 2: {paper.task2Focus}</p>
                 </div>
-                <Button href={`/mock/writing/${paper.id}`} variant="primary" className="mt-6 rounded-ds">
+                <Button href={`/writing/mock/${paper.id}/start`} variant="primary" className="mt-6 rounded-ds">
                   Start now
                 </Button>
               </Card>
@@ -106,7 +106,7 @@ export default function WritingPracticePage() {
                 Track sentence variety, lexical richness, and coherence markers. Set improvement goals and watch your band score climb.
               </p>
             </div>
-            <Button href="/mock-tests/writing" variant="primary" className="mt-4 rounded-ds md:mt-0">
+            <Button href="/writing/mock" variant="primary" className="mt-4 rounded-ds md:mt-0">
               Browse mock tests
             </Button>
           </Card>

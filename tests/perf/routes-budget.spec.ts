@@ -6,6 +6,6 @@ import budgets from '../../tools/perf/budgets.json';
 test('writing route budgets defined', () => {
   assert.equal(Array.isArray(budgets.routes), true);
   const patterns = budgets.routes.map((entry: any) => entry.pattern);
-  assert.ok(patterns.includes('/mock/writing/*'));
+  assert.ok(patterns.includes('/writing/mock/*'));
   assert.ok(patterns.includes('/writing/results/*'));
 });

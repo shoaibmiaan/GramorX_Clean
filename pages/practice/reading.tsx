@@ -11,7 +11,7 @@ const quickActions = [
   {
     title: 'Mock test hub',
     description: 'Three long passages with review tools that surface the exact evidence.',
-    href: '/mock-tests/reading',
+    href: '/mock/reading',
   },
   {
     title: 'Passage library',
@@ -110,7 +110,7 @@ export default function ReadingPracticePage() {
                 Our review engine spots which question families cost you marks and queues personalised drills for the next session.
               </p>
             </div>
-            <Button href="/mock-tests/reading" variant="primary" className="mt-4 rounded-ds md:mt-0">
+            <Button href="/mock/reading" variant="primary" className="mt-4 rounded-ds md:mt-0">
               Browse mock tests
             </Button>
           </Card>

@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabaseClient'; // Replaced supabaseBrowser
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: IconName; exact?: boolean }> = [
   { href: '/', label: 'Home', icon: 'Home', exact: true },
   { href: '/learning', label: 'Courses', icon: 'BookOpen' },
-  { href: '/mock-tests', label: 'Tests', icon: 'PencilLine' },
+  { href: '/mock', label: 'Tests', icon: 'PencilLine' },
   { href: '/profile', label: 'Profile', icon: 'User' },
 ];
 

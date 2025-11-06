@@ -91,8 +91,8 @@ const definitions: DeeplinkDefinition[] = [
     description: 'Teacher dashboard shell',
   },
   {
-    slug: 'mock-tests',
-    href: '/mock-tests',
+    slug: 'mock',
+    href: '/mock',
     minPlan: 'free',
     description: 'Mock test catalogue',
   },
@@ -131,8 +131,8 @@ export const UNIVERSAL_LINK_PATHS: readonly string[] = [
   '/teacher/*',
   '/learning',
   '/learning/*',
-  '/mock-tests',
-  '/mock-tests/*',
+  '/mock',
+  '/mock/*',
   '/challenge',
   '/challenge/*',
 ];

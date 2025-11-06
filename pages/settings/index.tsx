@@ -357,7 +357,7 @@ export default function Dashboard() {
               <Button as="a" href="/learning" variant="primary" className="rounded-ds-xl">
                 Start Today’s Lesson
               </Button>
-              <Button as="a" href="/mock-tests" variant="secondary" className="rounded-ds-xl">
+              <Button as="a" href="/mock" variant="secondary" className="rounded-ds-xl">
                 Take a Mock Test
               </Button>
               <Button as="a" href="/writing" variant="accent" className="rounded-ds-xl">
