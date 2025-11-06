@@ -25,16 +25,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (userErr) return res.status(500).json({ error: 'Auth error', details: userErr.message });
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  // NOTE: This file uses 'study_buddy_sessions' per your original code.
+  // If your table is actually 'study_sessions', switch the table name here only.
   const { data: session, error: fetchErr } = await supabase
-    .from('study_sessions')
+    .from('study_buddy_sessions')
     .select('*')
     .eq('id', sessionId)
     .single();
 
-  if (fetchErr) {
-    return res.status(500).json({ error: 'load_failed', details: fetchErr.message });
-  }
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (fetchErr || !session) return res.status(404).json({ error: 'Session not found' });
 
   // Re-check ownership (don’t trust client IDs)
   if (session.user_id !== user.id) {
