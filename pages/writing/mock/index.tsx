@@ -93,11 +93,11 @@ const actionCopy: Record<AttemptStatus, { label: string; href: (attemptId: strin
   },
   completed: {
     label: 'View results',
-    href: (attemptId) => `/writing/mock/results/${attemptId}`,
+    href: (attemptId) => `/writing/mock/${attemptId}/results`,
   },
   reviewed: {
     label: 'Open review',
-    href: (attemptId) => `/writing/mock/review/${attemptId}`,
+    href: (attemptId) => `/writing/mock/${attemptId}/review`,
   },
 };
 

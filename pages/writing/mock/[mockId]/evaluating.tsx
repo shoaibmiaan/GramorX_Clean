@@ -18,20 +18,20 @@ const POLL_INTERVAL = 5000;
 
 const EvaluatingPage: React.FC = () => {
   const router = useRouter();
-  const { attemptId } = router.query as { attemptId?: string };
+  const { mockId } = router.query as { mockId?: string };
   const [status, setStatus] = useState<string>('submitted');
   const [responses, setResponses] = useState<number>(0);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!attemptId) return;
+    if (!mockId) return;
     let active = true;
     let timeout: NodeJS.Timeout | null = null;
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/mock/writing/status?attemptId=${attemptId}`);
+        const res = await fetch(`/api/mock/writing/status?attemptId=${mockId}`);
         if (!res.ok) {
           const payload = await res.json().catch(() => ({}));
           throw new Error(payload?.error ?? 'Status check failed');
@@ -42,7 +42,7 @@ const EvaluatingPage: React.FC = () => {
         setResponses(data.responses);
         setSubmittedAt(data.submittedAt);
         if (data.aiReady) {
-          await router.replace(`/writing/mock/results/${attemptId}`);
+          await router.replace(`/writing/mock/${mockId}/results`);
           return;
         }
         timeout = setTimeout(poll, POLL_INTERVAL);
@@ -59,7 +59,7 @@ const EvaluatingPage: React.FC = () => {
       active = false;
       if (timeout) clearTimeout(timeout);
     };
-  }, [attemptId, router]);
+  }, [mockId, router]);
 
   const submittedLabel = useMemo(() => {
     if (!submittedAt) return 'Just now';
@@ -74,15 +74,15 @@ const EvaluatingPage: React.FC = () => {
   }, [submittedAt]);
 
   const handleViewResults = () => {
-    if (!attemptId) return;
-    void router.push(`/writing/mock/results/${attemptId}`);
+    if (!mockId) return;
+    void router.push(`/writing/mock/${mockId}/results`);
   };
 
   const handleReturn = () => {
     void router.push('/writing/mock');
   };
 
-  if (!attemptId) {
+  if (!mockId) {
     return null;
   }
 
@@ -100,7 +100,7 @@ const EvaluatingPage: React.FC = () => {
           <dl className="grid gap-4 text-sm text-muted-foreground">
             <div>
               <dt className="font-medium text-foreground">Attempt ID</dt>
-              <dd className="font-mono text-xs text-muted-foreground">{attemptId}</dd>
+              <dd className="font-mono text-xs text-muted-foreground">{mockId}</dd>
             </div>
             <div>
               <dt className="font-medium text-foreground">Status</dt>

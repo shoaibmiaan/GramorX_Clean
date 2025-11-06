@@ -280,7 +280,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
     const shareText = `I just logged a band ${averageBand.toFixed(1)} IELTS writing mock on GramorX!`;
     const shareUrl =
       typeof window !== 'undefined'
-        ? `${window.location.origin}/writing/mock/results/${attemptId}`
+        ? `${window.location.origin}/writing/mock/${attemptId}/results`
         : 'https://gramorx.com/writing/mock';
 
     try {
@@ -352,7 +352,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
             <Badge variant="success" size="sm">
               +{xp.points} XP
             </Badge>
-            <Link href={`/writing/mock/review/${attemptId}`}>
+            <Link href={`/writing/mock/${attemptId}/review`}>
               <Button size="sm" variant="secondary">
                 Detailed review
               </Button>
@@ -498,7 +498,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  const { attemptId } = ctx.params as { attemptId: string };
+  const { mockId: attemptId } = ctx.params as { mockId: string };
 
   const { data: attempt, error } = await supabase
     .from('exam_attempts')

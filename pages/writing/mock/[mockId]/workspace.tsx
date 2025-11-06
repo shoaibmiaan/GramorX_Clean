@@ -147,7 +147,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
           if (mockId) {
             clearMockAttemptId('writing', mockId);
           }
-          void router.push(`/writing/mock/evaluating/${result.attemptId}`);
+          void router.push(`/writing/mock/${result.attemptId}/evaluating`);
         }}
       />
       <KeyboardAwareSheet
@@ -181,7 +181,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
     };
   }
 
-  const { attemptId } = ctx.params as { attemptId: string };
+  const { mockId: attemptId } = ctx.params as { mockId: string };
 
   const { data: attempt, error } = await supabase
     .from('exam_attempts')

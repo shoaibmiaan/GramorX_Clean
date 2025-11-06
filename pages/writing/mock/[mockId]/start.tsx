@@ -119,7 +119,7 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
                 </Button>
               ) : (
                 <Button
-                  href={`/writing/mock/results/${latestAttempt.attemptId}`}
+                  href={`/writing/mock/${latestAttempt.attemptId}/results`}
                   variant="secondary"
                   className="rounded-ds"
                 >
