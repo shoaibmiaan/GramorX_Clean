@@ -8,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { data, error } = await supabaseAdmin
-    .from("study_sessions")
+    .from("study_buddy_sessions")
     .select("*")
     .order("created_at", { ascending: false });
 
