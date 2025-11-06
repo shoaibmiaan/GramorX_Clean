@@ -92,54 +92,67 @@ export function withPlan(
   return async function guarded(req, res) {
     const supabase = getServerClient(req, res);
 
-    if (required === 'free') {
-      const flagsSnapshot = flags.snapshot();
-      return handler(req, res, {
-        supabase,
-        user: null as unknown as User,
-        plan: 'free',
-        role: null,
-        audience: { plan: 'free', role: null, userId: 'anonymous' },
-        flags: flagsSnapshot,
-      });
-    }
+    const ensureContext = async (): Promise<PlanGuardContext | null> => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      if (authError) {
+        deny(res, 500, { error: 'Auth error', details: authError.message });
+        return null;
+      }
 
-    if (authError || !user) {
-      deny(res, 401, { error: 'Not authenticated', requiredPlan: required });
-      return;
-    }
+      if (!user) {
+        deny(res, 401, { error: 'Not authenticated', requiredPlan: required });
+        return null;
+      }
 
-    const { plan, role } = await loadProfilePlan(supabase, user.id);
-    const audience = buildAudience(user, plan, role);
+      const { plan, role } = await loadProfilePlan(supabase, user.id);
+      const audience = buildAudience(user, plan, role);
+      const flagsSnapshot = await resolveFlags(audience);
+
+      return { supabase, user, plan, role, audience, flags: flagsSnapshot };
+    };
 
     const allowRoles = new Set<AllowedRole>([...(options.allowRoles ?? []), 'admin']);
     if (required === 'master') {
       allowRoles.add('teacher');
     }
 
-    if (role && allowRoles.has(role as AllowedRole)) {
-      const flagsSnapshot = await resolveFlags(audience);
-      await handler(req, res, { user, plan, role, supabase, audience, flags: flagsSnapshot });
+    if (required === 'free') {
+      const context = await ensureContext();
+      if (!context) return;
+
+      if (context.role && allowRoles.has(context.role as AllowedRole)) {
+        await handler(req, res, context);
+        return;
+      }
+
+      await handler(req, res, context);
       return;
     }
 
-    if (!hasPlan(plan, required)) {
+    const context = await ensureContext();
+    if (!context) return;
+
+    if (context.role && allowRoles.has(context.role as AllowedRole)) {
+      await handler(req, res, context);
+      return;
+    }
+
+    if (!hasPlan(context.plan, required)) {
       res.setHeader('X-Required-Plan', required);
       deny(res, 402, {
         error: 'Upgrade required',
         requiredPlan: required,
-        currentPlan: plan,
+        currentPlan: context.plan,
         upgradeUrl: `/pricing?required=${required}`,
       });
       return;
     }
 
-    if (await checkKillSwitch(options.killSwitchFlag, audience)) {
+    if (await checkKillSwitch(options.killSwitchFlag, context.audience)) {
       deny(res, 503, {
         error: 'Temporarily unavailable',
         reason: 'Feature disabled by kill-switch',
@@ -148,8 +161,7 @@ export function withPlan(
       return;
     }
 
-    const flagsSnapshot = await resolveFlags(audience);
-    await handler(req, res, { user, plan, role, supabase, audience, flags: flagsSnapshot });
+    await handler(req, res, context);
   };
 }
 

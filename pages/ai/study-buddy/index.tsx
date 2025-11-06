@@ -391,8 +391,18 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
       });
       const body = await resp.json();
       if (!resp.ok) {
-        setFormError(body?.error || 'Could not create session.');
-        toast.error('Session could not be created', body?.error || undefined);
+        if (resp.status === 402) {
+          const remaining = typeof body?.remainingMinutes === 'number' ? body.remainingMinutes : 0;
+          const message =
+            remaining > 0
+              ? `You have ${remaining} focus minutes left on your plan today.`
+              : 'Daily focus minutes reached on the free plan. Come back tomorrow or upgrade for more time.';
+          setFormError(message);
+          toast.warn('Daily limit reached', message);
+        } else {
+          setFormError(body?.error || 'Could not create session.');
+          toast.error('Session could not be created', body?.error || undefined);
+        }
         return;
       }
       const session = normaliseSession(body.session) ?? null;

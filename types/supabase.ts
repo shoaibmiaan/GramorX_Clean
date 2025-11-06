@@ -544,10 +544,11 @@ export interface MistakesRow extends TableBase {
 
 export interface UserXpEvent extends TableBase {
   user_id: string;
-  source: 'writing';
+  source: 'writing' | 'study_buddy';
   attempt_id?: string | null;
   points: number;
   reason: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface StudyPlanFocusRow extends TableBase {

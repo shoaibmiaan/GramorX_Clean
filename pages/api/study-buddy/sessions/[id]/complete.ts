@@ -2,100 +2,136 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { getServerClient } from '@/lib/supabaseServer';
 import { withPlan } from '@/lib/withPlan';
+import { rateLimit } from '@/lib/rateLimit';
+import {
+  computeDuration,
+  createSessionLogger,
+  fetchSession,
+  hydrateSession,
+  recordEvent,
+  awardStudyBuddyXp,
+  StudyBuddyError,
+  PlanLimitError,
+  type StudyBuddySession,
+} from '@/services/study-buddy/session';
 
 const Params = z.object({ id: z.string().uuid() });
 
-type SessionItem = {
-  skill: string;
-  minutes: number;
-  topic?: string | null;
-  status?: 'pending' | 'started' | 'completed';
-  note?: string | null;
-};
+type CompleteResponse =
+  | { ok: true; session: StudyBuddySession; xp: number; capped: boolean }
+  | { ok: false; error: string; details?: unknown };
 
-type StudySession = {
-  id: string;
-  user_id: string;
-  items: SessionItem[];
-  state: 'pending' | 'started' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string | null;
-  started_at: string | null;
-  ended_at: string | null;
-  duration_minutes: number | null;
-  xp_earned: number;
-};
+export default withPlan(
+  'free',
+  async (req: NextApiRequest, res: NextApiResponse<CompleteResponse>, ctx) => {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+    }
 
-function normaliseItems(items: SessionItem[]): SessionItem[] {
-  return (items || []).map((item) => ({
-    skill: item.skill,
-    minutes: item.minutes,
-    topic: item.topic ?? null,
-    status: item.status ?? 'pending',
-    note: item.note ?? null,
-  }));
-}
+    const parsed = Params.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: 'invalid_id', details: parsed.error.flatten() });
+    }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+    if (
+      !(await rateLimit(req, res, { key: `study-buddy:complete:${parsed.data.id}`, userId: ctx.user.id }))
+    ) {
+      return;
+    }
 
-  const supabase = getServerClient(req, res);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const logger = createSessionLogger('/api/study-buddy/sessions/[id]/complete', ctx.user.id, parsed.data.id);
+    let session: StudyBuddySession | null = null;
+    try {
+      session = await fetchSession(ctx.supabase, parsed.data.id, ctx.user.id);
+    } catch (error) {
+      if (error instanceof StudyBuddyError) {
+        logger.error('load_failed', { code: error.code, meta: error.meta });
+        return res.status(500).json({ ok: false, error: 'load_failed', details: error.meta });
+      }
+      throw error;
+    }
 
-  const parse = Params.safeParse(req.query);
-  if (!parse.success) {
-    return res.status(400).json({ error: 'Invalid id', details: parse.error.flatten() });
-  }
+    if (!session) {
+      return res.status(404).json({ ok: false, error: 'not_found' });
+    }
 
-  const { id } = parse.data;
+    if (session.state === 'completed') {
+      return res.status(200).json({ ok: true, session, xp: session.xp_earned ?? 0, capped: false });
+    }
 
-  const { data: session, error: fetchErr } = await supabase
-    .from('study_buddy_sessions')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle<StudySession>();
+    const completedMinutes = computeDuration(session.items, true);
+    const effectiveMinutes = completedMinutes > 0 ? completedMinutes : computeDuration(session.items);
+    const now = new Date().toISOString();
 
-  if (fetchErr) return res.status(500).json({ error: 'load_failed', details: fetchErr.message });
-  if (!session) return res.status(404).json({ error: 'not_found' });
-  if (session.user_id !== user.id) return res.status(403).json({ error: 'forbidden' });
+    let xpAward = { requested: 0, awarded: 0, capped: false, remainingAllowance: 0, dayIso: '' };
+    try {
+      xpAward = await awardStudyBuddyXp(ctx.supabase, session, ctx.plan);
+    } catch (error) {
+      if (error instanceof PlanLimitError && error.code === 'xp_cap_reached') {
+        logger.warn('xp_cap_reached', error.meta);
+        xpAward = {
+          requested: computeDuration(session.items, true) * 4,
+          awarded: 0,
+          capped: true,
+          remainingAllowance: error.remaining,
+          dayIso: '',
+        };
+      } else if (error instanceof StudyBuddyError) {
+        logger.error('xp_award_failed', { code: error.code, meta: error.meta });
+        return res.status(500).json({ ok: false, error: 'xp_award_failed', details: error.meta });
+      } else {
+        throw error;
+      }
+    }
 
-  if (session.state === 'completed') {
-    return res.status(200).json({ ok: true, session });
-  }
-
-  const now = new Date().toISOString();
-  const items = normaliseItems(session.items).map((item) => ({
-    ...item,
-    status: 'completed',
-  }));
-  const totalMinutes = items.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
-  const xpEarned = totalMinutes * 4; // simple XP heuristic
-
-  const { data: updated, error: updErr } = await supabase
-    .from('study_buddy_sessions')
-    .update({
-      state: 'completed',
+    const updates = {
+      state: 'completed' as const,
       ended_at: now,
       started_at: session.started_at ?? now,
-      duration_minutes: totalMinutes,
-      items,
-      xp_earned: xpEarned,
-    })
-    .eq('id', id)
-    .select('*')
-    .single<StudySession>();
+      duration_minutes: effectiveMinutes,
+      xp_earned: xpAward.awarded,
+      items: session.items.map((item) => ({ ...item, status: item.status === 'completed' ? 'completed' : item.status })),
+    };
 
-  if (updErr) return res.status(500).json({ error: 'update_failed', details: updErr.message });
+    const { data, error } = await ctx.supabase
+      .from('study_buddy_sessions')
+      .update(updates)
+      .eq('id', session.id)
+      .eq('user_id', ctx.user.id)
+      .select('*')
+      .maybeSingle();
 
-  return res.status(200).json({ ok: true, session: { ...updated, items: normaliseItems(updated.items) } });
-}
+    if (error) {
+      logger.error('update_failed', { error: error.message });
+      return res.status(500).json({ ok: false, error: 'update_failed' });
+    }
 
-export default withPlan('free', handler, { allowRoles: ['admin', 'teacher'] });
+    const updated = hydrateSession(data);
+    if (!updated) {
+      return res.status(500).json({ ok: false, error: 'hydrate_failed' });
+    }
+
+    logger.info('session_completed', { minutes: effectiveMinutes, xp: xpAward.awarded });
+    void recordEvent('study_session_completed', {
+      session_id: updated.id,
+      user_id: ctx.user.id,
+      completed_minutes: completedMinutes,
+      planned_minutes: computeDuration(updated.items),
+      xp_awarded: xpAward.awarded,
+      xp_requested: xpAward.requested,
+      capped: xpAward.capped,
+    });
+    if (completedMinutes === 0) {
+      void recordEvent('study_session_abandoned', {
+        session_id: updated.id,
+        user_id: ctx.user.id,
+        reason: 'no_items_completed',
+      });
+    }
+
+    return res.status(200).json({ ok: true, session: updated, xp: xpAward.awarded, capped: xpAward.capped });
+  },
+  { allowRoles: ['admin', 'teacher'] },
+);

@@ -2,6 +2,7 @@
 import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { getServerClient } from '@/lib/supabaseServer';
 
@@ -10,10 +11,15 @@ import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
 import { Badge } from '@/components/design-system/Badge';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
+import { Modal } from '@/components/design-system/Modal';
+import { Select } from '@/components/design-system/Select';
+import { Textarea } from '@/components/design-system/Textarea';
+import { Alert } from '@/components/design-system/Alert';
 
 import type { StudySession } from '@/pages/ai/study-buddy';
 
 import { GradientText } from '@/components/design-system/GradientText';
+import { useToast } from '@/components/design-system/Toaster';
 
 function normaliseSession(session: any | null): StudySession | null {
   if (!session) return null;
@@ -76,7 +82,107 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   return { props: { session: normaliseSession(data) } };
 };
 
+const skillToModule = (skill: string): 'listening' | 'reading' | 'writing' | 'speaking' => {
+  const normalized = skill.toLowerCase();
+  if (normalized.includes('listen')) return 'listening';
+  if (normalized.includes('read')) return 'reading';
+  if (normalized.includes('speak')) return 'speaking';
+  return 'writing';
+};
+
 const SummaryPage: NextPage<Props> = ({ session }) => {
+  const toast = useToast();
+
+  const items = session?.items ?? [];
+  const duration =
+    session?.duration_minutes ?? items.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+  const completedBlocks = items.filter((item) => item.status === 'completed').length;
+  const completionRate = items.length ? Math.round((completedBlocks / items.length) * 100) : 0;
+  const skillTotals = items.reduce<Record<string, number>>((acc, item) => {
+    acc[item.skill] = (acc[item.skill] ?? 0) + Number(item.minutes || 0);
+    return acc;
+  }, {});
+
+  const topSkill = Object.entries(skillTotals).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const skillOptions = useMemo(() => {
+    const unique = new Set<string>();
+    items.forEach((item) => {
+      if (item.skill) unique.add(item.skill);
+    });
+    return Array.from(unique);
+  }, [items]);
+
+  const [mistakeOpen, setMistakeOpen] = useState(false);
+  const [mistakeSkill, setMistakeSkill] = useState(skillOptions[0] ?? 'Writing');
+  const [mistakeNote, setMistakeNote] = useState('');
+  const [mistakeSaving, setMistakeSaving] = useState(false);
+  const [mistakeError, setMistakeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!skillOptions.length) return;
+    setMistakeSkill((current) => (skillOptions.includes(current) ? current : skillOptions[0]!));
+  }, [skillOptions]);
+
+  const closeMistake = useCallback(() => {
+    setMistakeOpen(false);
+    setMistakeError(null);
+  }, []);
+
+  const handleLogMistake = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!mistakeNote.trim()) return;
+      setMistakeSaving(true);
+      setMistakeError(null);
+      try {
+        if (!session) {
+          throw new Error('Session not loaded yet');
+        }
+        const moduleKey = skillToModule(mistakeSkill);
+        const payload = {
+          attemptId: session.id,
+          module: moduleKey,
+          mistakes: [
+            {
+              questionId: `${session.id}-${Date.now()}`,
+              prompt: mistakeNote.trim().slice(0, 200),
+              correctAnswer: null,
+              givenAnswer: null,
+              retryPath: `/ai/study-buddy/session/${session.id}/practice`,
+              skill: moduleKey,
+              tags: [
+                { key: 'source', value: 'study_buddy' },
+                { key: 'skill', value: moduleKey },
+              ],
+            },
+          ],
+        };
+
+        const resp = await fetch('/api/mistakes/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        const body = await resp.json();
+        if (!resp.ok || !body?.ok) {
+          throw new Error(body?.error || 'Failed to log mistake');
+        }
+
+        toast.success('Mistake saved', 'Check the Mistakes Book for your note.');
+        setMistakeNote('');
+        setMistakeOpen(false);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Could not log mistake';
+        setMistakeError(message);
+        toast.error('Could not log mistake', message);
+      } finally {
+        setMistakeSaving(false);
+      }
+    },
+    [mistakeNote, mistakeSkill, session, toast],
+  );
+
   if (!session) {
     return (
       <Container className="py-20">
@@ -90,19 +196,6 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
       </Container>
     );
   }
-
-  const duration =
-    session.duration_minutes ?? session.items.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
-  const completedBlocks = session.items.filter((item) => item.status === 'completed').length;
-  const completionRate = session.items.length
-    ? Math.round((completedBlocks / session.items.length) * 100)
-    : 0;
-  const skillTotals = session.items.reduce<Record<string, number>>((acc, item) => {
-    acc[item.skill] = (acc[item.skill] ?? 0) + Number(item.minutes || 0);
-    return acc;
-  }, {});
-
-  const topSkill = Object.entries(skillTotals).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   return (
     <>
@@ -170,9 +263,12 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
               {topSkill && <li>Your strongest coverage today was {topSkill}. Keep the momentum!</li>}
               <li>Log fresh insights in the Mistakes Book to reinforce progress.</li>
             </ul>
-            <Button className="mt-4" variant="secondary" asChild>
-              <Link href="/mistakes">Add to Mistakes Book</Link>
-            </Button>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button variant="secondary" asChild>
+                <Link href="/mistakes">Open Mistakes Book</Link>
+              </Button>
+              <Button onClick={() => setMistakeOpen(true)}>Log a mistake</Button>
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -196,6 +292,40 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
           </Card>
         </div>
       </Container>
+      <Modal open={mistakeOpen} onClose={closeMistake} title="Log to Mistakes Book" size="md">
+        <form onSubmit={handleLogMistake} className="space-y-4">
+          {mistakeError && <Alert variant="danger">{mistakeError}</Alert>}
+          <Select
+            label="Skill"
+            value={mistakeSkill}
+            onChange={(value) => setMistakeSkill(value)}
+            required
+          >
+            {skillOptions.map((skill) => (
+              <option key={skill} value={skill}>
+                {skill}
+              </option>
+            ))}
+            {!skillOptions.length && <option value="Writing">Writing</option>}
+          </Select>
+          <Textarea
+            label="What did you want to remember?"
+            value={mistakeNote}
+            onChange={(event) => setMistakeNote(event.target.value)}
+            placeholder="Write a quick reminder for future review."
+            rows={5}
+            required
+          />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={closeMistake} disabled={mistakeSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={mistakeSaving || !mistakeNote.trim()}>
+              {mistakeSaving ? 'Logging…' : 'Log mistake'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 };
