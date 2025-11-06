@@ -476,7 +476,7 @@ export default function Dashboard(): JSX.Element {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button size="sm" onClick={openStudyBuddy} className="rounded-ds-xl">Open</Button>
-                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/study-buddy'}>Full view</Button>
+                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/ai/study-buddy'}>Full view</Button>
                     </div>
                   </div>
                 </Card>
@@ -489,7 +489,7 @@ export default function Dashboard(): JSX.Element {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button size="sm" onClick={openMistakesBook} className="rounded-ds-xl">Open</Button>
-                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/mistakes-book'}>Full view</Button>
+                      <Button size="sm" variant="ghost" onClick={() => window.location.href = '/ai/mistakes-book'}>Full view</Button>
                     </div>
                   </div>
                 </Card>

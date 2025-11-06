@@ -1,72 +1,211 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+// pages/api/ai/coach.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
+/* -------------------------------------------------------------------------- */
+/* ENV expected (set in .env.local)                                           */
+/* -------------------------------------------------------------------------- */
+/*
+GROQ_API_KEY=gsk-...
+GROQ_API_BASE=https://api.groq.com/openai/v1
+GROQ_MODEL=llama-3.3-70b-versatile
 
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+GEMINI_API_KEY=AIza...
+GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai
+GEMINI_MODEL=gemini-1.5-flash-latest
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+OPENAI_API_KEY=sk-...
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
 
-  const { userId = null, context = '', goal = '' } = req.body ?? {};
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_API_BASE=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
 
-  if (!OPENAI_KEY) {
-    return res.status(500).json({ error: 'OpenAI key not configured on server' });
-  }
+GROK_API_KEY=xai-...
+GROK_API_BASE=https://api.x.ai/v1
+GROK_MODEL=grok-4-latest
+
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+AI_MOCK=1            # optional for dev offline
+*/
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/* -------------------------------------------------------------------------- */
+/* Provider chain                                                             */
+/* -------------------------------------------------------------------------- */
+
+type Prov = {
+  name: "groq" | "gemini" | "openai" | "deepseek" | "grok";
+  baseURL: string;
+  apiKey?: string;
+  model: string;
+};
+
+const PROVIDERS: Prov[] = [
+  {
+    name: "groq",
+    baseURL: process.env.GROQ_API_BASE || "https://api.groq.com/openai/v1",
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+  },
+  {
+    name: "gemini",
+    baseURL:
+      process.env.GEMINI_API_BASE ||
+      "https://generativelanguage.googleapis.com/v1beta/openai",
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL || "gemini-1.5-flash-latest",
+  },
+  {
+    name: "openai",
+    baseURL: process.env.OPENAI_API_BASE || "https://api.openai.com/v1",
+    apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  },
+  {
+    name: "deepseek",
+    baseURL: process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com",
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+  },
+  {
+    name: "grok",
+    baseURL: process.env.GROK_API_BASE || "https://api.x.ai/v1",
+    apiKey: process.env.GROK_API_KEY,
+    model: process.env.GROK_MODEL || "grok-4-latest",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+const SYSTEM_PROMPT =
+  "You are an IELTS coaching assistant. Provide concise actionable suggestions (3–6), each with a short title, a 1–2 sentence detail, and estimated minutes to practice. Output pure JSON only.";
+
+function extractJSON(str: string): any {
+  if (!str) return null;
+  try {
+    return JSON.parse(str);
+  } catch {}
+  const fence = str.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) try { return JSON.parse(fence[1]); } catch {}
+  const block = str.match(/\{[\s\S]*\}/);
+  if (block) try { return JSON.parse(block[0]); } catch {}
+  return { raw: str };
+}
+
+async function callProvider(p: Prov, payload: any) {
+  if (!p.apiKey)
+    return { ok: false, err: { status: 500, detail: `${p.name} key missing` }, provider: p.name };
 
   try {
-    // Build a helpful system + user prompt
-    const system = `You are an IELTS coaching assistant. Provide concise actionable suggestions (3-6), each with a short title, a 1-2 sentence detail, and estimated minutes to practice. Keep output JSON only.`;
-    const userPrompt = `User goal: ${goal}\nContext: ${context}\nReturn JSON: { id: string, summary: string, suggestions: [{id,title,detail,estimatedMinutes}], reasoning?: string }`;
-
-    const payload = {
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: userPrompt },
-      ],
-      max_tokens: 600,
-      temperature: 0.2,
-    };
-
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify(payload),
+    const r = await fetch(`${p.baseURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${p.apiKey}`,
+      },
+      body: JSON.stringify({ ...payload, model: p.model }),
     });
 
-    if (!r.ok) {
-      const txt = await r.text();
-      await supabaseAdmin.from('ai_logs').insert([{ user_id: userId, request: JSON.stringify({ context, goal }), response: txt, status: 'error' }]);
-      return res.status(500).json({ error: 'AI provider error', detail: txt });
-    }
+    const txt = await r.text();
+    if (!r.ok)
+      return {
+        ok: false,
+        err: { status: r.status, detail: (() => { try { return JSON.parse(txt); } catch { return txt; } })() },
+        provider: p.name,
+      };
 
-    const json = await r.json();
-    const content = json.choices?.[0]?.message?.content ?? json.choices?.[0]?.text ?? '';
+    const json = JSON.parse(txt);
+    const content =
+      json?.choices?.[0]?.message?.content ??
+      json?.choices?.[0]?.text ??
+      "";
 
-    // Try to parse JSON from the model; fall back to plain text
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(content);
-    } catch (e) {
-      // If model didn't return clean JSON, attempt to extract JSON substring
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { parsed = JSON.parse(match[0]); } catch (_) { parsed = { raw: content }; }
-      } else {
-        parsed = { raw: content };
-      }
-    }
+    if (!content.trim())
+      return { ok: false, err: { status: 502, detail: "Empty content" }, provider: p.name };
 
-    // Persist to ai_logs for audit
-    await supabaseAdmin.from('ai_logs').insert([{ user_id: userId, request: JSON.stringify({ context, goal }), response: JSON.stringify(parsed), status: 'ok' }]);
-
-    return res.status(200).json(parsed);
-  } catch (err: any) {
-    console.error('ai coach error', err);
-    await supabaseAdmin.from('ai_logs').insert([{ user_id: req.body?.userId ?? null, request: JSON.stringify(req.body), response: (err?.message ?? String(err)), status: 'error' }]);
-    return res.status(500).json({ error: 'AI coach failed', detail: err?.message ?? String(err) });
+    return { ok: true, content, provider: p.name };
+  } catch (e: any) {
+    return { ok: false, err: { status: 500, detail: e.message || String(e) }, provider: p.name };
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Handler                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Method not allowed" });
+
+  const { userId = null, context = "", goal = "" } = req.body ?? {};
+
+  /* Mock mode --------------------------------------------------------------- */
+  if (process.env.AI_MOCK === "1") {
+    const mock = {
+      id: "mock",
+      summary: "Mock AI response — providers unavailable.",
+      suggestions: [
+        { id: "s1", title: "Plan paragraphs", detail: "Spend 5 min outlining key ideas.", estimatedMinutes: 10 },
+        { id: "s2", title: "Add connectors", detail: "Use clear linkers to connect ideas.", estimatedMinutes: 8 },
+        { id: "s3", title: "Rewrite one paragraph", detail: "Improve flow and coherence.", estimatedMinutes: 12 },
+      ],
+    };
+    await supabaseAdmin.from("ai_logs").insert([
+      { user_id: userId, request: JSON.stringify({ provider: "mock", context, goal }), response: JSON.stringify(mock), status: "ok" },
+    ]);
+    return res.status(200).json(mock);
+  }
+
+  const userPrompt = `User goal: ${goal}\nContext: ${context}\nReturn JSON: { id, summary, suggestions: [{id,title,detail,estimatedMinutes}], reasoning? }`;
+
+  const payload = {
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
+    max_tokens: 700,
+    temperature: 0.2,
+  };
+
+  const attempts: Array<{ provider: string; status?: number; detail?: any }> = [];
+
+  for (const p of PROVIDERS) {
+    const result = await callProvider(p, payload);
+
+    if (result.ok) {
+      const parsed = extractJSON(result.content);
+      await supabaseAdmin.from("ai_logs").insert([
+        {
+          user_id: userId,
+          request: JSON.stringify({ provider: result.provider, model: p.model, context, goal }),
+          response: JSON.stringify(parsed),
+          status: "ok",
+        },
+      ]);
+      console.log(`[ai/coach] ✅ responded from ${result.provider}`);
+      return res.status(200).json(parsed);
+    }
+
+    attempts.push({ provider: p.name, status: result.err?.status, detail: result.err?.detail });
+    await supabaseAdmin.from("ai_logs").insert([
+      {
+        user_id: userId,
+        request: JSON.stringify({ provider: p.name, model: p.model, context, goal }),
+        response: JSON.stringify(result.err),
+        status: "error",
+      },
+    ]);
+    console.warn(`[ai/coach] ❌ ${p.name} failed`, result.err);
+  }
+
+  return res.status(502).json({ error: "All AI providers failed", attempts });
 }

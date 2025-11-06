@@ -1,6 +1,7 @@
+// pages/api/mistakes/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-
-import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import { z } from 'zod';
+import { getServerClient } from '@/lib/supabaseServer';
 import { scheduleSpacedReview } from '@/lib/experiments/spaced-intervals';
 
 type MistakeRow = {
@@ -34,15 +35,34 @@ type MistakePayload = {
 
 const FALLBACK_CODES = new Set(['42P01', '42703']);
 
+const PutBody = z.object({
+  id: z.string().min(1),
+  repetitions: z.number().int().min(0).optional(),
+});
+
+const PatchBody = z.object({
+  id: z.string().min(1),
+  resolved: z.boolean(),
+});
+
+const PostBody = z.object({
+  mistake: z.string().min(1),
+  correction: z.string().optional(),
+  type: z.string().optional(),
+  retryPath: z.string().nullable().optional(),
+});
+
+const DeleteBody = z.object({
+  id: z.string().min(1),
+});
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createSupabaseServerClient({ req });
+  const supabase = getServerClient(req, res);
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   if (req.method === 'GET') {
     const limit = Math.min(Number(req.query.limit) || 10, 50);
@@ -63,27 +83,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .order('created_at', { ascending: false })
       .limit(limit + 1);
 
-    if (cursor) {
-      query = query.lt('created_at', cursor);
-    }
+    if (cursor) query = query.lt('created_at', cursor);
 
     let { data, error } = await query;
-    let rows = (data as MistakeRow[]) ?? [];
+    let rows: MistakeRow[] = (data as any) ?? [];
 
     if (error && FALLBACK_CODES.has(error.code ?? '')) {
-      // Older databases might not have the view yet. Fall back to the raw table.
-      let fallback = supabase
+      let fb = supabase
         .from('mistakes_book')
         .select('id,mistake,correction,type,repetitions,next_review,retry_path,created_at,last_seen_at')
         .eq('user_id', user.id)
         .gte('created_at', sinceIso)
         .order('created_at', { ascending: false })
         .limit(limit + 1);
-      if (cursor) fallback = fallback.lt('created_at', cursor);
+      if (cursor) fb = fb.lt('created_at', cursor);
 
-      const fallbackResult = await fallback;
-      error = fallbackResult.error;
-      rows = (fallbackResult.data as MistakeRow[]) ?? [];
+      const fbRes = await fb;
+      error = fbRes.error;
+      rows = (fbRes.data as any) ?? [];
 
       if (!error) {
         const { data: resolvedData } = await supabase
@@ -91,37 +108,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .select('mistake_id')
           .eq('user_id', user.id);
         if (resolvedData?.length) {
-          const resolvedIds = new Set(resolvedData.map((row: { mistake_id: string }) => row.mistake_id));
-          rows = rows.filter((row) => !resolvedIds.has(row.id));
+          const resolvedIds = new Set(resolvedData.map((r: { mistake_id: string }) => r.mistake_id));
+          rows = rows.filter((r) => !resolvedIds.has(r.id));
         }
       }
     }
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     const hasMore = rows.length > limit;
     const trimmed = hasMore ? rows.slice(0, limit) : rows;
-    const items = trimmed.map(mapRow).filter((item): item is MistakePayload => item !== null);
+    const items = trimmed.map(mapRow).filter(Boolean) as MistakePayload[];
     const nextCursor = hasMore ? trimmed[trimmed.length - 1]?.created_at ?? null : null;
 
     return res.status(200).json({ items, nextCursor });
   }
 
   if (req.method === 'POST') {
-    const { mistake, correction, type, retryPath } = req.body as {
-      mistake?: string;
-      correction?: string;
-      type?: string;
-      retryPath?: string | null;
-    };
-    if (!mistake) {
-      return res.status(400).json({ error: 'Missing mistake' });
+    const parse = PostBody.safeParse(req.body ?? {});
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
     }
+    const { mistake, correction, type, retryPath } = parse.data;
+
     const { data, error } = await supabase
       .from('mistakes_book')
-      .insert({ user_id: user.id, mistake, correction, type, retry_path: retryPath ?? null })
+      .insert({ user_id: user.id, mistake, correction: correction ?? null, type: type ?? null, retry_path: retryPath ?? null })
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
@@ -129,11 +141,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PUT') {
-    const { id, repetitions } = req.body as { id?: string; repetitions?: number };
-    if (!id) {
-      return res.status(400).json({ error: 'Missing id' });
+    const parse = PutBody.safeParse(req.body ?? {});
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
     }
-    const nextReps = Number.isFinite(repetitions) ? Math.max(0, Math.floor(repetitions as number)) : 0;
+    const { id, repetitions } = parse.data;
+    const nextReps = Number.isFinite(repetitions) ? Math.max(0, Math.floor(repetitions!)) : 0;
     const nextReview = await scheduleSpacedReview(user.id, nextReps);
     const payload = {
       repetitions: nextReps,
@@ -152,55 +165,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PATCH') {
-    const { id, resolved } = req.body as { id?: string; resolved?: boolean };
-    if (!id) {
-      return res.status(400).json({ error: 'Missing id' });
+    const parse = PatchBody.safeParse(req.body ?? {});
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
     }
+    const { id, resolved } = parse.data;
 
     if (resolved) {
       const { error } = await supabase
         .from('mistake_resolutions')
         .upsert({ user_id: user.id, mistake_id: id, resolved_at: new Date().toISOString() });
-      if (error && error.code !== '23505') {
-        return res.status(500).json({ error: error.message });
-      }
+      if (error && error.code !== '23505') return res.status(500).json({ error: error.message });
     } else {
       const { error } = await supabase
         .from('mistake_resolutions')
         .delete()
         .eq('user_id', user.id)
         .eq('mistake_id', id);
-      if (error) {
-        return res.status(500).json({ error: error.message });
-      }
+      if (error) return res.status(500).json({ error: error.message });
     }
 
     const { data, error } = await supabase
       .from('mistake_review_queue')
-      .select(
-        'id,mistake,correction,type,repetitions,next_review,retry_path,created_at,last_seen_at,resolved_at',
-      )
+      .select('id,mistake,correction,type,repetitions,next_review,retry_path,created_at,last_seen_at,resolved_at')
       .eq('user_id', user.id)
       .eq('id', id)
       .maybeSingle();
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     return res.status(200).json({ item: mapRow(data as MistakeRow | null) });
   }
 
   if (req.method === 'DELETE') {
-    const { id } = req.body as { id?: string };
-    if (!id) {
-      return res.status(400).json({ error: 'Missing id' });
+    const parse = DeleteBody.safeParse(req.body ?? {});
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
     }
+    const { id } = parse.data;
+
     const { error } = await supabase
       .from('mistakes_book')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);
+
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ success: true });
   }
@@ -229,9 +238,9 @@ function mapRow(row: MistakeRow | null | undefined): MistakePayload | null {
 
 function parseRetryPath(raw: string | null): { retryPath: string | null; tags: MistakeTag[] } {
   if (!raw) return { retryPath: null, tags: [] };
-
   try {
-    const url = new URL(raw, raw.startsWith('http') ? raw : `https://mistakes.local${raw.startsWith('/') ? '' : '/'}${raw}`);
+    const base = raw.startsWith('http') ? raw : `https://mistakes.local${raw.startsWith('/') ? '' : '/'}${raw}`;
+    const url = new URL(base);
     const cleanParams = new URLSearchParams();
     const tags: MistakeTag[] = [];
 

@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+import { z } from 'zod';
 
 type StudySessionItem = { skill: string; minutes: number };
 type StudySessionRecord = {
@@ -26,11 +27,19 @@ function getAdminClient() {
 function normalizeUserId(raw?: any): string | null {
   if (!raw || typeof raw !== 'string') return null;
   const trimmed = raw.trim();
-  // Accept explicit "null" string
   if (trimmed.toLowerCase() === 'null') return null;
-  // If valid UUID, return it, otherwise null
   return uuidValidate(trimmed) ? trimmed : null;
 }
+
+const Body = z.object({
+  userId: z.string().uuid().optional().nullable(),
+  items: z.array(
+    z.object({
+      skill: z.string().min(1).max(64),
+      minutes: z.number().int().min(1).max(300),
+    })
+  ).min(1).max(200),
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -38,15 +47,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
-  const body = req.body ?? {};
-  const items = Array.isArray(body.items) ? body.items : [];
+  const parsed = Body.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'invalid_body', details: parsed.error.flatten() });
+  }
 
-  if (!items.length) {
-    return res.status(400).json({ error: 'items_required' });
-  }
-  if (items.length > 200) {
-    return res.status(400).json({ error: 'too_many_items' });
-  }
+  const { items } = parsed.data;
+  const user_id = normalizeUserId(parsed.data.userId ?? undefined);
 
   let supabaseAdmin;
   try {
@@ -58,13 +65,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const id = uuidv4();
   const now = new Date().toISOString();
-  const user_id = normalizeUserId(body.userId);
 
-  const payload = {
+  const payload: StudySessionRecord = {
     id,
     user_id,
     items,
-    state: 'pending' as const,
+    state: 'pending',
     created_at: now,
     updated_at: now,
   };
