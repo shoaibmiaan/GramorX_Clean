@@ -75,3 +75,4 @@ supabase/.temp/
 # misc
 *.pem
 *.key
+.idea/
