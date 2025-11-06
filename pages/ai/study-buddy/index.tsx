@@ -14,6 +14,12 @@ import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
 import { Separator } from '@/components/design-system/Separator';
 import { Alert } from '@/components/design-system/Alert';
+import { Badge } from '@/components/design-system/Badge';
+import { GradientText } from '@/components/design-system/GradientText';
+import { Input } from '@/components/design-system/Input';
+import { Select } from '@/components/design-system/Select';
+import { ProgressBar } from '@/components/design-system/ProgressBar';
+import { useToast } from '@/components/design-system/Toaster';
 
 type SessionItem = {
   skill: 'Listening' | 'Reading' | 'Writing' | 'Speaking' | string;
@@ -59,12 +65,50 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   return { props: { userId: user.id, latestSession } };
 };
 
+const SKILL_OPTIONS: Array<SessionItem['skill']> = ['Reading', 'Listening', 'Writing', 'Speaking'];
+
+const PRESETS: Array<{ name: string; minutes: number; description: string; items: SessionItem[] }> = [
+  {
+    name: 'Balanced warm-up',
+    minutes: 30,
+    description: 'A quick circuit to activate every skill.',
+    items: [
+      { skill: 'Listening', minutes: 8 },
+      { skill: 'Reading', minutes: 8 },
+      { skill: 'Writing', minutes: 8 },
+      { skill: 'Speaking', minutes: 6 },
+    ],
+  },
+  {
+    name: 'Writing focus',
+    minutes: 45,
+    description: 'Deep writing practice with a reflection break.',
+    items: [
+      { skill: 'Writing', minutes: 25 },
+      { skill: 'Reading', minutes: 10 },
+      { skill: 'Speaking', minutes: 10 },
+    ],
+  },
+  {
+    name: 'Speaking drills',
+    minutes: 20,
+    description: 'Short, high-energy speaking reps and feedback time.',
+    items: [
+      { skill: 'Speaking', minutes: 12 },
+      { skill: 'Listening', minutes: 8 },
+    ],
+  },
+];
+
+const DEFAULT_ITEM: SessionItem = { skill: 'Reading', minutes: 10 };
+
 const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest }) => {
   const router = useRouter();
   const supabase = useMemo(() => supabaseBrowser, []);
+  const toast = useToast();
 
   // Builder state
-  const [items, setItems] = useState<SessionItem[]>([{ skill: 'Reading', minutes: 10 }]);
+  const [items, setItems] = useState<SessionItem[]>([{ ...DEFAULT_ITEM }]);
   const [fieldErrors, setFieldErrors] = useState<
     Record<number, Partial<Record<keyof SessionItem, string>>>
   >({});
@@ -73,6 +117,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
 
   // Latest session
   const [latestSession, setLatestSession] = useState<StudySession | null>(ssrLatest);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Sanity auth check (non-blocking)
   useEffect(() => {
@@ -94,10 +139,22 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
     [items],
   );
 
+  const minutesBySkill = useMemo(() => {
+    return items.reduce<Record<string, number>>((acc, item) => {
+      const key = item.skill;
+      acc[key] = (acc[key] ?? 0) + (Number.isFinite(item.minutes) ? item.minutes : 0);
+      return acc;
+    }, {});
+  }, [items]);
+
+  useEffect(() => {
+    setLatestSession(ssrLatest);
+  }, [ssrLatest]);
+
   // Builder ops
   const addItem = useCallback(() => {
     if (items.length >= 5) return;
-    setItems((prev) => [...prev, { skill: 'Reading', minutes: 10 }]);
+    setItems((prev) => [...prev, { ...DEFAULT_ITEM }]);
   }, [items.length]);
 
   const removeItem = useCallback((idx: number) => {
@@ -137,6 +194,31 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
     [formError],
   );
 
+  const applyPreset = useCallback((presetItems: SessionItem[]) => {
+    setItems(presetItems.map((item) => ({ ...item })));
+    setFieldErrors({});
+    setFormError(null);
+  }, []);
+
+  const refreshLatest = useCallback(async () => {
+    if (!userId) return;
+    setRefreshing(true);
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<StudySession>();
+
+    if (error) {
+      toast.error('Could not refresh session', error.message);
+    }
+
+    setLatestSession(data ?? null);
+    setRefreshing(false);
+  }, [supabase, toast, userId]);
+
   // API: create session (server-side ownership re-check)
   const createSession = useCallback(async () => {
     setCreating(true);
@@ -154,17 +236,22 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
       const body = await resp.json();
       if (!resp.ok) {
         setFormError(body?.error || 'Could not create session.');
+        toast.error('Session could not be created', body?.error || undefined);
         return;
       }
-      setLatestSession(body.session as StudySession);
+      const session = body.session as StudySession;
+      setLatestSession(session);
+      toast.success('Session ready', 'Your blocks are saved and ready to launch.');
+      await refreshLatest();
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[study-buddy] create exception:', e);
       setFormError('Could not create session.');
+      toast.error('Something went wrong', 'Please try again in a moment.');
     } finally {
       setCreating(false);
     }
-  }, [items, validate]);
+  }, [items, refreshLatest, toast, userId, validate]);
 
   // Create then route to newest /ai path
   const createAndStart = useCallback(async () => {
@@ -201,135 +288,227 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
         <title>Study Buddy — GramorX</title>
       </Head>
 
-      <Container className="py-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Study Buddy</h1>
-            <p className="text-muted-foreground mt-1">
-              Build a focused set of 2–5 blocks and start practicing.
+      <Container className="py-10 space-y-10">
+        <Card className="relative overflow-hidden border-none bg-gradient-to-r from-vibrantPurple/90 via-electricBlue/80 to-sapphire/80 text-white">
+          <div className="absolute right-[-6rem] top-[-6rem] h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute left-[-4rem] bottom-[-6rem] h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative p-8 md:p-10">
+            <Badge variant="subtle" className="border border-white/30 bg-white/10 text-white">
+              Study rhythm coach
+            </Badge>
+            <h1 className="mt-4 text-3xl font-semibold md:text-4xl">
+              Design a <GradientText className="font-semibold">laser-focused</GradientText> practice session
+            </h1>
+            <p className="mt-3 max-w-2xl text-base text-white/80 md:text-lg">
+              Stack personalised micro-blocks for the skills you want to sharpen today. When you’re ready, launch a guided session with smart timers and streak protection.
             </p>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Total:&nbsp;<span className="font-medium">{totalMinutes}</span>&nbsp;min
-          </div>
-        </div>
 
-        <Card className="mt-6 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">Session Builder</h2>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={addItem} disabled={items.length >= 5}>
-                Add Item
-              </Button>
-              <Button onClick={createSession} disabled={creating}>
-                {creating ? 'Creating…' : 'Save'}
-              </Button>
-              <Button onClick={createAndStart} disabled={creating}>
-                {creating ? 'Creating…' : 'Create & Start'}
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/80">
+              <div className="rounded-ds-xl border border-white/20 bg-white/10 px-4 py-2">
+                Total planned time: <span className="font-semibold text-white">{totalMinutes}</span> min
+              </div>
+              <div className="rounded-ds-xl border border-white/20 bg-white/10 px-4 py-2">
+                Blocks: <span className="font-semibold text-white">{items.length}</span> / 5
+              </div>
+              <Button variant="ghost" size="sm" onClick={addItem} className="border-white/40 bg-white/10 text-white hover:bg-white/20">
+                Add block
               </Button>
             </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button onClick={createAndStart} disabled={creating} size="lg" className="bg-white text-dark hover:bg-white/90">
+                {creating ? 'Preparing…' : 'Create & launch'}
+              </Button>
+              <Button onClick={createSession} disabled={creating} variant="ghost" size="lg" className="border border-white/40 bg-white/10 text-white hover:bg-white/20">
+                {creating ? 'Saving…' : 'Save for later'}
+              </Button>
+              <Link href="/study-plan" className="text-sm underline text-white/80 hover:text-white">
+                View personalised plan →
+              </Link>
+            </div>
           </div>
-
-          <Separator className="my-4" />
-
-          {formError && <Alert variant="danger">{formError}</Alert>}
-
-          <div className="space-y-4">
-            {items.map((it, idx) => {
-              const e = fieldErrors[idx] || {};
-              return (
-                <Card key={idx} className="p-3">
-                  <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-12 md:col-span-6">
-                      <label className="block text-sm mb-1">Skill</label>
-                      <select
-                        className="w-full rounded-md border px-3 py-2"
-                        value={it.skill}
-                        onChange={(ev) => updateItem(idx, { skill: ev.target.value })}
-                      >
-                        <option>Reading</option>
-                        <option>Listening</option>
-                        <option>Writing</option>
-                        <option>Speaking</option>
-                      </select>
-                      {e.skill && <div className="mt-1 text-xs text-red-600">{e.skill}</div>}
-                    </div>
-
-                    <div className="col-span-8 md:col-span-4">
-                      <label className="block text-sm mb-1">Minutes</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={120}
-                        className="w-full rounded-md border px-3 py-2"
-                        value={it.minutes}
-                        onChange={(ev) =>
-                          updateItem(idx, { minutes: Number(ev.target.value || 0) })
-                        }
-                      />
-                      {e.minutes && <div className="mt-1 text-xs text-red-600">{e.minutes}</div>}
-                    </div>
-
-                    <div className="col-span-4 md:col-span-2 flex items-end">
-                      <Button variant="ghost" onClick={() => removeItem(idx)}>
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          <p className="text-xs text-muted-foreground mt-3">
-            Tip: 2–5 focused blocks work best.
-          </p>
         </Card>
 
-        <Card className="mt-8 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">Latest Session</h2>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => router.reload()}>
-                Refresh
-              </Button>
-              {latestSession ? (
-                <Button onClick={() => startSession(latestSession.id)}>Start</Button>
-              ) : (
-                <Button disabled>Start</Button>
-              )}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Card className="p-6 shadow-lg">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Session builder</h2>
+                <p className="text-muted-foreground">
+                  Mix 2–5 focused blocks. We’ll automatically rotate skills during practice.
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{totalMinutes}</span> min total ·{' '}
+                <span className="font-medium">{items.length}</span> blocks
+              </div>
             </div>
-          </div>
 
-          <Separator className="my-4" />
+            <Separator className="my-5" />
 
-          {!latestSession ? (
-            <p className="text-sm text-muted-foreground">
-              No session yet. Create one above to get started.
-            </p>
-          ) : (
-            <div>
-              <div className="text-xs text-muted-foreground">
-                ID:&nbsp;<code>{latestSession.id}</code>
+            {formError && <Alert variant="danger">{formError}</Alert>}
+
+            <div className="flex flex-col gap-4">
+              {items.map((it, idx) => {
+                const e = fieldErrors[idx] || {};
+                return (
+                  <Card key={`${it.skill}-${idx}`} className="border border-border/60 bg-muted/40 p-4">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                      <div className="md:w-1/2">
+                        <Select
+                          label="Skill focus"
+                          value={it.skill}
+                          onChange={(ev) => updateItem(idx, { skill: ev.target.value })}
+                          error={e.skill ?? null}
+                          options={SKILL_OPTIONS}
+                          required
+                        />
+                      </div>
+                      <div className="md:w-1/3">
+                        <Input
+                          label="Minutes"
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={it.minutes}
+                          onChange={(ev) => updateItem(idx, { minutes: Number(ev.target.value || 0) })}
+                          error={e.minutes ?? null}
+                          required
+                        />
+                      </div>
+                      <div className="md:w-1/6">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => removeItem(idx)}
+                          disabled={items.length === 1}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button variant="secondary" onClick={addItem} disabled={items.length >= 5}>
+                Add another block
+              </Button>
+              <Button variant="ghost" onClick={() => applyPreset([DEFAULT_ITEM])}>
+                Reset to default
+              </Button>
+            </div>
+
+            <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Time allocation</p>
+              <div className="space-y-2">
+                {Object.entries(minutesBySkill).map(([skill, minutes]) => (
+                  <div key={skill} className="flex items-center gap-3">
+                    <span className="w-24 text-muted-foreground">{skill}</span>
+                    <ProgressBar value={totalMinutes ? Math.round((minutes / totalMinutes) * 100) : 0} className="h-2 flex-1" />
+                    <span className="w-12 text-right font-medium">{minutes}m</span>
+                  </div>
+                ))}
+                {items.length === 0 && <p>No blocks yet. Add one to start planning.</p>}
+              </div>
+            </div>
+          </Card>
+
+          <div className="flex flex-col gap-6">
+            <Card className="p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Latest session</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Launch the most recent plan or refresh to pick up new changes.
+                  </p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={refreshLatest} disabled={refreshing}>
+                  {refreshing ? 'Refreshing…' : 'Refresh'}
+                </Button>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3 mt-4">
-                {latestSession.items.map((it, i) => (
-                  <Card key={`${it.skill}-${i}`} className="p-3">
-                    <div className="font-medium">{it.skill}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Focused block • {it.minutes} min
+              <Separator className="my-4" />
+
+              {!latestSession ? (
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>No saved sessions yet. Create a builder on the left to get started.</p>
+                  <Button onClick={createSession} disabled={creating}>
+                    {creating ? 'Saving…' : 'Save first session'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-ds-xl bg-muted/50 p-4 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Session ID</span>
+                      <code className="font-mono text-foreground">{latestSession.id}</code>
+                    </div>
+                    <div className="mt-2 flex justify-between">
+                      <span>Created</span>
+                      <span>{new Date(latestSession.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="mt-1 flex justify-between">
+                      <span>Status</span>
+                      <span className="font-medium capitalize text-foreground">{latestSession.state}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {latestSession.items.map((it, index) => (
+                      <Card key={`${it.skill}-${index}`} className="border border-border/50 bg-background p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm uppercase tracking-wide text-muted-foreground">Block {index + 1}</div>
+                            <div className="text-lg font-semibold">{it.skill}</div>
+                          </div>
+                          <div className="rounded-ds-xl bg-muted px-3 py-1 text-sm font-medium">
+                            {it.minutes} min
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <Button size="lg" onClick={() => startSession(latestSession.id)}>
+                    Open guided session
+                  </Button>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold">Quick presets</h2>
+              <p className="text-sm text-muted-foreground">
+                Jump in with a curated combo. You can fine-tune each block afterwards.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                {PRESETS.map((preset) => (
+                  <Card key={preset.name} className="border border-border/60 bg-muted/40 p-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold">{preset.name}</h3>
+                        <p className="text-sm text-muted-foreground">{preset.description}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="rounded-ds-lg bg-background px-3 py-1 text-sm font-medium">
+                          {preset.minutes} min
+                        </span>
+                        <Button size="sm" onClick={() => applyPreset(preset.items)}>
+                          Use preset
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
               </div>
-
-              <div className="mt-5 text-sm">
-                Want to adjust? <Link href="#" className="underline">Edit (soon)</Link>
-              </div>
-            </div>
-          )}
-        </Card>
+            </Card>
+          </div>
+        </div>
       </Container>
     </>
   );
