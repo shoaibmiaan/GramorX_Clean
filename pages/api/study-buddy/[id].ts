@@ -23,10 +23,9 @@ export default async function sessionIdHandler(req: NextApiRequest, res: NextApi
   if (userErr) return res.status(500).json({ error: 'Auth error', details: userErr.message });
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  // This route looks like an older alias of the session fetch.
-  // We’ll point it to the canonical 'study_sessions'.
+  // Legacy alias → proxy to canonical study_buddy_sessions table.
   const { data, error } = await supabase
-    .from('study_sessions')
+    .from('study_buddy_sessions')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -36,5 +35,15 @@ export default async function sessionIdHandler(req: NextApiRequest, res: NextApi
 
   if (data.user_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  return res.status(200).json(data);
+  const items = Array.isArray(data.items)
+    ? data.items.map((item: any) => ({
+        skill: item.skill,
+        minutes: item.minutes,
+        topic: item.topic ?? null,
+        status: item.status ?? 'pending',
+        note: item.note ?? null,
+      }))
+    : [];
+
+  return res.status(200).json({ ...data, items });
 }

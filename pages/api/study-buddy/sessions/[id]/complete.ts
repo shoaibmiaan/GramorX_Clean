@@ -1,4 +1,4 @@
-// pages/api/study-buddy/sessions/[id]/start.ts
+// pages/api/study-buddy/sessions/[id]/complete.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
@@ -39,7 +39,10 @@ function normaliseItems(items: SessionItem[]): SessionItem[] {
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   const supabase = getServerClient(req, res);
   const {
@@ -51,9 +54,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!parse.success) {
     return res.status(400).json({ error: 'Invalid id', details: parse.error.flatten() });
   }
+
   const { id } = parse.data;
 
-  // Ownership re-check
   const { data: session, error: fetchErr } = await supabase
     .from('study_buddy_sessions')
     .select('*')
@@ -64,24 +67,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!session) return res.status(404).json({ error: 'not_found' });
   if (session.user_id !== user.id) return res.status(403).json({ error: 'forbidden' });
 
-  // If already started/completed, just return it
-  if (session.state === 'started' || session.state === 'completed') {
-    const hydrated = { ...session, items: normaliseItems(session.items) };
-    return res.status(200).json({ ok: true, session: hydrated });
+  if (session.state === 'completed') {
+    return res.status(200).json({ ok: true, session });
   }
 
   const now = new Date().toISOString();
-  const items = normaliseItems(session.items);
-  if (items.length > 0 && items[0].status === 'pending') {
-    items[0] = { ...items[0], status: 'started' };
-  }
+  const items = normaliseItems(session.items).map((item) => ({
+    ...item,
+    status: 'completed',
+  }));
+  const totalMinutes = items.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+  const xpEarned = totalMinutes * 4; // simple XP heuristic
 
   const { data: updated, error: updErr } = await supabase
     .from('study_buddy_sessions')
     .update({
-      state: 'started',
+      state: 'completed',
+      ended_at: now,
       started_at: session.started_at ?? now,
+      duration_minutes: totalMinutes,
       items,
+      xp_earned: xpEarned,
     })
     .eq('id', id)
     .select('*')

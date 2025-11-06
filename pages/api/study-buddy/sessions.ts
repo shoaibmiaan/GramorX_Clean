@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { z } from 'zod';
 
-type StudySessionItem = { skill: string; minutes: number };
+type StudySessionItem = { skill: string; minutes: number; topic?: string | null; status?: 'pending' | 'started' | 'completed'; note?: string | null };
 type StudySessionRecord = {
   id: string;
   user_id: string | null;
@@ -12,6 +12,10 @@ type StudySessionRecord = {
   state: 'pending' | 'started' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_minutes: number | null;
+  xp_earned: number;
 };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -66,18 +70,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const id = uuidv4();
   const now = new Date().toISOString();
 
+  const normalizedItems = items.map((item) => ({
+    skill: item.skill,
+    minutes: item.minutes,
+    topic: null,
+    status: 'pending' as const,
+    note: null,
+  }));
+
+  const totalMinutes = normalizedItems.reduce((sum, item) => sum + item.minutes, 0);
+
   const payload: StudySessionRecord = {
     id,
     user_id,
-    items,
+    items: normalizedItems,
     state: 'pending',
     created_at: now,
     updated_at: now,
+    started_at: null,
+    ended_at: null,
+    duration_minutes: totalMinutes,
+    xp_earned: 0,
   };
 
   try {
     const { data, error, status, statusText } = await supabaseAdmin
-      .from<StudySessionRecord>('study_sessions')
+      .from<StudySessionRecord>('study_buddy_sessions')
       .insert(payload)
       .select('*');
 
