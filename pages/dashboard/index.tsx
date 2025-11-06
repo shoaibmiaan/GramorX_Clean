@@ -246,9 +246,7 @@ export default function Dashboard(): JSX.Element {
   }, [ai.sessionMix, profile?.focus_topics]);
 
   const goalBand = typeof profile?.goal_band === 'number' ? profile.goal_band : ai.suggestedGoal ?? null;
-  const englishLevel = profile?.english_level ?? null;
   const targetStudyTime = profile?.time_commitment || '1–2h/day';
-  const dailyQuota = ai.dailyQuota ?? profile?.daily_quota_goal ?? null;
 
   const examDate = useMemo(() => {
     if (!profile?.exam_date) return null;
@@ -265,65 +263,43 @@ export default function Dashboard(): JSX.Element {
     return diffDays >= 0 ? diffDays : 0;
   }, [examDate]);
 
-  type SummaryCard = {
+  type ActionItem = {
     id: string;
     title: string;
-    headline: string;
-    body: string;
-    primaryCta: { label: string; href: string };
-    secondaryCta?: { label: string; href: string };
-    supporting?: React.ReactNode;
+    caption: string;
+    icon: IconName;
+    accent: NonNullable<InnovationTile['accent']>;
+    primary: TileAction;
+    secondary?: TileAction;
+    chip?: string | null;
+    done?: boolean;
   };
 
-  const summaryCards: SummaryCard[] = useMemo(() => {
-    const cards: SummaryCard[] = [
+  const todayKey = useMemo(() => getDayKeyInTZ(), []);
+  const streakProtected = lastDayKey === todayKey;
+
+  const actionItems: ActionItem[] = useMemo(() => {
+    const items: ActionItem[] = [
       {
-        id: 'goal-progress',
-        title: 'Goal progress',
-        headline: typeof goalBand === 'number' ? `Band ${goalBand.toFixed(1)}` : 'Set your target',
-        body: englishLevel
-          ? `You’re currently tracking at ${englishLevel}. Review your recent scores and lock the next milestone.`
-          : 'Tell us your current level so we can chart the fastest route to your target band.',
-        primaryCta: {
-          label: typeof goalBand === 'number' ? 'Review progress' : 'Set your goal',
-          href: typeof goalBand === 'number' ? '/progress' : '/profile/setup',
-        },
-        secondaryCta: { label: 'Edit goal', href: '/profile/setup' },
-        supporting: englishLevel ? <Badge variant="info" size="sm">{englishLevel}</Badge> : null,
+        id: 'streak',
+        title: streakProtected ? 'Streak protected' : 'Protect your streak today',
+        caption: streakProtected
+          ? `You’ve locked in your ${streak} day streak. Keep the rhythm going tomorrow.`
+          : `Log a focused session to keep your ${streak} day streak alive.`,
+        icon: 'Flame',
+        accent: 'primary',
+        primary: { label: streakProtected ? 'View streak history' : 'Log a session', href: '#streak-panel' },
+        secondary: streakProtected ? { label: 'Plan tomorrow', href: '#study-calendar' } : undefined,
+        done: streakProtected,
       },
       {
-        id: 'weekly-focus',
-        title: 'This week’s focus',
-        headline: sessionMixEntries.length ? `${sessionMixEntries[0]?.skill ?? 'Custom'}` : 'Pick skills',
-        body: sessionMixEntries.length
-          ? 'Follow this recommended order to close your biggest gaps faster.'
-          : 'Choose the skills you want to prioritise so we can prepare drills for you.',
-        primaryCta: { label: 'Open practice path', href: '/learning' },
-        secondaryCta: { label: 'Plan study week', href: '#study-calendar' },
-        supporting: sessionMixEntries.length ? (
-          <div className="flex flex-wrap gap-2">
-            {sessionMixEntries.map((entry, index) => (
-              <Badge key={`${entry.skill}-${entry.topic || index}`} size="sm">
-                {entry.topic ? `${entry.skill} • ${entry.topic}` : entry.skill}
-              </Badge>
-            ))}
-          </div>
-        ) : null,
-      },
-      {
-        id: 'daily-habit',
-        title: 'Daily habit',
-        headline: typeof dailyQuota === 'number' ? `${dailyQuota} sessions` : 'Define your quota',
-        body: `Stay on rhythm with ${targetStudyTime} of focussed study. Protect your streak by logging today’s practice.`,
-        primaryCta: { label: 'Track streak', href: '#streak-panel' },
-        secondaryCta: { label: 'Schedule sessions', href: '#study-calendar' },
-        supporting: focusTopics.length ? (
-          <div className="flex flex-wrap gap-2">
-            {focusTopics.map((topic) => (
-              <Badge key={topic} variant="secondary" size="sm" className="capitalize">{topic}</Badge>
-            ))}
-          </div>
-        ) : null,
+        id: 'weekly-plan',
+        title: 'Shape this week’s plan',
+        caption: 'Drop study blocks into your calendar so AI drills land where you can complete them.',
+        icon: 'CalendarCheck',
+        accent: 'secondary',
+        primary: { label: 'Open calendar', href: '#study-calendar' },
+        secondary: { label: 'Adjust availability', href: '/study-plan' },
       },
     ];
 
@@ -689,30 +665,41 @@ export default function Dashboard(): JSX.Element {
 
               <div className="mt-6"><DailyWeeklyChallenges /></div>
 
-              <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4" id="goal-summary">
-                {summaryCards.map((card) => (
-                  <Card key={card.id} className="flex h-full flex-col justify-between gap-5 rounded-ds-2xl p-6">
-                    <div className="space-y-3">
-                      <div>
-                        <div className="text-small opacity-70">{card.title}</div>
-                        <div className="text-h1 font-semibold">{card.headline}</div>
+              <section className="mt-10 space-y-4" id="goal-summary">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-slab text-h2">Today’s priorities</h2>
+                    <p className="text-grayish">Move the needle with the highest leverage actions first.</p>
+                  </div>
+                  <Badge variant="neutral" size="sm">Action-first view</Badge>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {actionItems.map((item) => (
+                    <Card key={item.id} className="flex h-full flex-col justify-between gap-5 rounded-ds-2xl border border-border/60 bg-card/60 p-6">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${accentClass[item.accent]}`}>
+                            <Icon name={item.icon} size={20} />
+                          </span>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold text-lg text-foreground">{item.title}</h3>
+                              {item.done ? <Badge variant="success" size="xs">Done</Badge> : null}
+                              {item.chip ? <Badge variant="neutral" size="xs">{item.chip}</Badge> : null}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{item.caption}</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-small text-muted-foreground">{card.body}</p>
-                      {card.supporting}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={card.primaryCta.href} className="inline-flex">
-                        <Button variant="soft" tone="primary" size="sm" className="rounded-ds-xl">{card.primaryCta.label}</Button>
-                      </Link>
-                      {card.secondaryCta ? (
-                        <Link href={card.secondaryCta.href} className="inline-flex">
-                          <Button variant="ghost" size="sm" className="rounded-ds-xl">{card.secondaryCta.label}</Button>
-                        </Link>
-                      ) : null}
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {renderTileAction(`${item.id}-primary`, item.primary, 'primary')}
+                        {item.secondary ? renderTileAction(`${item.id}-secondary`, item.secondary, 'ghost') : null}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </section>
 
               {((ai.sessionMix ?? ai.sequence) ?? []).length > 0 && (
                 <div className="mt-10" id="next-sessions">
