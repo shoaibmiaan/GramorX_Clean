@@ -303,39 +303,22 @@ export default function Dashboard(): JSX.Element {
       },
     ];
 
-    const sessionHeadline = sessionMixEntries.length ? `${sessionMixEntries[0]?.skill ?? 'IELTS'}` : null;
-    items.push({
-      id: 'skill-focus',
-      title: sessionHeadline ? `Focus: ${sessionHeadline}` : 'Pick a focus skill',
-      caption: sessionMixEntries.length
-        ? 'Follow the next skill in the queue to close gaps faster.'
-        : 'Choose the skills you want to prioritise so we can prep tailored drills.',
-      icon: 'Target',
-      accent: 'success',
-      primary: sessionMixEntries.length
-        ? { label: 'Start recommended drill', href: '/learning' }
-        : { label: 'Set focus skills', href: '/profile/setup' },
-      secondary: sessionMixEntries.length ? { label: 'View full queue', href: '#next-sessions' } : undefined,
-      chip: focusTopics.length ? focusTopics.join(' • ') : null,
-    });
+    if (examDate) {
+      cards.push({
+        id: 'exam-timeline',
+        title: 'Exam timeline',
+        headline: daysUntilExam !== null ? `${daysUntilExam} day${daysUntilExam === 1 ? '' : 's'}` : examDate.toLocaleDateString(),
+        body: daysUntilExam !== null && daysUntilExam > 0
+          ? 'Lock in your mock tests and speaking practice so every week ladders up to exam day.'
+          : 'Exam day is here. Complete a confidence run-through and review your checklist.',
+        primaryCta: { label: 'View checklist', href: '/mock-tests' },
+        secondaryCta: { label: 'Manage calendar', href: '#study-calendar' },
+        supporting: <div className="text-small text-muted-foreground">Exam date: {examDate.toLocaleDateString()}</div>,
+      });
+    }
 
-    items.push({
-      id: 'exam-plan',
-      title: examDate ? `Exam in ${daysUntilExam ?? 0} days` : 'Set your exam timeline',
-      caption: examDate
-        ? 'Lock your mock tests and speaking run-through so each week ladders up to exam day.'
-        : 'Add your exam target so we can back-plan the milestones for you.',
-      icon: 'Flag',
-      accent: 'info',
-      primary: examDate
-        ? { label: 'Open checklist', href: '/mock-tests' }
-        : { label: 'Add exam date', href: '/profile/setup' },
-      secondary: examDate ? { label: 'Update date', href: '/profile/setup' } : undefined,
-      chip: examDate ? examDate.toLocaleDateString() : null,
-    });
-
-    return items;
-  }, [daysUntilExam, examDate, focusTopics, sessionMixEntries, streak, streakProtected]);
+    return cards;
+  }, [dailyQuota, daysUntilExam, englishLevel, examDate, focusTopics, goalBand, sessionMixEntries, targetStudyTime]);
 
   const trackFeatureOpen = useCallback((feature: string) => {
     // window.analytics?.track('feature_open', { feature, userId: sessionUserId });
