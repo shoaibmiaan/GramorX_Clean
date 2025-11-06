@@ -29,7 +29,7 @@ import type { WritingFeedback, WritingScorePayload, WritingTaskType } from '@/ty
 import type { PlanId } from '@/types/pricing';
 import { resolveFlags } from '@/lib/flags';
 import { track } from '@/lib/analytics/track';
-import { evaluateQuota, type QuotaKey } from '@/lib/plan/quotas';
+import { evaluateQuota, nextPlanForQuota, type QuotaKey } from '@/lib/plan/quotas';
 import { planAllows } from '@/lib/plan/gates';
 import { KeyboardAwareSheet } from '@/components/mobile/KeyboardAwareSheet';
 import { PushOptInCard } from '@/components/mobile/PushOptInCard';
@@ -90,6 +90,24 @@ const quotaCopy: Record<QuotaKey, { title: string; helper: string }> = {
   },
 };
 
+const formatPlanLabel = (id: PlanId) => id.charAt(0).toUpperCase() + id.slice(1);
+
+const quotaLimitText = (key: QuotaKey, limit: number) => {
+  const isUnlimited = !Number.isFinite(limit);
+  switch (key) {
+    case 'dailyMocks':
+      return isUnlimited ? 'unlimited daily mock tests' : `${limit} daily mock test${limit === 1 ? '' : 's'}`;
+    case 'aiEvaluationsPerDay':
+      return isUnlimited
+        ? 'unlimited daily AI evaluations'
+        : `${limit} daily AI evaluation${limit === 1 ? '' : 's'}`;
+    case 'storageGB':
+      return isUnlimited ? 'unlimited storage' : `${limit} GB of storage`;
+    default:
+      return isUnlimited ? 'unlimited usage' : `${limit}`;
+  }
+};
+
 type QuotaUpgradeNoticeProps = {
   plan: PlanId;
   quota: { key: QuotaKey; used: number } | null;
@@ -101,7 +119,13 @@ function QuotaUpgradeNotice({ plan, quota, evaluation, onUpgrade }: QuotaUpgrade
   if (!quota || !evaluation || !evaluation.exceeded) return null;
   const copy = quotaCopy[quota.key];
   const limitText = evaluation.isUnlimited ? 'unlimited' : evaluation.limit;
-  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+  const currentPlanLabel = formatPlanLabel(plan);
+  const nextPlanId = nextPlanForQuota(plan, quota.key);
+  const nextPlanLimit = nextPlanId ? evaluateQuota(nextPlanId, quota.key, 0).limit : null;
+  const nextPlanCopy =
+    nextPlanId && nextPlanLimit !== null
+      ? ` ${formatPlanLabel(nextPlanId)} unlocks ${quotaLimitText(quota.key, nextPlanLimit)}.`
+      : '';
 
   return (
     <section className="rounded-ds-xl border border-destructive/40 bg-destructive/10 p-5">
@@ -109,7 +133,8 @@ function QuotaUpgradeNotice({ plan, quota, evaluation, onUpgrade }: QuotaUpgrade
         <div>
           <h2 className="text-base font-semibold text-destructive">{copy.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            You have used {quota.used} of {limitText} available today on the {planLabel} plan. {copy.helper}
+            You have used {quota.used} of {limitText} available today on the {currentPlanLabel} plan. {copy.helper}
+            {nextPlanCopy}
           </p>
         </div>
         <Button size="sm" variant="primary" onClick={onUpgrade}>

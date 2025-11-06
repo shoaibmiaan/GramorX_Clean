@@ -53,7 +53,7 @@ const WritingMockPage: React.FC<PageProps & { __plan?: PlanId }> = ({
   const mockLimit = writingMockLimit(plan);
   const boosterMockLimit = writingMockLimit('booster');
   const masterMockLimit = writingMockLimit('master');
-  const formatMockLimit = (limit: number) => `${limit} daily writing mock${limit === 1 ? '' : 's'}`;
+  const formatMockLimit = (limit: number) => `${limit} daily writing mock test${limit === 1 ? '' : 's'}`;
   const { isInstalled } = useInstalledApp();
   const { promptEvent, clearPrompt } = useInstallPrompt();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -113,8 +113,9 @@ const WritingMockPage: React.FC<PageProps & { __plan?: PlanId }> = ({
     <>
       {plan !== 'booster' && plan !== 'master' ? (
         <div className="mb-4 rounded-2xl border border-border/50 bg-muted/30 p-4 text-sm text-muted-foreground">
-          Starter plans include {formatMockLimit(mockLimit)}. Upgrade to Booster for {formatMockLimit(boosterMockLimit)} or
-          Master for {formatMockLimit(masterMockLimit)}, plus exportable reports and printable certificates.
+          Starter plans include {formatMockLimit(mockLimit)}. Upgrade to Booster for {formatMockLimit(boosterMockLimit)} and
+          advanced analytics, or go Master for {formatMockLimit(masterMockLimit)} plus exportable reports and printable
+          certificates.
         </div>
       ) : null}
       {hasEngagementPrompts ? (
