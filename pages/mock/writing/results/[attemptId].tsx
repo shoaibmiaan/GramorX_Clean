@@ -82,7 +82,7 @@ const quotaCopy: Record<QuotaKey, { title: string; helper: string }> = {
   },
   aiEvaluationsPerDay: {
     title: 'AI feedback limit reached',
-    helper: 'Upgrade for unlimited writing evaluations each day.',
+    helper: 'Upgrade to increase your daily writing evaluations.',
   },
   storageGB: {
     title: 'Storage limit reached',
