@@ -10,7 +10,7 @@ import type { Cycle, PlanKey, PaymentMethod } from '@/types/payments';
 
 const PLAN_VALUES: PlanKey[] = ['starter', 'booster', 'master'];
 const CYCLE_VALUES: Cycle[] = ['monthly', 'annual'];
-const METHOD_VALUES: PaymentMethod[] = ['stripe', 'easypaisa', 'jazzcash', 'crypto'];
+const METHOD_VALUES: PaymentMethod[] = ['stripe', 'easypaisa', 'jazzcash', 'safepay', 'crypto'];
 
 type AdminPromoPayload = Readonly<{
   code: string;

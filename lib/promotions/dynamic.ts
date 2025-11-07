@@ -25,7 +25,7 @@ const isPlanKey = (value: unknown): value is PlanKey =>
 const isCycle = (value: unknown): value is Cycle => value === 'monthly' || value === 'annual';
 
 const isPaymentMethod = (value: unknown): value is PaymentMethod =>
-  value === 'stripe' || value === 'easypaisa' || value === 'jazzcash' || value === 'crypto';
+  value === 'stripe' || value === 'easypaisa' || value === 'jazzcash' || value === 'safepay' || value === 'crypto';
 
 export const mapRowToPromoRule = (row: AdminPromoCodeRow): PromoCodeRule => {
   const appliesTo: PromoCodeRule['appliesTo'] = {};

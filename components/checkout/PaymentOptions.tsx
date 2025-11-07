@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Card } from '@/components/design-system/Card';
 
-export type PaymentMethod = 'jazzcash' | 'easypaisa' | 'card';
+export type PaymentMethod = 'jazzcash' | 'easypaisa' | 'safepay' | 'card';
 
 interface Props {
   selected: PaymentMethod;
@@ -19,6 +19,7 @@ const OPTIONS: Array<{
   { value: 'card',      label: 'Card',      sub: 'Visa, MasterCard',           icon: 'fa-credit-card', badge: 'International' },
   { value: 'easypaisa', label: 'Easypaisa', sub: 'Pakistan local payments',    icon: 'fa-mobile',       badge: 'Local' },
   { value: 'jazzcash',  label: 'JazzCash',  sub: 'Pakistan local payments',    icon: 'fa-wallet',       badge: 'Local' },
+  { value: 'safepay',   label: 'Safepay',   sub: 'Pakistan local payments',    icon: 'fa-shield-alt',   badge: 'Local' },
 ];
 
 export const PaymentOptions: React.FC<Props> = ({ selected, onChange, className }) => {

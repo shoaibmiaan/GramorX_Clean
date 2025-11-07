@@ -11,7 +11,7 @@ import type { Cycle, PlanKey } from '@/lib/pricing';
 import { queueNotificationEvent, getNotificationContact, type NotificationContact } from '@/lib/notify';
 import { getBaseUrl } from '@/lib/url';
 
-const providers: PaymentProvider[] = ['stripe', 'easypaisa', 'jazzcash', 'crypto'];
+const providers: PaymentProvider[] = ['stripe', 'easypaisa', 'jazzcash', 'safepay', 'crypto'];
 
 const Body = z.object({
   plan: z.enum(['starter', 'booster', 'master']).default('booster'),
@@ -34,6 +34,7 @@ const PROVIDER_DEFAULT_CURRENCY: Record<PaymentProvider, 'USD' | 'PKR'> = {
   stripe: 'USD',
   easypaisa: 'PKR',
   jazzcash: 'PKR',
+  safepay: 'PKR',
   crypto: 'USD',
 };
 
@@ -142,9 +143,6 @@ const handler: NextApiHandler<ResBody> = async (req, res) => {
 
   try {
     // Create the gateway intent/session
-    // NOTE: If the gateway type hasn’t been updated to accept `currency`, add it there.
-    // Using @ts-expect-error per your rules, with a TODO.
-    // @ts-expect-error TODO(codex): extend createGatewayIntent options to include `currency`
     const gateway = await createGatewayIntent({
       provider,
       plan,

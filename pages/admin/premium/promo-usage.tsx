@@ -10,6 +10,7 @@ const PROVIDER_LABEL: Record<PaymentProvider, string> = {
   stripe: 'Stripe',
   easypaisa: 'Easypaisa',
   jazzcash: 'JazzCash',
+  safepay: 'Safepay',
   crypto: 'Crypto',
 };
 

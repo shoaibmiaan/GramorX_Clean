@@ -3,10 +3,11 @@ import { env } from '@/lib/env';
 import { getPlanBillingAmount, type Cycle, type PlanKey } from '@/lib/pricing';
 import { initiateEasypaisa } from '@/lib/payments/easypaisa';
 import { initiateJazzCash } from '@/lib/payments/jazzcash';
+import { initiateSafepay } from '@/lib/payments/safepay';
 
 const CRYPTO_CHECKOUT_PATH = '/checkout/crypto';
 
-export type PaymentProvider = 'stripe' | 'easypaisa' | 'jazzcash' | 'crypto';
+export type PaymentProvider = 'stripe' | 'easypaisa' | 'jazzcash' | 'safepay' | 'crypto';
 
 export type GatewayIntent = Readonly<{
   provider: PaymentProvider;
@@ -24,6 +25,7 @@ export type CreateGatewayIntentInput = Readonly<{
   promoCode?: string;
   amountCents: number;
   intentId: string;
+  currency: 'USD' | 'PKR';
 }>;
 
 export function amountInCents(plan: PlanKey, cycle: Cycle): number {
@@ -99,8 +101,19 @@ async function createLocalSession(input: CreateGatewayIntentInput): Promise<Gate
     const session = await initiateEasypaisa(input.origin, input.plan, input.cycle);
     return { provider: 'easypaisa', url: session.url, sessionId: session.sessionId };
   }
-  const session = await initiateJazzCash(input.origin, input.plan, input.cycle);
-  return { provider: 'jazzcash', url: session.url, sessionId: session.sessionId };
+  if (input.provider === 'jazzcash') {
+    const session = await initiateJazzCash(input.origin, input.plan, input.cycle);
+    return { provider: 'jazzcash', url: session.url, sessionId: session.sessionId };
+  }
+  const session = await initiateSafepay({
+    origin: input.origin,
+    plan: input.plan,
+    cycle: input.cycle,
+    amountCents: input.amountCents,
+    currency: input.currency,
+    intentId: input.intentId,
+  });
+  return { provider: 'safepay', url: session.url, sessionId: session.sessionId };
 }
 
 function createCryptoCheckout(input: CreateGatewayIntentInput): GatewayIntent {
