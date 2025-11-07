@@ -29,10 +29,11 @@ type Props = {
   questions: Question[];
   mode?: Mode;
   onComplete?: (result: SectionResult) => void;
+  onAnswerChange?: (answers: number[]) => void;
 };
 
 export const SectionTest = forwardRef<SectionTestHandle, Props>(
-  function SectionTest({ section, questions, mode = 'simulation', onComplete }, ref) {
+  function SectionTest({ section, questions, mode = 'simulation', onComplete, onAnswerChange }, ref) {
     const [answers, setAnswers] = useState<number[]>(Array(questions.length).fill(-1));
     const [result, setResult] = useState<SectionResult | null>(null);
     const [tabSwitches, setTabSwitches] = useState(0);
@@ -61,6 +62,10 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
       const state = { answers, tabSwitches, mode };
       localStorage.setItem(`mock-${section}-state`, JSON.stringify(state));
     }, [answers, section, tabSwitches, mode]);
+
+    useEffect(() => {
+      onAnswerChange?.(answers);
+    }, [answers, onAnswerChange]);
 
     useEffect(() => {
       const handler = () => {
@@ -172,7 +177,7 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
           {questions.map((q, qi) => {
             const fieldsetId = `${formId}-question-${qi}`;
             return (
-              <fieldset key={q.id} className="space-y-2">
+              <fieldset key={q.id} id={`question-${qi + 1}`} className="space-y-2">
                 <legend className="mb-2 font-semibold text-foreground">
                   <span className="sr-only">Question {qi + 1}: </span>
                   {q.question}

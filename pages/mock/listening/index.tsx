@@ -3,7 +3,7 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { ModuleMockShell, ModuleMockShellSection } from '@/components/mock-tests/ModuleMockShell';
 import { listeningPracticeList } from '@/data/listening/index';
-import { mockSections } from '@/data/mockTests';
+import { mockSections } from '@/data/mock';
 
 const formatMinutes = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds <= 0) return 'Self-paced';
