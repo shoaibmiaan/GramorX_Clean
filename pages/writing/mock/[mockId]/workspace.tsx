@@ -179,7 +179,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
     };
   }
 
-  const { mockId: attemptId } = ctx.params as { mockId: string };
+  const params = ctx.params as { mockId: string };
+  const queryAttemptId = typeof ctx.query.attemptId === 'string' ? ctx.query.attemptId : null;
+  const attemptId = queryAttemptId ?? params.mockId;
+  if (!attemptId) {
+    return { notFound: true };
+  }
 
   const { data: attempt, error } = await supabase
     .from('exam_attempts')
@@ -192,7 +197,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   }
 
   const metadata = (attempt.metadata as any) ?? {};
-  const mockId = typeof metadata.mockId === 'string' ? metadata.mockId : null;
+  const mockIdFromMetadata = typeof metadata.mockId === 'string' ? metadata.mockId : null;
+  const fallbackMockId = queryAttemptId ? params.mockId : null;
+  const mockId = mockIdFromMetadata ?? fallbackMockId;
   const promptIds = metadata.promptIds ?? {};
 
   const { data: promptRows } = await supabase
