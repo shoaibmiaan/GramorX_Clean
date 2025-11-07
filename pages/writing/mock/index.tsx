@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import type { GetServerSideProps } from 'next';
 
-import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
+import { ModuleMockShell, ModuleMockShellSection } from '@/components/mock-tests/ModuleMockShell';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/design-system/Tabs';
 import { writingExamSummaries } from '@/data/writing/exam-index';
 import { getServerClient } from '@/lib/supabaseServer';
@@ -106,35 +106,52 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
 
   const activeSummaries = useMemo(() => filterSummaries(tab), [tab]);
   const primarySummary = activeSummaries[0] ?? writingExamSummaries[0] ?? null;
+  const moduleDuration = writingExamSummaries[0]?.durationMinutes ?? 60;
 
   return (
-    <section className="py-16 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-      <Container>
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-3">
-            <h1 className="font-slab text-display text-gradient-primary">IELTS Writing Mock Tests</h1>
-            <p className="max-w-2xl text-grayish">
-              Simulate the full 60-minute module with autosave, idle detection, and AI band scoring across Task Achievement, Coherence, Lexical Resource, and Grammar.
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <Badge variant="neutral" size="sm">Autosave every 10s</Badge>
-              <Badge variant="neutral" size="sm">Focus guard enabled</Badge>
-              <Badge variant="neutral" size="sm">Instant band breakdown</Badge>
-            </div>
-          </div>
-          {primarySummary ? (
-            <Button
-              href={`/writing/mock/${primarySummary.id}/start`}
-              variant="primary"
-              size="lg"
-              className="rounded-ds"
-            >
-              Start new test
-            </Button>
-          ) : null}
-        </div>
-
-        <Tabs defaultValue="full" value={tab} onValueChange={(value) => setTab(value as TabKey)} className="mt-12">
+    <ModuleMockShell
+      title="IELTS Writing Mock Tests"
+      description="Simulate the full 60-minute module with autosave, idle detection, and AI band scoring across Task Achievement, Coherence, Lexical Resource, and Grammar."
+      heroVariant="split"
+      badges={
+        <>
+          <Badge variant="neutral" size="sm">Autosave every 10s</Badge>
+          <Badge variant="neutral" size="sm">Focus guard enabled</Badge>
+          <Badge variant="neutral" size="sm">Instant band breakdown</Badge>
+        </>
+      }
+      actions={
+        primarySummary ? (
+          <Button
+            href={`/writing/mock/${primarySummary.id}/start`}
+            variant="primary"
+            size="lg"
+            className="rounded-ds"
+          >
+            Start new test
+          </Button>
+        ) : null
+      }
+      stats={[
+        {
+          label: 'Module duration',
+          value: `${moduleDuration} mins`,
+          helper: 'Full Task 1 + Task 2 timing',
+        },
+        {
+          label: 'Mock library',
+          value: `${writingExamSummaries.length} sets`,
+          helper: 'Academic & General Training prompts',
+        },
+        {
+          label: 'Feedback coverage',
+          value: '4 band criteria',
+          helper: 'Task • Coherence • Lexical • Grammar',
+        },
+      ]}
+    >
+      <ModuleMockShellSection>
+        <Tabs defaultValue="full" value={tab} onValueChange={(value) => setTab(value as TabKey)}>
           <TabsList>
             {tabOrder.map((key) => (
               <TabsTrigger key={key} value={key}>
@@ -175,75 +192,75 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
             </TabsContent>
           ))}
         </Tabs>
+      </ModuleMockShellSection>
 
-        <section className="mt-16 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-h3 font-semibold text-foreground">Recent attempts</h2>
-              <p className="text-sm text-muted-foreground">Track submissions, AI scores, and review progress.</p>
-            </div>
-            <Button href="/writing/progress" variant="ghost" size="sm" className="rounded-ds">
-              View analytics
-            </Button>
+      <ModuleMockShellSection as="section" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-h3 font-semibold text-foreground">Recent attempts</h2>
+            <p className="text-sm text-muted-foreground">Track submissions, AI scores, and review progress.</p>
           </div>
+          <Button href="/writing/progress" variant="ghost" size="sm" className="rounded-ds">
+            View analytics
+          </Button>
+        </div>
 
-          <Card className="card-surface rounded-ds-2xl p-0">
-            {history.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">
-                No attempts yet. Start a mock to see your scores and feedback here.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border/60 text-left text-sm">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">Test</th>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">Started</th>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">AI band</th>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">Teacher band</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {history.map((entry) => {
-                      const action = actionCopy[entry.status];
-                      const statusTone = statusBadgeTone[entry.status];
-                      return (
-                        <tr key={entry.attemptId} className="bg-background/80">
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium text-foreground">{entry.title}</span>
-                              <span className="text-xs text-muted-foreground">{entry.taskLabel}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(entry.startedAt)}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant={statusTone} size="sm">{statusLabelText[entry.status]}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.aiBand)}</td>
-                          <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.teacherBand)}</td>
-                          <td className="px-4 py-3 text-right">
-                            <Button
-                              href={action.href(entry.attemptId, entry.mockId)}
-                              size="sm"
-                              variant="secondary"
-                              className="rounded-ds"
-                            >
-                              {action.label}
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        </section>
-      </Container>
-    </section>
+        <Card className="card-surface rounded-ds-2xl p-0">
+          {history.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">
+              No attempts yet. Start a mock to see your scores and feedback here.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border/60 text-left text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">Test</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">Started</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">AI band</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">Teacher band</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {history.map((entry) => {
+                    const action = actionCopy[entry.status];
+                    const statusTone = statusBadgeTone[entry.status];
+                    return (
+                      <tr key={entry.attemptId} className="bg-background/80">
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">{entry.title}</span>
+                            <span className="text-xs text-muted-foreground">{entry.taskLabel}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(entry.startedAt)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={statusTone} size="sm">{statusLabelText[entry.status]}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.aiBand)}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.teacherBand)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            href={action.href(entry.attemptId, entry.mockId)}
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-ds"
+                          >
+                            {action.label}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </ModuleMockShellSection>
+    </ModuleMockShell>
   );
 };
 

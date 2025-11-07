@@ -304,21 +304,26 @@ export default function Dashboard(): JSX.Element {
     ];
 
     if (examDate) {
-      cards.push({
+      const readableExamDate = examDate.toLocaleDateString();
+      const caption =
+        daysUntilExam !== null && daysUntilExam > 0
+          ? `Lock in mocks and speaking practice so the next ${daysUntilExam} day${daysUntilExam === 1 ? '' : 's'} ladder up to exam day.`
+          : 'Exam day is here. Complete a confidence run-through and review your checklist.';
+
+      items.push({
         id: 'exam-timeline',
         title: 'Exam timeline',
-        headline: daysUntilExam !== null ? `${daysUntilExam} day${daysUntilExam === 1 ? '' : 's'}` : examDate.toLocaleDateString(),
-        body: daysUntilExam !== null && daysUntilExam > 0
-          ? 'Lock in your mock tests and speaking practice so every week ladders up to exam day.'
-          : 'Exam day is here. Complete a confidence run-through and review your checklist.',
-        primaryCta: { label: 'View checklist', href: '/mock' },
-        secondaryCta: { label: 'Manage calendar', href: '#study-calendar' },
-        supporting: <div className="text-small text-muted-foreground">Exam date: {examDate.toLocaleDateString()}</div>,
+        caption,
+        icon: 'CalendarClock',
+        accent: 'info',
+        primary: { label: 'View checklist', href: '/mock' },
+        secondary: { label: 'Manage calendar', href: '#study-calendar' },
+        chip: `Exam: ${readableExamDate}`,
       });
     }
 
-    return cards;
-  }, [dailyQuota, daysUntilExam, englishLevel, examDate, focusTopics, goalBand, sessionMixEntries, targetStudyTime]);
+    return items;
+  }, [daysUntilExam, examDate, streak, streakProtected]);
 
   const trackFeatureOpen = useCallback((feature: string) => {
     // window.analytics?.track('feature_open', { feature, userId: sessionUserId });

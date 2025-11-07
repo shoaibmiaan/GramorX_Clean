@@ -110,8 +110,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('exam_attempts')
     .insert({
       user_id: user.id,
-      module: 'writing',
-      mock_id: derivedMockId,
       exam_type: 'writing',
       status: 'in_progress',
       duration_seconds: durationSeconds,

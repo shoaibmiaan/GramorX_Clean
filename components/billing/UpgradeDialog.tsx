@@ -8,7 +8,7 @@ import { evaluateQuota, nextPlanForQuota, type QuotaKey } from '@/lib/plan/quota
 import type { PaymentMethod, PlanKey } from '@/types/payments';
 import type { PlanId } from '@/types/pricing';
 
-const DEFAULT_METHODS: PaymentMethod[] = ['stripe', 'crypto', 'easypaisa', 'jazzcash'];
+const DEFAULT_METHODS: PaymentMethod[] = ['stripe', 'crypto', 'easypaisa', 'jazzcash', 'safepay'];
 
 export type UpgradeDialogProps = {
   open: boolean;
