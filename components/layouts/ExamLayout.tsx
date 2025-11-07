@@ -18,6 +18,8 @@ export type ExamLayoutProps = {
   seconds: number;
   /** Called when timer reaches zero */
   onElapsed?: () => void;
+  /** Optional override for the timer element */
+  timer?: React.ReactNode;
   /** Optional part navigator element shown in header */
   partNavigator?: React.ReactNode;
   /** Question palette sidebar */
@@ -38,6 +40,7 @@ export default function ExamLayout({
   title = 'Exam Room',
   seconds,
   onElapsed,
+  timer,
   partNavigator,
   questionPalette,
   children,
@@ -76,7 +79,7 @@ export default function ExamLayout({
               {partNavigator}
             </div>
             <div className="shrink-0">
-              <PrTimer seconds={seconds} onElapsed={onElapsed} />
+              {timer ?? <PrTimer seconds={seconds} onElapsed={onElapsed} />}
             </div>
           </Container>
         </header>
