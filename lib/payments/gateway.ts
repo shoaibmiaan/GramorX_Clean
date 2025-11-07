@@ -26,8 +26,6 @@ export type CreateGatewayIntentInput = Readonly<{
   amountCents: number;
   intentId: string;
   currency: 'USD' | 'PKR';
-  customerEmail?: string | null;
-  customerName?: string | null;
 }>;
 
 export function amountInCents(plan: PlanKey, cycle: Cycle): number {
@@ -114,8 +112,6 @@ async function createLocalSession(input: CreateGatewayIntentInput): Promise<Gate
     amountCents: input.amountCents,
     currency: input.currency,
     intentId: input.intentId,
-    customerEmail: input.customerEmail ?? null,
-    customerName: input.customerName ?? null,
   });
   return { provider: 'safepay', url: session.url, sessionId: session.sessionId };
 }

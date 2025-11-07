@@ -3,7 +3,7 @@ import type { NextApiHandler } from 'next';
 
 import { verifyEasypaisa } from '@/lib/payments/easypaisa';
 import { verifyJazzCash } from '@/lib/payments/jazzcash';
-import { interpretSafepayNotification, verifySafepay } from '@/lib/payments/safepay';
+import { verifySafepay } from '@/lib/payments/safepay';
 import type { PaymentProvider } from '@/lib/payments/gateway';
 import { finalizeLocalPayment } from '@/lib/payments/localWebhook';
 
@@ -43,30 +43,15 @@ const handler: NextApiHandler = async (req, res) => {
     return res.status(400).json({ ok: false, error: 'invalid_signature' });
   }
 
-  let sessionId: string | null = null;
-
-  if (provider === 'safepay') {
-    const interpreted = interpretSafepayNotification((req.body ?? {}) as Record<string, unknown>);
-    sessionId = interpreted.sessionId;
-    if (!sessionId) {
-      return res.status(400).json({ ok: false, error: 'missing_session' });
-    }
-    if (interpreted.status !== 'succeeded') {
-      return res
-        .status(200)
-        .json({ ok: true, status: interpreted.status, reason: interpreted.reason ?? interpreted.rawStatus ?? null });
-    }
-  } else {
-    sessionId = String(
-      (req.body as any)?.sessionId ??
-        (req.body as any)?.orderId ??
-        (req.body as any)?.tracker ??
-        (req.body as any)?.token ??
-        '',
-    ).trim();
-    if (!sessionId) {
-      return res.status(400).json({ ok: false, error: 'missing_session' });
-    }
+  const sessionId = String(
+    (req.body as any)?.sessionId ??
+      (req.body as any)?.orderId ??
+      (req.body as any)?.tracker ??
+      (req.body as any)?.token ??
+      '',
+  ).trim();
+  if (!sessionId) {
+    return res.status(400).json({ ok: false, error: 'missing_session' });
   }
 
   const result = await finalizeLocalPayment(provider, sessionId);
