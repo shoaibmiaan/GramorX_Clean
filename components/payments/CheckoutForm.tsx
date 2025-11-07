@@ -18,7 +18,7 @@ export default function CheckoutForm({
   billingCycle = 'monthly',
   referralCode,
   promoCode,
-  methods = ['stripe', 'crypto', 'easypaisa', 'jazzcash'],
+  methods = ['stripe', 'crypto', 'easypaisa', 'jazzcash', 'safepay'],
   className = '',
   onError,
 }: CheckoutFormProps) {
@@ -105,6 +105,21 @@ export default function CheckoutForm({
             className="w-full rounded-lg bg-primary px-4 py-2 text-primary-foreground disabled:opacity-60"
           >
             {loading === 'jazzcash' ? 'Starting…' : 'Pay with JazzCash'}
+          </button>
+        </div>
+      )}
+
+      {methods.includes('safepay') && (
+        <div className="rounded-xl border border-border p-4">
+          <h3 className="mb-1 text-h4 font-medium">Safepay</h3>
+          <p className="mb-4 text-small text-muted-foreground">Pakistan local payments</p>
+          <button
+            type="button"
+            onClick={() => start('safepay')}
+            disabled={loading !== null}
+            className="w-full rounded-lg bg-primary px-4 py-2 text-primary-foreground disabled:opacity-60"
+          >
+            {loading === 'safepay' ? 'Starting…' : 'Pay with Safepay'}
           </button>
         </div>
       )}

@@ -35,7 +35,9 @@ const envSchema = z.object({
 
   // Optional client-side toggles/util
   NEXT_PUBLIC_TWILIO_BYPASS: z.string().optional(),
-  NEXT_PUBLIC_PAYMENTS_PROVIDER: z.enum(['none', 'stripe', 'easypaisa', 'jazzcash', 'crypto']).optional(),
+  NEXT_PUBLIC_PAYMENTS_PROVIDER: z
+    .enum(['none', 'stripe', 'easypaisa', 'jazzcash', 'safepay', 'crypto'])
+    .optional(),
 
   // Server-only vars (required in prod)
   SUPABASE_URL: z.string().url(),
@@ -90,11 +92,16 @@ const envSchema = z.object({
   EASYPASA_SECRET: z.string().optional(),
   JAZZCASH_MERCHANT_ID: z.string().optional(),
   JAZZCASH_INTEGRITY_SALT: z.string().optional(),
+  SAFEPAY_PUBLIC_KEY: z.string().optional(),
+  SAFEPAY_SECRET_KEY: z.string().optional(),
+  SAFEPAY_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  SAFEPAY_API_BASE_URL: z.string().url().optional(),
+  SAFEPAY_CHECKOUT_BASE_URL: z.string().url().optional(),
 
   LOCAL_ADMIN_TOKEN: z.string().optional(),
   ADMIN_API_TOKEN: z.string().optional(),
   SITE_URL: z.string().url().optional(),
-  PAYMENTS_PROVIDER: z.enum(['none', 'stripe', 'easypaisa', 'jazzcash', 'crypto']).optional(),
+  PAYMENTS_PROVIDER: z.enum(['none', 'stripe', 'easypaisa', 'jazzcash', 'safepay', 'crypto']).optional(),
   PORT: z.coerce.number().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
@@ -183,6 +190,11 @@ const raw = {
   EASYPASA_SECRET: process.env.EASYPASA_SECRET,
   JAZZCASH_MERCHANT_ID: process.env.JAZZCASH_MERCHANT_ID,
   JAZZCASH_INTEGRITY_SALT: process.env.JAZZCASH_INTEGRITY_SALT,
+  SAFEPAY_PUBLIC_KEY: process.env.SAFEPAY_PUBLIC_KEY,
+  SAFEPAY_SECRET_KEY: process.env.SAFEPAY_SECRET_KEY,
+  SAFEPAY_ENV: process.env.SAFEPAY_ENV,
+  SAFEPAY_API_BASE_URL: process.env.SAFEPAY_API_BASE_URL,
+  SAFEPAY_CHECKOUT_BASE_URL: process.env.SAFEPAY_CHECKOUT_BASE_URL,
 
   LOCAL_ADMIN_TOKEN: process.env.LOCAL_ADMIN_TOKEN,
   ADMIN_API_TOKEN: process.env.ADMIN_API_TOKEN,
