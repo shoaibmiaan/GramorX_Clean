@@ -213,31 +213,34 @@ const buildUserPrompt = (input: EvaluateEssayInput) => {
     lines.push(`Student used approximately ${Math.round(input.durationSeconds / 60)} minutes.`);
   }
   lines.push(
-    'Return JSON shaped as:
-{
-  "overallBand": number,
-  "bandScores": {
-    "task_response": number,
-    "coherence_and_cohesion": number,
-    "lexical_resource": number,
-    "grammatical_range": number
-  },
-  "feedback": {
-    "summary": string,
-    "strengths": string[],
-    "improvements": string[],
-    "perCriterion": {
-      "task_response": { "band": number, "feedback": string },
-      "coherence_and_cohesion": { "band": number, "feedback": string },
-      "lexical_resource": { "band": number, "feedback": string },
-      "grammatical_range": { "band": number, "feedback": string }
-    },
-    "band9Rewrite": string?,
-    "errors": Array<{ "type": "grammar"|"lexical"|"coherence"|"task"|"general", "excerpt": string, "suggestion"?: string, "severity"?: "low"|"medium"|"high" }>,
-    "blocks": Array<{ "tag"?: string, "title": string, "description": string, "weight"?: number, "criterion"?: "overall"|"task_response"|"coherence_and_cohesion"|"lexical_resource"|"grammatical_range" }>
-  }
-}.
-Use IELTS half-band increments (e.g. 6.5).`);
+    [
+      'Return JSON shaped as:',
+      '{',
+      '  "overallBand": number,',
+      '  "bandScores": {',
+      '    "task_response": number,',
+      '    "coherence_and_cohesion": number,',
+      '    "lexical_resource": number,',
+      '    "grammatical_range": number',
+      '  },',
+      '  "feedback": {',
+      '    "summary": string,',
+      '    "strengths": string[],',
+      '    "improvements": string[],',
+      '    "perCriterion": {',
+      '      "task_response": { "band": number, "feedback": string },',
+      '      "coherence_and_cohesion": { "band": number, "feedback": string },',
+      '      "lexical_resource": { "band": number, "feedback": string },',
+      '      "grammatical_range": { "band": number, "feedback": string }',
+      '    },',
+      '    "band9Rewrite": string?,',
+      '    "errors": Array<{ "type": "grammar"|"lexical"|"coherence"|"task"|"general", "excerpt": string, "suggestion"?: string, "severity"?: "low"|"medium"|"high" }>,',
+      '    "blocks": Array<{ "tag"?: string, "title": string, "description": string, "weight"?: number, "criterion"?: "overall"|"task_response"|"coherence_and_cohesion"|"lexical_resource"|"grammatical_range" }>',
+      '  }',
+      '}.',
+      'Use IELTS half-band increments (e.g. 6.5).',
+    ].join('\n'),
+  );
   lines.push('Student essay:\n"""\n' + input.essay.trim() + '\n"""');
   return lines.join('\n\n');
 };
