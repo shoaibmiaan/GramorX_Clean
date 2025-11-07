@@ -28,20 +28,33 @@ type PageProps = {
   mockId?: string | null;
 };
 
-const mapPrompt = (row: any) => ({
-  id: row.id,
-  slug: row.slug ?? row.id,
-  title: row.title,
-  promptText: row.prompt_text,
-  taskType: row.task_type ?? 'task2',
-  module: row.module ?? 'academic',
-  difficulty: row.difficulty ?? 'medium',
-  source: row.source ?? undefined,
-  tags: row.tags ?? undefined,
-  estimatedMinutes: row.estimated_minutes ?? undefined,
-  wordTarget: row.word_target ?? undefined,
-  metadata: row.metadata ?? undefined,
-});
+const mapPrompt = (row: any) => {
+  const topic: string | null =
+    (typeof row.topic === 'string' && row.topic) ? row.topic : null;
+
+  const promptText: string | null =
+    (typeof row.prompt_text === 'string' && row.prompt_text) ? row.prompt_text
+    : (row?.outline_json?.outline_summary ? String(row.outline_json.outline_summary) : null) ||
+      topic || null;
+
+  const taskType: string =
+    (typeof row.task_type === 'string' && row.task_type) ? row.task_type : 'task2';
+
+  return {
+    id: row.id,
+    slug: row.slug ?? row.id,
+    title: topic ?? 'Untitled',
+    promptText,                         // may be null — never undefined
+    taskType,
+    module: row.module ?? 'academic',
+    difficulty: row.difficulty ?? null,
+    source: row.source ?? null,
+    tags: row.tags ?? null,
+    estimatedMinutes: row.estimated_minutes ?? null,
+    wordTarget: row.word_target ?? null,
+    metadata: row.metadata ?? null,
+  };
+};
 
 const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
   __plan = 'starter',
@@ -90,17 +103,13 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
   const hasEngagementPrompts = shouldShowInstall || shouldShowPush;
 
   useEffect(() => {
-    if (!hasEngagementPrompts) {
-      setSheetOpen(false);
-    }
+    if (!hasEngagementPrompts) setSheetOpen(false);
   }, [hasEngagementPrompts]);
 
   const handleInstallComplete = (outcome: 'accepted' | 'dismissed') => {
     setInstallDismissed(true);
     clearPrompt();
-    if (outcome === 'accepted') {
-      setSheetOpen(false);
-    }
+    if (outcome === 'accepted') setSheetOpen(false);
   };
 
   const handlePushGranted = () => {
@@ -108,9 +117,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
     setSheetOpen(false);
   };
 
-  const handlePushDismiss = () => {
-    setPushDismissed(true);
-  };
+  const handlePushDismiss = () => setPushDismissed(true);
 
   return (
     <>
@@ -126,9 +133,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
           {shouldShowInstall ? (
             <InstallBanner promptEvent={promptEvent} onComplete={handleInstallComplete} onDismiss={handleInstallComplete} />
           ) : null}
-          {shouldShowPush ? (
-            <PushOptInCard onGranted={handlePushGranted} onDismiss={handlePushDismiss} />
-          ) : null}
+          {shouldShowPush ? <PushOptInCard onGranted={handlePushGranted} onDismiss={handlePushDismiss} /> : null}
         </div>
       ) : null}
       {hasEngagementPrompts ? (
@@ -144,9 +149,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
         durationSeconds={durationSeconds}
         initialDraft={initialDraft ?? undefined}
         onSubmitSuccess={(result) => {
-          if (mockId) {
-            clearMockAttemptId('writing', mockId);
-          }
+          if (mockId) clearMockAttemptId('writing', mockId);
           void router.push(`/writing/mock/${result.attemptId}/evaluating`);
         }}
       />
@@ -159,9 +162,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
         {shouldShowInstall ? (
           <InstallBanner promptEvent={promptEvent} onComplete={handleInstallComplete} onDismiss={handleInstallComplete} />
         ) : null}
-        {shouldShowPush ? (
-          <PushOptInCard onGranted={handlePushGranted} onDismiss={handlePushDismiss} />
-        ) : null}
+        {shouldShowPush ? <PushOptInCard onGranted={handlePushGranted} onDismiss={handlePushDismiss} /> : null}
       </KeyboardAwareSheet>
     </>
   );
@@ -174,10 +175,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   } = await supabase.auth.getUser();
   if (!user) {
     return {
-      redirect: {
-        destination: '/welcome',
-        permanent: false,
-      },
+      redirect: { destination: '/welcome', permanent: false },
     };
   }
 
@@ -197,13 +195,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   const mockId = typeof metadata.mockId === 'string' ? metadata.mockId : null;
   const promptIds = metadata.promptIds ?? {};
 
-  const promptRows = await supabase
+  const { data: promptRows } = await supabase
     .from('writing_prompts')
     .select('*')
     .in('id', [promptIds.task1, promptIds.task2].filter(Boolean));
 
-  const task1Row = promptRows.data?.find((row) => row.id === promptIds.task1);
-  const task2Row = promptRows.data?.find((row) => row.id === promptIds.task2);
+  const task1Row = promptRows?.find((row) => row.id === promptIds.task1) ?? null;
+  const task2Row = promptRows?.find((row) => row.id === promptIds.task2) ?? null;
 
   if (!task1Row || !task2Row) {
     return { notFound: true };
@@ -228,11 +226,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
   if (autosaveEvent?.payload) {
     const payload = autosaveEvent.payload as any;
     initialDraft = {
-      updatedAt: autosaveEvent.occurred_at,
-      task1: payload.tasks?.task1
+      updatedAt: autosaveEvent.occurred_at ?? null,
+      task1: payload?.tasks?.task1
         ? { essay: payload.tasks.task1.content ?? '', wordCount: payload.tasks.task1.wordCount ?? 0 }
         : undefined,
-      task2: payload.tasks?.task2
+      task2: payload?.tasks?.task2
         ? { essay: payload.tasks.task2.content ?? '', wordCount: payload.tasks.task2.wordCount ?? 0 }
         : undefined,
     };
@@ -256,7 +254,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
         initialDraft = {
           task1: draft.task1,
           task2: draft.task2,
-          updatedAt: attempt.updated_at ?? attempt.created_at,
+          updatedAt: attempt.updated_at ?? attempt.created_at ?? null,
         };
       }
     }

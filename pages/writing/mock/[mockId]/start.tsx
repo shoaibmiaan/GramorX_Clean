@@ -72,7 +72,7 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
       };
 
       setMockAttemptId('writing', mockId, data.attempt.id);
-      await router.push(`/writing/mock/${data.attempt.id}/workspace`);
+      await router.push(`/writing/mock/${mockId}/workspace?attemptId=${data.attempt.id}`);
     } catch (err: any) {
       setError(err?.message ?? 'Unexpected error while starting the mock test');
     } finally {
