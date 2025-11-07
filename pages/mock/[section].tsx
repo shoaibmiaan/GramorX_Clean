@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SectionTest, { SectionTestHandle } from '@/components/mock-tests/SectionTest';
-import { mockSections } from '@/data/mockTests';
+import { mockSections } from '@/data/mock';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';

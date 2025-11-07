@@ -3,7 +3,7 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { ModuleMockShell, ModuleMockShellSection } from '@/components/mock-tests/ModuleMockShell';
 import { readingPracticeList } from '@/data/reading';
-import { mockSections } from '@/data/mockTests';
+import { mockSections } from '@/data/mock';
 
 const formatMinutes = (seconds: number) => {
   const minutes = Math.round(seconds / 60);

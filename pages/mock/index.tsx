@@ -6,7 +6,7 @@ import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { track } from '@/lib/analytics/track';
-import { mockTests } from '@/data/mock-tests';
+import { mockTests } from '@/data/mock';
 
 export default function MockTestsIndex() {
   const handleClick = (slug: string, skill: string) => {
