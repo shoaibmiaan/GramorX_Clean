@@ -110,14 +110,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('exam_attempts')
     .insert({
       user_id: user.id,
-      module: 'writing',                 // ✅ satisfies exam_attempts_module_check
-      mock_id: derivedMockId,            // ✅ satisfies NOT NULL mock_id
-      exam_type: 'writing',              // keep for backward-compat if present
+      exam_type: 'writing',
       status: 'in_progress',
       duration_seconds: durationSeconds,
       goal_band: goalBand ?? null,
       metadata: {
         mockId: derivedMockId,
+        module: 'writing',
         promptIds: {
           task1: task1Row.id,
           task2: task2Row.id,
