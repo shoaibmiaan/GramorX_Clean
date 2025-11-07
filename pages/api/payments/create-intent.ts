@@ -67,6 +67,14 @@ const handler: NextApiHandler<ResBody> = async (req, res) => {
   const userEmail = auth.user?.email ?? null;
   if (!userId) return res.status(401).json({ ok: false, error: 'Unauthorized' });
 
+  const { data: profileRow } = await supabaseService
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const customerName = typeof profileRow?.full_name === 'string' ? profileRow.full_name : null;
+
   const origin = getOrigin(req);
   const baseUrl = getBaseUrl();
 
@@ -154,6 +162,8 @@ const handler: NextApiHandler<ResBody> = async (req, res) => {
       amountCents,
       currency, // <- important for Stripe (and future multi-currency support)
       intentId,
+      customerEmail: userEmail,
+      customerName,
     });
 
     await supabaseService
