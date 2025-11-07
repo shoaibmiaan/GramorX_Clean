@@ -3,6 +3,9 @@ import { z } from 'zod';
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const postSchema = z.object({
   attemptId: z.string().min(1),
   sectionIndex: z.number().int().min(0),
@@ -12,6 +15,7 @@ const postSchema = z.object({
   durationSeconds: z.number().int().min(0).optional(),
   completed: z.boolean().optional(),
   occurredAt: z.string().datetime({ offset: true }).optional(),
+  answers_delta: z.record(z.string(), z.unknown()).optional(),
 });
 
 const querySchema = z.object({
@@ -65,14 +69,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: 'Invalid payload' });
     }
-    const { attemptId, sectionIndex, snapshot, elapsedSeconds, durationSeconds, completed, mockId, occurredAt } = parsed.data;
+    const {
+      attemptId,
+      sectionIndex,
+      snapshot,
+      elapsedSeconds,
+      durationSeconds,
+      completed,
+      mockId,
+      occurredAt,
+      answers_delta: answersDelta,
+    } = parsed.data;
+
+    let mergedSnapshot: Record<string, unknown> = isRecord(snapshot) ? { ...snapshot } : {};
+
+    if (answersDelta && Object.keys(answersDelta).length > 0) {
+      let mergedAnswers: Record<string, unknown> = {};
+
+      const snapshotAnswers = mergedSnapshot['answers'];
+      if (isRecord(snapshotAnswers)) {
+        mergedAnswers = { ...snapshotAnswers };
+      }
+
+      const { data: previousRow, error: previousError } = await supabase
+        .from('mock_checkpoints')
+        .select('snapshot')
+        .eq('user_id', user.id)
+        .eq('attempt_id', attemptId)
+        .eq('section_idx', sectionIndex)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<{ snapshot: unknown }>();
+
+      if (previousError) {
+        return res.status(500).json({ ok: false, error: previousError.message });
+      }
+
+      if (previousRow?.snapshot && isRecord(previousRow.snapshot)) {
+        const previousAnswers = previousRow.snapshot['answers'];
+        if (isRecord(previousAnswers)) {
+          mergedAnswers = { ...previousAnswers, ...mergedAnswers };
+        }
+      }
+
+      mergedSnapshot = {
+        ...mergedSnapshot,
+        answers: { ...mergedAnswers, ...answersDelta },
+      };
+    }
 
     const payload = {
       attempt_id: attemptId,
       user_id: user.id,
       section_idx: sectionIndex,
       mock_id: mockId ?? null,
-      snapshot: snapshot ?? {},
+      snapshot: mergedSnapshot,
       elapsed_sec: elapsedSeconds ?? 0,
       duration_sec: durationSeconds ?? null,
       completed: Boolean(completed),

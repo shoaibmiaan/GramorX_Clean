@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { readingBandFromRaw } from '@/lib/reading/band';
+import { getAnswerText, type ReadingAnswer } from '@/lib/reading/answers';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import {
   computeReadingMockXp,
@@ -18,7 +19,7 @@ type ReadingPaper = { id: string; title: string; passages: Passage[] };
 
 type Attempt = {
   id: string;
-  answers: Record<string, string>;
+  answers: Record<string, ReadingAnswer>;
   correct: number;
   total: number;
   percentage: number;
@@ -37,6 +38,27 @@ type ResultMeta = {
 };
 
 const isLocalAttemptId = (value: string) => value.startsWith('local-');
+
+const normalizeAttemptAnswers = (input: unknown): Record<string, ReadingAnswer> => {
+  if (!input || typeof input !== 'object') return {};
+  const result: Record<string, ReadingAnswer> = {};
+  Object.entries(input as Record<string, unknown>).forEach(([key, value]) => {
+    if (typeof key !== 'string') return;
+    if (typeof value === 'string') {
+      result[key] = { value, flagged: false };
+      return;
+    }
+    if (value && typeof value === 'object') {
+      const record = value as { value?: unknown; flagged?: unknown };
+      const raw = record.value;
+      const normalizedValue = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
+      result[key] = { value: normalizedValue, flagged: record.flagged === true };
+      return;
+    }
+    result[key] = { value: '', flagged: false };
+  });
+  return result;
+};
 
 const loadPaper = async (id: string): Promise<ReadingPaper> => {
   try {
@@ -95,11 +117,15 @@ export default function ReadingReviewPage() {
         const raw = localStorage.getItem(`read:attempt-res:${attempt}`);
         if (!raw) return;
         const parsed = JSON.parse(raw);
-        const answers = parsed.answers || {};
+        const answers = normalizeAttemptAnswers(parsed.answers);
         const flat: Q[] = (parsed.paper?.passages ?? []).flatMap((p: any) => p.questions);
         const total = flat.length;
         let correct = 0;
-        for (const q of flat) if ((answers[q.id] ?? '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase()) correct++;
+        for (const q of flat) {
+          if (getAnswerText(answers[q.id]).trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase()) {
+            correct++;
+          }
+        }
         const band = readingBandFromRaw(correct, Math.max(1, total));
         if (cancelled) return;
         setAtt({
@@ -144,7 +170,7 @@ export default function ReadingReviewPage() {
         const attemptData = json.attempt;
         setAtt({
           id: attemptData.id,
-          answers: attemptData.answers ?? {},
+          answers: normalizeAttemptAnswers(attemptData.answers),
           correct: attemptData.correct,
           total: attemptData.total,
           percentage: attemptData.percentage,
@@ -182,7 +208,7 @@ export default function ReadingReviewPage() {
       const key = q.type;
       map[key] ??= { correct: 0, total: 0 };
       map[key].total++;
-      const ok = (att.answers?.[q.id] ?? '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase();
+      const ok = getAnswerText(att.answers?.[q.id]).trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase();
       if (ok) map[key].correct++;
     }
     return Object.entries(map).map(([type, { correct, total }]) => ({ type, correct, total, pct: Math.round((correct / total) * 100) }));
@@ -252,8 +278,9 @@ export default function ReadingReviewPage() {
             <h3 className="text-h5 font-semibold">{passage.title}</h3>
             <div className="mt-3 space-y-3">
               {passage.questions.map((q, idx) => {
-                const userAnswer = att.answers[q.id] ?? '';
-                const isCorrect = userAnswer.trim().toLowerCase() === q.answer.trim().toLowerCase();
+                const rawAnswer = getAnswerText(att.answers[q.id]);
+                const trimmedAnswer = rawAnswer.trim();
+                const isCorrect = trimmedAnswer.toLowerCase() === q.answer.trim().toLowerCase();
                 const showExplanation = expanded[q.id];
                 return (
                   <div
@@ -273,7 +300,7 @@ export default function ReadingReviewPage() {
                     </div>
                     <div className="mt-2 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 text-small">
                       <span className="text-muted-foreground">Your answer:</span>
-                      <span>{userAnswer || '—'}</span>
+                      <span>{rawAnswer || '—'}</span>
                       <span className="text-muted-foreground">Correct answer:</span>
                       <span>{q.answer}</span>
                     </div>

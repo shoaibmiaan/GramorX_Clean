@@ -159,6 +159,7 @@ export interface SaveCheckpointInput {
   elapsed: number;
   duration?: number;
   completed?: boolean;
+  answersDelta?: Record<string, unknown>;
 }
 
 const clampSeconds = (value?: number) => {
@@ -182,6 +183,7 @@ export async function saveMockCheckpoint(input: SaveCheckpointInput): Promise<bo
     elapsedSeconds: clampSeconds(input.elapsed),
     durationSeconds: clampDuration(input.duration),
     completed: Boolean(input.completed),
+    answers_delta: input.answersDelta && Object.keys(input.answersDelta).length > 0 ? input.answersDelta : undefined,
   };
   try {
     const res = await fetch('/api/mock/checkpoints', {
