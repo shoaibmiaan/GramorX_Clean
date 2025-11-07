@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Flag } from 'lucide-react';
 import { readingPracticePapers } from '@/data/reading';
-import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
 import {
   clearMockAttemptId,
   clearMockDraft,
@@ -18,6 +17,13 @@ import { ReadingPassage } from '@/components/exam/ReadingPassage';
 import { QuestionNav, type QuestionNavFilter, type QuestionNavQuestion } from '@/components/exam/QuestionNav';
 import { track } from '@/lib/analytics/track';
 import { Checkbox } from '@/components/design-system/Checkbox';
+import { Button } from '@/components/design-system/Button';
+import { useToast } from '@/components/design-system/Toaster';
+import { OfflineOnlyBanner } from '@/components/reading/OfflineOnlyBanner';
+import { normalizeForPersist } from '@/lib/reading/normalize';
+import { getAnswerText, isFlagged, type ReadingAnswer } from '@/lib/reading/answers';
+import { mapServerNote as parseServerNote, type NoteRange } from '@/lib/reading/notes';
+import { diffAnswers } from '@/lib/reading/diff';
 
 type QType = 'tfng' | 'yynn' | 'heading' | 'match' | 'mcq' | 'gap';
 type MatchOptionObject = {
@@ -36,17 +42,13 @@ type ReadingPaper = { id: string; title: string; durationSec: number; passages: 
 
 type LayoutMode = 'split' | 'scroll';
 
-type AnswerEntry = {
-  value: string;
-  flagged: boolean;
-};
-
-type AnswerMap = Record<string, AnswerEntry>;
+type AnswerMap = Record<string, ReadingAnswer>;
 type ReadingNote = {
   id: string;
   passageId: string;
   start: number;
   end: number;
+  ranges: NoteRange[];
   color: string;
   noteText?: string | null;
 };
@@ -83,6 +85,11 @@ const LAYOUT_OPTIONS: Array<{
     shortLabel: 'Scroll',
   },
 ];
+
+const ACTIVE_CHECKPOINT_INTERVAL = 10_000;
+const IDLE_CHECKPOINT_INTERVAL = 60_000;
+const IDLE_THRESHOLD_MS = 30_000;
+const READING_SECTION_INDEX = 1;
 
 const sampleReading: ReadingPaper = {
   id: 'sample-001',
@@ -137,6 +144,7 @@ const Shell: React.FC<{ title: string; right?: React.ReactNode; children: React.
 
 export default function ReadingMockPage() {
   const router = useRouter();
+  const toast = useToast();
   const { id } = router.query as { id?: string };
   const [paper, setPaper] = useState<ReadingPaper | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -153,6 +161,7 @@ export default function ReadingMockPage() {
   const attemptRef = useRef<string>('');
   const [attemptReady, setAttemptReady] = useState(false);
   const [checkpointHydrated, setCheckpointHydrated] = useState(false);
+  const [localOnly, setLocalOnly] = useState(false);
   const latestRef = useRef<{
     answers: AnswerMap;
     passageIdx: number;
@@ -172,6 +181,11 @@ export default function ReadingMockPage() {
     started: false,
     focusMode: false,
   });
+  const currentAnswersRef = useRef<AnswerMap>({});
+  const serverSyncedAnswersRef = useRef<Record<string, unknown>>({});
+  const lastCheckpointMetaRef = useRef<string>('');
+  const checkpointTimeoutRef = useRef<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteEditorValue, setNoteEditorValue] = useState('');
   const noteRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -218,8 +232,12 @@ export default function ReadingMockPage() {
         } else {
           setTimeLeft(p.durationSec);
         }
-        const noteList = Array.isArray(draft.data.notes) ? draft.data.notes : undefined;
-        if (noteList) setNotes(noteList);
+        const noteList = Array.isArray(draft.data.notes)
+          ? draft.data.notes
+              .map((note) => mapReadingNote(note))
+              .filter((note): note is ReadingNote => Boolean(note))
+          : undefined;
+        if (noteList && noteList.length > 0) setNotes(noteList);
         if (draft.data.questionFilter) {
           setQuestionFilter(normalizeQuestionFilter(draft.data.questionFilter));
         }
@@ -240,7 +258,7 @@ export default function ReadingMockPage() {
       } else {
         setTimeLeft(p.durationSec);
         saveMockDraft('reading', id, {
-          answers: {},
+          answers: normalizeForPersist({}),
           passageIdx: 0,
           timeLeft: p.durationSec,
           notes: [],
@@ -269,34 +287,55 @@ export default function ReadingMockPage() {
           answers?: Record<string, unknown>;
           passageIdx?: number;
           timeLeft?: number;
-          notes?: ReadingNote[];
+          notes?: Array<Record<string, unknown>>;
           questionFilter?: unknown;
           layoutMode?: unknown;
           started?: unknown;
           focusMode?: unknown;
         };
         const normalizedAnswers = payload.answers ? normalizeAnswerMap(payload.answers) : undefined;
-        if (normalizedAnswers) setAnswers(normalizedAnswers);
+        if (normalizedAnswers) {
+          setAnswers(normalizedAnswers);
+          serverSyncedAnswersRef.current = normalizeForPersist(normalizedAnswers);
+        }
+        const nextPassageIdx =
+          typeof payload.passageIdx === 'number' ? payload.passageIdx : latestRef.current.passageIdx;
         if (typeof payload.passageIdx === 'number') setPassageIdx(payload.passageIdx);
-        if (typeof payload.timeLeft === 'number') {
-          setTimeLeft(Math.max(0, Math.min(paper.durationSec, Math.round(payload.timeLeft))));
-        } else {
+        const nextTimeLeft = (() => {
+          if (typeof payload.timeLeft === 'number') {
+            return Math.max(0, Math.min(paper.durationSec, Math.round(payload.timeLeft)));
+          }
           const duration = typeof checkpoint.duration === 'number' ? checkpoint.duration : paper.durationSec;
           const remaining = Math.max(0, duration - checkpoint.elapsed);
-          setTimeLeft(Math.max(0, Math.min(paper.durationSec, remaining)));
-        }
-        if (Array.isArray(payload.notes)) setNotes(payload.notes);
+          return Math.max(0, Math.min(paper.durationSec, remaining));
+        })();
+        setTimeLeft(nextTimeLeft);
+        const normalizedNotes = Array.isArray(payload.notes)
+          ? payload.notes
+              .map((note) => mapReadingNote(note))
+              .filter((note): note is ReadingNote => Boolean(note))
+          : undefined;
+        if (normalizedNotes && normalizedNotes.length > 0) setNotes(normalizedNotes);
+        const nextNotes = normalizedNotes && normalizedNotes.length > 0 ? normalizedNotes : latestRef.current.notes;
+        const nextQuestionFilter = payload.questionFilter
+          ? normalizeQuestionFilter(payload.questionFilter)
+          : latestRef.current.questionFilter;
         if (payload.questionFilter) {
-          setQuestionFilter(normalizeQuestionFilter(payload.questionFilter));
+          setQuestionFilter(nextQuestionFilter);
         }
+        const nextLayoutMode = payload.layoutMode
+          ? normalizeLayoutMode(payload.layoutMode)
+          : latestRef.current.layoutMode;
         if (payload.layoutMode) {
-          setLayoutMode(normalizeLayoutMode(payload.layoutMode));
+          setLayoutMode(nextLayoutMode);
         }
+        const nextFocusMode =
+          typeof payload.focusMode === 'boolean' ? payload.focusMode : latestRef.current.focusMode;
         if (typeof payload.focusMode === 'boolean') {
           setFocusMode(payload.focusMode);
         }
         const hasAnswered = normalizedAnswers ? hasAnyAnswered(normalizedAnswers) : false;
-        const hasNotes = Array.isArray(payload.notes) && payload.notes.length > 0;
+        const hasNotes = Boolean(normalizedNotes && normalizedNotes.length > 0);
         const startedFromPayload =
           payload.started === true ||
           (typeof payload.timeLeft === 'number' && payload.timeLeft < paper.durationSec) ||
@@ -305,6 +344,16 @@ export default function ReadingMockPage() {
         if (startedFromPayload) {
           setIsStarted(true);
         }
+        const nextStarted = startedFromPayload ? true : latestRef.current.started;
+        lastCheckpointMetaRef.current = JSON.stringify({
+          passageIdx: nextPassageIdx,
+          timeLeft: nextTimeLeft,
+          notes: nextNotes,
+          questionFilter: nextQuestionFilter,
+          layoutMode: nextLayoutMode,
+          started: nextStarted,
+          focusMode: nextFocusMode,
+        });
       }
       setCheckpointHydrated(true);
     })();
@@ -323,9 +372,11 @@ export default function ReadingMockPage() {
   const debouncedLocalDraft = useDebouncedCallback(
     (payload: DraftState) => {
       if (!id) return;
-      saveMockDraft('reading', id, payload);
+      const { answers: payloadAnswers, ...rest } = payload;
+      const normalized = normalizeForPersist(payloadAnswers);
+      saveMockDraft('reading', id, { ...rest, answers: normalized });
     },
-    500,
+    1000,
     { maxWait: 3000 }
   );
 
@@ -341,6 +392,10 @@ export default function ReadingMockPage() {
       focusMode,
     };
   }, [answers, passageIdx, timeLeft, notes, questionFilter, layoutMode, isStarted, focusMode]);
+
+  useEffect(() => {
+    currentAnswersRef.current = answers;
+  }, [answers]);
 
   useEffect(() => {
     if (!layoutHydrated) return;
@@ -403,17 +458,39 @@ export default function ReadingMockPage() {
   }, [id, answers, passageIdx, timeLeft, notes, questionFilter, layoutMode, isStarted, debouncedLocalDraft]);
 
   const persistCheckpoint = useCallback(
-    (opts?: { completed?: boolean }) => {
-      if (!paper || !attemptReady || !checkpointHydrated || !attemptRef.current) return;
+    async (opts?: { completed?: boolean; force?: boolean }) => {
+      if (!paper || !attemptReady || !checkpointHydrated || !attemptRef.current) return false;
       const state = latestRef.current;
+      const normalizedAnswers = normalizeForPersist(state.answers);
+      const previousAnswers = serverSyncedAnswersRef.current ?? {};
+      const shouldForce = Boolean(opts?.force || opts?.completed);
+      const answersDelta = shouldForce ? undefined : diffAnswers(previousAnswers, normalizedAnswers);
+      const deltaKeys = answersDelta ? Object.keys(answersDelta) : [];
+      const hasAnswerChanges = shouldForce || deltaKeys.length > 0;
+      const metaPayload = JSON.stringify({
+        passageIdx: state.passageIdx,
+        timeLeft: state.timeLeft,
+        notes: state.notes,
+        questionFilter: state.questionFilter,
+        layoutMode: state.layoutMode,
+        started: state.started,
+        focusMode: state.focusMode,
+      });
+      const metaChanged = shouldForce || metaPayload !== lastCheckpointMetaRef.current;
+      if (!shouldForce && !hasAnswerChanges && !metaChanged) {
+        return true;
+      }
       const elapsed = Math.max(0, Math.min(paper.durationSec, paper.durationSec - state.timeLeft));
-      void saveMockCheckpoint({
+      const answersPayload: Record<string, unknown> =
+        shouldForce || deltaKeys.length === 0 || !answersDelta ? normalizedAnswers : answersDelta;
+
+      const ok = await saveMockCheckpoint({
         attemptId: attemptRef.current,
         section: 'reading',
         mockId: paper.id,
         payload: {
           paperId: paper.id,
-          answers: state.answers,
+          answers: answersPayload,
           passageIdx: state.passageIdx,
           timeLeft: state.timeLeft,
           notes: state.notes,
@@ -425,16 +502,48 @@ export default function ReadingMockPage() {
         elapsed,
         duration: paper.durationSec,
         completed: opts?.completed,
+        answersDelta: !shouldForce && deltaKeys.length > 0 ? answersDelta : undefined,
       });
+      if (ok) {
+        serverSyncedAnswersRef.current = normalizedAnswers;
+        lastCheckpointMetaRef.current = metaPayload;
+      }
+      return ok;
     },
     [paper, attemptReady, checkpointHydrated]
+  );
+
+  const scheduleCheckpoint = useCallback(
+    (opts?: { force?: boolean }) => {
+      if (!paper || !attemptReady || !checkpointHydrated) {
+        if (checkpointTimeoutRef.current) {
+          window.clearTimeout(checkpointTimeoutRef.current);
+          checkpointTimeoutRef.current = null;
+        }
+        return;
+      }
+      if (checkpointTimeoutRef.current) {
+        window.clearTimeout(checkpointTimeoutRef.current);
+      }
+      const now = Date.now();
+      const idle = now - lastActivityRef.current >= IDLE_THRESHOLD_MS;
+      const delay = opts?.force ? 0 : idle ? IDLE_CHECKPOINT_INTERVAL : ACTIVE_CHECKPOINT_INTERVAL;
+      checkpointTimeoutRef.current = window.setTimeout(async () => {
+        checkpointTimeoutRef.current = null;
+        await persistCheckpoint({ force: opts?.force });
+        if (!opts?.force) {
+          scheduleCheckpoint();
+        }
+      }, delay);
+    },
+    [paper, attemptReady, checkpointHydrated, persistCheckpoint]
   );
 
   useEffect(() => {
     if (!paper || !attemptReady || !checkpointHydrated) return;
     const handler = () => {
       debouncedLocalDraft.flush();
-      persistCheckpoint();
+      void persistCheckpoint({ force: true });
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -442,15 +551,32 @@ export default function ReadingMockPage() {
 
   useEffect(() => {
     if (!paper || !attemptReady || !checkpointHydrated) return;
-    const handle = setTimeout(() => persistCheckpoint(), 1000);
-    return () => clearTimeout(handle);
-  }, [answers, passageIdx, questionFilter, layoutMode, isStarted, paper, attemptReady, checkpointHydrated, persistCheckpoint]);
+    lastActivityRef.current = Date.now();
+    scheduleCheckpoint();
+    return () => {
+      if (checkpointTimeoutRef.current) {
+        window.clearTimeout(checkpointTimeoutRef.current);
+        checkpointTimeoutRef.current = null;
+      }
+    };
+  }, [paper, attemptReady, checkpointHydrated, scheduleCheckpoint]);
 
   useEffect(() => {
-    if (!paper || !attemptReady || !checkpointHydrated) return;
-    const interval = setInterval(() => persistCheckpoint(), 15000);
-    return () => clearInterval(interval);
-  }, [paper, attemptReady, checkpointHydrated, persistCheckpoint]);
+    if (!attemptReady || !checkpointHydrated) return;
+    lastActivityRef.current = Date.now();
+    scheduleCheckpoint();
+  }, [
+    answers,
+    notes,
+    questionFilter,
+    layoutMode,
+    focusMode,
+    passageIdx,
+    isStarted,
+    attemptReady,
+    checkpointHydrated,
+    scheduleCheckpoint,
+  ]);
 
   useEffect(() => {
     if (!attemptReady || !checkpointHydrated) return;
@@ -480,7 +606,7 @@ export default function ReadingMockPage() {
         };
         if (!cancelled && data?.ok && Array.isArray(data.notes)) {
           const mapped = data.notes
-            .map((item) => mapServerNote(item))
+            .map((item) => mapReadingNote(item))
             .filter((item): item is ReadingNote => Boolean(item));
           setNotes((prev) => mergeNotes(prev, mapped));
         }
@@ -498,12 +624,73 @@ export default function ReadingMockPage() {
       controller.abort();
     };
   }, [attemptReady, checkpointHydrated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!paper) return;
+    const onHide = () => {
+      if (!paper || !checkpointHydrated || !attemptRef.current) return;
+      if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return;
+      if (typeof document !== 'undefined' && document.visibilityState !== 'hidden') return;
+      try {
+        const state = latestRef.current;
+        const normalized = normalizeForPersist(currentAnswersRef.current);
+        const payload = {
+          attemptId: attemptRef.current,
+          sectionIndex: READING_SECTION_INDEX,
+          snapshot: {
+            paperId: paper.id,
+            answers: normalized,
+            passageIdx: state.passageIdx,
+            timeLeft: state.timeLeft,
+            notes: state.notes,
+            questionFilter: state.questionFilter,
+            layoutMode: state.layoutMode,
+            started: state.started,
+            focusMode: state.focusMode,
+          },
+          mockId: paper.id,
+          elapsedSeconds: Math.max(0, Math.min(paper.durationSec, paper.durationSec - state.timeLeft)),
+          durationSeconds: paper.durationSec,
+          completed: Boolean(state.started && state.timeLeft === 0),
+          answers: normalized,
+        };
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        navigator.sendBeacon('/api/mock/checkpoints', blob);
+      } catch {
+        // ignore beacon failures
+      }
+    };
+    window.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+    };
+  }, [paper, checkpointHydrated]);
   const current = useMemo(() => (paper ? paper.passages[passageIdx] : undefined), [paper, passageIdx]);
   const currentPassageId = current?.id;
   const passageNotes = useMemo(() => {
     if (!currentPassageId) return [] as ReadingNote[];
     return notes.filter((note) => note.passageId === currentPassageId).sort((a, b) => a.start - b.start);
   }, [notes, currentPassageId]);
+
+  const passageHighlights = useMemo(
+    () =>
+      passageNotes
+        .flatMap((note) =>
+          note.ranges.map((range, index) => ({
+            id: index === 0 ? note.id : `${note.id}:${index}`,
+            start: range.start,
+            end: range.end,
+            color: note.color,
+            noteText: note.noteText,
+          }))
+        )
+        .filter((item) => item.end > item.start)
+        .sort((a, b) => a.start - b.start),
+    [passageNotes]
+  );
 
   useEffect(() => {
     setEditingNoteId(null);
@@ -587,7 +774,9 @@ export default function ReadingMockPage() {
       if (end <= start) return;
 
       const existing = latestRef.current.notes.filter((note) => note.passageId === current.id);
-      const overlaps = existing.some((note) => rangesOverlap(note.start, note.end, start, end));
+      const overlaps = existing.some((note) =>
+        note.ranges.some((range) => rangesOverlap(range.start, range.end, start, end))
+      );
       if (overlaps) {
         if (typeof window !== 'undefined') {
           window.alert('Selection overlaps an existing highlight. Remove it first to re-highlight.');
@@ -601,6 +790,7 @@ export default function ReadingMockPage() {
         passageId: current.id,
         start,
         end,
+        ranges: [{ start, end }],
         color: DEFAULT_NOTE_COLOR,
         noteText: payload.noteText ?? null,
       };
@@ -647,7 +837,7 @@ export default function ReadingMockPage() {
         };
 
         if (result.ok && result.note) {
-          const mapped = mapServerNote(result.note);
+          const mapped = mapReadingNote(result.note);
           if (mapped) {
             setNotes((prev) => {
               const withoutTemp = prev.filter((note) => note.id !== localId);
@@ -683,10 +873,11 @@ export default function ReadingMockPage() {
 
   const handleHighlightFocus = useCallback(
     (noteId: string) => {
-      setEditingNoteId(noteId);
-      const target = notes.find((note) => note.id === noteId);
+      const baseId = noteId.split(':')[0] ?? noteId;
+      setEditingNoteId(baseId);
+      const target = notes.find((note) => note.id === baseId);
       setNoteEditorValue(target?.noteText ?? '');
-      const node = noteRefs.current[noteId];
+      const node = noteRefs.current[baseId];
       if (node) {
         node.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (typeof window !== 'undefined') {
@@ -781,9 +972,11 @@ export default function ReadingMockPage() {
 
   const updateAnswerValue = useCallback((questionId: string, value: string) => {
     setAnswers((prev) => {
-      const current = prev[questionId] ?? { value: '', flagged: false };
-      if (current.value === value) return prev;
-      return { ...prev, [questionId]: { value, flagged: current.flagged } };
+      const current = prev[questionId];
+      const currentValue = getAnswerText(current);
+      const currentFlagged = isFlagged(current);
+      if (currentValue === value) return prev;
+      return { ...prev, [questionId]: { value, flagged: currentFlagged } };
     });
     setActiveQuestionId(questionId);
   }, []);
@@ -791,10 +984,11 @@ export default function ReadingMockPage() {
   const toggleFlag = useCallback((questionId: string) => {
     let nextFlag = false;
     setAnswers((prev) => {
-      const current = prev[questionId] ?? { value: '', flagged: false };
-      nextFlag = !current.flagged;
-      const nextEntry: AnswerEntry = { value: current.value, flagged: nextFlag };
-      return { ...prev, [questionId]: nextEntry };
+      const current = prev[questionId];
+      const currentValue = getAnswerText(current);
+      const currentFlagged = isFlagged(current);
+      nextFlag = !currentFlagged;
+      return { ...prev, [questionId]: { value: currentValue, flagged: nextFlag } };
     });
     setActiveQuestionId(questionId);
     track('reading.flag.toggle', { questionId, flagged: nextFlag });
@@ -842,37 +1036,44 @@ export default function ReadingMockPage() {
     setIsStarted(true);
   }, []);
 
+  const makeAttemptId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    const random = Math.random().toString(16).slice(2, 10);
+    return `attempt-${Date.now()}-${random}`;
+  };
+
   const submit = async () => {
     if (!paper || !id || isSubmitting) return;
     setIsSubmitting(true);
 
-    const flatQ = paper.passages.flatMap((p) => p.questions);
-    let correct = 0;
-    for (const q of flatQ) {
-      const entry = answers[q.id];
-      const response = entry?.value ?? '';
-      if (normalize(response) === normalize(q.answer)) correct++;
-    }
-    const percentage = Math.round((correct / flatQ.length) * 100);
-    let attemptId = '';
+    const normalizedAnswers = normalizeForPersist(answers);
+    const durationSec = Math.max(0, Math.round(paper.durationSec - timeLeft));
+    const requestAttemptId = makeAttemptId();
+    let attemptId = requestAttemptId;
     let fallbackAttemptId = '';
 
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user?.id) throw new Error('Not authenticated');
-      const payload = {
-        user_id: u.user.id,
-        paper_id: paper.id,
-        answers,
-        score: correct,
-        total: flatQ.length,
-        percentage,
-        submitted_at: new Date().toISOString(),
-        duration_sec: paper.durationSec - timeLeft,
-      };
-      const { data, error } = await supabase.from('attempts_reading').insert(payload).select('id').single();
-      if (error) throw error;
-      attemptId = data.id as unknown as string;
+      const response = await fetch('/api/mock/reading/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attemptId: requestAttemptId,
+          mockId: paper.id,
+          answers: normalizedAnswers,
+          durationSec,
+        }),
+      });
+      if (!response.ok) {
+        const message = await response.text().catch(() => '');
+        throw new Error(message || `Failed with status ${response.status}`);
+      }
+      const payload = (await response.json()) as { attemptId?: string };
+      if (payload?.attemptId) {
+        attemptId = payload.attemptId;
+      }
+      setLocalOnly(false);
     } catch (error) {
       fallbackAttemptId = `local-${Date.now()}`;
       attemptId = fallbackAttemptId;
@@ -880,35 +1081,23 @@ export default function ReadingMockPage() {
         // eslint-disable-next-line no-console -- surfaced in development to aid debugging failures
         console.warn('[reading] Failed to persist attempt remotely, falling back to local storage.', error);
       }
+      toast.error('Saved locally only. We’ll sync when you’re back online.');
+      setLocalOnly(true);
       try {
-        localStorage.setItem(`read:attempt-res:${attemptId}`, JSON.stringify({ paper, answers }));
+        localStorage.setItem(`read:attempt-res:${attemptId}`, JSON.stringify({ paper, answers: normalizedAnswers }));
       } catch {
         // ignore local storage failures so the flow can continue
       }
     } finally {
       if (!attemptId) {
-        attemptId = fallbackAttemptId || `local-${Date.now()}`;
+        attemptId = fallbackAttemptId || requestAttemptId;
       }
       if (attemptRef.current) {
-        void saveMockCheckpoint({
-          attemptId: attemptRef.current,
-          section: 'reading',
-          mockId: paper.id,
-          payload: {
-            paperId: paper.id,
-            answers,
-            passageIdx,
-            timeLeft,
-            notes,
-            questionFilter,
-            layoutMode,
-            started: true,
-            focusMode,
-          },
-          elapsed: paper.durationSec - timeLeft,
-          duration: paper.durationSec,
-          completed: true,
-        });
+        await persistCheckpoint({ completed: true, force: true });
+        if (checkpointTimeoutRef.current) {
+          window.clearTimeout(checkpointTimeoutRef.current);
+          checkpointTimeoutRef.current = null;
+        }
         clearMockAttemptId('reading', paper.id);
       }
       clearMockDraft('reading', id);
@@ -973,26 +1162,30 @@ export default function ReadingMockPage() {
                   Passage {passageIdx + 1} of {paper.passages.length} — {current.title}
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     disabled={passageIdx === 0}
                     onClick={() => setPassageIdx((i) => Math.max(0, i - 1))}
-                    className="rounded-lg border border-border px-3 py-1 text-small transition hover:border-primary disabled:opacity-60"
+                    className="border border-border text-small hover:border-primary disabled:opacity-60"
                   >
                     Prev
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     disabled={passageIdx === paper.passages.length - 1}
                     onClick={() => setPassageIdx((i) => Math.min(paper.passages.length - 1, i + 1))}
-                    className="rounded-lg border border-border px-3 py-1 text-small transition hover:border-primary disabled:opacity-60"
+                    className="border border-border text-small hover:border-primary disabled:opacity-60"
                   >
                     Next
-                  </button>
+                  </Button>
                 </div>
               </div>
               <div className="rounded-xl border border-border/70 bg-background/70 p-4">
                 <ReadingPassage
                   text={current.text}
-                  highlights={passageNotes}
+                  highlights={passageHighlights}
                   onCreateHighlight={handleSelectionHighlight}
                   onCreateNote={handleSelectionNote}
                   onHighlightFocus={handleHighlightFocus}
@@ -1005,8 +1198,9 @@ export default function ReadingMockPage() {
             <section className="min-w-0 flex flex-col gap-4">
               <div className="grid gap-3">
               {current.questions.map((q, idx) => {
-                const entry = answers[q.id] ?? { value: '', flagged: false };
-                const flagged = entry.flagged;
+                const entry = answers[q.id];
+                const value = getAnswerText(entry);
+                const flagged = isFlagged(entry);
                 const answered = isAnsweredEntry(entry);
                 const questionNumber = questionIndexMap.get(q.id) ?? idx + 1;
                 return (
@@ -1032,23 +1226,25 @@ export default function ReadingMockPage() {
                         </div>
                         <div className="mt-1 text-small font-medium text-foreground">{q.prompt || q.id}</div>
                       </div>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleFlag(q.id)}
                         className={[
-                          'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-caption transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                          'rounded-full border px-2 text-caption',
                           flagged
                             ? 'border-warning bg-warning/10 text-warning'
                             : 'border-border text-foreground/70 hover:border-warning hover:text-warning',
                         ].join(' ')}
+                        leadingIcon={<Flag className="h-3.5 w-3.5" aria-hidden />}
                         aria-pressed={flagged}
                       >
-                        <Flag className="h-3.5 w-3.5" aria-hidden />
-                        <span>{flagged ? 'Flagged' : 'Flag'}</span>
-                      </button>
+                        {flagged ? 'Flagged' : 'Flag'}
+                      </Button>
                     </div>
                     <div className="mt-3">
-                      {renderInput(q, entry.value, {
+                      {renderInput(q, value, {
                         onChange: (val) => updateAnswerValue(q.id, val),
                         onFocus: () => setActiveQuestionId(q.id),
                       })}
@@ -1063,12 +1259,14 @@ export default function ReadingMockPage() {
                   {quickFilters.map((item) => {
                     const isActive = questionFilter === item.id;
                     return (
-                      <button
+                      <Button
                         key={item.id}
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => applyQuestionFilter(item.id, 'toolbar')}
                         className={[
-                          'rounded-full border px-3 py-1 text-small transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                          'rounded-full border px-3 text-small',
                           isActive
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-border text-foreground hover:border-primary',
@@ -1077,42 +1275,48 @@ export default function ReadingMockPage() {
                       >
                         {item.label}
                         <span className="ml-2 text-foreground/60">{item.count}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       applyQuestionFilter('unanswered', 'toolbar');
                       if (nextUnanswered) scrollToQuestion(nextUnanswered.id);
                     }}
-                    className="rounded-full border border-border px-3 py-1 text-small text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-border text-small text-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSubmitting || !nextUnanswered}
                   >
                     Review unanswered
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       applyQuestionFilter('flagged', 'toolbar');
                       if (nextFlagged) scrollToQuestion(nextFlagged.id);
                     }}
-                    className="rounded-full border border-border px-3 py-1 text-small text-foreground transition hover:border-warning disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-border text-small text-foreground hover:border-warning disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSubmitting || !nextFlagged}
                   >
                     Review flagged
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={submit}
-                    className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-small font-semibold text-background transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-70"
+                    className="rounded-full px-4 text-small font-semibold text-background disabled:cursor-not-allowed disabled:opacity-70"
                     disabled={isSubmitting}
                     aria-busy={isSubmitting}
                   >
                     {isSubmitting ? 'Submitting…' : 'Submit for scoring'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1120,6 +1324,7 @@ export default function ReadingMockPage() {
           </div>
       </div>
       <aside className="flex h-full min-w-0 flex-col gap-4 md:max-w-sm xl:max-w-md">
+        {localOnly && <OfflineOnlyBanner />}
         <QuestionNav
           questions={questionItems}
           answers={answers}
@@ -1175,20 +1380,24 @@ export default function ReadingMockPage() {
                           placeholder="Add your note"
                         />
                         <div className="flex flex-wrap gap-2">
-                          <button
+                          <Button
                             type="button"
+                            variant="primary"
+                            size="sm"
                             onClick={() => handleNoteSave(note.id)}
-                            className="rounded-full bg-primary px-3 py-1 text-small font-medium text-background hover:opacity-90"
+                            className="rounded-full px-3 text-small font-medium text-background"
                           >
                             Save
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={cancelNoteEditing}
-                            className="rounded-full border border-border px-3 py-1 text-small text-foreground/70 hover:border-foreground/50"
+                            className="rounded-full border border-border text-small text-foreground/70 hover:border-foreground/50"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -1197,20 +1406,24 @@ export default function ReadingMockPage() {
                           {hasNote ? note.noteText : <span className="text-foreground/60">No note yet.</span>}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleHighlightFocus(note.id)}
-                            className="rounded-full border border-border px-3 py-1 text-small text-foreground transition hover:border-primary hover:text-primary"
+                            className="rounded-full border border-border text-small text-foreground hover:border-primary hover:text-primary"
                           >
                             {hasNote ? 'Edit note' : 'Add note'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleRemoveHighlight(note.id)}
-                            className="rounded-full border border-border px-3 py-1 text-small text-danger transition hover:border-danger hover:bg-danger/10"
+                            className="rounded-full border border-border text-small text-danger hover:border-danger hover:bg-danger/10"
                           >
                             Remove
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1264,17 +1477,19 @@ type FocusModeToggleProps = {
 
 function FocusModeToggle({ active, onToggle }: FocusModeToggleProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="sm"
       onClick={() => onToggle(!active)}
       aria-pressed={active}
       className={[
-        'rounded-full border px-3 py-1 text-small transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'rounded-full border px-3 text-small',
         active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground/80 hover:border-primary',
       ].join(' ')}
     >
       {active ? 'Focus mode on' : 'Focus mode off'}
-    </button>
+    </Button>
   );
 }
 
@@ -1287,13 +1502,15 @@ function FocusModeNotice({ onExit }: FocusModeNoticeProps) {
     <div className="mb-4 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-small text-primary">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-medium">Focus mode is on — navigation and alerts are hidden.</p>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onExit}
-          className="inline-flex items-center justify-center rounded-full border border-primary px-3 py-1 text-small font-semibold text-primary transition hover:bg-primary hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="rounded-full border border-primary text-small font-semibold text-primary hover:bg-primary hover:text-background"
         >
           Exit focus mode
-        </button>
+        </Button>
       </div>
       <p className="mt-1 text-caption text-primary/80">You can toggle focus mode anytime from the header controls.</p>
     </div>
@@ -1312,18 +1529,20 @@ function LayoutModeChips({ value, onChange }: LayoutModeChipsProps) {
         {LAYOUT_OPTIONS.map((option) => {
           const active = value === option.id;
           return (
-            <button
+            <Button
               key={option.id}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => onChange(option.id)}
               className={[
-                'rounded-full px-3 py-1 text-caption font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'rounded-full px-3 text-caption font-medium',
                 active ? 'bg-primary text-background shadow-sm' : 'text-foreground/70 hover:text-foreground',
               ].join(' ')}
               aria-pressed={active}
             >
               {option.shortLabel}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -1446,13 +1665,15 @@ function StartOverlay({
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-caption text-foreground/60">Layout applies on desktop; mobile stays single column.</p>
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={onStart}
-              className="rounded-full bg-primary px-4 py-2 text-small font-semibold text-background transition hover:opacity-90"
+              className="rounded-full px-4 text-small font-semibold text-background"
             >
               {resumeAvailable ? 'Resume exam' : 'Start exam'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -1527,18 +1748,23 @@ const Options: React.FC<{
 }> = ({ options, value, onPick, onFocus }) => (
   <div className="flex flex-wrap gap-2">
     {options.map((opt) => (
-      <button
+      <Button
         key={opt}
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => {
           onFocus();
           onPick(opt);
         }}
         onFocus={onFocus}
-        type="button"
-        className={`rounded-lg border px-3 py-1 text-small transition hover:border-primary ${value === opt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground'}`}
+        className={[
+          'h-auto rounded-lg border px-3 text-small',
+          value === opt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground',
+        ].join(' ')}
       >
         {opt}
-      </button>
+      </Button>
     ))}
   </div>
 );
@@ -1551,25 +1777,28 @@ const MatchOptions: React.FC<{
 }> = ({ options, value, onPick, onFocus }) => (
   <div className="grid gap-2 sm:grid-cols-2">
     {options.map((opt, index) => (
-      <button
+      <Button
         key={toOptionId(opt, index)}
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => {
           onFocus();
           onPick(opt);
         }}
         onFocus={onFocus}
-        type="button"
-        className={`rounded-lg border px-3 py-2 text-left text-small leading-snug transition hover:border-primary ${
-          value === opt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground'
-        }`}
+        className={[
+          'h-auto rounded-lg border px-3 text-left text-small leading-snug',
+          value === opt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground',
+        ].join(' ')}
       >
         {opt}
-      </button>
+      </Button>
     ))}
   </div>
 );
 
-function normalizeAnswerEntry(value: unknown): AnswerEntry {
+function normalizeAnswerEntry(value: unknown): ReadingAnswer {
   if (value && typeof value === 'object') {
     const record = value as { value?: unknown; flagged?: unknown };
     const raw = record.value;
@@ -1603,13 +1832,13 @@ function normalizeQuestionFilter(value: unknown): QuestionNavFilter {
   return value === 'flagged' || value === 'unanswered' ? value : 'all';
 }
 
-function isAnsweredEntry(entry?: AnswerEntry): boolean {
+function isAnsweredEntry(entry?: ReadingAnswer): boolean {
   if (!entry) return false;
-  return entry.value.trim().length > 0;
+  return getAnswerText(entry).trim().length > 0;
 }
 
-function isFlaggedEntry(entry?: AnswerEntry): boolean {
-  return Boolean(entry?.flagged);
+function isFlaggedEntry(entry?: ReadingAnswer): boolean {
+  return isFlagged(entry);
 }
 
 const hhmmss = (sec: number) => `${Math.floor(sec/60).toString().padStart(2,'0')}:${Math.floor(sec%60).toString().padStart(2,'0')}`;
@@ -1641,8 +1870,6 @@ const describeQuestionType = (type: QType) => {
       return 'Short answer question';
   }
 };
-const normalize = (s: string) => s.trim().toLowerCase();
-
 function normalizeLayoutMode(value: unknown): LayoutMode {
   return value === 'scroll' ? 'scroll' : 'split';
 }
@@ -1685,32 +1912,60 @@ function setStoredFocusMode(value: boolean) {
 }
 
 function hasAnyAnswered(map: AnswerMap): boolean {
-  return Object.values(map).some((entry) => entry && typeof entry.value === 'string' && entry.value.trim().length > 0);
+  return Object.values(map).some((entry) => getAnswerText(entry).trim().length > 0);
 }
 
-function mapServerNote(row: {
+function mapReadingNote(row: {
   id?: string;
   passageId?: string;
   ranges?: Array<{ start?: number; end?: number; color?: string }>;
   noteText?: string | null;
+  text?: string | null;
+  start?: number;
+  end?: number;
+  color?: string;
 }): ReadingNote | null {
-  const id = typeof row?.id === 'string' ? row.id : null;
+  const parsed = parseServerNote(row);
   const passageId = typeof row?.passageId === 'string' ? row.passageId : null;
-  if (!id || !passageId) return null;
-  const ranges = Array.isArray(row?.ranges) ? row.ranges : [];
-  if (ranges.length === 0) return null;
-  const primary = ranges[0];
-  const start = typeof primary?.start === 'number' ? Math.max(0, Math.round(primary.start)) : null;
-  const end = typeof primary?.end === 'number' ? Math.max(0, Math.round(primary.end)) : null;
-  if (start === null || end === null) return null;
-  const color = typeof primary?.color === 'string' && primary.color ? primary.color : 'warning';
+  if (!parsed.id || !passageId) return null;
+
+  let ranges = parsed.ranges;
+  if (ranges.length === 0) {
+    const legacyStart = typeof row?.start === 'number' ? Number(row.start) : null;
+    const legacyEnd = typeof row?.end === 'number' ? Number(row.end) : null;
+    if (legacyStart !== null && legacyEnd !== null && legacyEnd > legacyStart) {
+      ranges = [{ start: legacyStart, end: legacyEnd }];
+    }
+  }
+  const normalizedRanges = ranges
+    .map((range) => ({
+      start: Math.max(0, Math.round(range.start)),
+      end: Math.max(0, Math.round(range.end)),
+    }))
+    .filter((range) => range.end > range.start);
+  if (normalizedRanges.length === 0) return null;
+
+  const [primary] = normalizedRanges;
+  const colorCandidate =
+    (Array.isArray(row?.ranges) && typeof row.ranges[0]?.color === 'string' && row.ranges[0]?.color) ||
+    (typeof row?.color === 'string' && row.color) ||
+    DEFAULT_NOTE_COLOR;
+
+  const textValue =
+    typeof row?.noteText === 'string'
+      ? row.noteText
+      : typeof row?.text === 'string'
+        ? row.text
+        : parsed.text;
+
   return {
-    id,
+    id: parsed.id,
     passageId,
-    start,
-    end: Math.max(start, end),
-    color,
-    noteText: typeof row?.noteText === 'string' ? row.noteText : null,
+    start: primary.start,
+    end: primary.end,
+    ranges: normalizedRanges,
+    color: colorCandidate,
+    noteText: textValue && textValue.length > 0 ? textValue : null,
   };
 }
 

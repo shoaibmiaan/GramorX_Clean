@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
+import { getAnswerText, type ReadingAnswer } from '@/lib/reading/answers';
 
 type QType = 'tfng' | 'yynn' | 'heading' | 'match' | 'mcq' | 'gap';
 type Q = { id: string; type: QType; prompt?: string; options?: string[]; answer: string; explanation?: string };
 type Passage = { id: string; title: string; text: string; questions: Q[] };
 type ReadingPaper = { id: string; title: string; passages: Passage[] };
 
-type Attempt = { id: string; answers: Record<string, string>; score: number; total: number; percentage: number; submitted_at: string };
+type Attempt = { id: string; answers: Record<string, ReadingAnswer>; score: number; total: number; percentage: number; submitted_at: string };
 type AttemptRecord = Attempt & { paper_id?: string | null };
 
 const sampleReading: ReadingPaper = {
@@ -77,6 +78,27 @@ const loadPaper = async (id: string): Promise<ReadingPaper> => {
   } catch {
     return sampleReading;
   }
+};
+
+const normalizeAttemptAnswers = (input: unknown): Record<string, ReadingAnswer> => {
+  if (!input || typeof input !== 'object') return {};
+  const result: Record<string, ReadingAnswer> = {};
+  Object.entries(input as Record<string, unknown>).forEach(([key, value]) => {
+    if (typeof key !== 'string') return;
+    if (typeof value === 'string') {
+      result[key] = { value, flagged: false };
+      return;
+    }
+    if (value && typeof value === 'object') {
+      const record = value as { value?: unknown; flagged?: unknown };
+      const raw = record.value;
+      const normalizedValue = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
+      result[key] = { value: normalizedValue, flagged: record.flagged === true };
+      return;
+    }
+    result[key] = { value: '', flagged: false };
+  });
+  return result;
 };
 
 const Shell: React.FC<{
@@ -181,9 +203,10 @@ const ReadingReviewView: React.FC = () => {
           .single();
         if (!cancelled && data) {
           const record = data as AttemptRecord & { paper_id?: string | null };
+          const answers = normalizeAttemptAnswers(record.answers);
           setAtt({
             id: String(record.id ?? resolvedAttemptId),
-            answers: record.answers || {},
+            answers,
             score: record.score ?? 0,
             total: record.total ?? 0,
             percentage: record.percentage ?? 0,
@@ -207,13 +230,13 @@ const ReadingReviewView: React.FC = () => {
           const raw = window.localStorage.getItem(`read:attempt-res:${resolvedAttemptId}`);
           if (raw) {
             const parsed = JSON.parse(raw);
-            const answers = parsed.answers || {};
+            const answers = normalizeAttemptAnswers(parsed.answers);
             const passages = (parsed.paper?.passages ?? []) as Passage[];
             const flat: Q[] = passages.flatMap((p) => p.questions || []);
             const total = flat.length;
             let score = 0;
             for (const q of flat) {
-              if ((answers[q.id] ?? '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase()) score++;
+              if (getAnswerText(answers[q.id]).trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase()) score++;
             }
             setAtt({
               id: resolvedAttemptId,
@@ -280,7 +303,7 @@ const ReadingReviewView: React.FC = () => {
       const key = q.type;
       map[key] ??= { correct: 0, total: 0 };
       map[key].total++;
-      const ok = (att.answers?.[q.id] ?? '').trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase();
+      const ok = getAnswerText(att.answers?.[q.id]).trim().toLowerCase() === (q.answer ?? '').trim().toLowerCase();
       if (ok) map[key].correct++;
     }
     return Object.entries(map).map(([type, { correct, total }]) => ({
@@ -342,7 +365,7 @@ const ReadingReviewView: React.FC = () => {
           {flatQs.map((q, idx) => {
             const promptId = `review-question-${q.id}`;
             const explanationId = q.explanation ? `review-question-${q.id}-explanation` : undefined;
-            const given = (att.answers?.[q.id] ?? '').trim();
+            const given = getAnswerText(att.answers?.[q.id]).trim();
             const ok = given.toLowerCase() === (q.answer ?? '').trim().toLowerCase();
             return (
               <article
