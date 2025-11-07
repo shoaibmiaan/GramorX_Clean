@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS payment_events (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  provider    text NOT NULL CHECK (provider IN ('stripe','jazzcash','easypaisa')),
+  provider    text NOT NULL CHECK (provider IN ('stripe','jazzcash','easypaisa','safepay')),
   status      text NOT NULL,
   external_id text,
   user_id     uuid REFERENCES profiles(id) ON DELETE SET NULL,
