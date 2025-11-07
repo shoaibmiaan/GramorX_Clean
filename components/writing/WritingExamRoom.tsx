@@ -188,16 +188,26 @@ export const WritingExamRoom: React.FC<Props> = ({
       flushAutosave();
 
       try {
+        const submissionTasks: {
+          task1?: { essay: string; promptId: string };
+          task2?: { essay: string; promptId: string };
+        } = {};
+        const trimmedTask1 = task1Essay.trim();
+        const trimmedTask2 = task2Essay.trim();
+        if (trimmedTask1.length > 0) {
+          submissionTasks.task1 = { essay: task1Essay, promptId: prompts.task1.id };
+        }
+        if (trimmedTask2.length > 0) {
+          submissionTasks.task2 = { essay: task2Essay, promptId: prompts.task2.id };
+        }
+
         const res = await fetch('/api/mock/writing/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             attemptId,
             durationSeconds,
-            tasks: {
-              task1: { essay: task1Essay, promptId: prompts.task1.id },
-              task2: { essay: task2Essay, promptId: prompts.task2.id },
-            },
+            tasks: submissionTasks,
           }),
         });
         if (!res.ok) {
