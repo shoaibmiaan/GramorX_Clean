@@ -35,6 +35,8 @@ type PlanRow = {
 type Currency =
   | 'USD' | 'EUR' | 'GBP' | 'INR' | 'PKR' | 'AED' | 'SAR' | 'AUD' | 'CAD' | 'NGN' | 'BRL' | 'PHP';
 
+type ReasonKey = 'writing_quota' | undefined;
+
 // ------------------ Data ------------------
 const PLAN_PRESENTATION: Record<PlanKey, Omit<PlanRow, 'key' | 'priceMonthly' | 'priceAnnual'>> = {
   starter: {
@@ -135,6 +137,19 @@ const PricingPage: NextPage = () => {
   const [currency, setCurrency] = React.useState<Currency>('USD');
   const [timezone, setTimezone] = React.useState<string>('—');
 
+  // --- Reason banner (e.g., writing quota reached) ---
+  const reason: ReasonKey = typeof router.query.reason === 'string' ? (router.query.reason as ReasonKey) : undefined;
+  const used = React.useMemo(() => {
+    const v = router.query.used;
+    const n = typeof v === 'string' ? Number(v) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  }, [router.query.used]);
+  const limit = React.useMemo(() => {
+    const v = router.query.limit;
+    const n = typeof v === 'string' ? Number(v) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  }, [router.query.limit]);
+
   React.useEffect(() => {
     setCurrency(guessCurrency());
     try { setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || '—'); } catch { /* noop */ }
@@ -162,23 +177,57 @@ const PricingPage: NextPage = () => {
         />
       </Head>
 
-      {/* MAIN landmark added */}
+      {/* MAIN landmark */}
       <main role="main" className="min-h-screen bg-marketing-aurora text-foreground antialiased">
         <Section id="pricing">
           <Container className="pt-6 md:pt-8 pb-12 md:pb-16" aria-labelledby="pricing-title">
 
+            {/* Context banner (from redirects with query params) */}
+            {reason === 'writing_quota' && (
+              <div
+                className="mx-auto mb-4 max-w-4xl rounded-2xl border border-amber-400/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div>
+                    <strong>Daily writing mock limit reached.</strong>{' '}
+                    {typeof used === 'number' && typeof limit === 'number'
+                      ? <>You used <span className="font-semibold">{used}</span> of <span className="font-semibold">{limit}</span> today.</>
+                      : <>You’ve hit today’s quota.</>
+                    } Try again tomorrow or upgrade to increase your daily limit.
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Link
+                      href="/writing"
+                      className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-card/60 px-3 py-1.5 text-sm underline-offset-4 hover:underline"
+                    >
+                      Back to Writing
+                    </Link>
+                    <Link
+                      href="#plans"
+                      className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:opacity-95"
+                    >
+                      See plans
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Top utility bar */}
             <div className="mx-auto max-w-7xl mb-4 flex items-center justify-between gap-3 text-small">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-indigo-600/10 text-indigo-700 px-2.5 py-1 font-medium">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.402 8.168L12 18.896l-7.336 3.869 1.402-8.168L.132 9.21l8.2-1.192L12 .587z"/></svg>
+                <span className="inline-flex items-center gap-2 rounded-full bg-indigo-600/10 text-indigo-700 px-2.5 py-1 font-medium dark:text-indigo-300">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.402 8.168L12 18.896l-7.336 3.869 1.402-8.168L.132 9.21l8.2-1.192L12 .587z"/>
+                  </svg>
                   4.8★ • 12k reviews
                 </span>
                 <span className="hidden md:inline text-muted-foreground">Trusted by learners in 90+ countries</span>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Proper label for the select */}
                 <label htmlFor="currency" className="sr-only">Currency</label>
                 <div className="inline-flex items-center gap-2 border rounded-lg px-2 py-1 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/40">
                   <span className="text-muted-foreground">Currency</span>
@@ -240,7 +289,7 @@ const PricingPage: NextPage = () => {
             </div>
 
             {/* Plans grid */}
-            <section aria-labelledby="plans-heading" className="mt-6 md:mt-8">
+            <section id="plans" aria-labelledby="plans-heading" className="mt-6 md:mt-8">
               <h2 id="plans-heading" className="sr-only">Plans and pricing options</h2>
 
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-4">
@@ -297,7 +346,6 @@ const PricingPage: NextPage = () => {
                         >
                           Choose {p.title}
                         </Button>
-                        {/* Make inline links underlined by default (no color-only distinction) */}
                         <Link href="/waitlist" className="underline decoration-2 underline-offset-4 text-cyan-700 hover:opacity-90 text-small text-center">
                           Not ready? Join the pre-launch list
                         </Link>

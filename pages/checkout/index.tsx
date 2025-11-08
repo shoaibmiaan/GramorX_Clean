@@ -5,18 +5,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { NextPage } from 'next';
 
-// ✅ Correct import statements for named exports
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 
-// Other components
 import PlanPicker, { type PlanPickerProps } from '@/components/payments/PlanPicker';
 import CheckoutForm from '@/components/payments/CheckoutForm';
 import RedeemBox, { type RedeemSuccessPayload } from '@/components/referrals/RedeemBox';
 import PromoCodeBox, { type PromoCodeApplyPayload } from '@/components/payments/PromoCodeBox';
 import SocialProofStrip from '@/components/marketing/SocialProofStrip';
+
 import {
   PLAN_LABEL,
   PLANS as CANONICAL_PLANS,
@@ -25,6 +24,7 @@ import {
   type Cycle,
   type PlanKey,
 } from '@/lib/pricing';
+
 import {
   checkPromoEligibility,
   computePromoDiscount,
@@ -39,14 +39,14 @@ const toUsdCents = (amount: number) => Math.round(amount * 100);
 type PlanRow = {
   key: PlanKey;
   title: string;
-  priceMonthly: number;
-  priceAnnual: number;
+  priceMonthly: number; // cents
+  priceAnnual: number;  // cents (per-month display, not upfront)
   icon: string;
   mostPopular?: boolean;
   badge?: string;
 };
 
-const PLAN_KEYS: readonly PlanKey[] = ['starter', 'booster', 'master'];
+const PLAN_KEYS: readonly PlanKey[] = ['starter', 'booster', 'master'] as const;
 const PLAN_ALIAS: Record<string, PlanKey> = {
   starter: 'starter',
   booster: 'booster',
@@ -58,7 +58,6 @@ const PLAN_ALIAS: Record<string, PlanKey> = {
 
 const createPlanRow = (key: PlanKey): PlanRow => {
   const plan = CANONICAL_PLANS[key];
-
   return {
     key,
     title: plan.title,
@@ -80,26 +79,30 @@ const fmtUsd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const CheckoutPage: NextPage = () => {
   const router = useRouter();
+
+  // ---- Query parsing (plan / cycle / codes / currency) ----
   const planParamRaw = router.query.plan;
   const planParam = Array.isArray(planParamRaw) ? planParamRaw[0] : planParamRaw;
   const codeParam = router.query.code ? String(router.query.code) : undefined;
   const promoParam = router.query.promo ? String(router.query.promo) : undefined;
+
   const cycleQuery = router.query.billingCycle ?? router.query.cycle ?? 'monthly';
   const cycleValue = Array.isArray(cycleQuery) ? cycleQuery[0] : cycleQuery;
 
-  const normalizedPlanParam = planParam ? planParam.toLowerCase() : '';
+  const currencyQuery = router.query.currency ?? 'PKR';
+  const currency = (Array.isArray(currencyQuery) ? currencyQuery[0] : currencyQuery).toString().toUpperCase();
+
+  const normalizedPlanParam = planParam ? planParam.toString().toLowerCase() : '';
   const plan = PLAN_ALIAS[normalizedPlanParam];
 
   const cycleParam = React.useMemo<Cycle>(() => {
     const normalized = (cycleValue ?? '').toString().toLowerCase();
-    if (normalized === 'annual' || normalized === 'yearly') {
-      return 'annual';
-    }
-    return 'monthly';
+    return normalized === 'annual' || normalized === 'yearly' ? 'annual' : 'monthly';
   }, [cycleValue]);
 
   const selectedPlanData = plan ? PLANS[plan] : undefined;
 
+  // ---- Promo / referral state ----
   const [activeCode, setActiveCode] = React.useState<string | undefined>(codeParam);
   const [activePromo, setActivePromo] = React.useState<PromoCodeRule | null>(null);
 
@@ -109,48 +112,50 @@ const CheckoutPage: NextPage = () => {
 
   React.useEffect(() => {
     let aborted = false;
+
     if (!promoParam) {
       setActivePromo(null);
-      return () => {
-        aborted = true;
-      };
+      return () => { aborted = true; };
     }
+
     const normalized = normalizePromoCode(promoParam);
     if (!normalized) {
       setActivePromo(null);
-      return () => {
-        aborted = true;
-      };
+      return () => { aborted = true; };
     }
 
     const resolvePromo = async () => {
       const localRule = findPromoByCode(normalized);
       const rule = localRule ?? (await fetchPromoByCode(normalized));
       if (aborted) return;
+
       if (!rule) {
         setActivePromo(null);
         return;
       }
+
       const eligibility = checkPromoEligibility(rule, { plan, cycle: cycleParam });
       if (!eligibility.ok) {
         setActivePromo(null);
         return;
       }
+
       setActivePromo(rule);
     };
 
     void resolvePromo();
-
-    return () => {
-      aborted = true;
-    };
+    return () => { aborted = true; };
   }, [promoParam, plan, cycleParam]);
 
+  // ---- Query builder (keeps/refines state) ----
   const buildQuery = React.useCallback(
-    (overrides: Partial<{ plan: PlanKey | null; cycle: Cycle; referral: string | null; promo: string | null }> = {}) => {
+    (overrides: Partial<{ plan: PlanKey | null; cycle: Cycle; referral: string | null; promo: string | null; currency: string }> = {}) => {
       const nextQuery: Record<string, string | string[]> = { ...router.query };
+
       const nextPlan = overrides.plan === undefined ? plan : overrides.plan;
       const nextCycle = overrides.cycle ?? cycleParam;
+      const nextCurrency = overrides.currency ?? currency;
+
       if (nextPlan) {
         nextQuery.plan = nextPlan;
         nextQuery.billingCycle = nextCycle;
@@ -158,23 +163,23 @@ const CheckoutPage: NextPage = () => {
         delete nextQuery.plan;
         delete nextQuery.billingCycle;
       }
+
       const nextReferral = overrides.referral === undefined ? activeCode : overrides.referral;
-      if (nextReferral) {
-        nextQuery.code = nextReferral;
-      } else {
-        delete nextQuery.code;
-      }
+      if (nextReferral) nextQuery.code = nextReferral;
+      else delete nextQuery.code;
+
       const nextPromo = overrides.promo === undefined ? activePromo?.code : overrides.promo;
-      if (nextPromo) {
-        nextQuery.promo = nextPromo;
-      } else {
-        delete nextQuery.promo;
-      }
+      if (nextPromo) nextQuery.promo = nextPromo;
+      else delete nextQuery.promo;
+
+      if (nextCurrency) nextQuery.currency = nextCurrency;
+
       return nextQuery;
     },
-    [router.query, plan, cycleParam, activeCode, activePromo?.code],
+    [router.query, plan, cycleParam, activeCode, activePromo?.code, currency],
   );
 
+  // ---- Handlers ----
   const handleSelect: NonNullable<PlanPickerProps['onSelect']> = (p, c) => {
     const nextQuery = buildQuery({ plan: p, cycle: c });
     void router.push({ pathname: '/checkout', query: nextQuery });
@@ -202,11 +207,36 @@ const CheckoutPage: NextPage = () => {
     void router.replace({ pathname: '/checkout', query: buildQuery({ promo: null }) }, undefined, { shallow: true });
   }, [buildQuery, router]);
 
+  // ---- Safepay start (server-built checkoutUrl) ----
+  const startSafepayCheckout = React.useCallback(async () => {
+    if (!plan) return;
+
+    const res = await fetch('/api/safepay/create-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan,
+        cycle: cycleParam,
+        currency, // 'PKR' by default; override via ?currency=USD if needed
+      }),
+    });
+
+    const json = await res.json();
+    if (!json?.ok || !json?.checkoutUrl) {
+      // Surface a minimal error; you can replace with a toast
+      console.error('Safepay create-intent failed', json);
+      return;
+    }
+    window.location.href = json.checkoutUrl as string;
+  }, [plan, cycleParam, currency]);
+
+  // ---- Pricing math ----
   const monthlyCents = selectedPlanData
     ? cycleParam === 'monthly'
       ? selectedPlanData.priceMonthly
       : selectedPlanData.priceAnnual
     : 0;
+
   const billedAnnualTotalCents =
     selectedPlanData && cycleParam === 'annual'
       ? toUsdCents(getPlanBillingAmount(selectedPlanData.key, 'annual'))
@@ -324,11 +354,16 @@ const CheckoutPage: NextPage = () => {
                               : ''}
                           </p>
 
+                          {/* Your checkout form drives card/other methods.
+                             We expose a Safepay trigger for the "Pay with Safepay" option. */}
+                          {/* @ts-expect-error TODO: add `onSafepay` prop in CheckoutForm's type if not present */}
                           <CheckoutForm
                             plan={plan}
                             billingCycle={cycleParam}
                             referralCode={activeCode}
                             promoCode={activePromo?.code}
+                            currency={currency}
+                            onSafepay={startSafepayCheckout}
                             className=""
                           />
                         </div>
@@ -391,7 +426,9 @@ const CheckoutPage: NextPage = () => {
                             <div className="p-3 bg-accent/10 rounded-ds border border-accent/20">
                               <div className="flex items-center gap-2 text-accent">
                                 <i className="fas fa-piggy-bank" aria-hidden="true"></i>
-                                <span className="text-caption font-medium">You save {fmtUsd((selectedPlanData.priceMonthly * 12) - billedAnnualTotalCents)} compared to monthly billing</span>
+                                <span className="text-caption font-medium">
+                                  You save {fmtUsd((selectedPlanData.priceMonthly * 12) - billedAnnualTotalCents)} compared to monthly billing
+                                </span>
                               </div>
                             </div>
                           </>
@@ -425,9 +462,7 @@ const CheckoutPage: NextPage = () => {
                         <div className="pt-4 border-t border-border/50">
                           <div className="flex justify-between items-center">
                             <span className="text-body font-semibold">Total</span>
-                            <span className="text-h4 text-gradient-primary">
-                              {fmtUsd(finalTotalCents)}
-                            </span>
+                            <span className="text-h4 text-gradient-primary">{fmtUsd(finalTotalCents)}</span>
                           </div>
                           <p className="mt-2 text-caption text-muted-foreground">Final price shown at checkout.</p>
                         </div>
@@ -452,24 +487,9 @@ const CheckoutPage: NextPage = () => {
 
                 <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
                   {[
-                    {
-                      icon: 'fa-rocket',
-                      iconClass: 'text-primary',
-                      title: 'Instant access',
-                      copy: 'Start immediately after payment',
-                    },
-                    {
-                      icon: 'fa-shield-alt',
-                      iconClass: 'text-accent',
-                      title: 'Secure payment',
-                      copy: '256-bit SSL encryption',
-                    },
-                    {
-                      icon: 'fa-sync-alt',
-                      iconClass: 'text-primary',
-                      title: 'Cancel anytime',
-                      copy: 'No long-term commitment',
-                    },
+                    { icon: 'fa-rocket',    iconClass: 'text-primary', title: 'Instant access',  copy: 'Start immediately after payment' },
+                    { icon: 'fa-shield-alt', iconClass: 'text-accent',  title: 'Secure payment', copy: '256-bit SSL encryption' },
+                    { icon: 'fa-sync-alt',   iconClass: 'text-primary', title: 'Cancel anytime', copy: 'No long-term commitment' },
                   ].map(({ icon, iconClass, title, copy }) => (
                     <Card key={title} padding="md" insetBorder className="text-center">
                       <i className={`fas ${icon} mb-2 ${iconClass}`} aria-hidden="true"></i>
@@ -491,7 +511,7 @@ const CheckoutPage: NextPage = () => {
                   </Link>
                   <span>•</span>
                   <Link href="/partners" className="underline-offset-4 hover:underline flex items-center gap-1">
-                    <i className="fas fa-handshake text-caption" aria-hidden="true"></i>
+                    <i className="fas a fa-handshake text-caption" aria-hidden="true"></i>
                     Become a partner
                   </Link>
                   <span>•</span>
