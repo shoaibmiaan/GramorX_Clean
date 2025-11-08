@@ -268,5 +268,5 @@ export function getRouteConfig(pathname: string): RouteConfig {
 // Helper to check if path is an attempt path (no chrome)
 export function isAttemptPath(pathname: string): boolean {
   const config = getRouteConfig(pathname);
-  return !config.showChrome;
+  return config.showChrome === false;
 }
