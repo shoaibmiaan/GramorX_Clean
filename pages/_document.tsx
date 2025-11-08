@@ -5,9 +5,9 @@ import { HEX, WHITE } from '@/lib/tokens';
 const orgJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'GramorX',
+  name: 'GramorX AI',
   url: 'https://gramorx.com',
-  logo: '/brand/logo.png',
+  logo: '/branding/gramorx-ai-logo-primary-static.svg',
 } as const;
 
 const orgJsonLdJson = JSON.stringify(orgJsonLd);
@@ -26,14 +26,13 @@ const localeBootstrapScript = `(() => {
 })();`;
 
 export default function Document() {
-
   return (
     <Html lang="en" dir="ltr" className="bg-background text-foreground" suppressHydrationWarning>
       <Head>
         {/* Base SEO */}
         <meta
           name="description"
-          content="GramorX is an AI-powered platform for personalized IELTS preparation across Listening, Reading, Writing, and Speaking."
+          content="GramorX AI is an AI-powered platform for personalized IELTS preparation across Listening, Reading, Writing, and Speaking."
         />
         <meta
           name="keywords"
@@ -47,13 +46,13 @@ export default function Document() {
 
         {/* Open Graph / Twitter */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="GramorX – AI IELTS Prep" />
+        <meta property="og:title" content="GramorX AI – AI IELTS Prep" />
         <meta
           property="og:description"
           content="Achieve your IELTS goals with adaptive practice and real-time feedback."
         />
         <meta property="og:url" content="https://gramorx.com" />
-        <meta property="og:image" content="/brand/og-image.png" />
+        <meta property="og:image" content="/branding/gramorx-ai-appicon-1024.png" />
         <meta name="twitter:card" content="summary_large_image" />
 
         {/* Preconnects */}
@@ -61,10 +60,10 @@ export default function Document() {
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* PWA + Icons */}
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        {/* PWA + Icons (point to /public/branding) */}
+        <link rel="manifest" href="/branding/manifest.json" />
+        <link rel="icon" type="image/svg+xml" href="/branding/gramorx-ai-icon-gradient.svg" />
+        <link rel="apple-touch-icon" href="/branding/gramorx-ai-appicon-1024.png" />
 
         {/* JSON-LD */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLdJson }} />

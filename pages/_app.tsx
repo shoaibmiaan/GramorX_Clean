@@ -416,8 +416,10 @@ function InnerApp({ Component, pageProps }: AppProps) {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <HighContrastProvider>
         <Head>
+          {/* Keep premium CSS pipeline intact */}
           <link rel="preload" href="/premium.css" as="style" />
           <link rel="stylesheet" href="/premium.css" />
+          {/* No favicon/manifest here; centralized in _document.tsx */}
         </Head>
 
         <div className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}>
