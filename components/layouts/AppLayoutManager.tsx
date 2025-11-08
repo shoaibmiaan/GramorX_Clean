@@ -312,8 +312,17 @@ export function AppLayoutManager({
     return layoutConfigs.find(config => config.guard?.(role, isTeacherApproved)) || null;
   }, [layoutConfigs, role, isTeacherApproved]);
 
-  // Render content based on layout configuration
-  const renderContent = useCallback(() => {
+  const getNakedContent = (
+    auth: boolean,
+    proctoring: boolean,
+    content: ReactNode
+  ) => {
+    if (auth) return <AuthLayout>{content}</AuthLayout>;
+    if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
+    return content;
+  };
+
+  const content = useMemo(() => {
     if (!showLayout) {
       return getNakedContent(isAuthPage, isProctoringRoute, children);
     }
@@ -327,24 +336,19 @@ export function AppLayoutManager({
       return <LayoutComponent userRole={role}>{children}</LayoutComponent>;
     }
 
-    // Fallback to default layout for uncovered routes
-    return <Layout>{children}</Layout>;
+    return children;
   }, [
-    showLayout, activeLayout, isAuthPage, isProctoringRoute,
-    children, role, isTeacherApproved, guardFallback
+    showLayout,
+    isAuthPage,
+    isProctoringRoute,
+    activeLayout,
+    role,
+    isTeacherApproved,
+    children,
+    guardFallback,
   ]);
 
-  const getNakedContent = (
-    auth: boolean,
-    proctoring: boolean,
-    content: ReactNode
-  ) => {
-    if (auth) return <AuthLayout>{content}</AuthLayout>;
-    if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
-    return content;
-  };
-
-  const shouldWrapInMainLayout = forceLayoutOnAuthPage || (showLayout && !!activeLayout);
+  const shouldWrapInMainLayout = forceLayoutOnAuthPage || showLayout;
 
   return (
     <LayoutErrorBoundary>
@@ -353,12 +357,12 @@ export function AppLayoutManager({
       {shouldWrapInMainLayout ? (
         <Layout>
           <ImpersonationBanner />
-          {renderContent()}
+          {content}
         </Layout>
       ) : (
         <>
           <ImpersonationBanner />
-          {renderContent()}
+          {content}
         </>
       )}
 
