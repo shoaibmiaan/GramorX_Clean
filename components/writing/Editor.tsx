@@ -62,6 +62,7 @@ export interface WritingEditorProps {
 export const WritingEditor: React.FC<WritingEditorProps> = ({ paper }) => {
   const storageKey = React.useMemo(() => `${STORAGE_PREFIX}${paper.id}`, [paper.id]);
   const pendingDraftRef = React.useRef<WritingDraftRecord | null>(null);
+  const latestStorageKeyRef = React.useRef(storageKey);
 
   const [task1, setTask1] = React.useState('');
   const [task2, setTask2] = React.useState('');
@@ -73,23 +74,6 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({ paper }) => {
   const attemptIdRef = React.useRef<string>(createAttemptId());
   const startedAtRef = React.useRef<number>(Date.now());
   const syncedAtRef = React.useRef<number | undefined>(undefined);
-
-  React.useEffect(() => {
-    if (!isBrowser) return;
-    const existing = loadDraft(storageKey);
-    if (existing && (existing.content.task1 || existing.content.task2)) {
-      pendingDraftRef.current = existing;
-      setLastSavedAt(existing.updatedAt);
-      setStatus('saved');
-      setRestoreOpen(true);
-      attemptIdRef.current = existing.attemptId;
-      startedAtRef.current = existing.startedAt;
-      syncedAtRef.current = existing.syncedAt;
-    } else {
-      setInitialized(true);
-      setStatus('idle');
-    }
-  }, [storageKey]);
 
   const wordCount1 = React.useMemo(() => countWords(task1), [task1]);
   const wordCount2 = React.useMemo(() => countWords(task2), [task2]);
@@ -108,11 +92,14 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({ paper }) => {
           task2WordCount: wordCount2,
         },
       };
-      saveDraft(storageKey, draft);
+      const key = latestStorageKeyRef.current;
+      if (key) {
+        saveDraft(key, draft);
+      }
       setLastSavedAt(timestamp);
       return draft;
     },
-    [storageKey, task1, task2, wordCount1, wordCount2],
+    [task1, task2, wordCount1, wordCount2],
   );
 
   const syncToServer = React.useCallback(
@@ -151,6 +138,43 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({ paper }) => {
     setStatus('saved');
     void syncToServer(draft);
   }, 8000);
+
+  const debouncedSaveRef = React.useRef(debouncedSave);
+
+  React.useEffect(() => {
+    debouncedSaveRef.current = debouncedSave;
+  }, [debouncedSave]);
+
+  React.useEffect(() => {
+    if (!isBrowser) return;
+
+    debouncedSaveRef.current.cancel();
+    pendingDraftRef.current = null;
+    setRestoreOpen(false);
+    setInitialized(false);
+    setStatus('idle');
+    setTask1('');
+    setTask2('');
+    setLastSavedAt(null);
+    attemptIdRef.current = createAttemptId();
+    startedAtRef.current = Date.now();
+    syncedAtRef.current = undefined;
+    latestStorageKeyRef.current = storageKey;
+
+    const existing = loadDraft(storageKey);
+    if (existing && (existing.content.task1 || existing.content.task2)) {
+      pendingDraftRef.current = existing;
+      setLastSavedAt(existing.updatedAt);
+      setStatus('saved');
+      setRestoreOpen(true);
+    } else {
+      setInitialized(true);
+    }
+
+    return () => {
+      debouncedSaveRef.current.cancel();
+    };
+  }, [paper.id, storageKey]);
 
   React.useEffect(() => {
     if (!initialized) return;

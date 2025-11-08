@@ -73,6 +73,7 @@ export const WritingExamRoom: React.FC<Props> = ({
   const tabSwitchesRef = useRef(0);
   const focusLostRef = useRef(false);
   const warningTimeoutRef = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const counts = useMemo(
     () => ({
@@ -267,6 +268,43 @@ export const WritingExamRoom: React.FC<Props> = ({
   const helperId = `writing-${active.key}-helper`;
   const belowMin = active.count < minWords;
 
+  const handleTranscript = useCallback(
+    (delta: string) => {
+      const addition = delta.trim();
+      if (!addition) return;
+      if (activeTask === 'task1') {
+        setTask1Essay((prev) => {
+          if (!prev) return addition;
+          const needsSpace = !/\s$/.test(prev);
+          return `${prev}${needsSpace ? ' ' : ''}${addition}`;
+        });
+      } else {
+        setTask2Essay((prev) => {
+          if (!prev) return addition;
+          const needsSpace = !/\s$/.test(prev);
+          return `${prev}${needsSpace ? ' ' : ''}${addition}`;
+        });
+      }
+    },
+    [activeTask, setTask1Essay, setTask2Essay],
+  );
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const node = textareaRef.current;
+    if (!node) return;
+    try {
+      if (document.activeElement !== node) {
+        node.focus();
+      }
+      const end = node.value.length;
+      node.setSelectionRange(end, end);
+    } catch {
+      // ignore focus/selection errors
+    }
+  }, [activeTask, voiceEnabled]);
+
   return (
     <div className="flex flex-col gap-6">
       {focusWarning ? (
@@ -394,7 +432,14 @@ export const WritingExamRoom: React.FC<Props> = ({
                 </Button>
               ))}
             </div>
-            <VoiceDraftToggle onToggle={setVoiceEnabled} />
+            <div className="flex items-center gap-2">
+              <VoiceDraftToggle onToggle={setVoiceEnabled} onTranscript={handleTranscript} />
+              {voiceEnabled ? (
+                <Badge variant="success" size="sm">
+                  Listening
+                </Badge>
+              ) : null}
+            </div>
           </div>
 
           {error ? (
@@ -416,6 +461,7 @@ export const WritingExamRoom: React.FC<Props> = ({
               id={textareaId}
               aria-describedby={belowMin ? helperId : undefined}
               onChange={(event) => active.setter(event.target.value)}
+              ref={textareaRef}
               className="w-full resize-none rounded-ds-2xl border-0 bg-transparent p-6 text-base leading-7 text-foreground focus:outline-none"
             />
           </Card>

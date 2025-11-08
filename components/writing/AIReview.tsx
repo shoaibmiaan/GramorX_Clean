@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/design-system/Card';
 import { Alert } from '@/components/design-system/Alert';
 import { ScoreCard } from '@/components/design-system/ScoreCard';
@@ -64,27 +64,69 @@ async function annotateText(original: string, signal?: AbortSignal): Promise<str
     if (!res.body) return original;
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
     let result = '';
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split('\n\n')) {
+    let finished = false;
+
+    const processBuffer = () => {
+      if (finished) return;
+      let newlineIndex = buffer.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const line = buffer.slice(0, newlineIndex).trim();
+        buffer = buffer.slice(newlineIndex + 1);
         if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const json = JSON.parse(data);
-            const delta = json?.choices?.[0]?.delta?.content;
-            if (delta) result += delta;
-          } catch {
-            // ignore malformed lines
+          const payload = line.slice(6).trim();
+          if (!payload) {
+            // continue processing remaining lines
+          } else if (payload === '[DONE]') {
+            finished = true;
+            return;
+          } else {
+            try {
+              const json = JSON.parse(payload);
+              const delta = json?.choices?.[0]?.delta?.content;
+              if (typeof delta === 'string') {
+                result += delta;
+              }
+            } catch {
+              // ignore malformed lines and continue reading
+            }
           }
+        }
+        newlineIndex = buffer.indexOf('\n');
+      }
+    };
+
+    while (!finished) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      processBuffer();
+      if (finished || done) break;
+    }
+
+    buffer += decoder.decode();
+    processBuffer();
+    const leftover = buffer.trim();
+    if (!finished && leftover.startsWith('data: ')) {
+      const payload = leftover.slice(6).trim();
+      if (payload && payload !== '[DONE]') {
+        try {
+          const json = JSON.parse(payload);
+          const delta = json?.choices?.[0]?.delta?.content;
+          if (typeof delta === 'string') {
+            result += delta;
+          }
+        } catch {
+          // ignore malformed final payload
         }
       }
     }
+
     return result || original;
-  } catch {
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw error;
+    }
     return original;
   }
 }
@@ -114,17 +156,27 @@ export const AIReview: React.FC<WritingAIReviewProps> = ({ attemptId }) => {
   const [error, setError] = useState<string | null>(null);
   const [longWait, setLongWait] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const handleRetry = React.useCallback(() => {
-    if (loading) return;
+  const handleRetry = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setAttempt(null);
+    setAnnotated('');
+    setError(null);
+    setLoading(true);
+    setLongWait(false);
     setRetryKey((value) => value + 1);
-  }, [loading]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     let jitterTimer: ReturnType<typeof setTimeout> | null = null;
     let longWaitTimer: ReturnType<typeof setTimeout> | null = null;
     const abort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    abortRef.current = abort;
 
     const clearTimers = () => {
       if (jitterTimer) {
@@ -138,6 +190,7 @@ export const AIReview: React.FC<WritingAIReviewProps> = ({ attemptId }) => {
     };
 
     const load = async () => {
+      let aborted = false;
       try {
         setError(null);
         const { data, error } = await supabaseBrowser
@@ -152,10 +205,17 @@ export const AIReview: React.FC<WritingAIReviewProps> = ({ attemptId }) => {
         if (!mounted) return;
         setAnnotated(a);
       } catch (e: any) {
+        if (e?.name === 'AbortError') {
+          aborted = true;
+          return;
+        }
         if (mounted) setError(e.message || 'Failed to load review');
       } finally {
         clearTimers();
-        if (mounted) {
+        if (abortRef.current === abort) {
+          abortRef.current = null;
+        }
+        if (mounted && !aborted) {
           setLoading(false);
           setLongWait(false);
         }
@@ -181,6 +241,9 @@ export const AIReview: React.FC<WritingAIReviewProps> = ({ attemptId }) => {
     return () => {
       mounted = false;
       clearTimers();
+      if (abortRef.current === abort) {
+        abortRef.current = null;
+      }
       abort?.abort();
     };
   }, [attemptId, retryKey]);
@@ -195,7 +258,7 @@ export const AIReview: React.FC<WritingAIReviewProps> = ({ attemptId }) => {
               <p className="text-body text-muted-foreground">
                 Our AI is still working. You can wait a little longer or retry now.
               </p>
-              <Button size="sm" variant="secondary" onClick={handleRetry} disabled={loading}>
+              <Button size="sm" variant="secondary" onClick={handleRetry}>
                 Retry
               </Button>
             </div>
