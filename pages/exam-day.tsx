@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import ExamResourceLayout from '@/components/layouts/ExamResourceLayout';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
@@ -44,9 +45,10 @@ export default function ExamDayPage() {
         />
       </Head>
 
-      <section className="bg-lightBg py-24 dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        <Container>
-          <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <ExamResourceLayout title="Exam day playbook">
+        <section className="bg-lightBg py-0 dark:bg-transparent">
+          <Container>
+            <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <article className="space-y-6 rounded-ds-2xl bg-card/70 p-6 shadow-lg shadow-black/5 backdrop-blur">
               <header className="space-y-3">
                 <span className="inline-flex items-center rounded-full bg-primary/10 px-4 py-1 text-small font-medium text-primary">
@@ -87,9 +89,10 @@ export default function ExamDayPage() {
                 </ul>
               </Card>
             </aside>
-          </div>
-        </Container>
-      </section>
+            </div>
+          </Container>
+        </section>
+      </ExamResourceLayout>
     </>
   );
 }
