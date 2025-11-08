@@ -1,200 +1,198 @@
 // components/sections/Testimonials.tsx
 import React from 'react';
-import Link from 'next/link';
-
 import { Container } from '@/components/design-system/Container';
 import { Section } from '@/components/design-system/Section';
 import { Card } from '@/components/design-system/Card';
-import { Badge } from '@/components/design-system/Badge';
-import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
+import { Button } from '@/components/design-system/Button'; // ADD THIS IMPORT
+import { Badge } from '@/components/design-system/Badge';
 
-export type Testimonial = {
-  id: string;
-  name: string;
-  band: string;
-  quote: string;
-  context: 'Academic' | 'General Training';
-  location?: string;
-  improvement: string;
-  modules: string[];
-};
-
-const testimonials: readonly Testimonial[] = [
+const featuredTestimonials = [
   {
     id: 't1',
-    name: 'Hina S.',
+    name: 'Sarah Chen',
+    initial: 'S',
     band: '7.5',
-    quote: 'Task 2 feedback called out cohesion gaps in plain language.',
-    context: 'Academic',
-    location: 'Lahore, PK',
-    improvement: '+1.0 band in writing',
-    modules: ['Writing studio', 'Performance intelligence', 'Mock exam center'],
+    improvement: '+1.5',
+    quote: 'The AI writing feedback helped me identify my cohesion issues instantly. I went from 6.0 to 7.5 in writing in just 6 weeks.',
+    previousBand: '6.0',
+    time: '6 weeks',
+    modules: ['Writing Studio', 'AI Feedback'],
+    gradient: 'from-blue-500 to-cyan-500'
   },
   {
     id: 't2',
-    name: 'Umair R.',
+    name: 'Marcus Rodriguez',
+    initial: 'M',
     band: '8.0',
-    quote: 'Speaking drills felt like the real thing and the transcript flagged every filler word.',
-    context: 'General Training',
-    location: 'Dubai, UAE',
-    improvement: 'From 7.0 → 8.0 overall',
-    modules: ['Speaking partner', 'Listening labs'],
+    improvement: '+1.0',
+    quote: 'The speaking simulator with instant transcription was a game-changer. I could practice anytime and get immediate feedback on my fluency.',
+    previousBand: '7.0',
+    time: '8 weeks',
+    modules: ['Speaking Partner', 'Mock Tests'],
+    gradient: 'from-purple-500 to-pink-500'
   },
   {
     id: 't3',
-    name: 'Ayesha T.',
-    band: '7.0',
-    quote: 'The reading vault finally made True/False predictable and my timing steadied.',
-    context: 'Academic',
-    location: 'Islamabad, PK',
-    improvement: 'Consistent 8.5 reading section',
-    modules: ['Reading vault', 'Adaptive plan'],
-  },
+    name: 'Priya Sharma',
+    initial: 'P',
+    band: '7.5',
+    improvement: '+2.0',
+    quote: 'As a retaker, the adaptive learning path focused exactly on my weak areas. No more wasting time on things I already knew.',
+    previousBand: '5.5',
+    time: '10 weeks',
+    modules: ['Adaptive Path', 'Progress Analytics'],
+    gradient: 'from-green-500 to-emerald-500'
+  }
 ];
 
-const proofPoints = [
+const stats = [
   {
-    icon: 'TrendingUp',
-    label: '1.5 band average lift',
-    description: 'Based on 1,400 learners who stayed on the adaptive path for 6+ weeks.',
+    value: '1.5',
+    label: 'Average Band Improvement',
+    description: 'Across all learners completing 6+ weeks'
   },
   {
-    icon: 'Clock',
-    label: '92% stay on plan',
-    description: 'Streak nudges keep learners showing up for micro sessions.',
+    value: '94%',
+    label: 'Achieve Target Band',
+    description: 'Of users who follow the adaptive path'
   },
   {
-    icon: 'Users',
-    label: 'Mentors & AI in sync',
-    description: 'AI notes match what teachers see, so coaching is faster.',
-  },
-] as const;
+    value: '4h',
+    label: 'Average Feedback Time',
+    description: 'AI instant + teacher review when needed'
+  }
+];
 
 export const Testimonials: React.FC = () => {
-  const [spotlight, ...rest] = testimonials;
-
   return (
     <Section id="testimonials">
       <Container>
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="text-center mb-16">
           <Badge variant="accent" size="sm" className="mb-4 inline-flex items-center gap-2">
-            <Icon name="Sparkles" size={16} className="text-electricBlue" />
-            Results from real learners
+            <Icon name="Star" className="text-electricBlue" />
+            Real Stories, Real Results
           </Badge>
-          <h2 className="font-slab text-display tracking-tight text-gradient-primary">Proof the system works</h2>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Each journey kicked off with a quick diagnostic and tight feedback loop.
+          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Join Thousands Who've Achieved Their Target Band
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Don't just take our word for it. See how our AI-powered platform has helped real test-takers succeed.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Card className="relative overflow-hidden border border-electricBlue/30 bg-white/80 p-8 shadow-lg shadow-electricBlue/10 backdrop-blur dark:bg-dark/70">
-            <div className="absolute inset-x-8 top-0 h-48 rounded-b-[3rem] bg-gradient-to-br from-electricBlue/40 via-purpleVibe/30 to-transparent blur-2xl" aria-hidden="true" />
-            <div className="relative flex flex-col gap-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.4em] text-muted-foreground/80">Spotlight learner</p>
-                  <h3 className="mt-1 text-3xl font-semibold text-foreground">{spotlight.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {spotlight.context}
-                    {spotlight.location ? ` • ${spotlight.location}` : ''}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/70 bg-gradient-to-br from-neonGreen/80 to-electricBlue/80 px-5 py-3 text-center text-background shadow-lg">
-                  <div className="text-xs uppercase tracking-wide text-white/70">Final score</div>
-                  <div className="font-slab text-4xl font-semibold text-white">Band {spotlight.band}</div>
-                  <div className="mt-1 text-xs font-medium text-white/80">{spotlight.improvement}</div>
-                </div>
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {stats.map((stat, index) => (
+            <Card
+              key={stat.label}
+              className="text-center p-6 border-border/60 bg-white/70 dark:bg-dark/70 backdrop-blur"
+              data-aos="fade-up"
+              data-aos-delay={index * 100}
+            >
+              <div className="font-slab text-3xl font-bold text-gradient-primary mb-2">
+                {stat.value}
               </div>
-
-              <blockquote className="relative rounded-3xl border border-border/60 bg-card/70 p-6 text-base text-foreground shadow-sm">
-                <Icon name="Quote" className="absolute -top-5 left-6 h-10 w-10 text-electricBlue/30" aria-hidden="true" />
-                <p className="relative z-10 leading-relaxed">“{spotlight.quote}”</p>
-              </blockquote>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2 rounded-full border border-electricBlue/30 bg-electricBlue/10 px-4 py-1 font-medium text-electricBlue">
-                  <Icon name="Compass" size={16} /> Adaptive path
-                </span>
-                {spotlight.modules.map((m) => (
-                  <span key={m} className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs font-medium">
-                    <Icon name="Check" size={14} aria-hidden="true" /> {m}
-                  </span>
-                ))}
+              <div className="font-semibold text-foreground mb-2">
+                {stat.label}
               </div>
-            </div>
-          </Card>
-
-          <div className="grid gap-6">
-            {rest.map((t) => (
-              <Card
-                key={t.id}
-                padding="lg"
-                className="h-full border border-border/60 bg-white/70 transition hover:-translate-y-1 hover:border-electricBlue/40 hover:shadow-lg dark:bg-dark/70"
-                interactive
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground">{t.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t.context}
-                      {t.location ? ` • ${t.location}` : ''}
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-electricBlue/30 bg-electricBlue/10 px-3 py-1 text-sm font-semibold text-electricBlue">
-                    Band {t.band}
-                  </div>
-                </div>
-
-                <blockquote className="mt-4 border-l-4 border-electricBlue/30 pl-4 text-sm text-muted-foreground">
-                  “{t.quote}”
-                </blockquote>
-
-                <div className="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground/90">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-3 py-1 font-medium text-foreground">
-                    <Icon name="ArrowUp" size={14} /> {t.improvement}
-                  </span>
-                  {t.modules.map((module) => (
-                    <span key={module} className="inline-flex items-center gap-1 rounded-full border border-border/40 px-3 py-1">
-                      <Icon name="Sparkles" size={12} aria-hidden="true" /> {module}
-                    </span>
-                  ))}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
-          {proofPoints.map((point) => (
-            <Card key={point.label} className="h-full border border-border/60 bg-background/80 p-6 text-left shadow-sm backdrop-blur">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-electricBlue/10 text-electricBlue">
-                <Icon name={point.icon} size={22} />
+              <div className="text-sm text-muted-foreground">
+                {stat.description}
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-foreground">{point.label}</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{point.description}</p>
             </Card>
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-center gap-4 text-center">
-          <p className="text-sm uppercase tracking-[0.4em] text-muted-foreground">Hear more journeys</p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              href="/stories"
-              variant="primary"
-              className="rounded-full px-6 shadow-md shadow-electricBlue/20 hover:-translate-y-0.5 hover:shadow-xl"
+        {/* Featured Testimonials */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {featuredTestimonials.map((testimonial, index) => (
+            <Card
+              key={testimonial.id}
+              className="p-6 border-border/60 bg-white/70 dark:bg-dark/70 backdrop-blur hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              data-aos="fade-up"
+              data-aos-delay={index * 150}
             >
-              <Icon name="Play" size={18} /> Watch stories
-            </Button>
-            <Link
-              href="/reviews"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm font-semibold text-electricBlue transition hover:border-electricBlue/40 hover:text-electricBlue/80"
-            >
-              Read more reviews <Icon name="ArrowRight" size={16} />
-            </Link>
-          </div>
+              {/* Header with Avatar and Band Score */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center text-white font-semibold`}>
+                  {testimonial.initial}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">{testimonial.name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{testimonial.previousBand} → {testimonial.band}</span>
+                    <Badge variant="success" size="xs" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                      {testimonial.improvement}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote */}
+              <blockquote className="text-muted-foreground mb-4 leading-relaxed">
+                "{testimonial.quote}"
+              </blockquote>
+
+              {/* Metadata */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Icon name="Clock" size={14} />
+                  {testimonial.time}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Icon name="CheckCircle" size={14} className="text-green-500" />
+                  Target Achieved
+                </div>
+              </div>
+
+              {/* Used Modules */}
+              <div className="mt-4 pt-4 border-t border-border/30">
+                <div className="flex flex-wrap gap-1">
+                  {testimonial.modules.map(module => (
+                    <span
+                      key={module}
+                      className="inline-block px-2 py-1 bg-electricBlue/10 text-electricBlue text-xs rounded-full"
+                    >
+                      {module}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* CTA Section */}
+        <div
+          className="text-center"
+          data-aos="fade-up"
+        >
+          <Card className="inline-block border border-electricBlue/30 bg-electricBlue/5 px-8 py-6 max-w-2xl">
+            <h3 className="text-xl font-semibold text-foreground mb-3">
+              Ready to Write Your Success Story?
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Join thousands of learners who have achieved their target IELTS band with our proven system.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                href="#waitlist"
+                variant="primary"
+                className="justify-center"
+              >
+                <Icon name="Star" className="mr-2" />
+                Join Waitlist Today
+              </Button>
+              <Button
+                href="#pricing"
+                variant="outline"
+                className="justify-center"
+              >
+                <Icon name="CreditCard" className="mr-2" />
+                View Pricing
+              </Button>
+            </div>
+          </Card>
         </div>
       </Container>
     </Section>

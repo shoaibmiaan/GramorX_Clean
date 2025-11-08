@@ -1,3 +1,4 @@
+// components/common/RouteLoadingOverlay.tsx
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,6 +8,13 @@ import { useTheme } from 'next-themes';
 
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { Button } from '@/components/design-system/Button';
+import { 
+  LayoutSkeleton, 
+  DashboardSkeleton, 
+  AuthSkeleton, 
+  ExamSkeleton, 
+  TeacherSkeleton 
+} from './Skeleton';
 
 type ThemeMode = 'light' | 'dark';
 type VariantId = 'studyBuddy' | 'aiCoach' | 'owl';
@@ -14,6 +22,7 @@ type VariantId = 'studyBuddy' | 'aiCoach' | 'owl';
 interface RouteLoadingOverlayProps {
   active: boolean;
   tier?: SubscriptionTier | null;
+  targetLayout?: string;
 }
 
 type VariantDefinition = {
@@ -107,13 +116,44 @@ function useProgressCycle(messages: readonly string[], active: boolean, stepDura
   }, [variantId, messages, active]);
   useEffect(() => {
     if (!active || messages.length <= 1) return;
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % messages.length);
-    }, stepDuration);
-    return () => window.clearInterval(id);
+      const id = window.setInterval(() => {
+        setIndex((i) => (i + 1) % messages.length);
+      }, stepDuration);
+      return () => window.clearInterval(id);
   }, [active, messages, stepDuration, variantId]);
   const currentStatus = messages[index] ?? messages[0] ?? '';
   return { currentStatus, statusIndex: index } as const;
+}
+
+// ----- Layout-aware skeleton renderer -----
+function renderLayoutSkeleton(targetLayout?: string) {
+  switch (targetLayout) {
+    case 'dashboard':
+      return <DashboardSkeleton />;
+    case 'auth':
+      return <AuthSkeleton />;
+    case 'exam':
+      return <ExamSkeleton />;
+    case 'teacher':
+      return <TeacherSkeleton />;
+    case 'admin':
+    case 'institutions':
+    case 'marketplace':
+    case 'learning':
+    case 'community':
+    case 'reports':
+    case 'marketing':
+      return <LayoutSkeleton />;
+    default:
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="skeleton h-8 w-8 mx-auto rounded-full" />
+            <div className="skeleton h-4 w-32 mt-2 rounded" />
+          </div>
+        </div>
+      );
+  }
 }
 
 // ----- Minimal, token-only renders (no hex colors, all DS-friendly) -----
@@ -301,7 +341,7 @@ function resolveVariant(tier?: SubscriptionTier | null): VariantDefinition {
   return key ? VARIANTS[key] : VARIANTS.studyBuddy;
 }
 
-export function RouteLoadingOverlay({ active, tier }: RouteLoadingOverlayProps) {
+export function RouteLoadingOverlay({ active, tier, targetLayout }: RouteLoadingOverlayProps) {
   const shouldReduceMotion = useReducedMotion();
   const { resolvedTheme } = useTheme();
   const themeMode: ThemeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
@@ -318,6 +358,7 @@ export function RouteLoadingOverlay({ active, tier }: RouteLoadingOverlayProps) 
   const [render, setRender] = useState(active);
   const [showSlowNotice, setShowSlowNotice] = useState(false);
   const [showRecoveryAction, setShowRecoveryAction] = useState(false);
+  
   useEffect(() => {
     if (active) {
       setRender(true);
@@ -343,6 +384,28 @@ export function RouteLoadingOverlay({ active, tier }: RouteLoadingOverlayProps) 
     if (typeof window === 'undefined') return;
     window.location.reload();
   }, []);
+
+  // Use layout skeleton for initial loading, animated overlay for route transitions
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  
+  useEffect(() => {
+    if (active) {
+      setShowSkeleton(true);
+      const timer = setTimeout(() => setShowSkeleton(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [active]);
+
+  if (!render) return null;
+
+  // Show layout skeleton for first 1.5 seconds, then animated overlay
+  if (showSkeleton && targetLayout) {
+    return (
+      <div className="fixed inset-0 z-[1000] overflow-auto">
+        {renderLayoutSkeleton(targetLayout)}
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>

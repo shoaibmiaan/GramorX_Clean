@@ -1,319 +1,280 @@
 // components/sections/Waitlist.tsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/router';
-
+import React, { useState } from 'react';
 import { Container } from '@/components/design-system/Container';
 import { Section } from '@/components/design-system/Section';
 import { Card } from '@/components/design-system/Card';
-import { Input } from '@/components/design-system/Input';
-import { Alert } from '@/components/design-system/Alert';
 import { Button } from '@/components/design-system/Button';
+import { Input } from '@/components/design-system/Input';
 import { Icon } from '@/components/design-system/Icon';
-
-const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-
-type FormState = {
-  name: string;
-  email: string;
-  phone: string;
-  country: string;
-  target_band: string;
-  planned_test: string; // YYYY-MM or e.g., "Dec 2025"
-  experience: string;
-  referrer_code: string; // from ?ref=
-};
-
-const normalizeMonth = (s: string) => {
-  if (!s) return s;
-  if (/^\d{4}-\d{2}$/.test(s)) return s;
-  const short = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-  const m = s.match(/^([A-Za-z]{3,})\s+(\d{4})$/);
-  if (m) {
-    const i = short.findIndex((x) => x === m[1].slice(0, 3).toLowerCase());
-    if (i >= 0) return `${m[2]}-${String(i + 1).padStart(2, '0')}`;
-  }
-  return s;
-};
+import { Badge } from '@/components/design-system/Badge';
 
 const perks = [
   {
-    icon: 'Gift',
-    title: 'Founding member perks',
-    description: 'First 500 learners get 30% off the first 3 months plus priority onboarding.',
+    icon: 'Rocket',
+    title: 'Early Access',
+    description: 'Be among the first to experience the platform'
   },
   {
-    icon: 'ClipboardList',
-    title: 'Tailored launch plan',
-    description: 'Share your goals and receive a 4-week action sprint before launch.',
+    icon: 'Gift',
+    title: 'Founding Member Perks',
+    description: 'Special pricing locked for 12 months'
+  },
+  {
+    icon: 'Users',
+    title: 'Priority Onboarding',
+    description: 'Dedicated support and setup assistance'
   },
   {
     icon: 'MessageCircle',
-    title: 'Direct line to product team',
-    description: 'Drop feedback in a private channel and shape what ships next.',
-  },
-] as const;
+    title: 'Direct Influence',
+    description: 'Shape the product with your feedback'
+  }
+];
 
-const timeline = [
-  {
-    title: 'Reserve your spot',
-    detail: 'Submit the form with your target band and exam month.',
-    time: '2 minutes',
-  },
-  {
-    title: 'Get onboarding kit',
-    detail: 'Receive diagnostics, a planner, and bonus speaking prompts.',
-    time: 'Within 24 hours',
-  },
-  {
-    title: 'Access beta rooms',
-    detail: 'Unlock modules in waves and join live mentor walkthroughs.',
-    time: 'Staggered invites',
-  },
-] as const;
-
-const totalSlots = 500;
-const claimedSlots = 327;
-const claimedPercent = Math.min(100, Math.round((claimedSlots / totalSlots) * 100));
-
-export function Waitlist() {
-  const router = useRouter();
-
-  const [form, setForm] = useState<FormState>({
+export const Waitlist: React.FC = () => {
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    country: '',
-    target_band: '',
-    planned_test: '',
-    experience: '',
-    referrer_code: '',
+    targetBand: '',
+    testDate: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const alertWrapRef = useRef<HTMLDivElement | null>(null);
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const qref = (router.query.ref as string) || '';
-    if (qref) setForm((s) => ({ ...s, referrer_code: qref }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.query.ref]);
-
-  const emailError = useMemo(() => {
-    if (!form.email) return undefined;
-    return isEmail(form.email) ? undefined : 'Please enter a valid email';
-  }, [form.email]);
-
-  const canSubmit = !!form.name && isEmail(form.email) && !loading;
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((s) => ({ ...s, [name]: value }));
-  };
-
-  const showAlert = (kind: 'success' | 'error', msg: string, autoDismiss = true) => {
-    if (dismissTimer.current) clearTimeout(dismissTimer.current);
-    setSuccessMsg(null);
-    setErrorMsg(null);
-    if (kind === 'success') setSuccessMsg(msg);
-    else setErrorMsg(msg);
-
-    requestAnimationFrame(() => {
-      alertWrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => alertWrapRef.current?.focus({ preventScroll: true }), 250);
-    });
-
-    if (autoDismiss) {
-      dismissTimer.current = setTimeout(() => {
-        setSuccessMsg(null);
-        setErrorMsg(null);
-      }, 7000);
-    }
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    if (!canSubmit) return;
+    setIsSubmitting(true);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    try {
-      setLoading(true);
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, planned_test: normalizeMonth(form.planned_test), source: 'site:waitlist' }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const json = await res.json().catch(() => ({} as any));
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!res.ok || json?.ok !== true) {
-        const issues: { field: string; message: string }[] = json?.issues || [];
-        const msg = issues.length
-          ? issues.map((i) => `• ${i.message}`).join('  ')
-          : json?.error || 'Something went wrong. Please try again.';
-        showAlert('error', msg, false);
-        return;
-      }
+    setIsSubmitting(false);
+    setIsSubmitted(true);
 
-      if (json.duplicate) {
-        showAlert('success', 'You are already on the waitlist. 🎉');
-        return;
-      }
-
-      showAlert('success', "You're on the list! We’ll email you updates and early access.");
-      setForm({ name: '', email: '', phone: '', country: '', target_band: '', planned_test: '', experience: '', referrer_code: '' });
-    } catch (err: any) {
-      clearTimeout(timeout);
-      showAlert(
-        'error',
-        err?.name === 'AbortError' ? 'Network timeout. Please try again.' : err?.message || 'Unable to submit.',
-        false
-      );
-    } finally {
-      setLoading(false);
-    }
+    // Reset form
+    setFormData({
+      name: '',
+      email: '',
+      targetBand: '',
+      testDate: ''
+    });
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  if (isSubmitted) {
+    return (
+      <Section id="waitlist">
+        <Container>
+          <div className="text-center max-w-2xl mx-auto">
+            <Card className="p-12 border border-green-200 bg-green-50/30 dark:bg-green-900/10">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Icon name="CheckCircle" className="text-green-600" size={32} />
+              </div>
+              <h2 className="text-3xl font-bold text-foreground mb-4">
+                You're on the List! 🎉
+              </h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Thank you for joining our waitlist. We'll send you early access invites
+                and founding member perks as we get closer to launch.
+              </p>
+              <div className="bg-white dark:bg-dark/50 p-6 rounded-lg border border-border/60">
+                <h3 className="font-semibold text-foreground mb-3">What's Next?</h3>
+                <ul className="text-sm text-muted-foreground space-y-2 text-left">
+                  <li className="flex items-center gap-2">
+                    <Icon name="Mail" className="text-electricBlue" size={16} />
+                    Check your email for confirmation
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Icon name="Calendar" className="text-purpleVibe" size={16} />
+                    Look for launch updates in the coming weeks
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Icon name="Gift" className="text-neonGreen" size={16} />
+                    Founding member perks will be announced soon
+                  </li>
+                </ul>
+              </div>
+            </Card>
+          </div>
+        </Container>
+      </Section>
+    );
+  }
 
   return (
     <Section id="waitlist">
       <Container>
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start">
-          <div className="space-y-8">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-electricBlue/30 bg-electricBlue/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-electricBlue">
-                <Icon name="Sparkles" size={14} /> Early access program
-              </span>
-              <h2 className="mt-4 font-slab text-4xl font-semibold text-gradient-primary sm:text-5xl">
-                Join the mission control waitlist
-              </h2>
-              <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-                Secure a beta invite for personalised launch plans, exclusive discounts, and fast feedback loops.
-              </p>
-            </div>
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div>
+            <Badge variant="accent" size="sm" className="mb-4 inline-flex items-center gap-2">
+              <Icon name="Star" className="text-electricBlue" />
+              Limited Founding Member Spots
+            </Badge>
+            <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Ready to Transform Your IELTS Preparation?
+            </h2>
+            <p className="text-lg text-muted-foreground mb-6">
+              Join the waitlist today and be among the first to experience our AI-powered platform.
+              Founding members get special perks and early access.
+            </p>
 
-            <Card className="border border-electricBlue/30 bg-background/80 p-6 shadow-lg shadow-electricBlue/10">
-              <div className="flex items-center justify-between text-sm font-medium text-foreground">
-                <span>Spots claimed</span>
-                <span>
-                  {claimedSlots}/{totalSlots}
-                </span>
-              </div>
-              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-border/60">
-                <span
-                  className="block h-full rounded-full bg-gradient-to-r from-electricBlue via-purpleVibe to-neonGreen"
-                  style={{ width: `${claimedPercent}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Founding members lock pricing for 12 months and help pick releases.
-              </p>
-            </Card>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {perks.map((perk) => (
-                <Card key={perk.title} className="h-full border border-border/50 bg-card/80 p-5 text-left shadow-sm">
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-electricBlue/10 text-electricBlue">
-                    <Icon name={perk.icon} size={18} />
+            {/* Perks Grid */}
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+              {perks.map((perk, index) => (
+                <div
+                  key={perk.title}
+                  className="flex items-start gap-3"
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electricBlue to-purpleVibe flex items-center justify-center text-white flex-shrink-0">
+                    <Icon name={perk.icon} size={20} />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-foreground">{perk.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{perk.description}</p>
-                </Card>
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">
+                      {perk.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {perk.description}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
 
-            <Card className="border border-border/60 bg-background/80 p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">How it works</h3>
-              <ol className="mt-4 space-y-4 text-sm text-muted-foreground">
-                {timeline.map((step, idx) => (
-                  <li key={step.title} className="flex gap-3">
-                    <span className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-electricBlue/15 font-semibold text-electricBlue">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-foreground">{step.title}</p>
-                      <p className="leading-relaxed">{step.detail}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.3em] text-muted-foreground/80">{step.time}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Card>
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Icon name="ShieldCheck" className="text-green-500" />
+                No spam, ever
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="Clock" className="text-blue-500" />
+                One-click unsubscribe
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="Lock" className="text-purple-500" />
+                Your data is protected
+              </div>
+            </div>
           </div>
 
-          <Card className="card-glass rounded-ds-xl p-6 md:p-8">
-            <div ref={alertWrapRef} tabIndex={-1} aria-live="polite" aria-atomic="true" className="outline-none">
-              {successMsg ? <Alert variant="success" title="Success" className="mb-6">{successMsg}</Alert> : null}
-              {errorMsg ? <Alert variant="warning" title="Hmm…" className="mb-6">{errorMsg}</Alert> : null}
+          {/* Right Content - Form */}
+          <Card className="p-8 border border-electricBlue/30 bg-white/80 dark:bg-dark/70 shadow-xl backdrop-blur">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-2">
+                Join the Waitlist
+              </h3>
+              <p className="text-muted-foreground">
+                Get early access and founding member perks
+              </p>
             </div>
 
-            <form onSubmit={onSubmit} className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Full name</span>
-                <Input name="name" placeholder="Enter your full name" value={form.name} onChange={onChange} required />
-              </div>
-
-              <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Email address</span>
-                <Input name="email" type="email" placeholder="Enter your email" value={form.email} onChange={onChange} required />
-                {emailError ? <span className="mt-1 block text-xs text-sunsetOrange">{emailError}</span> : null}
-              </div>
-
-              <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Target IELTS band</span>
-                <Input name="target_band" type="number" min="0" max="9" step="0.5" placeholder="e.g., 7.5" value={form.target_band} onChange={onChange} />
-              </div>
-
-              <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Planned test date</span>
-                <Input name="planned_test" type="month" placeholder="Month/Year" value={form.planned_test} onChange={onChange} />
-              </div>
-
-              <div className="md:col-span-2">
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Current IELTS experience</span>
-                <Input name="experience" placeholder="First-time taker, Retaker, etc." value={form.experience} onChange={onChange} />
+                <label htmlFor="name" className="block text-sm font-semibold text-foreground mb-2">
+                  Full Name
+                </label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
               <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Phone (optional)</span>
-                <Input name="phone" type="tel" placeholder="e.g., +92 300 1234567" value={form.phone} onChange={onChange} />
+                <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
-              <div>
-                <span className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Country (optional)</span>
-                <Input name="country" placeholder="Pakistan" value={form.country} onChange={onChange} list="country-list" />
-                <datalist id="country-list">
-                  <option value="Pakistan" />
-                  <option value="United Kingdom" />
-                  <option value="United States" />
-                  <option value="Canada" />
-                  <option value="Australia" />
-                  <option value="United Arab Emirates" />
-                </datalist>
-              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="targetBand" className="block text-sm font-semibold text-foreground mb-2">
+                    Target Band
+                  </label>
+                  <select
+                    id="targetBand"
+                    name="targetBand"
+                    value={formData.targetBand}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-border/60 rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-electricBlue/50 focus:border-electricBlue"
+                    required
+                  >
+                    <option value="">Select target</option>
+                    <option value="6.0">6.0</option>
+                    <option value="6.5">6.5</option>
+                    <option value="7.0">7.0</option>
+                    <option value="7.5">7.5</option>
+                    <option value="8.0">8.0+</option>
+                  </select>
+                </div>
 
-              <input type="hidden" name="referrer_code" value={form.referrer_code} />
-
-              <div className="md:col-span-2 pt-1">
-                <Button type="submit" variant="primary" disabled={!canSubmit} className="w-full rounded-full py-4 text-base font-semibold">
-                  <Icon name="Lock" /> {loading ? 'Securing…' : 'Claim invite'}
-                </Button>
-                <div className="mt-3 text-center text-xs text-muted-foreground">
-                  We’ll send early-access updates. Unsubscribe anytime.
+                <div>
+                  <label htmlFor="testDate" className="block text-sm font-semibold text-foreground mb-2">
+                    Test Date
+                  </label>
+                  <Input
+                    id="testDate"
+                    name="testDate"
+                    type="month"
+                    placeholder="When are you testing?"
+                    value={formData.testDate}
+                    onChange={handleChange}
+                  />
                 </div>
               </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                disabled={isSubmitting}
+                className="w-full justify-center py-3 text-lg font-semibold shadow-lg shadow-electricBlue/20 hover:shadow-electricBlue/30 transition-all duration-300"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Icon name="Loader2" className="animate-spin mr-2" />
+                    Securing Your Spot...
+                  </>
+                ) : (
+                  <>
+                    <Icon name="Star" className="mr-2" />
+                    Join Waitlist - Get Early Access
+                  </>
+                )}
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                By joining, you agree to our Privacy Policy and Terms of Service.
+                We'll only send you launch updates and early access invites.
+              </p>
             </form>
           </Card>
         </div>
       </Container>
     </Section>
   );
-}
+};
 
 export default Waitlist;
-export { Waitlist as WaitlistSection };

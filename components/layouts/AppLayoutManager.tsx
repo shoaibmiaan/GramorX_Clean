@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+// components/layouts/AppLayoutManager.tsx
+import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { SubscriptionTier } from '@/lib/navigation/types';
@@ -26,8 +27,41 @@ import DashboardLayout from '@/components/layouts/DashboardLayout';
 import PublicMarketingLayout from '@/components/layouts/PublicMarketingLayout';
 import TeacherLayout from '@/components/layouts/TeacherLayout';
 import TeacherProfile from '@/components/teacher/TeacherProfile';
+import ProfileLayout from '@/components/layouts/ProfileLayout';
+import CommunicationLayout from '@/components/layouts/CommunicationLayout';
+import BillingLayout from '@/components/layouts/BillingLayout';
+import ResourcesLayout from '@/components/layouts/ResourcesLayout';
+import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
+import SupportLayout from '@/components/layouts/SupportLayout';
 
-import type { ReactNode } from 'react';
+// Error boundary component
+const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = () => setHasError(true);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <Card className="mx-auto max-w-md mt-8">
+        <div className="p-4 text-center">
+          <h3 className="text-lg font-semibold mb-2">Layout Error</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            There was a problem loading this page layout.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Reload Page
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 type AppLayoutManagerProps = {
   children: ReactNode;
@@ -106,6 +140,40 @@ function TeacherOnboardingGate() {
   );
 }
 
+// Enhanced teacher access hook
+const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | null) => {
+  const router = useRouter();
+  const isTeacherRoute = router.pathname.startsWith('/teacher');
+
+  const teacherAccess = useMemo(() => {
+    const canAccessTeacher = role === 'teacher' || role === 'admin';
+    const isApproved = Boolean(isTeacherApproved);
+
+    return {
+      canAccessTeacher,
+      isApproved,
+      shouldRedirect: isTeacherRoute && role && !canAccessTeacher,
+      showOnboarding: role === 'teacher' && !isApproved
+    };
+  }, [role, isTeacherApproved, isTeacherRoute]);
+
+  useEffect(() => {
+    if (teacherAccess.shouldRedirect) {
+      void router.push('/restricted');
+    }
+  }, [teacherAccess.shouldRedirect, router]);
+
+  return teacherAccess;
+};
+
+// Layout configuration type
+type LayoutConfig = {
+  type: string;
+  component: React.ComponentType<{ children: ReactNode; userRole?: string }>;
+  guard?: (role?: string | null, isTeacherApproved?: boolean | null) => boolean;
+  getContent?: (role?: string | null, isTeacherApproved?: boolean | null, children?: ReactNode, guardFallback?: () => ReactNode) => ReactNode;
+};
+
 export function AppLayoutManager({
   children,
   isAuthPage,
@@ -128,84 +196,169 @@ export function AppLayoutManager({
 }: AppLayoutManagerProps) {
   const router = useRouter();
   const pathname = router.pathname;
+  const teacherAccess = useTeacherAccess(role, isTeacherApproved);
 
   const isTeacherRoute = pathname.startsWith('/teacher');
   const teacherAccessRole = role ?? 'guest';
-  const canAccessTeacher = role === 'teacher' || role === 'admin';
-  const isTeacherApprovedFlag = Boolean(isTeacherApproved);
 
-  useEffect(() => {
-    if (isTeacherRoute && role && !canAccessTeacher) {
-      void router.push('/restricted');
+  // Enhanced teacher content rendering
+  const getTeacherContent = useCallback(() => {
+    if (role === 'admin') {
+      return (
+        <TeacherLayout userRole={teacherAccessRole}>
+          <TeacherProfile />
+        </TeacherLayout>
+      );
     }
-  }, [canAccessTeacher, isTeacherRoute, role, router]);
 
-  const renderGuardFallback = () => guardFallback();
+    if (role === 'teacher') {
+      return (
+        <TeacherLayout userRole={teacherAccessRole}>
+          {teacherAccess.isApproved ? children : <TeacherOnboardingGate />}
+        </TeacherLayout>
+      );
+    }
 
-  let content = children;
+    return guardFallback();
+  }, [role, teacherAccessRole, teacherAccess.isApproved, children, guardFallback]);
 
-  if (showLayout) {
-    if (isAdminRoute) {
-      content = <AdminLayout>{children}</AdminLayout>;
-    } else if (isTeacherRoute) {
-      if (role === 'admin') {
-        content = (
-          <TeacherLayout userRole={teacherAccessRole}>
-            <TeacherProfile />
-          </TeacherLayout>
-        );
-      } else if (role === 'teacher') {
-        content = (
-          <TeacherLayout userRole={teacherAccessRole}>
-            {isTeacherApprovedFlag ? <TeacherProfile /> : <TeacherOnboardingGate />}
-          </TeacherLayout>
-        );
-      } else {
-        content = renderGuardFallback();
+  // Layout configuration
+  const layoutConfigs: LayoutConfig[] = useMemo(() => [
+    {
+      type: 'admin',
+      component: AdminLayout,
+      guard: () => isAdminRoute
+    },
+    {
+      type: 'teacher',
+      component: TeacherLayout,
+      guard: () => isTeacherRoute,
+      getContent: () => getTeacherContent()
+    },
+    {
+      type: 'institutions',
+      component: InstitutionsLayout,
+      guard: () => isInstitutionsRoute
+    },
+    {
+      type: 'dashboard',
+      component: DashboardLayout,
+      guard: () => isDashboardRoute
+    },
+    {
+      type: 'marketplace',
+      component: MarketplaceLayout,
+      guard: () => isMarketplaceRoute
+    },
+    {
+      type: 'learning',
+      component: LearningLayout,
+      guard: () => isLearningRoute
+    },
+    {
+      type: 'community',
+      component: CommunityLayout,
+      guard: () => isCommunityRoute
+    },
+    {
+      type: 'reports',
+      component: ReportsLayout,
+      guard: () => isReportsRoute
+    },
+    {
+      type: 'marketing',
+      component: PublicMarketingLayout,
+      guard: () => isMarketingRoute
+    },
+    // New layout types
+    {
+      type: 'profile',
+      component: ProfileLayout,
+      guard: () => pathname.startsWith('/profile') || pathname.startsWith('/user')
+    },
+    {
+      type: 'communication',
+      component: CommunicationLayout,
+      guard: () => pathname.startsWith('/messages') || pathname.startsWith('/chat') || pathname.startsWith('/inbox')
+    },
+    {
+      type: 'billing',
+      component: BillingLayout,
+      guard: () => pathname.startsWith('/billing') || pathname.startsWith('/payment') || pathname.startsWith('/subscription')
+    },
+    {
+      type: 'resources',
+      component: ResourcesLayout,
+      guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library')
+    },
+    {
+      type: 'analytics',
+      component: AnalyticsLayout,
+      guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats')
+    },
+    {
+      type: 'support',
+      component: SupportLayout,
+      guard: () => pathname.startsWith('/support') || pathname.startsWith('/help')
+    }
+  ], [
+    isAdminRoute, isTeacherRoute, isInstitutionsRoute, isDashboardRoute,
+    isMarketplaceRoute, isLearningRoute, isCommunityRoute, isReportsRoute,
+    isMarketingRoute, pathname, getTeacherContent
+  ]);
+
+  // Find matching layout
+  const activeLayout = useMemo(() => {
+    return layoutConfigs.find(config => config.guard?.(role, isTeacherApproved)) || null;
+  }, [layoutConfigs, role, isTeacherApproved]);
+
+  // Render content based on layout configuration
+  const renderContent = useCallback(() => {
+    if (!showLayout) {
+      return getNakedContent(isAuthPage, isProctoringRoute, children);
+    }
+
+    if (activeLayout) {
+      if (activeLayout.getContent) {
+        return activeLayout.getContent(role, isTeacherApproved, children, guardFallback);
       }
-    } else if (isInstitutionsRoute) {
-      content = <InstitutionsLayout>{children}</InstitutionsLayout>;
-    } else if (isDashboardRoute) {
-      content = <DashboardLayout>{children}</DashboardLayout>;
-    } else if (isMarketplaceRoute) {
-      content = <MarketplaceLayout>{children}</MarketplaceLayout>;
-    } else if (isLearningRoute) {
-      content = <LearningLayout>{children}</LearningLayout>;
-    } else if (isCommunityRoute) {
-      content = <CommunityLayout>{children}</CommunityLayout>;
-    } else if (isReportsRoute) {
-      content = <ReportsLayout>{children}</ReportsLayout>;
-    } else if (isMarketingRoute) {
-      content = <PublicMarketingLayout>{children}</PublicMarketingLayout>;
-    }
-  }
 
-  const nakedContent = isAuthPage ? (
-    <AuthLayout>{children}</AuthLayout>
-  ) : isProctoringRoute ? (
-    <ProctoringLayout>{children}</ProctoringLayout>
-  ) : (
-    children
-  );
+      const LayoutComponent = activeLayout.component;
+      return <LayoutComponent userRole={role}>{children}</LayoutComponent>;
+    }
+
+    // Fallback to default layout for uncovered routes
+    return <Layout>{children}</Layout>;
+  }, [
+    showLayout, activeLayout, isAuthPage, isProctoringRoute,
+    children, role, isTeacherApproved, guardFallback
+  ]);
+
+  const getNakedContent = (
+    auth: boolean,
+    proctoring: boolean,
+    content: ReactNode
+  ) => {
+    if (auth) return <AuthLayout>{content}</AuthLayout>;
+    if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
+    return content;
+  };
+
+  const shouldWrapInMainLayout = forceLayoutOnAuthPage || (showLayout && !!activeLayout);
 
   return (
-    <>
+    <LayoutErrorBoundary>
       <GlobalPlanGuard />
 
-      {forceLayoutOnAuthPage ? (
+      {shouldWrapInMainLayout ? (
         <Layout>
           <ImpersonationBanner />
-          {nakedContent}
-        </Layout>
-      ) : showLayout ? (
-        <Layout>
-          <ImpersonationBanner />
-          {content}
+          {renderContent()}
         </Layout>
       ) : (
         <>
           <ImpersonationBanner />
-          {nakedContent}
+          {renderContent()}
         </>
       )}
 
@@ -213,7 +366,7 @@ export function AppLayoutManager({
       <SidebarAI />
       <UpgradeModal />
       <RouteLoadingOverlay active={isRouteLoading} tier={subscriptionTier} />
-    </>
+    </LayoutErrorBoundary>
   );
 }
 

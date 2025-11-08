@@ -1,17 +1,19 @@
 // pages/_app.tsx
 import type { AppProps } from 'next/app';
-import Head from 'next/head';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { Poppins, Roboto_Slab } from 'next/font/google';
 
 import '@/styles/tokens.css';
-// Do NOT import '@/styles/premium.css' directly; it is Tailwind input.
-// We load the compiled /public/premium.css via <Head> below.
 import '@/styles/semantic.css';
 import '@/styles/globals.css';
 import '@/styles/themes/index.css';
+
+// Animations (for Homepage sections using data-aos)
+import 'aos/dist/aos.css';
+import { AnimationProvider } from '@/components/providers/AnimationProvider';
 
 import { ToastProvider } from '@/components/design-system/Toaster';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
@@ -27,7 +29,6 @@ import { InstalledAppProvider } from '@/hooks/useInstalledApp';
 import { PremiumThemeProvider } from '@/premium-ui/theme/PremiumThemeProvider';
 import AppLayoutManager from '@/components/layouts/AppLayoutManager';
 
-import { Poppins, Roboto_Slab } from 'next/font/google';
 import { UserProvider, useUserContext } from '@/context/UserContext';
 import { OrgProvider } from '@/lib/orgs/context';
 import { HighContrastProvider } from '@/context/HighContrastContext';
@@ -35,7 +36,7 @@ import { HighContrastProvider } from '@/context/HighContrastContext';
 import { loadTranslations } from '@/lib/i18n';
 import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
-import { isAttemptPath } from '@/lib/routes/routeLayoutMap';
+import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -60,12 +61,25 @@ function GuardSkeleton() {
   );
 }
 
-function InnerApp({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const pathname = router.pathname;
-  const { locale: activeLocale } = useLocale();
+// Route type guards
+const isAuthPage = (pathname: string) =>
+  /^\/(login|signup|register)(\/|$)/.test(pathname) ||
+  /^\/auth\/(login|signup|register|mfa|verify)(\/|$)/.test(pathname) ||
+  pathname === '/forgot-password';
 
-  // -------- Route Loading (stable on auth + shallow/hash) --------
+const isPremiumRoomRoute = (pathname: string) =>
+  pathname.startsWith('/premium/') && !pathname.startsWith('/premium-pin');
+
+const isMockTestsFlowRoute = (pathname: string) => {
+  const isMockTestsRoute = pathname.startsWith('/mock');
+  const isMockTestsLanding = pathname === '/mock';
+  const isWritingMockRoute = pathname.startsWith('/writing/mock');
+  return (isMockTestsRoute && !isMockTestsLanding) || isWritingMockRoute;
+};
+
+// Enhanced route loading hook
+function useRouteLoading() {
+  const router = useRouter();
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const routeLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const routeLoadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,7 +112,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
     };
 
     const startLoading = (url: string, options: { shallow?: boolean } = {}) => {
-      // Ignore shallow and non-meaningful changes
       if (options.shallow) return;
       if (!hasMeaningfulPathChange(url)) {
         pendingPathRef.current = null;
@@ -107,10 +120,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
       }
       pendingPathRef.current = toComparablePath(url);
       clearTimers();
-      // Small delay to avoid flicker on fast transitions
       routeLoadingTimeoutRef.current = setTimeout(() => {
         setIsRouteLoading(true);
-        // Hard cap to recover in edge cases
         routeLoadingFallbackRef.current = setTimeout(() => {
           pendingPathRef.current = null;
           setIsRouteLoading(false);
@@ -135,7 +146,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
 
     router.events.on('routeChangeStart', startLoading as any);
     router.events.on('beforeHistoryChange', (url, opts) => {
-      // When Next is about to mutate history, ensure our pending path matches
       if (!opts?.shallow && hasMeaningfulPathChange(url as string)) {
         pendingPathRef.current = toComparablePath(url as string);
       } else {
@@ -145,7 +155,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
     router.events.on('routeChangeComplete', stopLoading as any);
     router.events.on('routeChangeError', handleRouteError);
 
-    // Avoid a stuck overlay on tab switch/pagehide
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') stopLoading();
     };
@@ -165,7 +174,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
     };
   }, [router]);
 
-  // Reset any fallback on final path
   useEffect(() => {
     if (routeLoadingFallbackRef.current) {
       clearTimeout(routeLoadingFallbackRef.current);
@@ -175,16 +183,204 @@ function InnerApp({ Component, pageProps }: AppProps) {
     setIsRouteLoading(false);
   }, [router.asPath]);
 
+  return isRouteLoading;
+}
+
+// Enhanced auth bridge hook
+function useAuthBridge() {
+  const router = useRouter();
+  const syncingRef = useRef(false);
+  const lastBridgeKeyRef = useRef<string | null>(null);
+  const subscribedRef = useRef(false);
+
+  const bridgeSession = useCallback(async (event: AuthChangeEvent, sessionNow: Session | null) => {
+    const shouldPost = event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
+    if (!shouldPost) return;
+
+    if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
+
+    const token = sessionNow?.access_token ?? '';
+    const dedupeKey = `${event}:${token}`;
+    if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
+
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+
+    const previousKey = lastBridgeKeyRef.current;
+    try {
+      await fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ event, session: sessionNow }),
+      });
+      lastBridgeKeyRef.current = dedupeKey;
+    } catch {
+      lastBridgeKeyRef.current = previousKey;
+    } finally {
+      syncingRef.current = false;
+    }
+
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+      void refreshClientFlags();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (IS_CI) return;
+
+    if (typeof window !== 'undefined') {
+      if ((window as any).__GX_AUTH_BRIDGE_ACTIVE) return;
+      (window as any).__GX_AUTH_BRIDGE_ACTIVE = true;
+    }
+
+    let isMounted = true;
+
+    (async () => {
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (!isMounted) return;
+
+      if (session) {
+        await bridgeSession('SIGNED_IN', session);
+      } else {
+        await bridgeSession('SIGNED_OUT', null);
+      }
+
+      if (!flagsHydratedRef.current) {
+        void refreshClientFlags();
+      }
+
+      if (session?.user && isAuthPage(router.pathname)) {
+        const url = new URL(window.location.href);
+        const next = url.searchParams.get('next');
+        const target = next && next.startsWith('/') ? next : destinationByRole(session.user) ?? '/';
+        router.replace(target);
+      }
+    })();
+
+    if (!subscribedRef.current) {
+      const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((event, sessionNow) => {
+        (async () => {
+          await bridgeSession(event, sessionNow);
+
+          if (event === 'SIGNED_IN' && sessionNow?.user) {
+            const url = new URL(window.location.href);
+            const next = url.searchParams.get('next');
+            if (next && next.startsWith('/')) router.replace(next);
+            else if (isAuthPage(router.pathname)) router.replace(destinationByRole(sessionNow.user));
+          }
+
+          if (event === 'SIGNED_OUT') {
+            if (!['/login', '/signup', '/forgot-password'].includes(router.pathname)) {
+              router.replace('/login');
+            }
+          }
+        })();
+      });
+
+      subscribedRef.current = true;
+
+      return () => {
+        isMounted = false;
+        subscription?.unsubscribe();
+        subscribedRef.current = false;
+        if (typeof window !== 'undefined') {
+          (window as any).__GX_AUTH_BRIDGE_ACTIVE = false;
+        }
+      };
+    }
+  }, [router, bridgeSession]);
+}
+
+// Enhanced route configuration using comprehensive route map
+function useRouteConfiguration(pathname: string) {
+  const { user } = useUserContext();
+
+  return useMemo(() => {
+    const routeConfig = getRouteConfig(pathname);
+
+    // Define routes that should NOT show chrome (header/footer)
+    const isNoChromeRoute =
+      routeConfig.layout === 'exam' ||
+      routeConfig.layout === 'proctoring' ||
+      routeConfig.layout === 'auth' ||
+      pathname.startsWith('/premium') ||
+      isMockTestsFlowRoute(pathname) ||
+      /\/focus-mode(\/|$)/.test(pathname) ||
+      routeConfig.showChrome === false;
+
+    const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
+
+    // Map to AppLayoutManager props
+    return {
+      isAuthPage: routeConfig.layout === 'auth',
+      isProctoringRoute: routeConfig.layout === 'proctoring',
+      showLayout: !isAttemptPath(pathname) && showLayout,
+      forceLayoutOnAuthPage: routeConfig.layout === 'auth' && !!user,
+      isAdminRoute: routeConfig.layout === 'admin',
+      isInstitutionsRoute: routeConfig.layout === 'institutions',
+      isDashboardRoute:
+        routeConfig.layout === 'dashboard' ||
+        routeConfig.layout === 'profile' ||
+        routeConfig.layout === 'billing' ||
+        routeConfig.layout === 'analytics',
+      isMarketplaceRoute: routeConfig.layout === 'marketplace',
+      isLearningRoute:
+        routeConfig.layout === 'learning' ||
+        routeConfig.layout === 'resources',
+      isCommunityRoute:
+        routeConfig.layout === 'community' ||
+        routeConfig.layout === 'communication',
+      isReportsRoute: routeConfig.layout === 'reports',
+      isMarketingRoute: routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
+      needPremium: pathname.startsWith('/premium'),
+      isPremiumRoute: isPremiumRoomRoute(pathname),
+      routeConfig, // Pass full config for additional checks
+    };
+  }, [pathname, user]);
+}
+
+// Route access check hook
+function useRouteAccessCheck(pathname: string, role?: string | null) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const config = getRouteConfig(pathname);
+
+    // Skip access checks for public routes
+    if (!config.requiresAuth) return;
+
+    if (config.requiresAuth && !role) {
+      router.replace('/login');
+      return;
+    }
+
+    if (config.allowedRoles && role && !config.allowedRoles.includes(role)) {
+      router.replace('/restricted');
+      return;
+    }
+  }, [pathname, role, router]);
+}
+
+function InnerApp({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const pathname = router.pathname;
+  const { locale: activeLocale } = useLocale();
+
+  // Enhanced hooks
+  const isRouteLoading = useRouteLoading();
+  useAuthBridge();
+
   // ---------- i18n ----------
   useEffect(() => {
     void loadTranslations(activeLocale as SupportedLocale);
   }, [activeLocale]);
 
-  // ---------- Lightweight route analytics hook (safe placeholder) ----------
+  // ---------- Route analytics ----------
   useEffect(() => {
     const logRoute = (url: string) => {
       if (!url) return;
-      // add selective logs here if needed
+      // Add analytics logging here if needed
     };
     logRoute(router.asPath);
     const handleRouteChange = (url: string) => logRoute(url);
@@ -216,196 +412,58 @@ function InnerApp({ Component, pageProps }: AppProps) {
     return () => window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
   }, []);
 
-  // ---------- Route partitions ----------
-  const needPremium = useMemo(() => pathname.startsWith('/premium'), [pathname]);
-  const isPremiumRoomRoute = useMemo(
-    () => pathname.startsWith('/premium/') && !pathname.startsWith('/premium-pin'),
-    [pathname]
-  );
-  const isAuthPage = useMemo(
-    () =>
-      /^\/(login|signup|register)(\/|$)/.test(pathname) ||
-      /^\/auth\/(login|signup|register|mfa|verify)(\/|$)/.test(pathname) ||
-      pathname === '/forgot-password',
-    [pathname]
-  );
+  // ---------- Enhanced Route Configuration ----------
+  const routeConfiguration = useRouteConfiguration(pathname);
+  const forceLayoutOnAuthPage = routeConfiguration.isAuthPage && !!user;
 
-  const isMockTestsRoute = useMemo(() => pathname.startsWith('/mock'), [pathname]);
-  const isMockTestsLanding = pathname === '/mock';
-  const isWritingMockRoute = useMemo(() => pathname.startsWith('/writing/mock'), [pathname]);
-  const isMockTestsFlowRoute = (isMockTestsRoute && !isMockTestsLanding) || isWritingMockRoute;
-
-  const isNoChromeRoute = useMemo(
-    () =>
-      /\/exam(\/|$)|\/exam-room(\/|$)|\/focus-mode(\/|$)/.test(pathname) ||
-      isAuthPage ||
-      isPremiumRoomRoute ||
-      isMockTestsFlowRoute,
-    [pathname, isAuthPage, isPremiumRoomRoute, isMockTestsFlowRoute]
-  );
-
-  const showLayout = !needPremium && !isNoChromeRoute;
-  const forceLayoutOnAuthPage = isAuthPage && !!user;
-
-  const isDashboardRoute =
-    (pathname.startsWith('/dashboard') && pathname !== '/dashboard') ||
-    pathname.startsWith('/account') ||
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/notifications') ||
-    pathname.startsWith('/study-plan') ||
-    pathname.startsWith('/progress') ||
-    pathname.startsWith('/mistakes') ||
-    pathname.startsWith('/pwa');
-
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isMarketingRoute =
-    pathname === '/' ||
-    pathname.startsWith('/pricing') ||
-    pathname.startsWith('/predictor') ||
-    pathname.startsWith('/faq') ||
-    pathname.startsWith('/legal') ||
-    pathname.startsWith('/data-deletion');
-  const isLearningRoute = pathname.startsWith('/learning') || pathname.startsWith('/content/studio');
-  const isCommunityRoute = pathname.startsWith('/community');
-  const isMarketplaceRoute =
-    pathname.startsWith('/marketplace') ||
-    pathname.startsWith('/coach') ||
-    pathname.startsWith('/classes') ||
-    pathname === '/partners';
-  const isInstitutionsRoute = pathname.startsWith('/institutions');
-  const isReportsRoute = pathname.startsWith('/reports') || pathname.startsWith('/placement');
-  const isProctoringRoute = pathname.startsWith('/proctoring/check') || pathname.startsWith('/proctoring/exam');
-
-  // ---------- Idle timeout ----------
-  const idleMinutes = useMemo(() => Number(env.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ?? 30), []);
-  useEffect(() => {
-    if (IS_CI) return;
-    const cleanup = initIdleTimeout(idleMinutes);
-    return cleanup;
-  }, [idleMinutes]);
-
-  // ---------- AUTH BRIDGE ----------
-  const syncingRef = useRef(false);
-  const lastBridgeKeyRef = useRef<string | null>(null);
-  const subscribedRef = useRef(false);
-
-  const bridgeSession = async (event: AuthChangeEvent, sessionNow: Session | null) => {
-    const shouldPost = event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
-    if (!shouldPost) return;
-
-    if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
-
-    const token = sessionNow?.access_token ?? '';
-    const dedupeKey = `${event}:${token}`;
-    if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
-
-    if (syncingRef.current) return;
-    syncingRef.current = true;
-
-    const previousKey = lastBridgeKeyRef.current;
-    try {
-      await fetch('/api/auth/set-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ event, session: sessionNow }),
-      });
-      lastBridgeKeyRef.current = dedupeKey;
-    } catch {
-      lastBridgeKeyRef.current = previousKey;
-    } finally {
-      syncingRef.current = false;
-    }
-
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
-      void refreshClientFlags();
-    }
-  };
-
-  useEffect(() => {
-    if (IS_CI) return;
-
-    // Avoid double-subscribe during fast-refresh in dev
-    if (typeof window !== 'undefined') {
-      // @ts-expect-error dev guard
-      if (window.__GX_AUTH_BRIDGE_ACTIVE) return;
-      // @ts-expect-error dev guard
-      window.__GX_AUTH_BRIDGE_ACTIVE = true;
-    }
-
-    let isMounted = true;
-
-    (async () => {
-      const { data: { session } } = await supabaseBrowser.auth.getSession();
-      if (!isMounted) return;
-
-      if (session) {
-        await bridgeSession('SIGNED_IN', session);
-      } else {
-        await bridgeSession('SIGNED_OUT', null);
-      }
-
-      if (!flagsHydratedRef.current) {
-        void refreshClientFlags();
-      }
-
-      if (session?.user && isAuthPage) {
-        const url = new URL(window.location.href);
-        const next = url.searchParams.get('next');
-        const target = next && next.startsWith('/') ? next : destinationByRole(session.user) ?? '/';
-        router.replace(target);
-      }
-    })();
-
-    if (!subscribedRef.current) {
-      const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((event, sessionNow) => {
-        (async () => {
-          await bridgeSession(event, sessionNow);
-
-          // Route reactions AFTER cookie sync so middleware sees it
-          if (event === 'SIGNED_IN' && sessionNow?.user) {
-            const url = new URL(window.location.href);
-            const next = url.searchParams.get('next');
-            if (next && next.startsWith('/')) router.replace(next);
-            else if (isAuthPage) router.replace(destinationByRole(sessionNow.user));
-          }
-
-          if (event === 'SIGNED_OUT') {
-            if (!['/login', '/signup', '/forgot-password'].includes(router.pathname)) {
-              router.replace('/login');
-            }
-          }
-        })();
-      });
-
-      subscribedRef.current = true;
-
-      return () => {
-        isMounted = false;
-        subscription?.unsubscribe();
-        subscribedRef.current = false;
-        if (typeof window !== 'undefined') {
-          // @ts-expect-error dev guard
-          window.__GX_AUTH_BRIDGE_ACTIVE = false;
-        }
-      };
-    }
-  }, [router, isAuthPage]);
+  // Apply route access checks
+  useRouteAccessCheck(pathname, role);
 
   // ---------- Teacher hard-redirect ----------
   useEffect(() => {
     if (!role) return;
     if (role === 'teacher') {
-      const onTeacherArea = pathname.startsWith('/teacher') || isAuthPage;
-      if (!onTeacherArea) router.replace('/teacher');
+      const onTeacherArea = pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
+      if (!onTeacherArea) {
+        router.replace('/teacher');
+      }
     }
-  }, [role, pathname, isAuthPage, router]);
+  }, [role, pathname, routeConfiguration.isAuthPage, router]);
+
+  // ---------- Idle timeout ----------
+  const idleMinutes = useMemo(() => {
+    try {
+      const minutes = env?.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
+        process.env.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
+        '30';
+      return Number(minutes) || 30;
+    } catch (error) {
+      console.warn('Failed to parse idle timeout minutes, using default 30:', error);
+      return 30;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (IS_CI) return;
+
+    if (typeof initIdleTimeout !== 'function') {
+      console.warn('initIdleTimeout is not available');
+      return;
+    }
+
+    try {
+      const cleanup = initIdleTimeout(idleMinutes);
+      return cleanup;
+    } catch (error) {
+      console.error('Failed to initialize idle timeout:', error);
+    }
+  }, [idleMinutes]);
 
   const { isChecking } = useRouteGuard();
   if (isChecking) return <GuardSkeleton />;
 
   // Premium wrapper only for premium room routes
-  const basePage = needPremium || isPremiumRoomRoute ? (
+  const basePage = routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
     <PremiumThemeProvider>
       <Component {...pageProps} />
     </PremiumThemeProvider>
@@ -416,35 +474,32 @@ function InnerApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <HighContrastProvider>
-        <Head>
-          {/* Keep premium CSS pipeline intact */}
-          <link rel="preload" href="/premium.css" as="style" />
-          <link rel="stylesheet" href="/premium.css" />
-          {/* No favicon/manifest here; centralized in _document.tsx */}
-        </Head>
+        {/* Removed manual <Head><link rel="stylesheet" /></Head> to satisfy @next/next/no-css-tags */}
 
         <div className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}>
-          <AppLayoutManager
-            isAuthPage={isAuthPage}
-            isProctoringRoute={isProctoringRoute}
-            showLayout={!isAttemptPath(pathname) && showLayout}
-            forceLayoutOnAuthPage={forceLayoutOnAuthPage}
-            isAdminRoute={isAdminRoute}
-            isInstitutionsRoute={isInstitutionsRoute}
-            isDashboardRoute={isDashboardRoute}
-            isMarketplaceRoute={isMarketplaceRoute}
-            isLearningRoute={isLearningRoute}
-            isCommunityRoute={isCommunityRoute}
-            isReportsRoute={isReportsRoute}
-            isMarketingRoute={isMarketingRoute}
-            subscriptionTier={subscriptionTier}
-            isRouteLoading={isRouteLoading}
-            role={role}
-            isTeacherApproved={isTeacherApproved}
-            guardFallback={() => <GuardSkeleton />}
-          >
-            {basePage}
-          </AppLayoutManager>
+          <AnimationProvider>
+            <AppLayoutManager
+              isAuthPage={routeConfiguration.isAuthPage}
+              isProctoringRoute={routeConfiguration.isProctoringRoute}
+              showLayout={routeConfiguration.showLayout}
+              forceLayoutOnAuthPage={forceLayoutOnAuthPage}
+              isAdminRoute={routeConfiguration.isAdminRoute}
+              isInstitutionsRoute={routeConfiguration.isInstitutionsRoute}
+              isDashboardRoute={routeConfiguration.isDashboardRoute}
+              isMarketplaceRoute={routeConfiguration.isMarketplaceRoute}
+              isLearningRoute={routeConfiguration.isLearningRoute}
+              isCommunityRoute={routeConfiguration.isCommunityRoute}
+              isReportsRoute={routeConfiguration.isReportsRoute}
+              isMarketingRoute={routeConfiguration.isMarketingRoute}
+              subscriptionTier={subscriptionTier}
+              isRouteLoading={isRouteLoading}
+              role={role}
+              isTeacherApproved={isTeacherApproved}
+              guardFallback={() => <GuardSkeleton />}
+            >
+              {basePage}
+            </AppLayoutManager>
+          </AnimationProvider>
         </div>
       </HighContrastProvider>
     </ThemeProvider>

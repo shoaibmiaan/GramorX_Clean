@@ -1,6 +1,7 @@
+// components/layouts/TeacherLayout.tsx
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 
 // DS components only (no icons to avoid undefined imports)
@@ -14,6 +15,7 @@ import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { Input } from '@/components/design-system/Input';
 import { Textarea } from '@/components/design-system/Textarea';
 import Link from 'next/link';
+import { TeacherSkeleton } from '@/components/common/Skeleton';
 
 type TeacherLayoutProps = {
   children: React.ReactNode;
@@ -35,6 +37,16 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
   teacherProfile,
 }) => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate loading state for profile data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200); // Simulate API call
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Guard non-teachers (except admins). Avoids first-frame flash.
   useEffect(() => {
@@ -44,16 +56,9 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
     }
   }, [userRole, router]);
 
-  // While role is unknown, show neutral skeleton
-  if (userRole === undefined || userRole === null) {
-    return (
-      <div className="grid min-h-[70vh] place-items-center">
-        <div className="text-center">
-          <div className="mx-auto mb-3 h-6 w-6 animate-pulse rounded-full bg-border" />
-          <p className="text-mutedText">Checking permissions…</p>
-        </div>
-      </div>
-    );
+  // Show skeleton while loading or checking role
+  if (isLoading || userRole === undefined || userRole === null) {
+    return <TeacherSkeleton />;
   }
 
   // Safety: if non-teacher slipped through, render nothing (effect above will redirect)
@@ -222,7 +227,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
         <Card className="mt-8 text-center">
           <h2 className="mb-2 text-lg font-semibold">What happens after submission?</h2>
           <p className="mb-4 text-mutedText">
-            Our admin team will verify your profile. Once approved, you’ll get access to student
+            Our admin team will verify your profile. Once approved, you'll get access to student
             management, lesson publishing, and performance analytics.
           </p>
           <Button asChild>
