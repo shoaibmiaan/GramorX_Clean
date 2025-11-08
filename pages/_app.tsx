@@ -35,6 +35,7 @@ import { HighContrastProvider } from '@/context/HighContrastContext';
 import { loadTranslations } from '@/lib/i18n';
 import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
+import { isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -426,7 +427,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
           <AppLayoutManager
             isAuthPage={isAuthPage}
             isProctoringRoute={isProctoringRoute}
-            showLayout={showLayout}
+            showLayout={!isAttemptPath(pathname) && showLayout}
             forceLayoutOnAuthPage={forceLayoutOnAuthPage}
             isAdminRoute={isAdminRoute}
             isInstitutionsRoute={isInstitutionsRoute}
