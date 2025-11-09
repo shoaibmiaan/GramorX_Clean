@@ -109,7 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to create attempt', details: attemptError?.message });
     }
 
-    // === Fixed: Use .insert().select() and handle error properly ===
+    // Non-critical analytics event (requires exam_events.payload jsonb)
     const { error: eventError } = await supabase
       .from('exam_events')
       .insert({

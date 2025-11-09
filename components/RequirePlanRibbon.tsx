@@ -1,4 +1,3 @@
-// components/RequirePlanRibbon.tsx
 import Link from 'next/link';
 import type { PlanId } from '@/types/pricing';
 import { PLAN_ORDER } from '@/lib/planAccess';
@@ -11,7 +10,20 @@ type Props = {
   className?: string;
 };
 
-function buildOverviewHref(requiredPlan: string, fromPath?: string) {
+const GATE_MODE = process.env.NEXT_PUBLIC_GATE_MODE || 'off';
+const isWritingOnly = GATE_MODE === 'writing-only';
+
+function isWritingRoute(pathname?: string) {
+  if (!pathname) return false;
+  return (
+    pathname === '/' ||
+    pathname.startsWith('/writing') ||
+    // Narrow to writing mocks only (avoid suppressing for other modules)
+    pathname.startsWith('/mock/writing')
+  );
+}
+
+function buildOverviewHref(requiredPlan: string, fromPath?: string | null) {
   const usp = new URLSearchParams({
     reason: 'plan_required',
     need: requiredPlan,
@@ -34,12 +46,17 @@ export default function RequirePlanRibbon({
     }
   }, [allowed, min, userPlan]);
 
+  // In writing-only mode, suppress the paywall ribbon on writing/mock routes
+  if (!allowed && isWritingOnly && typeof window !== 'undefined' && isWritingRoute(window.location.pathname)) {
+    return null;
+  }
+
   if (allowed) return null;
 
   const fromPath =
     typeof window !== 'undefined'
-      ? window.location.pathname + window.location.search
-      : undefined;
+      ? (window.location.pathname + window.location.search)
+      : null;
 
   const upgradeHref = buildOverviewHref(min, fromPath);
 

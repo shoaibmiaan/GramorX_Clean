@@ -7,7 +7,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { StreakChip } from '@/components/user/StreakChip';
 import { getServerClient } from '@/lib/supabaseServer';
-import { buildCompletionHistory, coerceStudyPlan } from '@/utils/studyPlan';
+import { buildCompletionHistory, coerceStudyPlan } from '@/utils/streak';
 
 const Heatmap = dynamic(() => import('@/components/user/StreakHeatmap').then((mod) => mod.StreakHeatmap), {
   ssr: false,
@@ -127,13 +127,13 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
       .select('current,longest,last_active_date')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase.from('study_plans').select('plan_json,start_iso,weeks,goal_band').eq('user_id', user.id).maybeSingle(),
+    supabase.from('study_plans').select('plan_json,start_iso,weeks,target_band').eq('user_id', user.id).maybeSingle(),
   ]);
 
   const plan = coerceStudyPlan(planRow?.plan_json ?? planRow ?? null, user.id, {
     startISO: planRow?.start_iso ?? undefined,
     weeks: planRow?.weeks ?? undefined,
-    goalBand: planRow?.goal_band ?? undefined,
+    goalBand: planRow?.target_band ?? undefined,
   });
 
   const history = buildCompletionHistory(plan, 84);

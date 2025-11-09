@@ -69,7 +69,7 @@ const SkeletonLine: React.FC<{ className?: string }> = ({ className }) => (
 
 export function ProfileSetupLayout() {
   const router = useRouter();
-  const { t, setLocale, setExplanationLocale } = useLocale();
+  const { t, setLocale } = useLocale();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,6 +89,7 @@ export function ProfileSetupLayout() {
   const [daysPerWeek, setDaysPerWeek] = useState<number | ''>('');
   const [lang, setLang] = useState('en');
   const [explanationLang, setExplanationLang] = useState('en');
+  const [explanationLocale, setExplanationLocale] = useState('en');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   const [avatarPath, setAvatarPath] = useState<string | undefined>();
   const [ai, setAi] = useState<(AIPlan & { source?: string }) | null>(null);
@@ -202,7 +203,7 @@ export function ProfileSetupLayout() {
         setFullName(data.full_name ?? '');
         setCountry(data.country ?? '');
         setLevel(data.english_level ?? '');
-        setGoal(Number(data.goal_band ?? 7.0));
+        setGoal(Number(data.target_band ?? 7.0));
         setExamDate(data.exam_date ?? '');
         setPrefs(data.study_prefs ?? []);
         setFocusTopics(
@@ -221,8 +222,8 @@ export function ProfileSetupLayout() {
         setTimezone(data.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
         setLang(data.preferred_language ?? 'en');
         setLocale(data.preferred_language ?? 'en');
-        setExplanationLang(data.language_preference ?? 'en');
-        setExplanationLocale(data.language_preference ?? 'en');
+        setExplanationLang(data.preferred_language ?? 'en');
+        setExplanationLocale(data.preferred_language ?? 'en');
         if (data.avatar_url) {
           const resolved = await resolveAvatarUrl(data.avatar_url);
           setAvatarUrl(resolved.signedUrl ?? undefined);
@@ -476,7 +477,7 @@ export function ProfileSetupLayout() {
       full_name: fullName.trim(),
       country: country || null,
       english_level: level || null,
-      goal_band: goal || null,
+      target_band: goal || null,
       exam_date: examDate || null,
       study_prefs: prefs,
       focus_topics: focusTopics,
@@ -488,7 +489,6 @@ export function ProfileSetupLayout() {
       days_per_week: daysPerWeek || null,
       daily_quota_goal: dailyQuota || null,
       preferred_language: lang || 'en',
-      language_preference: explanationLang || 'en',
       avatar_url: avatarPath || null,
       goal_reason: goalReasons,
       learning_style: learningStyle || null,
@@ -500,7 +500,7 @@ export function ProfileSetupLayout() {
             notes: ai.notes,
             source: ai.source,
           }
-        : {},
+        : null,
       setup_complete: finalize,
       role: 'student', // Explicitly set role to satisfy 'Students manage own profile' policy
       status: finalize ? 'active' : 'inactive', // Set status based on finalize

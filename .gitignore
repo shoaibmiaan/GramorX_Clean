@@ -80,3 +80,7 @@ supabase/.temp/
 public/premium.css
 public/review/gramorx_all_routes_seed.json
 public/review/index.html
+
+# local helpers
+collect.sh
+gate-fix-bundle.txt
