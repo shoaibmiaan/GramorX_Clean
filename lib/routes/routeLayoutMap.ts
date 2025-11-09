@@ -1,4 +1,5 @@
 // lib/routes/routeLayoutMap.ts
+
 export type LayoutType =
   | 'admin'
   | 'teacher'
@@ -22,14 +23,66 @@ export type LayoutType =
 
 export interface RouteConfig {
   layout: LayoutType;
-  showChrome?: boolean;
+  showChrome?: boolean; // default true unless explicitly false
   requiresAuth?: boolean;
   allowedRoles?: string[];
 }
 
-// Comprehensive route mapping for all ~240 pages
+// ===== ROUTE MAP =====
 export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
-  // ===== ADMIN ROUTES =====
+  // ----- SYSTEM / ERR -----
+  '/403': { layout: 'marketing' },
+  '/404': { layout: 'marketing' },
+  '/500': { layout: 'marketing' },
+
+  // ----- MARKETING ROOTS -----
+  '/': { layout: 'marketing' },
+  '/pricing': { layout: 'marketing' },
+  '/pricing/[plan]': { layout: 'marketing' },
+  '/predictor': { layout: 'marketing' },
+  '/predictor/result': { layout: 'marketing' },
+  '/faq': { layout: 'marketing' },
+  '/legal': { layout: 'marketing' },
+  '/legal/privacy': { layout: 'marketing' },
+  '/legal/terms': { layout: 'marketing' },
+  '/data-deletion': { layout: 'marketing' },
+  '/roadmap': { layout: 'marketing' },
+  '/r': { layout: 'marketing' },
+  '/r/[code]': { layout: 'marketing' },
+  '/tokens-test': { layout: 'marketing' },
+  '/word-of-the-day': { layout: 'marketing' },
+  '/waitlist': { layout: 'marketing' },
+  '/accessibility': { layout: 'marketing' },
+
+  // ----- AUTH -----
+  '/auth': { layout: 'auth', showChrome: false },
+  '/auth/callback': { layout: 'auth', showChrome: false },
+  '/auth/forgot': { layout: 'auth', showChrome: false },
+  '/auth/reset': { layout: 'auth', showChrome: false },
+  '/auth/mfa': { layout: 'auth', showChrome: false },
+  '/auth/verify': { layout: 'auth', showChrome: false },
+  '/login': { layout: 'auth', showChrome: false },
+  '/login/index': { layout: 'auth', showChrome: false },
+  '/login/email': { layout: 'auth', showChrome: false },
+  '/login/password': { layout: 'auth', showChrome: false },
+  '/login/phone': { layout: 'auth', showChrome: false },
+  '/signup': { layout: 'auth', showChrome: false },
+  '/signup/index': { layout: 'auth', showChrome: false },
+  '/signup/email': { layout: 'auth', showChrome: false },
+  '/signup/password': { layout: 'auth', showChrome: false },
+  '/signup/phone': { layout: 'auth', showChrome: false },
+  '/signup/verify': { layout: 'auth', showChrome: false },
+  '/forgot-password': { layout: 'auth', showChrome: false },
+  '/update-password': { layout: 'auth', showChrome: false },
+
+  // ----- ACCOUNT (alias of dashboard/billing areas) -----
+  '/account': { layout: 'dashboard', requiresAuth: true },
+  '/account/index': { layout: 'dashboard', requiresAuth: true },
+  '/account/billing': { layout: 'billing', requiresAuth: true },
+  '/account/redeem': { layout: 'dashboard', requiresAuth: true },
+  '/account/referrals': { layout: 'dashboard', requiresAuth: true },
+
+  // ----- ADMIN -----
   '/admin': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
   '/admin/users': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
   '/admin/analytics': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
@@ -37,9 +90,12 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/admin/moderation': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
   '/admin/reports': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
   '/admin/billing': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
+  '/admin/imp-as': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
+  '/admin/stop-impersonation': { layout: 'admin', requiresAuth: true, allowedRoles: ['admin'] },
 
-  // ===== TEACHER ROUTES =====
+  // ----- TEACHER -----
   '/teacher': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
+  '/teacher/index': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
   '/teacher/dashboard': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
   '/teacher/classes': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
   '/teacher/students': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
@@ -49,96 +105,98 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/teacher/profile': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
   '/teacher/settings': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
   '/teacher/register': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
+  '/teacher/onboarding': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
+  '/teacher/pending': { layout: 'teacher', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
 
-  // ===== INSTITUTIONS ROUTES =====
+  // ----- INSTITUTIONS -----
   '/institutions': { layout: 'institutions' },
-  '/institutions/dashboard': { layout: 'institutions', requiresAuth: true },
-  '/institutions/students': { layout: 'institutions', requiresAuth: true },
-  '/institutions/teachers': { layout: 'institutions', requiresAuth: true },
-  '/institutions/classes': { layout: 'institutions', requiresAuth: true },
-  '/institutions/analytics': { layout: 'institutions', requiresAuth: true },
-  '/institutions/billing': { layout: 'institutions', requiresAuth: true },
-  '/institutions/settings': { layout: 'institutions', requiresAuth: true },
+  '/institutions/index': { layout: 'institutions' },
+  '/institutions/[orgId]': { layout: 'institutions', requiresAuth: true },
 
-  // ===== DASHBOARD ROUTES =====
+  // ----- DASHBOARD -----
   '/dashboard': { layout: 'dashboard', requiresAuth: true },
-  '/dashboard/overview': { layout: 'dashboard', requiresAuth: true },
-  '/dashboard/progress': { layout: 'dashboard', requiresAuth: true },
-  '/dashboard/performance': { layout: 'dashboard', requiresAuth: true },
-  '/dashboard/study-plan': { layout: 'dashboard', requiresAuth: true },
-  '/dashboard/goals': { layout: 'dashboard', requiresAuth: true },
+  '/dashboard/index': { layout: 'dashboard', requiresAuth: true },
+  '/welcome': { layout: 'dashboard', requiresAuth: true },
 
-  // ===== PROFILE & SETTINGS ROUTES =====
+  // ----- PROFILE / SETTINGS -----
   '/profile': { layout: 'profile', requiresAuth: true },
-  '/profile/edit': { layout: 'profile', requiresAuth: true },
-  '/profile/preferences': { layout: 'profile', requiresAuth: true },
-  '/profile/achievements': { layout: 'profile', requiresAuth: true },
+  '/profile/index': { layout: 'profile', requiresAuth: true },
+  '/profile/setup': { layout: 'profile', requiresAuth: true },
+  '/profile/streak': { layout: 'profile', requiresAuth: true },
   '/settings': { layout: 'dashboard', requiresAuth: true },
+  '/settings/index': { layout: 'dashboard', requiresAuth: true },
   '/settings/account': { layout: 'dashboard', requiresAuth: true },
   '/settings/notifications': { layout: 'dashboard', requiresAuth: true },
   '/settings/privacy': { layout: 'dashboard', requiresAuth: true },
   '/settings/subscription': { layout: 'dashboard', requiresAuth: true },
+  '/settings/accessibility': { layout: 'dashboard', requiresAuth: true },
+  '/settings/language': { layout: 'dashboard', requiresAuth: true },
+  '/settings/security': { layout: 'dashboard', requiresAuth: true },
 
-  // ===== LEARNING ROUTES =====
+  // ----- LEARNING (global) -----
   '/learning': { layout: 'learning', requiresAuth: true },
-  '/learning/courses': { layout: 'learning', requiresAuth: true },
-  '/learning/courses/[id]': { layout: 'learning', requiresAuth: true },
-  '/learning/lessons': { layout: 'learning', requiresAuth: true },
-  '/learning/lessons/[id]': { layout: 'learning', requiresAuth: true },
-  '/learning/practice': { layout: 'learning', requiresAuth: true },
-  '/learning/resources': { layout: 'learning', requiresAuth: true },
-  '/learning/library': { layout: 'learning', requiresAuth: true },
-  '/content/studio': { layout: 'learning', requiresAuth: true, allowedRoles: ['teacher', 'admin'] },
+  '/learning/index': { layout: 'learning', requiresAuth: true },
+  '/learning/[slug]': { layout: 'learning', requiresAuth: true },
+  '/learning/drills': { layout: 'learning', requiresAuth: true },
+  '/learning/skills': { layout: 'learning', requiresAuth: true },
+  '/learning/strategies': { layout: 'learning', requiresAuth: true },
 
-  // ===== ASSESSMENT & TESTING ROUTES =====
+  // ----- MODULE ROOTS (Listening/Reading/Speaking/Writing) -----
+  '/listening': { layout: 'learning', requiresAuth: true },
+  '/listening/index': { layout: 'learning', requiresAuth: true },
+  '/listening/[slug]': { layout: 'learning', requiresAuth: true },
+
+  '/reading': { layout: '', requiresAuth: true },
+  '/reading/index': { layout: 'learning', requiresAuth: true },
+  '/reading/[slug]': { layout: 'learning', requiresAuth: true },
+  '/reading/passage': { layout: 'learning', requiresAuth: true },
+  '/reading/stats': { layout: 'learning', requiresAuth: true },
+
+  '/speaking': { layout: 'learning', requiresAuth: true },
+  '/speaking/index': { layout: 'learning', requiresAuth: true },
+  '/speaking/[promptId]': { layout: 'learning', requiresAuth: true },
+  '/speaking/buddy': { layout: 'learning', requiresAuth: true },
+  '/speaking/coach': { layout: 'learning', requiresAuth: true },
+  '/speaking/library': { layout: 'learning', requiresAuth: true },
+  '/speaking/live': { layout: 'learning', requiresAuth: true },
+  '/speaking/packs': { layout: 'learning', requiresAuth: true },
+  '/speaking/partner': { layout: 'learning', requiresAuth: true },
+  '/speaking/settings': { layout: 'learning', requiresAuth: true },
+  '/speaking/simulator': { layout: 'learning', requiresAuth: true },
+
+  '/writing': { layout: 'learning', requiresAuth: true },
+  '/writing/index': { layout: 'learning', requiresAuth: true },
+  '/writing/[slug]': { layout: 'learning', requiresAuth: true },
+  '/writing/library': { layout: 'learning', requiresAuth: true },
+  '/writing/overview': { layout: 'learning', requiresAuth: true },
+  '/writing/progress': { layout: 'learning', requiresAuth: true },
+  '/writing/review': { layout: 'learning', requiresAuth: true },
+  '/writing/reviews': { layout: 'learning', requiresAuth: true },
+
+  // Writing mock shells vs attempts
+  '/writing/mock': { layout: 'exam', showChrome: true },
+  '/writing/mock/[id]': { layout: 'exam', showChrome: false },
+
+  // ----- PRACTICE HUB -----
   '/practice': { layout: 'learning', requiresAuth: true },
-  '/practice/[category]': { layout: 'learning', requiresAuth: true },
-  '/quiz': { layout: 'learning', requiresAuth: true },
-  '/quiz/[id]': { layout: 'learning', requiresAuth: true },
-  '/test': { layout: 'learning', requiresAuth: true },
-  '/test/[id]': { layout: 'learning', requiresAuth: true },
-  '/assignment': { layout: 'learning', requiresAuth: true },
-  '/assignment/[id]': { layout: 'learning', requiresAuth: true },
+  '/practice/index': { layout: 'learning', requiresAuth: true },
+  '/practice/listening': { layout: 'learning', requiresAuth: true },
+  '/practice/reading': { layout: 'learning', requiresAuth: true },
+  '/practice/speaking': { layout: 'learning', requiresAuth: true },
+  '/practice/writing': { layout: 'learning', requiresAuth: true },
 
-  // ===== REPORTS & ANALYTICS ROUTES =====
-  '/reports': { layout: 'reports', requiresAuth: true },
-  '/reports/overview': { layout: 'reports', requiresAuth: true },
-  '/reports/performance': { layout: 'reports', requiresAuth: true },
-  '/reports/progress': { layout: 'reports', requiresAuth: true },
-  '/reports/analytics': { layout: 'reports', requiresAuth: true },
-  '/reports/detailed': { layout: 'reports', requiresAuth: true },
-  '/placement': { layout: 'reports', requiresAuth: true },
-  '/placement/test': { layout: 'reports', requiresAuth: true },
-  '/placement/results': { layout: 'reports', requiresAuth: true },
-  '/analytics': { layout: 'analytics', requiresAuth: true },
-  '/analytics/overview': { layout: 'analytics', requiresAuth: true },
-  '/analytics/detailed': { layout: 'analytics', requiresAuth: true },
+  // ----- AI SPACE -----
+  '/ai': { layout: 'learning', requiresAuth: true },
+  '/ai/index': { layout: 'learning', requiresAuth: true },
 
-  // ===== MARKETPLACE ROUTES =====
-  '/marketplace': { layout: 'marketplace' },
-  '/marketplace/courses': { layout: 'marketplace' },
-  '/marketplace/tutors': { layout: 'marketplace' },
-  '/marketplace/resources': { layout: 'marketplace' },
-  '/marketplace/[id]': { layout: 'marketplace' },
-  '/coach': { layout: 'marketplace' },
-  '/coach/[id]': { layout: 'marketplace' },
-  '/classes': { layout: 'marketplace' },
-  '/classes/[id]': { layout: 'marketplace' },
-  '/tutors': { layout: 'marketplace' },
-  '/tutors/[id]': { layout: 'marketplace' },
-  '/partners': { layout: 'marketplace' },
-
-  // ===== COMMUNITY ROUTES =====
+  // ----- COMMUNITY -----
   '/community': { layout: 'community', requiresAuth: true },
-  '/community/discussions': { layout: 'community', requiresAuth: true },
-  '/community/discussions/[id]': { layout: 'community', requiresAuth: true },
-  '/community/groups': { layout: 'community', requiresAuth: true },
-  '/community/groups/[id]': { layout: 'community', requiresAuth: true },
-  '/community/events': { layout: 'community', requiresAuth: true },
-  '/community/events/[id]': { layout: 'community', requiresAuth: true },
-  '/community/leaderboard': { layout: 'community', requiresAuth: true },
+  '/community/index': { layout: 'community', requiresAuth: true },
+  '/community/chat': { layout: 'community', requiresAuth: true },
+  '/community/questions': { layout: 'community', requiresAuth: true },
+  '/community/review': { layout: 'community', requiresAuth: true },
 
-  // ===== COMMUNICATION ROUTES =====
+  // ----- COMMUNICATION -----
   '/messages': { layout: 'communication', requiresAuth: true },
   '/messages/[id]': { layout: 'communication', requiresAuth: true },
   '/chat': { layout: 'communication', requiresAuth: true },
@@ -146,49 +204,39 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/inbox': { layout: 'communication', requiresAuth: true },
   '/notifications': { layout: 'dashboard', requiresAuth: true },
 
-  // ===== EXAM & PROCTORING ROUTES =====
-  '/exam': { layout: 'exam', showChrome: false },
-  '/exam/[id]': { layout: 'exam', showChrome: false },
-  '/exam-room': { layout: 'exam', showChrome: false },
-  '/exam-room/[id]': { layout: 'exam', showChrome: false },
-  '/proctoring/check': { layout: 'proctoring', showChrome: false },
-  '/proctoring/exam': { layout: 'proctoring', showChrome: false },
-  '/mock': { layout: 'exam', showChrome: false },
-  '/mock/[id]': { layout: 'exam', showChrome: false },
-  '/writing/mock': { layout: 'exam', showChrome: false },
-  '/writing/mock/[id]': { layout: 'exam', showChrome: false },
+  // ----- REPORTS / ANALYTICS -----
+  '/reports': { layout: 'reports', requiresAuth: true },
+  '/reports/band-analytics': { layout: 'reports', requiresAuth: true },
+  '/analytics': { layout: 'analytics', requiresAuth: true },
+  '/analytics/overview': { layout: 'analytics', requiresAuth: true },
+  '/analytics/detailed': { layout: 'analytics', requiresAuth: true },
+  '/analytics/writing': { layout: 'analytics', requiresAuth: true },
+  '/progress': { layout: 'reports', requiresAuth: true },
+  '/progress/index': { layout: 'reports', requiresAuth: true },
+  '/progress/[token]': { layout: 'reports', requiresAuth: true },
 
-  // ===== AUTHENTICATION ROUTES =====
-  '/login': { layout: 'auth', showChrome: false },
-  '/signup': { layout: 'auth', showChrome: false },
-  '/register': { layout: 'auth', showChrome: false },
-  '/auth/login': { layout: 'auth', showChrome: false },
-  '/auth/signup': { layout: 'auth', showChrome: false },
-  '/auth/register': { layout: 'auth', showChrome: false },
-  '/auth/mfa': { layout: 'auth', showChrome: false },
-  '/auth/verify': { layout: 'auth', showChrome: false },
-  '/forgot-password': { layout: 'auth', showChrome: false },
-  '/reset-password': { layout: 'auth', showChrome: false },
+  // ----- CERTIFICATES -----
+  '/cert': { layout: 'reports', requiresAuth: true },
+  '/cert/index': { layout: 'reports', requiresAuth: true },
+  '/cert/[id]': { layout: 'reports', requiresAuth: true },
+  '/cert/writing': { layout: 'reports', requiresAuth: true },
 
-  // ===== MARKETING ROUTES =====
-  '/': { layout: 'marketing' },
-  '/pricing': { layout: 'marketing' },
-  '/pricing/[plan]': { layout: 'marketing' },
-  '/predictor': { layout: 'marketing' },
-  '/faq': { layout: 'marketing' },
-  '/legal': { layout: 'marketing' },
-  '/legal/privacy': { layout: 'marketing' },
-  '/legal/terms': { layout: 'marketing' },
-  '/data-deletion': { layout: 'marketing' },
-  '/about': { layout: 'marketing' },
-  '/about/team': { layout: 'marketing' },
-  '/about/mission': { layout: 'marketing' },
-  '/contact': { layout: 'marketing' },
-  '/contact/support': { layout: 'marketing' },
-  '/blog': { layout: 'marketing' },
-  '/blog/[slug]': { layout: 'marketing' },
+  // ----- MARKETPLACE / COACHES / CLASSES -----
+  '/marketplace': { layout: 'marketplace' },
+  '/marketplace/index': { layout: 'marketplace' },
+  '/coach': { layout: 'marketplace' },
+  '/coach/index': { layout: 'marketplace' },
+  '/coach/[id]': { layout: 'marketplace' },
+  '/classes': { layout: 'marketplace' },
+  '/classes/index': { layout: 'marketplace' },
+  '/classes/[id]': { layout: 'marketplace' },
 
-  // ===== BILLING & SUBSCRIPTION ROUTES =====
+  // ----- BOOKINGS -----
+  '/bookings': { layout: 'marketplace', requiresAuth: true },
+  '/bookings/index': { layout: 'marketplace', requiresAuth: true },
+  '/bookings/[id]': { layout: 'marketplace', requiresAuth: true },
+
+  // ----- BILLING / SUBSCRIPTION / CHECKOUT -----
   '/billing': { layout: 'billing', requiresAuth: true },
   '/billing/overview': { layout: 'billing', requiresAuth: true },
   '/billing/invoices': { layout: 'billing', requiresAuth: true },
@@ -198,75 +246,169 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/payment/cancel': { layout: 'billing', requiresAuth: true },
   '/subscription': { layout: 'billing', requiresAuth: true },
   '/subscription/manage': { layout: 'billing', requiresAuth: true },
+  '/checkout': { layout: 'billing', requiresAuth: true },
+  '/checkout/index': { layout: 'billing', requiresAuth: true },
+  '/checkout/save-card': { layout: 'billing', requiresAuth: true },
+  '/checkout/confirm': { layout: 'billing', requiresAuth: true },
+  '/checkout/success': { layout: 'billing', requiresAuth: true },
+  '/checkout/cancel': { layout: 'billing', requiresAuth: true },
+  '/checkout/crypto': { layout: 'billing', requiresAuth: true },
 
-  // ===== RESOURCES ROUTES =====
+  // ----- RESOURCES -----
   '/resources': { layout: 'resources', requiresAuth: true },
+  '/resources/index': { layout: 'resources', requiresAuth: true },
   '/resources/library': { layout: 'resources', requiresAuth: true },
   '/resources/materials': { layout: 'resources', requiresAuth: true },
   '/resources/downloads': { layout: 'resources', requiresAuth: true },
   '/resources/templates': { layout: 'resources', requiresAuth: true },
 
-  // ===== SUPPORT ROUTES =====
+  // ----- SUPPORT -----
   '/support': { layout: 'support' },
+  '/support/index': { layout: 'support' },
   '/support/help': { layout: 'support' },
   '/support/contact': { layout: 'support' },
   '/support/tickets': { layout: 'support', requiresAuth: true },
   '/support/tickets/[id]': { layout: 'support', requiresAuth: true },
 
-  // ===== PREMIUM ROUTES =====
+  // ----- ONBOARDING -----
+  '/onboarding': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/index': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/date': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/goal': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/schedule': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/skills': { layout: 'dashboard', requiresAuth: true },
+  '/onboarding/teacher': { layout: 'dashboard', requiresAuth: true },
+
+  // ----- ORGS -----
+  '/orgs': { layout: 'institutions', requiresAuth: true },
+  '/orgs/index': { layout: 'institutions', requiresAuth: true },
+
+  // ----- PLACEMENT -----
+  '/placement': { layout: 'reports', requiresAuth: true },
+  '/placement/index': { layout: 'reports', requiresAuth: true },
+  '/placement/start': { layout: 'reports', requiresAuth: true },
+  '/placement/run': { layout: 'reports', requiresAuth: true },
+  '/placement/result': { layout: 'reports', requiresAuth: true },
+
+  // ----- REVIEW -----
+  '/review': { layout: 'reports', requiresAuth: true },
+  '/review/index': { layout: 'reports', requiresAuth: true },
+  '/review/listening': { layout: 'reports', requiresAuth: true },
+  '/review/reading': { layout: 'reports', requiresAuth: true },
+  '/review/speaking': { layout: 'reports', requiresAuth: true },
+  '/review/writing': { layout: 'reports', requiresAuth: true },
+  '/review/share': { layout: 'reports', requiresAuth: true },
+
+  // ----- SAVED / STUDY PLAN / VISAS / VOCAB -----
+  '/saved': { layout: 'dashboard', requiresAuth: true },
+  '/saved/index': { layout: 'dashboard', requiresAuth: true },
+  '/study-plan': { layout: 'dashboard', requiresAuth: true },
+  '/study-plan/index': { layout: 'dashboard', requiresAuth: true },
+  '/visa': { layout: 'reports', requiresAuth: true },
+  '/visa/index': { layout: 'reports', requiresAuth: true },
+  '/vocab': { layout: 'learning', requiresAuth: true },
+  '/vocab/index': { layout: 'learning', requiresAuth: true },
+  '/vocabulary': { layout: 'learning', requiresAuth: true },
+  '/vocabulary/index': { layout: 'learning', requiresAuth: true },
+  '/vocabulary/[word]': { layout: 'learning', requiresAuth: true },
+  '/vocabulary/infiniteapplications': { layout: 'learning', requiresAuth: true },
+  '/vocabulary/learned': { layout: 'learning', requiresAuth: true },
+
+  // ----- MOCK (shell pages should show chrome) -----
+  '/mock': { layout: 'exam', showChrome: true },
+  '/mock/index': { layout: 'exam', showChrome: true },
+  '/mock/full': { layout: 'exam', showChrome: true },
+  '/mock/analytics': { layout: 'exam', showChrome: true },
+  '/mock/listening': { layout: 'exam', showChrome: true },
+  '/mock/reading': { layout: 'exam', showChrome: true },
+  '/mock/speaking': { layout: 'exam', showChrome: true },
+  '/mock/resume': { layout: 'exam', showChrome: true },
+  '/mock/[section]': { layout: 'exam', showChrome: true },
+
+  // ----- EXAM / PROCTORING -----
+  '/exam': { layout: 'exam', showChrome: true },
+  '/exam/rehearsal': { layout: 'exam', showChrome: true },
+  // Attempt-style pages (no chrome)
+  '/exam/[id]': { layout: 'exam', showChrome: false },
+
+  '/proctoring/check': { layout: 'proctoring', showChrome: false },
+  '/proctoring/exam': { layout: 'proctoring', showChrome: false },
+
+  // ----- PREMIUM AREA -----
   '/premium': { layout: 'default', showChrome: false },
-  '/premium/features': { layout: 'default', showChrome: false },
+  '/premium/index': { layout: 'default', showChrome: false },
   '/premium/room': { layout: 'default', showChrome: false },
-  '/premium-pin': { layout: 'default', showChrome: false },
+  '/premium/pin': { layout: 'default', showChrome: false },
+  '/premium/PremiumExamPage': { layout: 'default', showChrome: false },
 
-  // ===== FOCUS MODE ROUTES =====
-  '/focus-mode': { layout: 'default', showChrome: false },
-  '/focus-mode/session': { layout: 'default', showChrome: false },
+  // ----- QUICK DRILLS -----
+  '/quick': { layout: 'learning', requiresAuth: true },
+  '/quick/index': { layout: 'learning', requiresAuth: true },
+  '/quick/[skill]': { layout: 'learning', requiresAuth: true },
 
-  // ===== DEFAULT CATCH-ALL =====
-  '/404': { layout: 'marketing' },
-  '/500': { layout: 'marketing' },
+  // ----- MISC PAGES -----
   '/restricted': { layout: 'marketing' },
+  '/whatsapp-tasks': { layout: 'dashboard', requiresAuth: true },
+  '/pwa': { layout: 'marketing', showChrome: false },
+  '/pwa/app': { layout: 'marketing', showChrome: false },
+
+  // ----- PARTNERS / COMMUNITY-LIKE -----
+  '/partners': { layout: 'marketplace' },
+  '/partners/index': { layout: 'marketplace' },
+
+  // ----- MISTAKES BOOK -----
+  '/mistakes': { layout: 'learning', requiresAuth: true },
+  '/mistakes/index': { layout: 'learning', requiresAuth: true },
+
+  // ----- NOTIFICATIONS -----
+  '/notifications/index': { layout: 'dashboard', requiresAuth: true },
+
+  // ----- ORGANIZATION PAGES -----
+  '/classes/[id]': { layout: 'marketplace' },
+  '/coach/[id]': { layout: 'marketplace' },
+
+  // ----- TOOLS (internal) -----
+  '/tools': { layout: 'default' },
+  '/tools/mark-sections': { layout: 'default' },
 };
 
-// Helper function to get route config with pattern matching
+// ---- Helpers ----
 export function getRouteConfig(pathname: string): RouteConfig {
-  // Exact match first
-  if (ROUTE_LAYOUT_MAP[pathname]) {
-    return ROUTE_LAYOUT_MAP[pathname];
-  }
+  // Exact match
+  if (ROUTE_LAYOUT_MAP[pathname]) return ROUTE_LAYOUT_MAP[pathname];
 
-  // Pattern matching for dynamic routes
+  // Dynamic patterns e.g. /foo/[id]
   for (const [pattern, config] of Object.entries(ROUTE_LAYOUT_MAP)) {
     if (pattern.includes('[') && pattern.includes(']')) {
-      // Convert pattern to regex
       const regexPattern = pattern
         .replace(/\[([^\]]+)\]/g, '([^/]+)')
         .replace(/\//g, '\\/');
       const regex = new RegExp(`^${regexPattern}$`);
-
-      if (regex.test(pathname)) {
-        return config;
-      }
+      if (regex.test(pathname)) return config;
     }
   }
 
-  // Prefix matching for nested routes
+  // Longest static prefix fallback
   const matchingPrefix = Object.keys(ROUTE_LAYOUT_MAP)
-    .filter(key => !key.includes('[')) // Exclude dynamic routes
-    .sort((a, b) => b.length - a.length) // Longest first for specificity
-    .find(key => pathname.startsWith(key));
+    .filter(k => !k.includes('['))
+    .sort((a, b) => b.length - a.length)
+    .find(k => pathname.startsWith(k));
 
-  if (matchingPrefix) {
-    return ROUTE_LAYOUT_MAP[matchingPrefix];
-  }
+  if (matchingPrefix) return ROUTE_LAYOUT_MAP[matchingPrefix];
 
-  // Default fallback
+  // Default
   return { layout: 'default', showChrome: true };
 }
 
-// Helper to check if path is an attempt path (no chrome)
 export function isAttemptPath(pathname: string): boolean {
-  const config = getRouteConfig(pathname);
-  return config.showChrome === false;
+  // If a route explicitly hides chrome, treat as attempt
+  const cfg = getRouteConfig(pathname);
+  if (cfg.showChrome === false) return true;
+
+  // Heuristics: exam attempts and writing mock attempts
+  if (/^\/exam\/[^/]+$/.test(pathname)) return true;
+  if (/^\/writing\/mock\/[^/]+$/.test(pathname)) return true;
+
+  // All other mock shells default to chrome (explicitly mapped above)
+  return false;
 }

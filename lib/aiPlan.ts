@@ -1,5 +1,7 @@
+// lib/ai/plan.ts (file path inferred from your snippet location)
 import type { Profile, AIPlan } from '@/types/profile';
 import { PREFS, TOPICS, DAILY_QUOTA_RANGE } from '@/lib/profile-options';
+import { PLANS, type PlanId } from '@/types/pricing';
 
 const DEFAULT_TOPICS = TOPICS.slice(0, 4);
 
@@ -7,6 +9,13 @@ function sanitizeQuota(value: number | null | undefined): number {
   if (!Number.isFinite(value ?? NaN)) return 4;
   const coerced = Math.round(Number(value));
   return Math.min(DAILY_QUOTA_RANGE.max, Math.max(DAILY_QUOTA_RANGE.min, coerced));
+}
+
+function coerceLimit(value: unknown): number {
+  if (value === 'unlimited') return Infinity;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 /**
@@ -30,7 +39,17 @@ export function generateAIPlan(profile: Profile): AIPlan {
 
   const topics = (profile.focus_topics ?? []).filter((topic): topic is string => Boolean(topic?.trim()));
   const normalizedTopics = topics.length ? topics : DEFAULT_TOPICS;
-  const dailyQuota = sanitizeQuota(profile.daily_quota_goal ?? null);
+
+  // User preference, sanitized
+  let dailyQuota = sanitizeQuota(profile.daily_quota_goal ?? null);
+
+  // Cap by plan quota (aiEvaluationsPerDay) when available
+  const planId = ((profile as any)?.plan_id ?? (profile as any)?.plan ?? 'starter') as PlanId;
+  const plan = PLANS[planId];
+  const aiEvalLimit = coerceLimit((plan?.quota as Record<string, unknown> | undefined)?.aiEvaluationsPerDay);
+  if (Number.isFinite(aiEvalLimit)) {
+    dailyQuota = Math.min(dailyQuota, aiEvalLimit);
+  }
 
   const sessionMix = Array.from({ length: dailyQuota }, (_, index) => ({
     skill: prioritized[index % prioritized.length],
@@ -49,4 +68,3 @@ export function generateAIPlan(profile: Profile): AIPlan {
     source: 'local',
   };
 }
-

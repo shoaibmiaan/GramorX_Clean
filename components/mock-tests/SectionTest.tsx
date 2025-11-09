@@ -97,17 +97,16 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
         tabSwitches,
       };
       setResult(res);
-      if (typeof window !== 'undefined') {
-        try {
-          const existing: SectionResult[] = JSON.parse(
-            localStorage.getItem('mock-results') || '[]'
-          );
-          existing.push(res);
-          localStorage.setItem('mock-results', JSON.stringify(existing));
-          localStorage.removeItem(`mock-${section}-state`);
-        } catch {
-          // ignore
-        }
+      if (typeof window === 'undefined') return;
+      try {
+        const existing: SectionResult[] = JSON.parse(
+          localStorage.getItem('mock-results') || '[]'
+        );
+        existing.push(res);
+        localStorage.setItem('mock-results', JSON.stringify(existing));
+        localStorage.removeItem(`mock-${section}-state`);
+      } catch {
+        // ignore
       }
       try {
         const {
@@ -227,4 +226,3 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
 );
 
 export default SectionTest;
-

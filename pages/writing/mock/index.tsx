@@ -1,3 +1,4 @@
+// pages/writing/mock/index.tsx
 import React, { useMemo, useState } from 'react';
 import type { GetServerSideProps } from 'next';
 

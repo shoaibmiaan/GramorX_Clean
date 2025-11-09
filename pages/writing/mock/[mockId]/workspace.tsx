@@ -165,7 +165,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
         >
           You’ve reached your daily limit for writing mock tests ({mockLimit}/{mockLimit}). Try again tomorrow
           or{' '}
-          <a href={`/pricing?reason=writing_quota&used=${usedToday}&limit=${mockLimit}`} className="underline">
+          <a href={`/pricing/overview?reason=writing_quota&used=${usedToday}&limit=${mockLimit}`} className="underline">
             see plans
           </a>
           .

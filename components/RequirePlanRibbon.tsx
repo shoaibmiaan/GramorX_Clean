@@ -11,6 +11,15 @@ type Props = {
   className?: string;
 };
 
+function buildOverviewHref(requiredPlan: string, fromPath?: string) {
+  const usp = new URLSearchParams({
+    reason: 'plan_required',
+    need: requiredPlan,
+  });
+  if (fromPath) usp.set('from', fromPath);
+  return `/pricing/overview?${usp.toString()}`;
+}
+
 export default function RequirePlanRibbon({
   min,
   userPlan,
@@ -26,6 +35,13 @@ export default function RequirePlanRibbon({
   }, [allowed, min, userPlan]);
 
   if (allowed) return null;
+
+  const fromPath =
+    typeof window !== 'undefined'
+      ? window.location.pathname + window.location.search
+      : undefined;
+
+  const upgradeHref = buildOverviewHref(min, fromPath);
 
   return (
     <div
@@ -49,7 +65,7 @@ export default function RequirePlanRibbon({
       </div>
       <div className="flex items-center gap-2">
         <Link
-          href="/pricing"
+          href={upgradeHref}
           className="inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm hover:bg-amber-100 focus:outline-none focus:ring"
         >
           Upgrade

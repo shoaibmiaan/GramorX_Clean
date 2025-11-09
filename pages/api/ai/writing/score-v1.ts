@@ -6,6 +6,20 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerClient } from '@/lib/supabaseServer';
 import { normalizeScorePayload, scoreEssay } from '@/lib/writing/scoring';
 import { writingScoreRequestSchema } from '@/lib/validation/writing';
+import type { PlanId } from '@/types/pricing';
+import { evaluateQuota, upgradeAdvice, getUtcDayWindow } from '@/lib/plan/quotas';
+
+async function resolvePlanId(supabase: ReturnType<typeof getServerClient>, userId: string): Promise<PlanId> {
+  try {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('plan_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (data?.plan_id) return data.plan_id as PlanId;
+  } catch { /* ignore */ }
+  return 'starter' as PlanId;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -22,6 +36,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (authError || !user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // —— QUOTA: aiEvaluationsPerDay ——
+  try {
+    const plan = await resolvePlanId(supabase, user.id);
+    const { startIso, endIso } = getUtcDayWindow();
+    const { count: used = 0 } = await supabase
+      .from('writing_responses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('submitted_at', startIso)
+      .lt('submitted_at', endIso);
+
+    const snap = evaluateQuota(plan, 'aiEvaluationsPerDay', used);
+    if (!snap.isUnlimited && snap.remaining < 1) {
+      const advice = upgradeAdvice(plan, 'aiEvaluationsPerDay', used);
+      return res.status(402).json({
+        error: 'Quota exceeded',
+        quota: { key: 'aiEvaluationsPerDay', limit: snap.limit, used: snap.used, remaining: snap.remaining },
+        advice,
+      });
+    }
+  } catch {
+    // Non-fatal: if counting fails, do not block
+  }
+  // —— /QUOTA ——
 
   const parsed = writingScoreRequestSchema.safeParse(req.body);
   if (!parsed.success) {

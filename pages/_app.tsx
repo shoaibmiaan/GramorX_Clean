@@ -1,6 +1,7 @@
 // pages/_app.tsx
 import type { AppProps } from 'next/app';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
@@ -11,7 +12,6 @@ import '@/styles/semantic.css';
 import '@/styles/globals.css';
 import '@/styles/themes/index.css';
 
-// Animations (for Homepage sections using data-aos)
 import 'aos/dist/aos.css';
 import { AnimationProvider } from '@/components/providers/AnimationProvider';
 
@@ -38,6 +38,12 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
+// 🚩 Add banner (SSR-disabled) to explain why user was sent to /pricing
+const PricingReasonBanner = dynamic(
+  () => import('@/components/paywall/PricingReasonBanner'),
+  { ssr: false }
+);
+
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -61,7 +67,7 @@ function GuardSkeleton() {
   );
 }
 
-// Route type guards
+// ---------- Route type helpers ----------
 const isAuthPage = (pathname: string) =>
   /^\/(login|signup|register)(\/|$)/.test(pathname) ||
   /^\/auth\/(login|signup|register|mfa|verify)(\/|$)/.test(pathname) ||
@@ -70,14 +76,14 @@ const isAuthPage = (pathname: string) =>
 const isPremiumRoomRoute = (pathname: string) =>
   pathname.startsWith('/premium/') && !pathname.startsWith('/premium-pin');
 
+// Attempts only (used by older code that referenced “flow”)
 const isMockTestsFlowRoute = (pathname: string) => {
-  const isMockTestsRoute = pathname.startsWith('/mock');
-  const isMockTestsLanding = pathname === '/mock';
-  const isWritingMockRoute = pathname.startsWith('/writing/mock');
-  return (isMockTestsRoute && !isMockTestsLanding) || isWritingMockRoute;
+  const isMockAttempt = /^\/mock\/[^/]+$/.test(pathname);
+  const isWritingMockAttempt = /^\/writing\/mock\/[^/]+$/.test(pathname);
+  return isMockAttempt || isWritingMockAttempt;
 };
 
-// Enhanced route loading hook
+// ---------- Enhanced route loading ----------
 function useRouteLoading() {
   const router = useRouter();
   const [isRouteLoading, setIsRouteLoading] = useState(false);
@@ -186,7 +192,7 @@ function useRouteLoading() {
   return isRouteLoading;
 }
 
-// Enhanced auth bridge hook
+// ---------- Auth bridge ----------
 function useAuthBridge() {
   const router = useRouter();
   const syncingRef = useRef(false);
@@ -259,7 +265,7 @@ function useAuthBridge() {
     })();
 
     if (!subscribedRef.current) {
-      const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((event, sessionNow) => {
+      const { data: { subscription} } = supabaseBrowser.auth.onAuthStateChange((event, sessionNow) => {
         (async () => {
           await bridgeSession(event, sessionNow);
 
@@ -292,30 +298,30 @@ function useAuthBridge() {
   }, [router, bridgeSession]);
 }
 
-// Enhanced route configuration using comprehensive route map
+// ---------- Route configuration ----------
 function useRouteConfiguration(pathname: string) {
   const { user } = useUserContext();
 
   return useMemo(() => {
     const routeConfig = getRouteConfig(pathname);
+    const isAttempt = isAttemptPath(pathname);
 
-    // Define routes that should NOT show chrome (header/footer)
+    // Hide chrome only where it must be hidden
     const isNoChromeRoute =
-      routeConfig.layout === 'exam' ||
-      routeConfig.layout === 'proctoring' ||
       routeConfig.layout === 'auth' ||
+      routeConfig.layout === 'proctoring' ||
       pathname.startsWith('/premium') ||
-      isMockTestsFlowRoute(pathname) ||
       /\/focus-mode(\/|$)/.test(pathname) ||
-      routeConfig.showChrome === false;
+      routeConfig.showChrome === false ||
+      isAttempt ||
+      isMockTestsFlowRoute(pathname); // keep attempt helper for backward compatibility
 
     const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
 
-    // Map to AppLayoutManager props
     return {
       isAuthPage: routeConfig.layout === 'auth',
       isProctoringRoute: routeConfig.layout === 'proctoring',
-      showLayout: !isAttemptPath(pathname) && showLayout,
+      showLayout,
       forceLayoutOnAuthPage: routeConfig.layout === 'auth' && !!user,
       isAdminRoute: routeConfig.layout === 'admin',
       isInstitutionsRoute: routeConfig.layout === 'institutions',
@@ -326,38 +332,32 @@ function useRouteConfiguration(pathname: string) {
         routeConfig.layout === 'analytics',
       isMarketplaceRoute: routeConfig.layout === 'marketplace',
       isLearningRoute:
-        routeConfig.layout === 'learning' ||
-        routeConfig.layout === 'resources',
+        routeConfig.layout === 'learning' || routeConfig.layout === 'resources',
       isCommunityRoute:
-        routeConfig.layout === 'community' ||
-        routeConfig.layout === 'communication',
+        routeConfig.layout === 'community' || routeConfig.layout === 'communication',
       isReportsRoute: routeConfig.layout === 'reports',
       isMarketingRoute: routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
       needPremium: pathname.startsWith('/premium'),
       isPremiumRoute: isPremiumRoomRoute(pathname),
-      routeConfig, // Pass full config for additional checks
+      routeConfig,
     };
   }, [pathname, user]);
 }
 
-// Route access check hook
+// ---------- Access checks ----------
 function useRouteAccessCheck(pathname: string, role?: string | null) {
   const router = useRouter();
 
   useEffect(() => {
     const config = getRouteConfig(pathname);
-
-    // Skip access checks for public routes
     if (!config.requiresAuth) return;
 
-    if (config.requiresAuth && !role) {
+    if (!role) {
       router.replace('/login');
       return;
     }
-
     if (config.allowedRoles && role && !config.allowedRoles.includes(role)) {
       router.replace('/restricted');
-      return;
     }
   }, [pathname, role, router]);
 }
@@ -367,28 +367,24 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const pathname = router.pathname;
   const { locale: activeLocale } = useLocale();
 
-  // Enhanced hooks
   const isRouteLoading = useRouteLoading();
   useAuthBridge();
 
-  // ---------- i18n ----------
+  // i18n
   useEffect(() => {
     void loadTranslations(activeLocale as SupportedLocale);
   }, [activeLocale]);
 
-  // ---------- Route analytics ----------
+  // route analytics (stub)
   useEffect(() => {
-    const logRoute = (url: string) => {
-      if (!url) return;
-      // Add analytics logging here if needed
-    };
+    const logRoute = (url: string) => { if (!url) return; };
     logRoute(router.asPath);
     const handleRouteChange = (url: string) => logRoute(url);
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => router.events.off('routeChangeComplete', handleRouteChange);
   }, [router]);
 
-  // ---------- User / Tier ----------
+  // user / tier
   const { user, role, isTeacherApproved } = useUserContext() as {
     user: SupabaseUser | null;
     role?: string | null;
@@ -412,70 +408,61 @@ function InnerApp({ Component, pageProps }: AppProps) {
     return () => window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
   }, []);
 
-  // ---------- Enhanced Route Configuration ----------
+  // route configuration
   const routeConfiguration = useRouteConfiguration(pathname);
   const forceLayoutOnAuthPage = routeConfiguration.isAuthPage && !!user;
 
-  // Apply route access checks
+  // access checks
   useRouteAccessCheck(pathname, role);
 
-  // ---------- Teacher hard-redirect ----------
+  // teacher redirect
   useEffect(() => {
     if (!role) return;
     if (role === 'teacher') {
       const onTeacherArea = pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
-      if (!onTeacherArea) {
-        router.replace('/teacher');
-      }
+      if (!onTeacherArea) router.replace('/teacher');
     }
   }, [role, pathname, routeConfiguration.isAuthPage, router]);
 
-  // ---------- Idle timeout ----------
+  // idle timeout
   const idleMinutes = useMemo(() => {
     try {
-      const minutes = env?.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
+      const minutes =
+        env?.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
         process.env.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
         '30';
       return Number(minutes) || 30;
-    } catch (error) {
-      console.warn('Failed to parse idle timeout minutes, using default 30:', error);
+    } catch {
       return 30;
     }
   }, []);
 
   useEffect(() => {
     if (IS_CI) return;
-
-    if (typeof initIdleTimeout !== 'function') {
-      console.warn('initIdleTimeout is not available');
-      return;
-    }
-
+    if (typeof initIdleTimeout !== 'function') return;
     try {
       const cleanup = initIdleTimeout(idleMinutes);
       return cleanup;
-    } catch (error) {
-      console.error('Failed to initialize idle timeout:', error);
+    } catch {
+      // noop
     }
   }, [idleMinutes]);
 
   const { isChecking } = useRouteGuard();
   if (isChecking) return <GuardSkeleton />;
 
-  // Premium wrapper only for premium room routes
-  const basePage = routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
-    <PremiumThemeProvider>
+  const basePage =
+    routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
+      <PremiumThemeProvider>
+        <Component {...pageProps} />
+      </PremiumThemeProvider>
+    ) : (
       <Component {...pageProps} />
-    </PremiumThemeProvider>
-  ) : (
-    <Component {...pageProps} />
-  );
+    );
 
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <HighContrastProvider>
-        {/* Removed manual <Head><link rel="stylesheet" /></Head> to satisfy @next/next/no-css-tags */}
-
         <div className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}>
           <AnimationProvider>
             <AppLayoutManager
@@ -497,6 +484,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
+              {/* 🔹 Show reason banner only on /pricing, above the page content */}
+              {router.pathname === '/pricing' ? <PricingReasonBanner /> : null}
               {basePage}
             </AppLayoutManager>
           </AnimationProvider>

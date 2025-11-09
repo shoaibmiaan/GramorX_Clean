@@ -16,6 +16,14 @@ function needForPath(pathname: string): PlanId | null {
   return null;
 }
 
+function buildOverviewURL(params: { reason: 'plan_required'|'quota_limit'|'trial_ended'|'unknown'; need?: string; from?: string }) {
+  const usp = new URLSearchParams();
+  usp.set('reason', params.reason);
+  if (params.need) usp.set('need', params.need);
+  if (params.from) usp.set('from', params.from);
+  return `/pricing/overview?${usp.toString()}`;
+}
+
 export default function GlobalPlanGuard() {
   const router = useRouter();
   const [plan, setPlan] = useState<PlanId | null>(null);
@@ -38,10 +46,11 @@ export default function GlobalPlanGuard() {
     return () => { mounted = false; };
   }, []);
 
-  // Check current path on mount & on route change complete
+  // Check current path on mount & on route change
   useEffect(() => {
     if (!plan) return;
-    const check = (url: string) => {
+
+    const redirectIfBlocked = (url: string) => {
       const p = pathOf(url);
       const need = needForPath(p);
       setCurrentNeed(need);
@@ -49,15 +58,15 @@ export default function GlobalPlanGuard() {
 
       const allowed = PLAN_ORDER[plan] >= PLAN_ORDER[need];
       if (!allowed) {
-        const from = encodeURIComponent(p);
-        const dest = `/pricing?from=${from}&need=${encodeURIComponent(need)}`;
-        // Stop the in-flight navigation (if any) and redirect
-        Router.replace(dest);
+        const dest = buildOverviewURL({ reason: 'plan_required', need, from: p });
+        if (router.pathname !== '/pricing/overview') {
+          Router.replace(dest);
+        }
       }
     };
 
     // initial page
-    check(router.asPath);
+    redirectIfBlocked(router.asPath);
 
     const onStart = (url: string) => {
       if (!plan) return;
@@ -67,8 +76,7 @@ export default function GlobalPlanGuard() {
 
       const allowed = PLAN_ORDER[plan] >= PLAN_ORDER[need];
       if (!allowed) {
-        const from = encodeURIComponent(p);
-        const dest = `/pricing?from=${from}&need=${encodeURIComponent(need)}`;
+        const dest = buildOverviewURL({ reason: 'plan_required', need, from: p });
         Router.replace(dest);
         // Cancel the route (prevent flicker)
         Router.events.emit('routeChangeError');
@@ -81,14 +89,13 @@ export default function GlobalPlanGuard() {
     return () => {
       Router.events.off('routeChangeStart', onStart);
     };
-  }, [plan, router.asPath]);
+  }, [plan, router.asPath, router.pathname]);
 
   useEffect(() => {
     const onPlanChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ planId?: PlanId }>).detail;
       if (detail?.planId) setPlan(detail.planId);
     };
-
     window.addEventListener('subscription:tier-updated', onPlanChanged as EventListener);
     return () => window.removeEventListener('subscription:tier-updated', onPlanChanged as EventListener);
   }, []);
