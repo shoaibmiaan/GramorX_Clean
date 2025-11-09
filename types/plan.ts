@@ -43,7 +43,7 @@ export const StudyPlanSchema = z.object({
 export type StudyPlan = z.infer<typeof StudyPlanSchema>;
 
 /** Type guard helper for reading JSON from DB (study_plans.plan_json) */
-export function isStudyPlan(input: unknown): input is StudyPlan {
+export function isStudyPlan(input: unknown): boolean {
   const res = StudyPlanSchema.safeParse(input);
   return res.success;
 }

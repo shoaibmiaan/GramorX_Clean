@@ -5,7 +5,7 @@ import type { PlanId } from '@/types/pricing';
 import { hasPlan } from '@/lib/planAccess';
 
 type GuardOpts = {
-  redirectTo?: string; // default: /pricing
+  redirectTo?: string; // default: /pricing/overview
 };
 
 async function getUserPlan(
@@ -34,7 +34,7 @@ async function getUserPlan(
  * Use this when the page has NO existing getServerSideProps.
  */
 export function requirePlanSSR(min: PlanId, opts?: GuardOpts): GetServerSideProps {
-  const redirectTo = opts?.redirectTo ?? '/pricing';
+  const redirectTo = opts?.redirectTo ?? '/pricing/overview';
   return async (ctx) => {
     const { plan } = await getUserPlan(ctx);
 
@@ -59,7 +59,7 @@ export function requirePlanSSR(min: PlanId, opts?: GuardOpts): GetServerSideProp
  * });
  */
 export function withPlanPage(min: PlanId, opts?: GuardOpts) {
-  const redirectTo = opts?.redirectTo ?? '/pricing';
+  const redirectTo = opts?.redirectTo ?? '/pricing/overview';
   return function wrap<T extends Record<string, any>>(
     gssp: GetServerSideProps<T>
   ): GetServerSideProps<T & { __plan: PlanId }> {

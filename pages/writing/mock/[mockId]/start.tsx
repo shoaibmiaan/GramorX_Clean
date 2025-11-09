@@ -1,3 +1,4 @@
+// pages/writing/mock/[mockId]/start.tsx
 import React, { useCallback, useState } from 'react';
 import type { GetServerSideProps } from 'next';
 import Link from 'next/link';
@@ -7,9 +8,12 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import { toast } from '@/components/design-system/Toaster';
+
 import { writingExamSummaries, type WritingExamSummary } from '@/data/writing/exam-index';
 import { getServerClient } from '@/lib/supabaseServer';
 import { setMockAttemptId } from '@/lib/mock/state';
+import { api, isQuotaExceeded } from '@/lib/http';
 
 interface LatestAttempt {
   attemptId: string;
@@ -56,25 +60,40 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/mock/writing/start', {
+      const data = await api<{ attempt: { id: string } }>('/api/mock/writing/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptId: mockId, mockId }),
       });
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error ?? 'Failed to start mock test');
-      }
-
-      const data = (await response.json()) as {
-        attempt: { id: string };
-      };
-
       setMockAttemptId('writing', mockId, data.attempt.id);
       await router.push(`/writing/mock/${data.attempt.id}/workspace`);
-    } catch (err: any) {
-      setError(err?.message ?? 'Unexpected error while starting the mock test');
+    } catch (e: any) {
+      if (isQuotaExceeded(e)) {
+        const moduleName = (e.meta?.module as string) || 'writing';
+        const remaining = (e.meta?.remaining ?? 0) as number;
+        const resetAtISO = (e.meta?.resetAt as string | undefined) || null;
+
+        toast.error(`No ${moduleName} attempts left.`, {
+          description: resetAtISO
+            ? `Quota resets ${new Date(resetAtISO).toLocaleString()}.`
+            : 'Upgrade to continue.',
+          duration: 5000,
+        });
+
+        // NEW: route to quota+subscription overview with context
+        const usp = new URLSearchParams({
+          reason: 'quota_limit',
+          from: router.asPath,
+          qk: 'writing_mock_attempts',
+        });
+        if (remaining != null) usp.set('remaining', String(remaining));
+        if (resetAtISO) usp.set('resetAt', resetAtISO);
+
+        setTimeout(() => router.push(`/pricing/overview?${usp.toString()}`), 250);
+        return;
+      }
+
+      setError(e?.error ?? e?.message ?? 'Unexpected error while starting the mock test');
     } finally {
       setLoading(false);
     }

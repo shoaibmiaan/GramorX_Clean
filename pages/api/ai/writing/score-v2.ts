@@ -4,7 +4,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { withPlan, type PlanGuardContext } from '@/lib/api/withPlan';
+import { withPlan, type PlanGuardContext } from '@/lib/withPlan';
 import { createRequestLogger } from '@/lib/obs/logger';
 import { recordSloSample } from '@/lib/obs/slo';
 import { applyRateLimit } from '@/lib/limits/rate';
@@ -12,6 +12,7 @@ import { scoreEssay } from '@/lib/writing/scoring';
 import { sanitiseWritingErrors } from '@/lib/writing/diff';
 import { writingScoreV2RequestSchema } from '@/lib/validation/writing.v2';
 import type { WritingCriterion, WritingFeedbackBlock, WritingError } from '@/types/writing';
+import { evaluateQuota, upgradeAdvice, getUtcDayWindow } from '@/lib/plan/quotas';
 
 const ROUTE = 'ai.writing.score-v2';
 const RATE_LIMIT = { windowMs: 60_000, max: 12 } as const;
@@ -156,6 +157,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse, ctx: PlanGuard
       return;
     }
 
+    // —— QUOTA: aiEvaluationsPerDay ——
+    try {
+      const { startIso, endIso } = getUtcDayWindow();
+      const { count: used = 0 } = await ctx.supabase
+        .from('writing_responses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', ctx.user.id)
+        .gte('submitted_at', startIso)
+        .lt('submitted_at', endIso);
+
+      const snap = evaluateQuota(ctx.plan, 'aiEvaluationsPerDay', used);
+      if (!snap.isUnlimited && snap.remaining < 1) {
+        const advice = upgradeAdvice(ctx.plan, 'aiEvaluationsPerDay', used);
+        res.status(402).json({
+          error: 'Quota exceeded',
+          quota: { key: 'aiEvaluationsPerDay', limit: snap.limit, used: snap.used, remaining: snap.remaining },
+          advice,
+        });
+        finish(402);
+        return;
+      }
+    } catch {
+      // No block if counting fails
+    }
+    // —— /QUOTA ——
+
     const parsed = writingScoreV2RequestSchema.safeParse(req.body);
     if (!parsed.success) {
       const issues = parsed.error.flatten();
@@ -299,13 +326,29 @@ async function handler(req: NextApiRequest, res: NextApiResponse, ctx: PlanGuard
     finish(200);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const logger = createRequestLogger(ROUTE, { userId: ctx.user.id, plan: ctx.plan });
     logger.error('unhandled error scoring writing response', { error: message });
     res.status(500).json({ error: 'Failed to score writing response' });
-    finish(500);
   }
 }
 
+// Attach quota guard via withPlan (consumes 1 evaluation)
 export default withPlan('starter', handler, {
   allowRoles: ['admin', 'teacher'],
   killSwitchFlag: 'killSwitchWriting',
+  quota: {
+    key: 'aiEvaluationsPerDay',
+    amount: 1,
+    // count from writing_responses submitted today
+    getUsedToday: async ({ supabase, user }) => {
+      const { startIso, endIso } = getUtcDayWindow();
+      const { count = 0 } = await supabase
+        .from('writing_responses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('submitted_at', startIso)
+        .lt('submitted_at', endIso);
+      return count;
+    },
+  },
 });

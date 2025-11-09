@@ -56,6 +56,12 @@ export async function increment(
   }
 }
 
+/** Read-only count without incrementing (step=0). */
+export async function getCount(key: UsageKey, dateISO = todayISO()): Promise<number> {
+  const res = await increment(key, 0, dateISO);
+  return res.ok ? res.count : 0;
+}
+
 /** Quick “can I use this?” guard. */
 export async function canUse(
   key: UsageKey,

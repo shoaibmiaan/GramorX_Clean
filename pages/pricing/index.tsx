@@ -1,4 +1,4 @@
-// pages/pricing/index.tsx
+// pages/pricing/overview.tsx
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -12,11 +12,13 @@ import { Ribbon } from '@/components/design-system/Ribbon';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import SocialProofStrip from '@/components/marketing/SocialProofStrip';
+import QuotaSummary from '@/components/paywall/QuotaSummary';
 import {
   getPlanDisplayPrice,
   type Cycle,
   type PlanKey,
 } from '@/lib/pricing';
+import type { Reason } from '@/lib/paywall/redirect';
 
 // ------------------ Types ------------------
 type PlanRow = {
@@ -34,8 +36,6 @@ type PlanRow = {
 
 type Currency =
   | 'USD' | 'EUR' | 'GBP' | 'INR' | 'PKR' | 'AED' | 'SAR' | 'AUD' | 'CAD' | 'NGN' | 'BRL' | 'PHP';
-
-type ReasonKey = 'writing_quota' | undefined;
 
 // ------------------ Data ------------------
 const PLAN_PRESENTATION: Record<PlanKey, Omit<PlanRow, 'key' | 'priceMonthly' | 'priceAnnual'>> = {
@@ -137,18 +137,11 @@ const PricingPage: NextPage = () => {
   const [currency, setCurrency] = React.useState<Currency>('USD');
   const [timezone, setTimezone] = React.useState<string>('—');
 
-  // --- Reason banner (e.g., writing quota reached) ---
-  const reason: ReasonKey = typeof router.query.reason === 'string' ? (router.query.reason as ReasonKey) : undefined;
-  const used = React.useMemo(() => {
-    const v = router.query.used;
-    const n = typeof v === 'string' ? Number(v) : NaN;
-    return Number.isFinite(n) && n >= 0 ? n : undefined;
-  }, [router.query.used]);
-  const limit = React.useMemo(() => {
-    const v = router.query.limit;
-    const n = typeof v === 'string' ? Number(v) : NaN;
-    return Number.isFinite(n) && n >= 0 ? n : undefined;
-  }, [router.query.limit]);
+  // --- Reason banner (e.g., quota reached) ---
+  const reason: Reason = typeof router.query.reason === 'string' ? (router.query.reason as Reason) : 'unknown';
+  const need: PlanKey | null = typeof router.query.need === 'string' ? (router.query.need as PlanKey) : null;
+  const from: string = typeof router.query.from === 'string' ? router.query.from : '/';
+  const qk: string | null = typeof router.query.qk === 'string' ? router.query.qk : null;
 
   React.useEffect(() => {
     setCurrency(guessCurrency());
@@ -167,6 +160,56 @@ const PricingPage: NextPage = () => {
     [cycle, referralCode, router, currency]
   );
 
+  const getBanner = () => {
+    if (reason === 'unknown') return null;
+
+    let message = '';
+    let backPath = from;
+    let module = qk ? qk.replace(/_/g, ' ') : 'this feature';
+
+    switch (reason) {
+      case 'plan_required':
+        message = `This feature requires the ${need || 'higher'} plan or higher.`;
+        break;
+      case 'quota_limit':
+        message = `You've reached your quota for ${module}. Try again tomorrow or upgrade to increase your limits.`;
+        break;
+      case 'trial_ended':
+        message = 'Your trial has ended. Upgrade to continue.';
+        break;
+      default:
+        return null;
+    }
+
+    return (
+      <div
+        className="mx-auto mb-4 max-w-4xl rounded-2xl border border-amber-400/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>
+            <strong>{message}</strong>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Link
+              href={backPath}
+              className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-card/60 px-3 py-1.5 text-sm underline-offset-4 hover:underline"
+            >
+              Back
+            </Link>
+            <Link
+              href="#plans"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:opacity-95"
+            >
+              See plans
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Head>
@@ -183,37 +226,10 @@ const PricingPage: NextPage = () => {
           <Container className="pt-6 md:pt-8 pb-12 md:pb-16" aria-labelledby="pricing-title">
 
             {/* Context banner (from redirects with query params) */}
-            {reason === 'writing_quota' && (
-              <div
-                className="mx-auto mb-4 max-w-4xl rounded-2xl border border-amber-400/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
-                role="status"
-                aria-live="polite"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <div>
-                    <strong>Daily writing mock limit reached.</strong>{' '}
-                    {typeof used === 'number' && typeof limit === 'number'
-                      ? <>You used <span className="font-semibold">{used}</span> of <span className="font-semibold">{limit}</span> today.</>
-                      : <>You’ve hit today’s quota.</>
-                    } Try again tomorrow or upgrade to increase your daily limit.
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Link
-                      href="/writing"
-                      className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-card/60 px-3 py-1.5 text-sm underline-offset-4 hover:underline"
-                    >
-                      Back to Writing
-                    </Link>
-                    <Link
-                      href="#plans"
-                      className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:opacity-95"
-                    >
-                      See plans
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
+            {getBanner()}
+
+            {/* Quota Summary if applicable */}
+            {reason === 'quota_limit' && <QuotaSummary qk={qk} />}
 
             {/* Top utility bar */}
             <div className="mx-auto max-w-7xl mb-4 flex items-center justify-between gap-3 text-small">

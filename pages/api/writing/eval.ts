@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import type { PlanId } from '@/types/pricing';
+import { evaluateQuota, upgradeAdvice, getUtcDayWindow } from '@/lib/plan/quotas';
 
 const INFORMAL_MARKERS = ['gonna', 'wanna', 'kinda', 'sorta', 'dude', 'buddy', 'kiddo', 'stuff', 'cool'];
 
@@ -39,6 +41,18 @@ function normalise(value: string) {
     .trim();
 }
 
+async function resolvePlanId(supabase: ReturnType<typeof createSupabaseServerClient>, userId: string): Promise<PlanId> {
+  try {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('plan_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (data?.plan_id) return data.plan_id as PlanId;
+  } catch { /* ignore */ }
+  return 'starter' as PlanId;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -69,6 +83,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (userErr || !user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // —— QUOTA: aiEvaluationsPerDay ——
+  try {
+    const plan = await resolvePlanId(supabase, user.id);
+    const { startIso, endIso } = getUtcDayWindow();
+
+    // Count both writing_responses and word_writing_attempts for today's usage
+    const [{ count: usedResp = 0 }, { count: usedWord = 0 }] = await Promise.all([
+      supabase
+        .from('writing_responses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('submitted_at', startIso)
+        .lt('submitted_at', endIso),
+      supabase
+        .from('word_writing_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startIso)
+        .lt('created_at', endIso),
+    ]);
+
+    const used = (usedResp ?? 0) + (usedWord ?? 0);
+    const snap = evaluateQuota(plan, 'aiEvaluationsPerDay', used);
+    if (!snap.isUnlimited && snap.remaining < 1) {
+      const advice = upgradeAdvice(plan, 'aiEvaluationsPerDay', used);
+      return res.status(402).json({
+        error: 'Quota exceeded',
+        quota: { key: 'aiEvaluationsPerDay', limit: snap.limit, used: snap.used, remaining: snap.remaining },
+        advice,
+      });
+    }
+  } catch {
+    // Non-fatal if counting fails
+  }
+  // —— /QUOTA ——
 
   try {
     const [{ data: wordRow, error: wordError }, { data: collocationsRows, error: collocationError }] = await Promise.all([
