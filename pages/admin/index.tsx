@@ -1,18 +1,15 @@
 ﻿// pages/admin/index.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// ✅ Use DS primitives; fall back to Tailwind if a component is missing in DS.
 import { Container } from '@/components/design-system/Container';
-// import { Card } from '@/components/design-system/Card';
-// import { Button } from '@/components/design-system/Button';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 import { getCurrentRole } from '@/lib/roles';
 import type { AppRole } from '@/lib/roles';
 import { useToast } from '@/components/design-system/Toaster';
 
-// ---- Types ----
+// ---------- Types ----------
 type KPI = { label: string; value: string; sub?: string; href?: string };
 type Signup = { id: string; name: string; email: string; joinedAt: string };
 type QueueRow = {
@@ -28,7 +25,6 @@ type ModulePerf = {
   avgBand: number;
   trend: 'up' | 'down' | 'flat';
 };
-
 type BlogQueueItem = {
   slug: string;
   title: string;
@@ -45,7 +41,6 @@ type SupportTicket = {
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   createdAt: string;
 };
-
 type ProviderStatus = {
   name: 'Supabase' | 'SMTP' | 'OpenAI' | 'Gemini' | 'Groq' | 'Vertex' | 'Storage' | 'Realtime';
   state: 'ok' | 'degraded' | 'down';
@@ -53,19 +48,78 @@ type ProviderStatus = {
   href?: string;
 };
 
+// API response type from /api/admin/users
+type AdminUser = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  role: 'student' | 'teacher' | 'admin' | string;
+  subscription: {
+    plan_id: string | null;
+    status: string | null;
+    current_period_end: string | null;
+  } | null;
+};
+
+// ---------- Small hooks/util ----------
+function useDebounced<T>(value: T, delay = 200) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+function csvDownload(filename: string, rows: string[][]) {
+  const blob = new Blob([rows.map((r) => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function clsBadgeTone(tone: 'success' | 'warning' | 'danger' | 'muted') {
+  switch (tone) {
+    case 'success':
+      return 'border-success text-success dark:text-success';
+    case 'warning':
+      return 'border-warning text-warning dark:text-warning';
+    case 'danger':
+      return 'border-danger text-danger dark:text-danger';
+    default:
+      return 'border-muted-foreground text-muted-foreground';
+  }
+}
+
+// ---------- Page ----------
 export default function AdminIndex() {
-  // Faux loading for polish
+  // gate & UX
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
-
-  // 🔎 Top toolbar state
-  const [range, setRange] = useState<'7d' | '30d' | '90d'>('7d');
-  const [module, setModule] = useState<'all' | 'listening' | 'reading' | 'writing' | 'speaking'>('all');
-  const [q, setQ] = useState(''); // global quick search filter (signups, tickets)
-
   const { success, error: toastError } = useToast();
 
-  // 🧪 Demo data — replace with Supabase later
+  // toolbar
+  const [range, setRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const [module, setModule] = useState<'all' | 'listening' | 'reading' | 'writing' | 'speaking'>('all');
+  const [q, setQ] = useState('');
+  const qRef = useRef<HTMLInputElement | null>(null);
+  const qDebounced = useDebounced(q, 250);
+
+  // users (admin)
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersErr, setUsersErr] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'teacher' | 'admin'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'starter' | 'booster' | 'master'>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+
+  // demo data kept (can be wired later)
   const kpis: KPI[] = useMemo(
     () => [
       { label: 'Active Students', value: '1,284', sub: 'last 7 days', href: '/admin/students?active=1' },
@@ -162,8 +216,9 @@ export default function AdminIndex() {
     { name: 'Realtime', state: 'ok', last: 'now', href: '/admin/system/realtime' },
   ];
 
+  // effects
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
+    const t = setTimeout(() => setLoading(false), 400);
     return () => clearTimeout(t);
   }, []);
 
@@ -171,26 +226,95 @@ export default function AdminIndex() {
     getCurrentRole().then((r) => setRole(r));
   }, []);
 
-  // CSV export for quick wins
-  const exportCSV = () => {
-    const rows = [
-      ['module', 'attempts', 'avgBand'],
-      ...perf.map((r) => [r.module, String(r.attempts), String(r.avgBand)]),
-    ];
-    const blob = new Blob([rows.map((r) => r.join(',')).join('\n')], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `module-performance-${range}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  useEffect(() => {
+    let abort = false;
+    setUsersLoading(true);
+    setUsersErr(null);
+    fetch('/api/admin/users')
+      .then(async (r) => {
+        const json = await r.json().catch(() => ([] as AdminUser[]));
+        if (!abort) {
+          if (!r.ok) {
+            setUsersErr((json as any)?.error || 'Failed to load users');
+            setUsers([]);
+          } else {
+            setUsers(json as AdminUser[]);
+          }
+        }
+      })
+      .catch((e: unknown) => {
+        if (!abort) setUsersErr(e instanceof Error ? e.message : 'Failed to load users');
+      })
+      .finally(() => !abort && setUsersLoading(false));
+    return () => {
+      abort = true;
+    };
+  }, []);
+
+  // search & filters
+  const filteredUsers = useMemo(() => {
+    const text = qDebounced.trim().toLowerCase();
+    const byRole = roleFilter === 'all' ? (u: AdminUser) => true : (u: AdminUser) => u.role === roleFilter;
+    const byPlan =
+      planFilter === 'all'
+        ? (u: AdminUser) => true
+        : (u: AdminUser) => (u.subscription?.plan_id ?? 'free') === planFilter;
+
+    return users
+      .filter((u) => byRole(u) && byPlan(u))
+      .filter((u) => {
+        if (!text) return true;
+        const hay = `${u.email ?? ''} ${u.full_name ?? ''} ${u.role} ${u.subscription?.plan_id ?? ''}`.toLowerCase();
+        return hay.includes(text);
+      });
+  }, [users, qDebounced, roleFilter, planFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const pageSafe = Math.min(page, totalPages);
+  const pagedUsers = useMemo(
+    () => filteredUsers.slice((pageSafe - 1) * pageSize, pageSafe * pageSize),
+    [filteredUsers, pageSafe]
+  );
+
+  // keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        qRef.current?.focus();
+      }
+      if (e.key.toLowerCase() === 'e' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        exportUsersCSV();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // actions
+  const exportPerfCSV = () => {
+    const rows = [['module', 'attempts', 'avgBand'], ...perf.map((r) => [r.module, String(r.attempts), String(r.avgBand)])];
+    csvDownload(`module-performance-${range}.csv`, rows);
   };
 
-  // Handlers
+  const exportUsersCSV = () => {
+    const rows: string[][] = [
+      ['id', 'email', 'full_name', 'role', 'plan_id', 'status', 'current_period_end'],
+      ...filteredUsers.map((u) => [
+        u.id,
+        u.email ?? '',
+        u.full_name ?? '',
+        u.role,
+        u.subscription?.plan_id ?? '',
+        u.subscription?.status ?? '',
+        u.subscription?.current_period_end ?? '',
+      ]),
+    ];
+    csvDownload('users-roles-plans.csv', rows);
+    success('Exported users CSV');
+  };
+
   const moderatePost = async (slug: string, action: 'approve' | 'reject') => {
     try {
       const res = await fetch('/api/blog/moderate', {
@@ -200,9 +324,7 @@ export default function AdminIndex() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        success(
-          data?.message || `Post ${action === 'approve' ? 'approved' : 'rejected'}`
-        );
+        success(data?.message || `Post ${action === 'approve' ? 'approved' : 'rejected'}`);
       } else {
         toastError(data?.error || 'Moderation failed');
       }
@@ -214,15 +336,20 @@ export default function AdminIndex() {
   const approvePost = (slug: string) => moderatePost(slug, 'approve');
   const rejectPost = (slug: string) => moderatePost(slug, 'reject');
 
-  const filteredSignups = signups.filter((s) =>
-    q ? (s.name + s.email).toLowerCase().includes(q.toLowerCase()) : true
+  const filteredSignups = useMemo(
+    () => signups.filter((s) => (qDebounced ? (s.name + s.email).toLowerCase().includes(qDebounced.toLowerCase()) : true)),
+    [signups, qDebounced]
   );
-  const filteredTickets = tickets.filter((t) =>
-    q ? (t.ticketId + t.email + t.subject).toLowerCase().includes(q.toLowerCase()) : true
+  const filteredTickets = useMemo(
+    () =>
+      tickets.filter((t) =>
+        qDebounced ? (t.ticketId + t.email + t.subject).toLowerCase().includes(qDebounced.toLowerCase()) : true
+      ),
+    [tickets, qDebounced]
   );
 
   return (
-    <RoleGuard allow={['admin', 'teacher'] as any}>
+    <RoleGuard allow={['admin'] as any}>
       <Head>
         <title>Admin • Overview</title>
       </Head>
@@ -233,7 +360,7 @@ export default function AdminIndex() {
           <div>
             <h1 className="text-h2 md:text-h1 font-semibold tracking-tight">Admin Dashboard</h1>
             <p className="text-small text-muted-foreground mt-1">
-              Overview of IELTS modules, AI evaluation, blog moderation, and support operations.
+              Users & roles, subscriptions, IELTS modules, AI ops, and support — all in one place.
             </p>
           </div>
 
@@ -264,22 +391,186 @@ export default function AdminIndex() {
             </select>
 
             <input
+              ref={qRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search (students, tickets)…"
+              placeholder="Press / to search…"
               className="h-9 rounded-xl border bg-transparent px-3 text-small w-56"
+              aria-label="Global search"
             />
             <button
-              onClick={exportCSV}
+              onClick={exportPerfCSV}
               className="h-9 rounded-xl border px-3 text-small hover:bg-muted"
-              aria-label="Export CSV"
+              aria-label="Export Module CSV"
             >
-              Export CSV
+              Export Modules CSV
             </button>
           </div>
         </div>
 
-        {/* Quick Nav */}
+        {/* ===== Users & Roles (primary admin block) ===== */}
+        <section className="mt-8 rounded-2xl border overflow-hidden bg-card">
+          <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-h4 font-semibold">Users • Roles • Subscriptions</h2>
+              <p className="text-caption text-muted-foreground">Sourced from /api/admin/users</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value as typeof roleFilter);
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border bg-transparent px-3 text-small"
+                aria-label="Role filter"
+              >
+                <option value="all">All roles</option>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
+              </select>
+              <select
+                value={planFilter}
+                onChange={(e) => {
+                  setPlanFilter(e.target.value as typeof planFilter);
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border bg-transparent px-3 text-small"
+                aria-label="Plan filter"
+              >
+                <option value="all">All plans</option>
+                <option value="free">Free</option>
+                <option value="starter">Starter</option>
+                <option value="booster">Booster</option>
+                <option value="master">Master</option>
+              </select>
+              <button
+                onClick={exportUsersCSV}
+                className="h-9 rounded-xl border px-3 text-small hover:bg-muted"
+                aria-label="Export Users CSV"
+                title="⌘/Ctrl + E"
+              >
+                Export Users CSV
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t">
+            {usersLoading ? (
+              <SkeletonRows rows={6} />
+            ) : usersErr ? (
+              <div className="p-4 text-danger">{usersErr}</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-4 text-small text-muted-foreground">No users match your filters.</div>
+            ) : (
+              <table className="w-full text-small">
+                <thead className="text-left text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Role</th>
+                    <th className="p-3">Plan</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Period End</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedUsers.map((u) => {
+                    const plan = u.subscription?.plan_id ?? 'free';
+                    const status = u.subscription?.status ?? '—';
+                    const end = u.subscription?.current_period_end
+                      ? new Date(u.subscription.current_period_end).toLocaleString()
+                      : '—';
+                    return (
+                      <tr key={u.id} className="border-b last:border-0">
+                        <td className="p-3">
+                          <div className="font-medium">{u.full_name ?? '—'}</div>
+                          <div className="text-caption text-muted-foreground font-mono">{u.id.slice(0, 8)}…</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="truncate max-w-[26ch]" title={u.email ?? '—'}>
+                            {u.email ?? '—'}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`rounded-full px-2 py-0.5 text-caption border ${clsBadgeTone(
+                            u.role === 'admin' ? 'success' : u.role === 'teacher' ? 'warning' : 'muted'
+                          )}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="p-3 capitalize">{plan}</td>
+                        <td className="p-3">
+                          <span className={`rounded-full px-2 py-0.5 text-caption border ${clsBadgeTone(
+                            status === 'active'
+                              ? 'success'
+                              : status === 'trialing' || status === 'past_due'
+                              ? 'warning'
+                              : status === 'canceled'
+                              ? 'danger'
+                              : 'muted'
+                          )}`}>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-caption text-muted-foreground">{end}</td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Link className="text-caption underline" href={`/admin/students?id=${u.id}`}>
+                              View →
+                            </Link>
+                            {u.email && (
+                              <button
+                                className="text-caption underline"
+                                onClick={() => navigator.clipboard.writeText(u.email!).then(() => success('Email copied'))}
+                                aria-label="Copy email"
+                              >
+                                Copy email
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* pagination */}
+          {filteredUsers.length > pageSize && (
+            <div className="flex items-center justify-between p-3 border-t">
+              <div className="text-caption text-muted-foreground">
+                Showing {(pageSafe - 1) * pageSize + 1}–{Math.min(pageSafe * pageSize, filteredUsers.length)} of{' '}
+                {filteredUsers.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="h-8 rounded-lg border px-2 text-caption hover:bg-muted disabled:opacity-50"
+                  disabled={pageSafe === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <div className="text-caption">
+                  Page {pageSafe} / {totalPages}
+                </div>
+                <button
+                  className="h-8 rounded-lg border px-2 text-caption hover:bg-muted disabled:opacity-50"
+                  disabled={pageSafe === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ===== Quick Nav ===== */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
           {[
             { label: 'Students', href: '/admin/students?active=1', roles: ['admin', 'teacher'] },
@@ -293,24 +584,14 @@ export default function AdminIndex() {
           ]
             .filter((item) => !role || item.roles.includes(role))
             .map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="group rounded-2xl border p-3 hover:bg-muted transition"
-              >
+              <Link key={item.label} href={item.href} className="group rounded-2xl border p-3 hover:bg-muted transition">
                 <div className="font-medium">{item.label}</div>
                 <div className="text-caption text-muted-foreground group-hover:underline">Open →</div>
               </Link>
             ))}
         </div>
 
-        {role === 'admin' && (
-          <Link href="/admin/users" className="font-medium text-primary hover:underline">
-            Manage Users
-          </Link>
-        )}
-
-        {/* KPI Cards */}
+        {/* ===== KPI Cards ===== */}
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {kpis.map((k) => (
             <Link
@@ -325,7 +606,7 @@ export default function AdminIndex() {
           ))}
         </section>
 
-        {/* Module Health */}
+        {/* ===== Module Health ===== */}
         <section className="mt-8">
           <h2 className="text-h4 font-semibold">IELTS Module Health</h2>
           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -357,7 +638,7 @@ export default function AdminIndex() {
           </div>
         </section>
 
-        {/* Three-up: AI Queue + Recent Signups + System Status */}
+        {/* ===== Three-up: AI Queue + Recent Signups + System Status ===== */}
         <section className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-4">
           {/* AI Queue */}
           <div className="rounded-2xl border overflow-hidden">
@@ -494,7 +775,7 @@ export default function AdminIndex() {
           </div>
         </section>
 
-        {/* Two-up: Blog Moderation + Support Tickets */}
+        {/* ===== Two-up: Blog Moderation + Support Tickets ===== */}
         <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Blog Moderation Queue */}
           <div className="rounded-2xl border overflow-hidden">
@@ -539,10 +820,7 @@ export default function AdminIndex() {
                         <td className="p-3">
                           <div className="flex flex-wrap gap-1">
                             {b.tags.map((t) => (
-                              <span
-                                key={t}
-                                className="px-2 py-0.5 rounded-lg text-caption bg-white/60 dark:bg-white/10"
-                              >
+                              <span key={t} className="px-2 py-0.5 rounded-lg text-caption bg-white/60 dark:bg-white/10">
                                 #{t}
                               </span>
                             ))}
@@ -641,37 +919,22 @@ export default function AdminIndex() {
           </div>
         </section>
 
-        {/* CTA Row */}
+        {/* ===== CTA Row ===== */}
         {role === 'admin' && (
           <section className="mt-8 flex flex-wrap gap-2">
-            <Link
-              href="/admin/reports?range=last-30d&module=all"
-              className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted"
-            >
+            <Link href="/admin/reports?range=last-30d&module=all" className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted">
               Generate Monthly Report
             </Link>
-            <Link
-              href="/admin/teachers?invite=1"
-              className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted"
-            >
+            <Link href="/admin/teachers?invite=1" className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted">
               Invite Teacher
             </Link>
-            <Link
-              href="/admin/tools/cache?invalidate=1"
-              className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted"
-            >
+            <Link href="/admin/tools/cache?invalidate=1" className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted">
               Invalidate Caches
             </Link>
-            <Link
-              href="/admin/blog/new"
-              className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted"
-            >
+            <Link href="/admin/blog/new" className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted">
               Compose Blog Post
             </Link>
-            <Link
-              href="/admin/system/sync"
-              className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted"
-            >
+            <Link href="/admin/system/sync" className="rounded-xl border px-4 h-10 inline-grid place-items-center hover:bg-muted">
               Run Nightly Sync
             </Link>
           </section>
@@ -693,11 +956,6 @@ function SkeletonRows({ rows = 3 }: { rows?: number }) {
 }
 
 function StatusDot({ state }: { state: ProviderStatus['state'] }) {
-  const cls =
-    state === 'ok'
-      ? 'bg-success'
-      : state === 'degraded'
-      ? 'bg-warning'
-      : 'bg-danger';
+  const cls = state === 'ok' ? 'bg-success' : state === 'degraded' ? 'bg-warning' : 'bg-danger';
   return <span className={`inline-block w-2.5 h-2.5 rounded-full ${cls}`} aria-hidden="true" />;
 }

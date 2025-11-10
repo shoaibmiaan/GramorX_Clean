@@ -21,7 +21,7 @@ import { useLocale } from '@/lib/locale';
 type FieldErrors = {
   fullName?: string;
   preferredLanguage?: string;
-  goalBand?: string;
+  targetBand?: string;
   examDate?: string;
 };
 
@@ -39,7 +39,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fullName, setFullName] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('en');
-  const [goalBand, setGoalBand] = useState('');
+  const [targetBand, setTargetBand] = useState('');
   const [examDate, setExamDate] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -74,9 +74,9 @@ export default function ProfilePage() {
         setProfile(nextProfile);
         setFullName(nextProfile.full_name ?? '');
         setPreferredLanguage(nextProfile.preferred_language ?? 'en');
-        setGoalBand(
-          typeof nextProfile.goal_band === 'number'
-            ? nextProfile.goal_band.toFixed(Number.isInteger(nextProfile.goal_band) ? 0 : 1)
+        setTargetBand(
+          typeof nextProfile.target_band === 'number'
+            ? nextProfile.target_band.toFixed(Number.isInteger(nextProfile.target_band) ? 0 : 1)
             : '',
         );
         setExamDate(nextProfile.exam_date?.slice?.(0, 10) ?? '');
@@ -115,14 +115,14 @@ export default function ProfilePage() {
       errors.preferredLanguage = t('profile.form.language.supported', 'Select a supported language.');
     }
 
-    let parsedGoal: number | null = null;
-    if (goalBand.trim()) {
-      parsedGoal = Number(goalBand);
-      const isValidNumber = Number.isFinite(parsedGoal);
-      const isInRange = parsedGoal >= 4 && parsedGoal <= 9;
-      const isHalfStep = Math.abs(parsedGoal * 2 - Math.round(parsedGoal * 2)) < 0.001;
+    let parsedTarget: number | null = null;
+    if (targetBand.trim()) {
+      parsedTarget = Number(targetBand);
+      const isValidNumber = Number.isFinite(parsedTarget);
+      const isInRange = parsedTarget >= 4 && parsedTarget <= 9;
+      const isHalfStep = Math.abs(parsedTarget * 2 - Math.round(parsedTarget * 2)) < 0.001;
       if (!isValidNumber || !isInRange || !isHalfStep) {
-        errors.goalBand = t(
+        errors.targetBand = t(
           'profile.form.band.range',
           'Target band must be between 4.0 and 9.0 in 0.5 steps.',
         );
@@ -133,18 +133,20 @@ export default function ProfilePage() {
       const parsedDate = new Date(examDate);
       if (Number.isNaN(parsedDate.getTime())) {
         errors.examDate = t('profile.form.date.valid', 'Enter a valid exam date.');
+      } else if (parsedDate < new Date()) {
+        errors.examDate = t('profile.form.date.future', 'Exam date must be in the future.');
       }
     }
 
     setFieldErrors(errors);
-    return { isValid: Object.keys(errors).length === 0, parsedGoal, trimmedName };
+    return { isValid: Object.keys(errors).length === 0, parsedTarget, trimmedName };
   };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile) return;
 
-    const { isValid, parsedGoal, trimmedName } = validate();
+    const { isValid, parsedTarget, trimmedName } = validate();
     if (!isValid) {
       toastError(t('profile.form.fix', 'Please fix the highlighted fields.'));
       return;
@@ -155,15 +157,15 @@ export default function ProfilePage() {
       const updated = await upsertProfile({
         full_name: trimmedName,
         preferred_language: preferredLanguage,
-        goal_band: parsedGoal ?? undefined,
+        target_band: parsedTarget ?? undefined,
         exam_date: examDate || null,
       });
       setProfile(updated);
       setFullName(updated.full_name ?? trimmedName);
       setPreferredLanguage(updated.preferred_language ?? preferredLanguage);
-      setGoalBand(
-        typeof updated.goal_band === 'number'
-          ? updated.goal_band.toFixed(Number.isInteger(updated.goal_band) ? 0 : 1)
+      setTargetBand(
+        typeof updated.target_band === 'number'
+          ? updated.target_band.toFixed(Number.isInteger(updated.target_band) ? 0 : 1)
           : '',
       );
       setExamDate(updated.exam_date?.slice?.(0, 10) ?? '');
@@ -264,9 +266,9 @@ export default function ProfilePage() {
                   min={4}
                   max={9}
                   step={0.5}
-                  value={goalBand}
-                  onChange={(event) => setGoalBand(event.target.value)}
-                  error={fieldErrors.goalBand ?? null}
+                  value={targetBand}
+                  onChange={(event) => setTargetBand(event.target.value)}
+                  error={fieldErrors.targetBand ?? null}
                   helperText={t('profile.form.band.helper', '4.0 – 9.0 in 0.5 steps')}
                 />
                 <Input

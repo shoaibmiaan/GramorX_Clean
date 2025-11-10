@@ -1,6 +1,4 @@
-// pages/api/auth/set-session.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-
 import { getServerClient } from '@/lib/supabaseServer';
 
 type SupabaseSession = {

@@ -17,7 +17,8 @@ import { AnimationProvider } from '@/components/providers/AnimationProvider';
 
 import { ToastProvider } from '@/components/design-system/Toaster';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
-import { supabaseBrowser } from '@/lib/supabaseBrowser';
+// ❗️Use a safe getter so it works whether supabaseBrowser is a factory or an instance
+import { supabaseBrowser as supabaseClientSource } from '@/lib/supabaseBrowser';
 import { env } from '@/lib/env';
 import { LocaleProvider, useLocale } from '@/lib/locale';
 import { initIdleTimeout } from '@/utils/idleTimeout';
@@ -43,6 +44,12 @@ const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }
 );
+
+// ---- Safe Supabase getter (works for both factory or instance exports)
+function getSupa() {
+  const v: any = supabaseClientSource as any;
+  return typeof v === 'function' ? v() : v;
+}
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -243,7 +250,8 @@ function useAuthBridge() {
     let isMounted = true;
 
     (async () => {
-      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      const supa = getSupa();
+      const { data: { session } } = await supa.auth.getSession();
       if (!isMounted) return;
 
       if (session) {
@@ -265,7 +273,8 @@ function useAuthBridge() {
     })();
 
     if (!subscribedRef.current) {
-      const { data: { subscription} } = supabaseBrowser.auth.onAuthStateChange((event, sessionNow) => {
+      const supa = getSupa();
+      const { data: { subscription } } = supa.auth.onAuthStateChange((event, sessionNow) => {
         (async () => {
           await bridgeSession(event, sessionNow);
 
@@ -287,8 +296,7 @@ function useAuthBridge() {
       subscribedRef.current = true;
 
       return () => {
-        isMounted = false;
-        subscription?.unsubscribe();
+        (subscription as any)?.unsubscribe?.();
         subscribedRef.current = false;
         if (typeof window !== 'undefined') {
           (window as any).__GX_AUTH_BRIDGE_ACTIVE = false;
@@ -484,8 +492,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
-              {/* 🔹 Show reason banner only on /pricing, above the page content */}
-              {router.pathname === '/pricing' ? <PricingReasonBanner /> : null}
+              {/* 🔹 Show reason banner on pricing routes, above the page content */}
+              {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? <PricingReasonBanner /> : null}
               {basePage}
             </AppLayoutManager>
           </AnimationProvider>
