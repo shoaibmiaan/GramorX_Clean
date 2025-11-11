@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/design-system/EmptyState';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { Separator } from '@/components/design-system/Separator';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/types/supabase';
 import type { PlanId } from '@/types/pricing';
@@ -454,7 +454,7 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
   );
 };
 
-export const getServerSideProps: GetServerSideProps<OverviewPageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<OverviewPageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

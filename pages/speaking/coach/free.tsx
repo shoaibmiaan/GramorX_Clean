@@ -15,7 +15,7 @@ import { CoachTips } from '@/components/speaking/CoachTips';
 import exercises from '@/data/speaking/exercises.json';
 import { track } from '@/lib/analytics/track';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import type { PhonemeScore, ScoreAudioResult, WordScore } from '@/lib/speaking/scoreAudio';
 
 interface PromptCard {
@@ -47,7 +47,7 @@ type ScoreResponse = {
   phonemes: PhonemeScore[];
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

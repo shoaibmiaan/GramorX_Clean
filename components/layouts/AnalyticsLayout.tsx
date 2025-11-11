@@ -49,8 +49,8 @@ export function AnalyticsLayout({ children, userRole }: AnalyticsLayoutProps) {
         </nav>
 
         {/* Time period selector */}
-        <div className="mt-6 pt-6 border-t">
-          <h3 className="text-sm font-medium mb-2">Time Period</h3>
+        <div className="mt-6 border-t pt-6">
+          <h3 className="mb-2 text-sm font-medium">Time Period</h3>
           <div className="space-y-1">
             {['Last 7 days', 'Last 30 days', 'Last 3 months', 'All time'].map((period) => (
               <Button key={period} variant="ghost" size="sm" className="w-full justify-start">
@@ -61,9 +61,9 @@ export function AnalyticsLayout({ children, userRole }: AnalyticsLayoutProps) {
         </div>
       </aside>
 
-      <main className="flex-1 p-6">
-        {children}
-      </main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
+
+export default AnalyticsLayout;

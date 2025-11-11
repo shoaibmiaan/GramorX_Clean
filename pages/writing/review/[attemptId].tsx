@@ -15,7 +15,7 @@ import {
   RetakeGuard,
   type ReadinessState,
 } from '@/components/writing/studio';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { FeedbackJson, ScoresJson, WritingTaskType } from '@/lib/writing/schemas';
 import type { Database } from '@/types/supabase';
@@ -317,7 +317,7 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
   );
 };
 
-export const getServerSideProps: GetServerSideProps<ReviewProps> = withPlanPage('free')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<ReviewProps> = withPlan('free')(async (ctx) => {
   const { attemptId } = ctx.params as { attemptId: string };
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {

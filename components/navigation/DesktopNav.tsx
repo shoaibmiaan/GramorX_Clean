@@ -339,3 +339,6 @@ export function DesktopNav({
     </nav>
   );
 }
+
+// keep the named export AND add default:
+export default DesktopNav;

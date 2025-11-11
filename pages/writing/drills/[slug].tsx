@@ -12,7 +12,7 @@ import { TextareaAutosize } from '@/components/design-system/TextareaAutosize';
 import type { Drill, DrillCheck } from '@/lib/writing/drills';
 import { findDrillBySlug } from '@/lib/writing/drills';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/withPlan';
 
 interface DrillPageProps {
   drill: Drill;
@@ -210,7 +210,7 @@ const DrillRunner = ({ drill, completed }: DrillPageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<DrillPageProps> = withPlanPage('free')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<DrillPageProps> = withPlan('free')(async (ctx) => {
   const { slug } = ctx.params as { slug: string };
   const drill = findDrillBySlug(slug);
   if (!drill) {

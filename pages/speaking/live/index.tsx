@@ -5,8 +5,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
-import { supabaseServer } from '@/lib/supabaseServer';
+import { getServerClient } from '@/lib/supabaseServer';
 import type { LiveSessionStatus, LiveSessionType } from '@/types/supabase';
 
 type SessionListItem = {
@@ -27,10 +26,12 @@ type LiveSessionsIndexProps = {
     id: string;
     email: string | null;
   };
-  __plan: string;
 };
 
-const statusTone: Record<LiveSessionStatus, { label: string; badge: 'info' | 'success' | 'warning' | 'danger' | 'neutral' }> = {
+const statusTone: Record<
+  LiveSessionStatus,
+  { label: string; badge: 'info' | 'success' | 'warning' | 'danger' | 'neutral' }
+> = {
   pending: { label: 'Scheduled', badge: 'info' },
   active: { label: 'In progress', badge: 'success' },
   completed: { label: 'Completed', badge: 'neutral' },
@@ -45,7 +46,6 @@ const sessionTypeLabel: Record<LiveSessionType, string> = {
 
 function formatDate(value: string | null) {
   if (!value) return 'Not scheduled';
-
   try {
     const date = new Date(value);
     return new Intl.DateTimeFormat('en', {
@@ -58,8 +58,8 @@ function formatDate(value: string | null) {
 }
 
 const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer }) => {
-  const upcoming = sessions.filter((session) => session.status === 'pending' || session.status === 'active');
-  const history = sessions.filter((session) => session.status === 'completed' || session.status === 'cancelled');
+  const upcoming = sessions.filter((s) => s.status === 'pending' || s.status === 'active');
+  const history = sessions.filter((s) => s.status === 'completed' || s.status === 'cancelled');
 
   return (
     <>
@@ -121,11 +121,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            <Button
-                              href={`/speaking/live/${session.id}`}
-                              variant="primary"
-                              className="rounded-ds-xl"
-                            >
+                            <Button href={`/speaking/live/${session.id}`} variant="primary" className="rounded-ds-xl">
                               Open session
                             </Button>
                           </div>
@@ -171,25 +167,26 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
                   const topic = typeof rawTopic === 'string' ? rawTopic : null;
 
                   return (
-                    <Card key={session.id} padding="md" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Card
+                      key={session.id}
+                      padding="md"
+                      className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                    >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={status.badge}>{status.label}</Badge>
                           <Badge variant="neutral">{sessionTypeLabel[session.type]}</Badge>
                         </div>
-                        <p className="mt-1 text-body font-medium text-foreground">{topic ?? 'Live speaking session'}</p>
+                        <p className="mt-1 text-body font-medium text-foreground">
+                          {topic ?? 'Live speaking session'}
+                        </p>
                         <p className="text-small text-mutedText">
                           {session.status === 'completed'
                             ? `Completed ${formatDate(session.endedAt ?? session.startedAt ?? session.scheduledAt)}`
                             : `Cancelled ${formatDate(session.endedAt ?? session.scheduledAt)}`}
                         </p>
                       </div>
-                      <Button
-                        href={`/speaking/live/${session.id}`}
-                        variant="soft"
-                        tone="primary"
-                        className="rounded-ds-xl"
-                      >
+                      <Button href={`/speaking/live/${session.id}`} variant="soft" tone="primary" className="rounded-ds-xl">
                         View details
                       </Button>
                     </Card>
@@ -204,8 +201,8 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
   );
 };
 
-export const getServerSideProps: GetServerSideProps = withPlanPage('starter')(async (ctx) => {
-  const supabase = supabaseServer(ctx.req as any, ctx.res as any);
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
 
@@ -216,18 +213,20 @@ export const getServerSideProps: GetServerSideProps = withPlanPage('starter')(as
         destination: `/welcome?from=${from}`,
         permanent: false,
       },
-    } as any;
+    };
   }
 
   const { data: rows = [] } = await supabase
     .from('speaking_sessions')
-    .select('id, type, status, scheduled_at, started_at, ended_at, metadata, host_user_id, participant_user_id, created_at')
+    .select(
+      'id, type, status, scheduled_at, started_at, ended_at, metadata, host_user_id, participant_user_id, created_at'
+    )
     .or(`host_user_id.eq.${user.id},participant_user_id.eq.${user.id}`)
     .order('scheduled_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const sessions: SessionListItem[] = rows.map((row: any) => ({
+  const sessions: SessionListItem[] = (rows as any[]).map((row) => ({
     id: row.id,
     type: row.type as LiveSessionType,
     status: row.status as LiveSessionStatus,
@@ -248,6 +247,6 @@ export const getServerSideProps: GetServerSideProps = withPlanPage('starter')(as
       },
     },
   };
-});
+};
 
 export default LiveSessionsIndex;

@@ -50,8 +50,8 @@ export function ResourcesLayout({ children, userRole }: ResourcesLayoutProps) {
         </nav>
 
         {/* Quick actions */}
-        <div className="mt-6 pt-6 border-t">
-          <h3 className="text-sm font-medium mb-2">Quick Access</h3>
+        <div className="mt-6 border-t pt-6">
+          <h3 className="mb-2 text-sm font-medium">Quick Access</h3>
           <div className="space-y-2">
             <Button variant="outline" size="sm" className="w-full" asChild>
               <Link href="/resources?filter=recent">Recent</Link>
@@ -63,9 +63,9 @@ export function ResourcesLayout({ children, userRole }: ResourcesLayoutProps) {
         </div>
       </aside>
 
-      <main className="flex-1 p-6">
-        {children}
-      </main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
+
+export default ResourcesLayout;

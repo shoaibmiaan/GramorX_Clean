@@ -14,7 +14,6 @@ import { CoachTips } from '@/components/speaking/CoachTips';
 import exercises from '@/data/speaking/exercises.json';
 import { track } from '@/lib/analytics/track';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
 import type { PhonemeScore, ScoreAudioResult, WordScore } from '@/lib/speaking/scoreAudio';
 
 interface ExerciseDetail {
@@ -67,7 +66,7 @@ type RecorderPayload = {
   url: string;
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const { slug } = ctx.params as { slug: string };
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
@@ -99,7 +98,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
 
   const { data: attemptsData } = await supabase
     .from('speaking_attempts')
-    .select('id, created_at, overall_pron, overall_intonation, overall_stress, overall_fluency, band_estimate, wpm, fillers_count')
+    .select(
+      'id, created_at, overall_pron, overall_intonation, overall_stress, overall_fluency, band_estimate, wpm, fillers_count'
+    )
     .eq('user_id', user.id)
     .eq('exercise_id', exerciseRow.id)
     .order('created_at', { ascending: false })
@@ -135,7 +136,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('s
       })),
     },
   };
-});
+};
 
 function formatTimestamp(iso: string) {
   return new Intl.DateTimeFormat('en', {
@@ -253,13 +254,18 @@ const DrillPage = ({ exercise, attempts }: PageProps) => {
     const [current, previous] = history;
     if (!current || !previous) return null;
     return {
-      pron: current.overall.pron != null && previous.overall.pron != null ? current.overall.pron - previous.overall.pron : null,
+      pron:
+        current.overall.pron != null && previous.overall.pron != null
+          ? current.overall.pron - previous.overall.pron
+          : null,
       fluency:
         current.overall.fluency != null && previous.overall.fluency != null
           ? current.overall.fluency - previous.overall.fluency
           : null,
       band:
-        current.overall.band != null && previous.overall.band != null ? current.overall.band - previous.overall.band : null,
+        current.overall.band != null && previous.overall.band != null
+          ? current.overall.band - previous.overall.band
+          : null,
     };
   }, [history]);
 

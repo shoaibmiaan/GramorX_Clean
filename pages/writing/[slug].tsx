@@ -20,7 +20,7 @@ import {
   trackClientHedgingViewed,
 } from '@/lib/analytics/writing-events';
 import { enqueueOfflineDraft, flushOfflineDrafts } from '@/lib/writing/offlineQueue';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { getServerClient } from '@/lib/supabaseServer';
 import { countWords } from '@/lib/storage/drafts';
 import { splitParagraphs, type LiveSuggestion } from '@/lib/writing/languageTools';
@@ -484,7 +484,7 @@ const WritingPromptPage = ({ prompt, attempt }: PromptPageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<PromptPageProps> = withPlanPage('free')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PromptPageProps> = withPlan('free')(async (ctx) => {
   const { slug } = ctx.params as { slug: string };
   const attemptId = typeof ctx.query.attemptId === 'string' ? ctx.query.attemptId : null;
 

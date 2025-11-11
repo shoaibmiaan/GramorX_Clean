@@ -24,8 +24,8 @@ export function SupportLayout({ children, userRole }: SupportLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto">
-        <div className="p-6 border-b">
+      <div className="mx-auto max-w-6xl">
+        <div className="border-b p-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Support Center</h1>
@@ -37,14 +37,9 @@ export function SupportLayout({ children, userRole }: SupportLayoutProps) {
           </div>
 
           {/* Navigation tabs */}
-          <nav className="flex space-x-1 mt-6">
+          <nav className="mt-6 flex space-x-1">
             {supportLinks.map((link) => (
-              <Button
-                key={link.href}
-                variant={isActive(link.href) ? 'secondary' : 'ghost'}
-                size="sm"
-                asChild
-              >
+              <Button key={link.href} variant={isActive(link.href) ? 'secondary' : 'ghost'} size="sm" asChild>
                 <Link href={link.href}>
                   <span className="flex items-center gap-2">
                     <span>{link.icon}</span>
@@ -56,10 +51,10 @@ export function SupportLayout({ children, userRole }: SupportLayoutProps) {
           </nav>
         </div>
 
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
 }
+
+export default SupportLayout;
