@@ -15,7 +15,7 @@ import {
   RetakeGuard,
   type ReadinessState,
 } from '@/components/writing/studio';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { FeedbackJson, ScoresJson, WritingTaskType } from '@/lib/writing/schemas';
 import type { Database } from '@/types/supabase';

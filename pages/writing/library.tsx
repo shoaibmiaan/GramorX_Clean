@@ -10,7 +10,7 @@ import { Input } from '@/components/design-system/Input';
 import { Select } from '@/components/design-system/Select';
 import { Separator } from '@/components/design-system/Separator';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { PlanId } from '@/types/pricing';
 import { hasPlan } from '@/lib/planAccess';

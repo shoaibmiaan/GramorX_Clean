@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 import type { LiveSessionStatus } from '@/types/supabase';
 
 const CreateSessionBody = z.object({

@@ -8,7 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
 import calibration from '@/data/writing/review-calibration';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 
 interface CalibrationAnchor {
   id: string;

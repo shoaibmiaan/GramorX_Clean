@@ -4,7 +4,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { withPlan, type PlanGuardContext } from '@/lib/withPlan';
+import { withPlan, type PlanGuardContext } from '@/lib/plan/withPlan';
 import { createRequestLogger } from '@/lib/obs/logger';
 import { recordSloSample } from '@/lib/obs/slo';
 import { applyRateLimit } from '@/lib/limits/rate';

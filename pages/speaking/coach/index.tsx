@@ -7,7 +7,7 @@ import { Container } from '@/components/design-system/Container';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import exercises from '@/data/speaking/exercises.json';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import type { SpeakingAttemptRefType } from '@/types/supabase';
 
 interface GoalDTO {

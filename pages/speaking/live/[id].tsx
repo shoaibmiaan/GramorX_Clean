@@ -7,7 +7,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { useLiveSession } from '@/hooks/useLiveSession';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { LiveSessionStatus, LiveSessionType } from '@/types/supabase';
 

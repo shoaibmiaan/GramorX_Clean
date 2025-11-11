@@ -20,7 +20,7 @@ import {
   trackClientHedgingViewed,
 } from '@/lib/analytics/writing-events';
 import { enqueueOfflineDraft, flushOfflineDrafts } from '@/lib/writing/offlineQueue';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { getServerClient } from '@/lib/supabaseServer';
 import { countWords } from '@/lib/storage/drafts';
 import { splitParagraphs, type LiveSuggestion } from '@/lib/writing/languageTools';
