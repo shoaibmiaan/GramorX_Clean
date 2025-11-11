@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 import { rateLimit } from '@/lib/rateLimit';
 import {
   createSessionLogger,

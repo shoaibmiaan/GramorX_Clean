@@ -11,7 +11,7 @@ import { getServerClient } from '@/lib/supabaseServer';
 import type { WritingExamPrompts } from '@/types/writing';
 import type { PlanId } from '@/types/pricing';
 import { planAllows, writingMockLimit } from '@/lib/plan/gates';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { useInstalledApp } from '@/hooks/useInstalledApp';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { clearMockAttemptId } from '@/lib/mock/state';

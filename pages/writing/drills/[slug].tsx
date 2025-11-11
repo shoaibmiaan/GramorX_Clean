@@ -12,7 +12,7 @@ import { TextareaAutosize } from '@/components/design-system/TextareaAutosize';
 import type { Drill, DrillCheck } from '@/lib/writing/drills';
 import { findDrillBySlug } from '@/lib/writing/drills';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 
 interface DrillPageProps {
   drill: Drill;

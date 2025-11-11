@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 import { scoreAudio, type WordScore, type PhonemeScore } from '@/lib/speaking/scoreAudio';
 
 const BodySchema = z.object({

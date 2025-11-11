@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 import { pickNextTask } from '@/lib/reco/rules';
 import type { RecommendationResult } from '@/lib/reco/rules';
 import type { Database, LearningModule, LearningProfileRow, LearningSignal, LearningTask } from '@/types/supabase';

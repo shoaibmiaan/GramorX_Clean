@@ -15,7 +15,7 @@ import { CoachTips } from '@/components/speaking/CoachTips';
 import exercises from '@/data/speaking/exercises.json';
 import { track } from '@/lib/analytics/track';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import type { PhonemeScore, ScoreAudioResult, WordScore } from '@/lib/speaking/scoreAudio';
 
 interface PromptCard {

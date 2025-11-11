@@ -1,4 +1,4 @@
-// lib/withPlanPage.ts
+// lib/plan/withPlanPage.ts
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { PlanId } from '@/types/pricing';

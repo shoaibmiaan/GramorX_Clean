@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 
 const Body = z.object({
   refereeId: z.string().uuid(),

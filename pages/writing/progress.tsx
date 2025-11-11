@@ -6,7 +6,7 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { EmptyState } from '@/components/design-system/EmptyState';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/types/supabase';
 import type { PlanId } from '@/types/pricing';

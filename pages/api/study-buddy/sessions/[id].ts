@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { withPlan } from '@/lib/withPlan';
+import { withPlan } from '@/lib/plan/withPlan';
 import { hydrateSession, createSessionLogger, type StudyBuddySession } from '@/services/study-buddy/session';
 
 const Params = z.object({

@@ -5,7 +5,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { LiveSessionStatus, LiveSessionType } from '@/types/supabase';
 

@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/design-system/EmptyState';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { Separator } from '@/components/design-system/Separator';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/types/supabase';
 import type { PlanId } from '@/types/pricing';

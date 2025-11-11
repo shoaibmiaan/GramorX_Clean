@@ -1,4 +1,6 @@
 // lib/analytics/events.ts
+
+// ---------- Types ----------
 export type AnalyticsEventName =
   | 'signup'
   | 'onboarding_completed'
@@ -107,8 +109,6 @@ export type AnalyticsEventName =
   | 'prompt_started_coach'
   | 'prompt_randomized'
   | 'prompt_pack_viewed'
-  | 'saved_view'
-  | 'saved_remove'
   | 'reading.highlight.add'
   | 'reading.note.add'
   | 'reading.flag.toggle'
@@ -121,3 +121,30 @@ export type AnalyticsEventName =
   | 'unsubscribe_clicked';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;
+
+// ---------- Core Tracker ----------
+export function track(event: AnalyticsEventName, payload: AnalyticsProps = {}): void {
+  // No-op safely on SSR and in prod if no sink exists.
+  if (typeof window === 'undefined') return;
+
+  try {
+    // Google gtag (if available)
+    // @ts-expect-error TODO(gx): add gtag type
+    window.gtag?.('event', event, payload);
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    // Generic dataLayer push (if available)
+    // @ts-expect-error TODO(gx): add dataLayer type
+    window.dataLayer?.push({ event, ...payload });
+  } catch {
+    /* ignore */
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.debug('[analytics]', event, payload);
+  }
+}

@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/design-system/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/design-system/Tabs';
 import { allDrills, type Drill } from '@/lib/writing/drills';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/withPlanPage';
+import { withPlanPage } from '@/lib/plan/withPlanPage';
 
 interface PageProps {
   drills: Drill[];
