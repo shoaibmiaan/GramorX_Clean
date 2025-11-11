@@ -12,6 +12,7 @@ import { navigationSchema } from '@/config/navigation';
 import { filterNavItems } from '@/lib/navigation/utils';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
 
 interface UserInfo {
   id: string | null;
@@ -65,7 +66,7 @@ export function DesktopNav({
   );
 
   const navItemClass =
-    'nav-pill text-small font-medium text-foreground/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+    'nav-pill text-small font-medium text-foreground/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
   // Teachers: only show Profile in menu; Sign out comes from UserMenu via onSignOut
   const profileMenu = React.useMemo(() => {
@@ -96,12 +97,14 @@ export function DesktopNav({
   const aiButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const aiToolsRef = React.useRef<HTMLLIElement | null>(null);
 
+  // Move focus into menu when opened
   React.useEffect(() => {
     if (!openAiTools) return;
     const firstLink = aiMenuRef.current?.querySelector<HTMLAnchorElement>('a,button');
     firstLink?.focus();
   }, [openAiTools]);
 
+  // Outside click + Esc to close AI menu
   React.useEffect(() => {
     if (!openAiTools) return;
 
@@ -127,6 +130,7 @@ export function DesktopNav({
     };
   }, [openAiTools]);
 
+  // Only one menu open at a time
   React.useEffect(() => {
     if (openModules) setOpenAiTools(false);
   }, [openModules]);
@@ -142,13 +146,14 @@ export function DesktopNav({
             </li>
           )}
 
-          {/* Teacher role → show only teacher entry */}
+          {/* Teacher entry */}
           {isTeacher && uid && (
             <li>
               <NavLink href="/teacher" className={navItemClass} label="Teacher" />
             </li>
           )}
 
+          {/* Main items; 'practice' is ModuleMenu */}
           {!isTeacher &&
             mainNavItems.map((item) =>
               item.id === 'practice' ? (
@@ -166,7 +171,7 @@ export function DesktopNav({
               )
             )}
 
-          {/* AI & Tools: gated by subscription tier + feature flags via filterNavItems */}
+          {/* AI & Tools */}
           {!isTeacher && aiToolItems.length > 0 && (
             <li className="relative" ref={aiToolsRef}>
               <button
@@ -176,21 +181,29 @@ export function DesktopNav({
                   if (next) setOpenModules(false);
                   setOpenAiTools(next);
                 }}
-                className={`nav-pill gap-2 text-small font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background ${openAiTools ? 'is-active' : ''}`}
+                className={`nav-pill gap-2 text-small font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background ${openAiTools ? 'is-active' : ''}`}
                 aria-haspopup="menu"
                 aria-expanded={openAiTools}
                 aria-controls="ai-tools-menu"
               >
                 <span>AI &amp; Tools</span>
-                <svg className="h-3.5 w-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <svg
+                  className="h-3.5 w-3.5 opacity-80"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
                   <path d={openAiTools ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
                 </svg>
               </button>
+
               {openAiTools && (
                 <div
                   id="ai-tools-menu"
                   ref={aiMenuRef}
-                  className="absolute right-0 top-full z-50 mt-3 w-64 rounded-xl border border-border bg-card p-3 shadow-xl"
+                  className="absolute right-0 top-full z-50 mt-3 w-64 rounded-xl border border-border bg-card p-3 shadow-lg"
                   role="menu"
                 >
                   <ul className="space-y-1">
@@ -198,12 +211,13 @@ export function DesktopNav({
                       <li key={item.id}>
                         <Link
                           href={item.href}
-                          className="flex items-start gap-2 rounded-lg px-3 py-2 text-left text-small hover:bg-muted"
+                          className="flex items-start gap-2 rounded-lg px-3 py-2 text-left text-small hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                           onClick={() => setOpenAiTools(false)}
+                          role="menuitem"
                         >
                           <span className="font-medium">{item.label}</span>
                           {item.badge && (
-                            <span className="ml-auto inline-flex items-center rounded-full bg-muted px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <span className="ml-auto inline-flex items-center rounded-full bg-surface-muted px-2 text-[10px] font-semibold uppercase tracking-wider text-foreground-muted">
                               {item.badge}
                             </span>
                           )}
@@ -216,6 +230,7 @@ export function DesktopNav({
             </li>
           )}
 
+          {/* Partners / Admin */}
           {canSeePartners && (
             <li>
               <NavLink href="/partners" className={navItemClass} label="Partners" />
@@ -227,21 +242,22 @@ export function DesktopNav({
             </li>
           )}
 
-          {/* Premium Access Status */}
+          {/* Premium Access (hover card) */}
           {hasPremiumAccess && (
             <li className="relative group">
-              <div className="flex items-center gap-1 rounded-full px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-medium">
-                <span aria-hidden="true">⭐</span>
-                <span>Premium</span>
-              </div>
-              <div className="absolute top-full right-0 z-50 mt-2 hidden w-56 group-hover:block">
-                <div className="rounded-lg border border-border bg-card p-3 shadow-lg">
-                  <div className="mb-1 text-xs font-medium text-green-600">Premium Access Active</div>
-                  <div className="mb-2 text-xs text-muted-foreground">
+              <Badge variant="accent" size="sm" className="cursor-default">
+                Premium
+              </Badge>
+
+              <div className="absolute top-full right-0 z-50 mt-2 hidden w-64 group-hover:block">
+                <div className="rounded-xl border border-border bg-card p-3 shadow-lg">
+                  <div className="mb-1 text-xs font-medium text-success">Premium Access Active</div>
+                  <div className="mb-2 text-xs text-foreground-muted">
                     Access to {premiumRooms.length} room{premiumRooms.length !== 1 ? 's' : ''}
                   </div>
+
                   {premiumRooms.length > 0 && (
-                    <div className="max-h-20 overflow-y-auto text-xs text-muted-foreground">
+                    <div className="max-h-24 overflow-y-auto text-xs text-foreground-muted">
                       {premiumRooms.slice(0, 3).map((room, idx) => (
                         <div key={idx} className="truncate">• {room}</div>
                       ))}
@@ -250,10 +266,11 @@ export function DesktopNav({
                       )}
                     </div>
                   )}
+
                   {onClearPremiumAccess && (
                     <button
                       onClick={onClearPremiumAccess}
-                      className="mt-2 text-xs text-destructive hover:opacity-80"
+                      className="mt-2 text-xs text-destructive hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded"
                     >
                       Clear All Access
                     </button>
@@ -263,14 +280,10 @@ export function DesktopNav({
             </li>
           )}
 
+          {/* Header CTA */}
           {headerCta && (
             <li className="hidden lg:block">
-              <Button
-                href={headerCta.href}
-                variant="primary"
-                size="sm"
-                className="shadow-sm"
-              >
+              <Button href={headerCta.href} variant="primary" size="sm" className="shadow-sm">
                 {headerCta.label}
               </Button>
             </li>
@@ -280,13 +293,15 @@ export function DesktopNav({
         {/* Right cluster */}
         <ul className="flex items-center gap-2">
           <li>
-          <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
+            <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
           </li>
+
           {headerOptional.notifications && (
             <li>
               <NotificationBell />
             </li>
           )}
+
           {headerOptional.themeToggle && (
             <li>
               <IconOnlyThemeToggle />
@@ -311,17 +326,12 @@ export function DesktopNav({
                   }))}
                 />
               ) : (
-                <Button
-                  href="/login"
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
+                <Button href="/login" variant="outline" size="sm" className="w-full sm:w-auto">
                   Sign in
                 </Button>
               )
             ) : (
-              <div className="h-9 w-24 animate-pulse rounded-full bg-muted" />
+              <div className="h-9 w-24 animate-pulse rounded-full bg-surface-muted" />
             )}
           </li>
         </ul>
