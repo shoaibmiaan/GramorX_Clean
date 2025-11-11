@@ -48,6 +48,9 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/writing/mock/[mockId]/start': { layout: 'default', showChrome: false },
   '/writing/mock/[mockId]/workspace': { layout: 'default', showChrome: false },
 
+  '/learn/listening': { layout: 'default', showChrome: true },
+
+
   // Writing resources (ensure _app wraps with default layout + chrome)
   '/writing/resources': { layout: 'default', showChrome: true },
 
