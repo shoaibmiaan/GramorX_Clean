@@ -1,24 +1,18 @@
-// lib/notify.ts
-export type Contact = { userId: string; email?: string | null; phone?: string | null };
+type Payload = Record<string, any>;
 
-export async function getNotificationContact(userId: string): Promise<Contact | null> {
-  return { userId, email: null, phone: null };
+export async function notify(topic: string, payload: Payload = {}) {
+  // Shim: log instead of external side-effects. Replace with real bus later.
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[notify]", topic, payload);
+  }
+  return { ok: true };
 }
 
-export async function getNotificationContactByUser(userId: string) {
-  return getNotificationContact(userId);
+export async function enqueueEvent(queue: string, payload: Payload = {}) {
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[enqueueEvent]", queue, payload);
+  }
+  return { ok: true };
 }
 
-export async function queueNotificationEvent(_evt: any) {
-  // no-op in dev
-  return { queued: true };
-}
-
-export async function dispatchPending() {
-  // no-op in dev
-  return { dispatched: 0 };
-}
-
-// optional convenience (some files import a default)
-const Notify = { getNotificationContact, getNotificationContactByUser, queueNotificationEvent, dispatchPending };
-export default Notify;
+export default notify;
