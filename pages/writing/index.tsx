@@ -151,6 +151,7 @@ export default function WritingListPage() {
   const [error, setError] = useState<string | undefined>();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
+  // Gate switch kept: if product runs in "reading-only" mode, block writing tab
   const isReadingOnly = process.env.NEXT_PUBLIC_GATE_MODE === 'reading-only';
 
   useEffect(() => {
@@ -382,37 +383,120 @@ export default function WritingListPage() {
             </div>
           )}
 
-          {/* === RESOURCES TAB === */}
+          {/* === RESOURCES TAB — FULL MODULE GATEWAY === */}
           {activeTab === 'resources' && (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {[
-                {
-                  icon: 'Search', title: 'Plan first',
-                  desc: 'Spend 5 mins outlining: intro, body paras, conclusion. Hit word count without fluff.',
-                  href: '/resources/writing#planning'
-                },
-                {
-                  icon: 'Clock', title: 'Time-box tasks',
-                  desc: 'Task 1: 20 min. Task 2: 40 min. Practice under pressure to build speed.',
-                  href: '/resources/writing#timing'
-                },
-                {
-                  icon: 'BookMarked', title: 'Band boosters',
-                  desc: 'Use varied vocab, complex structures. Avoid repetition—aim for coherence.',
-                  href: '/resources/writing#bands'
-                },
-              ].map((r, i) => (
-                <Card key={i} className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+            <div className="space-y-6">
+              {/* Gateway: 3 primary entry cards */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
-                    <Icon name={r.icon as any} />
+                    <Icon name="BookMarked" />
                   </div>
-                  <h3 className="text-xl font-semibold">{r.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{r.desc}</p>
-                  <Link href={r.href} className="mt-4 inline-flex items-center gap-2 text-electricBlue">
-                    Learn more <Icon name="ArrowRight" size={18} />
-                  </Link>
+                  <h3 className="text-xl font-semibold">Tips & Micro-Practice</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    10 focused tips + quick practice. Log attempts; progress saved server-side.
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <Link href="/writing/resources" className="inline-flex">
+                      <Button variant="primary" className="rounded-ds-xl">Open</Button>
+                    </Link>
+                    <Link href="/writing/resources" className="inline-flex">
+                      <Button variant="surface" className="rounded-ds-xl">Micro Practice</Button>
+                    </Link>
+                  </div>
                 </Card>
-              ))}
+
+                <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
+                    <Icon name="Sparkles" />
+                  </div>
+                  <h3 className="text-xl font-semibold">AI Insights</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Personalized focus areas and next micro-tasks. Starter+ (admin/teachers bypass).
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <Link href="/writing/resources" className="inline-flex">
+                      <Button variant="secondary" className="rounded-ds-xl">Open Insights</Button>
+                    </Link>
+                    <Link
+                      href="/pricing/overview?reason=plan_required&need=starter&from=/writing"
+                      className="inline-flex"
+                    >
+                      <Button variant="ghost" className="rounded-ds-xl">See Plans</Button>
+                    </Link>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
+                    <Icon name="Timer" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Timed Mock</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Jump into a full timed attempt. Build pacing and exam stamina.
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <Link href="/writing/mock" className="inline-flex">
+                      <Button variant="secondary" className="rounded-ds-xl">Begin Mock</Button>
+                    </Link>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Downloadables + Core Guides */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+                  <h4 className="text-lg font-semibold">Downloadables</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Print-friendly references.</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <Link href="/resources/writing/cheatsheet-grammar.pdf" className="inline-flex">
+                      <Button variant="surface">Grammar Cheatsheet</Button>
+                    </Link>
+                    <Link href="/resources/writing/linking-words.pdf" className="inline-flex">
+                      <Button variant="surface">Linking Words Bank</Button>
+                    </Link>
+                    <Link href="/resources/writing/task2-templates.pdf" className="inline-flex">
+                      <Button variant="surface">Task 2 Templates</Button>
+                    </Link>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+                  <h4 className="text-lg font-semibold">Core Guides</h4>
+                  <p className="text-sm text-muted-foreground mt-1">Short, practical explainers.</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <Link href="/writing/learn/task1-overview" className="inline-flex">
+                      <Button variant="surface">Task 1 Overview</Button>
+                    </Link>
+                    <Link href="/writing/learn/task2-structure" className="inline-flex">
+                      <Button variant="surface">Task 2 Structure</Button>
+                    </Link>
+                    <Link href="/writing/learn/coherence" className="inline-flex">
+                      <Button variant="surface">Coherence & Cohesion</Button>
+                    </Link>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Light “why practice > learning” nudge */}
+              <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h4 className="text-lg font-semibold">Practice > Passive Learning</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      We keep guides concise and push you to practice immediately—your progress is logged and surfaced in Insights.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href="/writing/resources" className="inline-flex">
+                      <Button variant="primary" className="rounded-ds-xl">Open Tips & Practice</Button>
+                    </Link>
+                    <Link href="/writing/mock" className="inline-flex">
+                      <Button variant="secondary" className="rounded-ds-xl">Start Timed Mock</Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
             </div>
           )}
         </Container>
