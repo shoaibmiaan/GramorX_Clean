@@ -14,17 +14,17 @@ export default function VerifyEmailPage() {
 
   const email = typeof router.query.email === 'string' ? router.query.email : '';
   const role = typeof router.query.role === 'string' ? router.query.role : '';
-  const ref  = typeof router.query.ref  === 'string' ? router.query.ref  : '';
+  const ref = typeof router.query.ref === 'string' ? router.query.ref : '';
   const rawNext = typeof router.query.next === 'string' ? router.query.next : '';
   const nextParam = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '';
 
-  // Where the user should land after clicking the magic link
+  // Where the user should land after clicking the magic link → ONBOARDING
   const next = useMemo(() => {
     if (nextParam) return nextParam;
     const qs = new URLSearchParams();
     if (role) qs.set('role', role);
     if (ref) qs.set('ref', ref);
-    const path = '/welcome';
+    const path = '/onboarding';
     const s = qs.toString();
     return s ? `${path}?${s}` : path;
   }, [nextParam, ref, role]);
@@ -72,6 +72,7 @@ export default function VerifyEmailPage() {
       if (ref) verificationParams.set('ref', ref);
 
       const { error } = await supabase.auth.resend({
+        // @ts-expect-error supabase-js may not expose resend type yet
         type: 'signup',
         email,
         options: {
@@ -142,67 +143,29 @@ export default function VerifyEmailPage() {
               : 'Resend verification email'}
         </Button>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Button asChild variant="secondary" className="w-full">
-            <a href={gmailUrl} target="_blank" rel="noreferrer">
-              Open Gmail
-            </a>
-          </Button>
-
-          <Button asChild variant="secondary" className="w-full">
-            <a href={outlookUrl} target="_blank" rel="noreferrer">
-              Open Outlook
-            </a>
-          </Button>
+        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <span>Quick links:</span>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <a href={gmailUrl} target="_blank" rel="noreferrer">
+                Open Gmail
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="secondary">
+              <a href={outlookUrl} target="_blank" rel="noreferrer">
+                Open Outlook
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="ghost">
+              <a href={mailto}>Write to support</a>
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 text-center">
-        <a className="underline" href={mailto}>
-          Open default mail app
-        </a>
-      </div>
-
-      <div className="mt-8 space-y-2 text-sm text-muted-foreground">
-        <p className="font-medium">Didn’t get the email?</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Check spam/promotions folder.</li>
-          <li>Ensure <code>no-reply@supabase.io</code> isn’t blocked.</li>
-          <li>Try resending after a delay.</li>
-        </ul>
-      </div>
-
-      <div className="mt-4 text-center space-y-2">
-        {(() => {
-          const qp = new URLSearchParams();
-          if (role) qp.set('role', role);
-          if (ref) qp.set('ref', ref);
-          if (nextParam) qp.set('next', nextParam);
-          const suffix = qp.toString();
-          return (
-            <Link
-              href={`/signup/email${suffix ? `?${suffix}` : ''}`}
-              className="text-primary underline block"
-            >
-              Use a different email
-            </Link>
-          );
-        })()}
-        {(() => {
-          const qp = new URLSearchParams();
-          if (role) qp.set('role', role);
-          if (nextParam) qp.set('next', nextParam);
-          const suffix = qp.toString();
-          return (
-            <Link
-              href={`/login${suffix ? `?${suffix}` : ''}`}
-              className="text-primary underline block"
-            >
-              Back to Log in
-            </Link>
-          );
-        })()}
-      </div>
+      <Button asChild variant="secondary" className="mt-6 rounded-ds-xl" fullWidth>
+        <Link href="/signup">Back to Sign-up Options</Link>
+      </Button>
     </div>
   );
 }

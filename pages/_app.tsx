@@ -204,83 +204,122 @@ function useAuthBridge() {
   const lastBridgeKeyRef = useRef<string | null>(null);
   const subscribedRef = useRef(false);
 
-  const bridgeSession = useCallback(async (event: AuthChangeEvent, sessionNow: Session | null) => {
-    const shouldPost = event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
-    if (!shouldPost) return;
+  const bridgeSession = useCallback(
+    async (event: AuthChangeEvent, sessionNow: Session | null) => {
+      const shouldPost =
+        event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
+      if (!shouldPost) return;
 
-    if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
+      // For SIGNED_IN / TOKEN_REFRESHED → need a token
+      if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
 
-    const token = sessionNow?.access_token ?? '';
-    const dedupeKey = `${event}:${token}`;
-    if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
+      const token = sessionNow?.access_token ?? '';
+      const dedupeKey = `${event}:${token}`;
 
-    if (syncingRef.current) return;
-    syncingRef.current = true;
+      // Avoid spamming the API with repeated events for the same token
+      if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
+      lastBridgeKeyRef.current = event === 'SIGNED_OUT' ? null : dedupeKey;
 
-    const previousKey = lastBridgeKeyRef.current;
-    try {
-      await fetch('/api/auth/set-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ event, session: sessionNow }),
-      });
-      lastBridgeKeyRef.current = dedupeKey;
-    } catch {
-      lastBridgeKeyRef.current = previousKey;
-    } finally {
-      syncingRef.current = false;
-    }
-
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
-      void refreshClientFlags();
-    }
-  }, []);
+      try {
+        await fetch('/api/auth/set-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ event, session: sessionNow }),
+        });
+      } catch (err) {
+        console.error('Failed to bridge auth session:', err);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (IS_CI) return;
 
     if (typeof window !== 'undefined') {
+      // Prevent multiple bridges in multi-mount scenarios
       if ((window as any).__GX_AUTH_BRIDGE_ACTIVE) return;
       (window as any).__GX_AUTH_BRIDGE_ACTIVE = true;
     }
 
-    let isMounted = true;
+    let cancelled = false;
 
     (async () => {
       const supa = getSupa();
-      const { data: { session } } = await supa.auth.getSession();
-      if (!isMounted) return;
 
-      if (session) {
-        await bridgeSession('SIGNED_IN', session);
-      } else {
-        await bridgeSession('SIGNED_OUT', null);
+      // Initial sync: get current session and push it to the server
+      syncingRef.current = true;
+      const {
+        data: { session },
+      } = await supa.auth.getSession();
+
+      if (!cancelled) {
+        if (session) {
+          await bridgeSession('SIGNED_IN', session);
+        } else {
+          await bridgeSession('SIGNED_OUT', null);
+        }
+
+        // Hydrate feature/plan flags once we know who the user is
+        if (!flagsHydratedRef.current) {
+          void refreshClientFlags();
+        }
+
+        // If user hits /login or /signup while already logged in → send them to their area
+        if (session?.user && isAuthPage(router.pathname)) {
+          const pathname = router.pathname;
+          const isSpecialAuthHandler =
+            pathname === '/auth/callback' ||
+            pathname === '/auth/confirm' ||
+            pathname === '/auth/verify';
+
+          // Let /auth/callback, /auth/confirm, /auth/verify control their own redirects
+          if (!isSpecialAuthHandler) {
+            const url = new URL(window.location.href);
+            const next = url.searchParams.get('next');
+            const target =
+              next && next.startsWith('/')
+                ? next
+                : destinationByRole(session.user) ?? '/';
+
+            router.replace(target);
+          }
+        }
       }
 
-      if (!flagsHydratedRef.current) {
-        void refreshClientFlags();
-      }
-
-      if (session?.user && isAuthPage(router.pathname)) {
-        const url = new URL(window.location.href);
-        const next = url.searchParams.get('next');
-        const target = next && next.startsWith('/') ? next : destinationByRole(session.user) ?? '/';
-        router.replace(target);
-      }
+      syncingRef.current = false;
     })();
 
     if (!subscribedRef.current) {
       const supa = getSupa();
-      const { data: { subscription } } = supa.auth.onAuthStateChange((event, sessionNow) => {
+
+      const {
+        data: { subscription },
+      } = supa.auth.onAuthStateChange((event, sessionNow) => {
         (async () => {
+          if (cancelled) return;
+
           await bridgeSession(event, sessionNow);
 
           if (event === 'SIGNED_IN' && sessionNow?.user) {
-            const url = new URL(window.location.href);
-            const next = url.searchParams.get('next');
-            if (next && next.startsWith('/')) router.replace(next);
-            else if (isAuthPage(router.pathname)) router.replace(destinationByRole(sessionNow.user));
+            const pathname = router.pathname;
+            const isSpecialAuthHandler =
+              pathname === '/auth/callback' ||
+              pathname === '/auth/confirm' ||
+              pathname === '/auth/verify';
+
+            // ✅ Do NOT override redirects for the auth handler pages themselves
+            if (!isSpecialAuthHandler) {
+              const url = new URL(window.location.href);
+              const next = url.searchParams.get('next');
+
+              if (next && next.startsWith('/')) {
+                router.replace(next);
+              } else if (isAuthPage(pathname)) {
+                router.replace(destinationByRole(sessionNow.user));
+              }
+            }
           }
 
           if (event === 'SIGNED_OUT') {
@@ -294,6 +333,7 @@ function useAuthBridge() {
       subscribedRef.current = true;
 
       return () => {
+        cancelled = true;
         (subscription as any)?.unsubscribe?.();
         subscribedRef.current = false;
         if (typeof window !== 'undefined') {

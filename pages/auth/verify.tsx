@@ -1,3 +1,4 @@
+// pages/auth/verify.tsx
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import { useRouter } from 'next/router';
 import { Card } from '@/components/design-system/Card';
 import { Alert } from '@/components/design-system/Alert';
 import { Button } from '@/components/design-system/Button';
-import { supabase } from '@/lib/supabaseClient'; // Replaced supabaseBrowser
+import { supabase } from '@/lib/supabaseClient'; // uses the shared client (exchangeCodeForSession)
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -21,12 +22,13 @@ export default function VerifyPage() {
   const role = typeof query.role === 'string' ? query.role : '';
   const nextParam = typeof query.next === 'string' ? query.next : '';
 
+  // DEFAULT POST-VERIFY LANDING → ONBOARDING
   const welcomeHref = React.useMemo(() => {
     const params = new URLSearchParams();
     if (role) params.set('role', role);
     if (ref) params.set('ref', ref);
     const search = params.toString();
-    return `/welcome${search ? `?${search}` : ''}`;
+    return `/onboarding${search ? `?${search}` : ''}`;
   }, [ref, role]);
 
   const redirectHref = React.useMemo(() => {

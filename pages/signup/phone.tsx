@@ -1,3 +1,4 @@
+// pages/signup/phone.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -85,7 +86,9 @@ export default function SignupWithPhone() {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
       });
-      try { await supabase.auth.updateUser({ data: { status: 'active' } }); } catch {}
+      try {
+        await supabase.auth.updateUser({ data: { status: 'active' } });
+      } catch {}
       if (referral) {
         try {
           await fetch('/api/referrals/redeem', {
@@ -98,7 +101,8 @@ export default function SignupWithPhone() {
           });
         } catch {}
       }
-      router.push('/welcome');
+      // AFTER SMS SIGNUP → ONBOARDING
+      router.push('/onboarding');
     }
   }
 
@@ -149,7 +153,11 @@ export default function SignupWithPhone() {
             onChange={(e) => {
               const v = e.target.value;
               setPhone(v);
-              setPhoneErr(!v || isValidE164Phone(v.trim()) ? null : 'Enter your phone number in E.164 format, e.g. +923001234567');
+              setPhoneErr(
+                !v || isValidE164Phone(v.trim())
+                  ? null
+                  : 'Enter your phone number in E.164 format, e.g. +923001234567'
+              );
             }}
             required
             hint="Use E.164 format, e.g. +923001234567"

@@ -1,3 +1,4 @@
+// pages/signup/email.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -15,7 +16,7 @@ import { getAuthErrorMessage } from '@/lib/authErrors';
 export default function SignUpWithEmail() {
   const router = useRouter();
   const role = typeof router.query?.role === 'string' ? (router.query.role as string) : '';
-  const ref  = typeof router.query?.ref === 'string'  ? (router.query.ref as string)  : '';
+  const ref = typeof router.query?.ref === 'string' ? (router.query.ref as string) : '';
   const rawNext = typeof router.query?.next === 'string' ? (router.query.next as string) : '';
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '';
 
@@ -54,11 +55,11 @@ export default function SignUpWithEmail() {
       const origin =
         typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 
-      // Where to land AFTER clicking the email verification link
+      // Where to land AFTER clicking the email verification link → ONBOARDING
       const nextQS = new URLSearchParams();
       if (role) nextQS.set('role', role);
       if (ref) nextQS.set('ref', ref);
-      const fallbackNext = `/welcome${nextQS.toString() ? `?${nextQS.toString()}` : ''}`;
+      const fallbackNext = `/onboarding${nextQS.toString() ? `?${nextQS.toString()}` : ''}`;
       const nextPath = next || fallbackNext;
 
       const verificationParams = new URLSearchParams();
@@ -80,12 +81,14 @@ export default function SignUpWithEmail() {
         // Common case: already registered but unverified
         if (error.message.toLowerCase().includes('already')) {
           await supabase.auth.resend({
+            // @ts-expect-error: supabase-js may not expose resend type yet
             type: 'signup',
             email: trimmedEmail,
             options: {
               emailRedirectTo: `${origin}/auth/verify?${verificationParams.toString()}`,
             },
           });
+
           const verifyParams = new URLSearchParams({ email: trimmedEmail });
           if (role) verifyParams.set('role', role);
           if (ref) verifyParams.set('ref', ref);
@@ -97,8 +100,6 @@ export default function SignUpWithEmail() {
         setLoading(false);
         return;
       }
-
-      // (Optional) hold referralCode; link it after verification to avoid orphan rows.
 
       // Success: move user away from the form
       const verifyParams = new URLSearchParams({ email: trimmedEmail });
