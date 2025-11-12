@@ -8,7 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
 import calibration from '@/data/writing/review-calibration';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 
 interface CalibrationAnchor {
   id: string;
@@ -118,7 +118,7 @@ const CalibrationPage = ({ anchors }: CalibrationPageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<CalibrationPageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<CalibrationPageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

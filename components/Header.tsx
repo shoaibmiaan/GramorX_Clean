@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 
 const ANNOUNCEMENT_KEY = 'gramorx:announcement-dismissed';
 
-export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
+const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [openDesktopModules, setOpenDesktopModules] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileModulesOpen, setMobileModulesOpen] = useState(false);
@@ -37,33 +37,33 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const modulesRef = useRef<HTMLLIElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll handler
+  // Scroll -> solid header
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Premium access
+  // Premium access from local storage
   useEffect(() => {
-    const checkAccess = () => {
+    const sync = () => {
       const list = PremiumRoomManager.getAccessList();
       setHasPremiumAccess(list.length > 0);
       setPremiumRooms(list.map((r) => r.roomName));
     };
-    checkAccess();
-    const onStorage = (e: StorageEvent) => e.key === 'premiumRooms' && checkAccess();
+    sync();
+    const onStorage = (e: StorageEvent) => e.key === 'premiumRooms' && sync();
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Announcement visibility
+  // Announcement one-time visibility
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.localStorage.getItem(ANNOUNCEMENT_KEY) === '1') setAnnouncementVisible(false);
   }, []);
 
-  // Outside click + keyboard shortcuts
+  // Global ESC close + click-away for modules/search
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
@@ -77,7 +77,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
         setMobileModulesOpen(false);
         setShowSearch(false);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setShowSearch(true);
       }
@@ -90,7 +90,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     };
   }, [showSearch]);
 
-  // Disable scroll on mobile nav
+  // Lock body scroll when mobile menu open
   useEffect(() => {
     const lock = (e: TouchEvent) => e.preventDefault();
     if (mobileOpen) {
@@ -112,7 +112,9 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   const dismissAnnouncement = () => {
     setAnnouncementVisible(false);
-    window.localStorage.setItem(ANNOUNCEMENT_KEY, '1');
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ANNOUNCEMENT_KEY, '1');
+    }
   };
 
   const clearPremium = () => {
@@ -124,7 +126,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // search handler
+      // TODO: hook up search
       setShowSearch(false);
       setSearchQuery('');
     }
@@ -132,7 +134,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   const solidHeader = scrolled || openDesktopModules || mobileOpen;
 
-  if (loading && !user)
+  if (loading && !user) {
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/90 backdrop-blur-lg">
         <Container>
@@ -149,6 +151,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
         </Container>
       </header>
     );
+  }
 
   return (
     <>
@@ -216,7 +219,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
           solidHeader && 'shadow-md'
         )}
       >
-        {/* Streak Progress — DS-compliant (no inline style) */}
+        {/* Streak bar */}
         {user?.id && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-border">
             <progress
@@ -242,9 +245,9 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
               <Badge variant="outline" size="sm" className="text-electricBlue border-electricBlue/30">BETA</Badge>
             </Link>
 
-            {/* Right Actions */}
+            {/* Right cluster */}
             <div className="flex items-center gap-2">
-              {/* Search */}
+              {/* Search trigger */}
               <button
                 onClick={() => setShowSearch(true)}
                 className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -254,60 +257,19 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                 <kbd className="hidden lg:inline-block px-1 py-0.5 text-xs border border-border rounded bg-muted">⌘K</kbd>
               </button>
 
-              {/* Auth Buttons */}
+              {/* Auth CTAs */}
               {!user?.id && (
                 <>
                   <Button href="/login" variant="ghost" size="sm" className="font-semibold">
                     Sign In
                   </Button>
-                  <Button href="/waitlist" variant="primary" size="sm" leadingIcon={<Icon name="Sparkles" size={14} />}>
+                  <Button href="/waitlist" variant="primary" size="sm">
                     Join Waitlist
                   </Button>
                 </>
               )}
 
-              {/* Premium Button + Tooltip */}
-              {user?.id && hasPremiumAccess && (
-                <div className="relative group">
-                  <Button asChild variant="accent" size="sm" className="font-semibold">
-                    <Link href="/premium-room">
-                      <Icon name="Crown" size={14} />
-                      <span className="ml-1">Premium</span>
-                      {/* Active indicator using DS tokens */}
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-ping" />
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border border-background" />
-                    </Link>
-                  </Button>
-
-                  {/* Tooltip */}
-                  <div className="absolute top-full right-0 mt-2 w-64 p-4 bg-card border border-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon name="Crown" size={14} />
-                      <span className="font-semibold text-sm">Premium Access Active</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      You have access to {premiumRooms.length} premium room{premiumRooms.length !== 1 ? 's' : ''}
-                    </p>
-                    {premiumRooms.slice(0, 3).map((room, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm">
-                        <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                        <span className="truncate">{room}</span>
-                      </div>
-                    ))}
-                    {premiumRooms.length > 3 && (
-                      <div className="text-xs text-muted-foreground mt-1">+{premiumRooms.length - 3} more rooms</div>
-                    )}
-                    <button
-                      onClick={clearPremium}
-                      className="w-full text-sm text-destructive hover:bg-destructive/10 font-medium text-center py-2 border-t border-border/40 mt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      Clear All Access
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Nav */}
+              {/* Premium & Navs */}
               <DesktopNav
                 user={user}
                 role={role ?? 'guest'}

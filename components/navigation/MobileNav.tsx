@@ -139,6 +139,16 @@ export function MobileNav({
     if (mobileOpen) closeMenu();
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Body scroll-lock while panel is open (non-destructive)
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -548,3 +558,8 @@ export function MobileNav({
     </>
   );
 }
+
+MobileNav.displayName = 'MobileNav';
+
+// keep the named export AND add default:
+export default MobileNav;

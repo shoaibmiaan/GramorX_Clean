@@ -7,7 +7,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { useLiveSession } from '@/hooks/useLiveSession';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { LiveSessionStatus, LiveSessionType } from '@/types/supabase';
 
@@ -230,7 +230,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
   );
 };
 
-export const getServerSideProps: GetServerSideProps = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps = withPlan('starter')(async (ctx) => {
   const idValue = typeof ctx.params?.id === 'string' ? ctx.params.id : Array.isArray(ctx.params?.id) ? ctx.params?.id[0] : undefined;
   const parsed = ParamsSchema.safeParse({ id: idValue });
   if (!parsed.success) {

@@ -7,7 +7,7 @@ import { Container } from '@/components/design-system/Container';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import exercises from '@/data/speaking/exercises.json';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan} from '@/lib/plan/withPlan';
 import type { SpeakingAttemptRefType } from '@/types/supabase';
 
 interface GoalDTO {
@@ -85,7 +85,7 @@ function deltaText(value: number | null, previous: number | null) {
   return `${sign}${delta.toFixed(2)}`;
 }
 
-export const getServerSideProps: GetServerSideProps<CoachIndexProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<CoachIndexProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

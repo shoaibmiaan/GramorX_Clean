@@ -11,7 +11,7 @@ import { getServerClient } from '@/lib/supabaseServer';
 import type { WritingExamPrompts } from '@/types/writing';
 import type { PlanId } from '@/types/pricing';
 import { planAllows, writingMockLimit } from '@/lib/plan/gates';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { useInstalledApp } from '@/hooks/useInstalledApp';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { clearMockAttemptId } from '@/lib/mock/state';
@@ -225,7 +225,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
   );
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

@@ -10,7 +10,7 @@ import { Input } from '@/components/design-system/Input';
 import { Select } from '@/components/design-system/Select';
 import { Separator } from '@/components/design-system/Separator';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import { withPlan } from '@/lib/plan/withPlan';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { PlanId } from '@/types/pricing';
 import { hasPlan } from '@/lib/planAccess';
@@ -447,7 +447,7 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<LibraryPageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<LibraryPageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },

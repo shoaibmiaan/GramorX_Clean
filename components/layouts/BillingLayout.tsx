@@ -1,50 +1,45 @@
-// components/layouts/BillingLayout.tsx
+// components/layouts/SupportLayout.tsx
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/design-system/Button';
 
-interface BillingLayoutProps {
+interface SupportLayoutProps {
   children: ReactNode;
   userRole?: string;
 }
 
-export function BillingLayout({ children, userRole }: BillingLayoutProps) {
+export function SupportLayout({ children, userRole }: SupportLayoutProps) {
   const router = useRouter();
   const currentPath = router.pathname;
 
   const isActive = (path: string) => currentPath.startsWith(path);
 
-  const billingLinks = [
-    { href: '/billing', label: 'Overview', icon: '📊' },
-    { href: '/billing/invoices', label: 'Invoices', icon: '🧾' },
-    { href: '/billing/payment-methods', label: 'Payment Methods', icon: '💳' },
-    { href: '/subscription/manage', label: 'Subscription', icon: '🔄' },
+  const supportLinks = [
+    { href: '/support', label: 'Help Center', icon: '❓' },
+    { href: '/support/contact', label: 'Contact Support', icon: '📞' },
+    { href: '/support/tickets', label: 'My Tickets', icon: '🎫' },
+    { href: '/faq', label: 'FAQ', icon: '💡' },
   ];
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto">
-        <div className="p-6 border-b">
+      <div className="mx-auto max-w-6xl">
+        <div className="border-b p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Billing & Subscription</h1>
-              <p className="text-muted-foreground">Manage your payments and subscription plans</p>
+              <h1 className="text-2xl font-bold">Support Center</h1>
+              <p className="text-muted-foreground">Get help and find answers to your questions</p>
             </div>
             <Button variant="outline" asChild>
-              <Link href="/pricing">Upgrade Plan</Link>
+              <Link href="/support/contact">Contact Us</Link>
             </Button>
           </div>
 
           {/* Navigation tabs */}
-          <nav className="flex space-x-1 mt-6">
-            {billingLinks.map((link) => (
-              <Button
-                key={link.href}
-                variant={isActive(link.href) ? 'secondary' : 'ghost'}
-                size="sm"
-                asChild
-              >
+          <nav className="mt-6 flex space-x-1">
+            {supportLinks.map((link) => (
+              <Button key={link.href} variant={isActive(link.href) ? 'secondary' : 'ghost'} size="sm" asChild>
                 <Link href={link.href}>
                   <span className="flex items-center gap-2">
                     <span>{link.icon}</span>
@@ -56,10 +51,10 @@ export function BillingLayout({ children, userRole }: BillingLayoutProps) {
           </nav>
         </div>
 
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
 }
+
+export default SupportLayout;

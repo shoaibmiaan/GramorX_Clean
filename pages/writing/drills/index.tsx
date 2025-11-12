@@ -9,7 +9,6 @@ import { EmptyState } from '@/components/design-system/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/design-system/Tabs';
 import { allDrills, type Drill } from '@/lib/writing/drills';
 import { getServerClient } from '@/lib/supabaseServer';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
 
 interface PageProps {
   drills: Drill[];
@@ -25,21 +24,19 @@ const criteriaLabels: Record<Drill['criterion'], string> = {
 
 const DrillIndexPage = ({ drills, completed }: PageProps) => {
   const [activeCriterion, setActiveCriterion] = useState<Drill['criterion'] | 'all'>('all');
-  const completedSet = useMemo(() => new Set(completed.map((value) => value.toLowerCase())), [completed]);
+  const completedSet = useMemo(() => new Set(completed.map((v) => v.toLowerCase())), [completed]);
 
   const filteredDrills = useMemo(() => {
     if (activeCriterion === 'all') return drills;
-    return drills.filter((drill) => drill.criterion === activeCriterion);
+    return drills.filter((d) => d.criterion === activeCriterion);
   }, [activeCriterion, drills]);
 
   const groupedByCriterion = useMemo(() => {
-    return drills.reduce<Record<string, { total: number; done: number }>>((acc, drill) => {
-      const key = drill.criterion;
+    return drills.reduce<Record<string, { total: number; done: number }>>((acc, d) => {
+      const key = d.criterion;
       acc[key] = acc[key] ?? { total: 0, done: 0 };
       acc[key].total += 1;
-      if (completedSet.has(drill.slug)) {
-        acc[key].done += 1;
-      }
+      if (completedSet.has(d.slug)) acc[key].done += 1;
       return acc;
     }, {});
   }, [drills, completedSet]);
@@ -60,14 +57,16 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
             return (
               <Card key={criterion} className="space-y-2 p-4">
                 <h2 className="text-sm font-semibold text-foreground">{criteriaLabels[criterion]}</h2>
-                <p className="text-2xl font-semibold text-foreground">{stat.done}/{stat.total}</p>
+                <p className="text-2xl font-semibold text-foreground">
+                  {stat.done}/{stat.total}
+                </p>
                 <p className="text-xs text-muted-foreground">Completed in the last 14 days</p>
               </Card>
             );
           })}
         </div>
 
-        <Tabs value={activeCriterion} onValueChange={(value) => setActiveCriterion(value as Drill['criterion'] | 'all')}>
+        <Tabs value={activeCriterion} onValueChange={(v) => setActiveCriterion(v as Drill['criterion'] | 'all')}>
           <TabsList>
             <TabsTrigger value="all">All drills</TabsTrigger>
             {(['TR', 'CC', 'LR', 'GRA'] as Drill['criterion'][]).map((criterion) => (
@@ -78,7 +77,10 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
           </TabsList>
           <TabsContent value={activeCriterion} className="mt-4">
             {filteredDrills.length === 0 ? (
-              <EmptyState title="No drills found" description="All caught up! Pick a different criterion to keep sharpening your skills." />
+              <EmptyState
+                title="No drills found"
+                description="All caught up! Pick a different criterion to keep sharpening your skills."
+              />
             ) : (
               <div className="grid gap-4">
                 {filteredDrills.map((drill) => {
@@ -95,7 +97,11 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
                             {criteriaLabels[drill.criterion]}
                           </Badge>
                           <span>{drill.durationMinutes} min</span>
-                          {isComplete && <Badge variant="soft" tone="success" size="sm">Completed</Badge>}
+                          {isComplete && (
+                            <Badge variant="soft" tone="success" size="sm">
+                              Completed
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -122,7 +128,7 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('free')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },
@@ -131,29 +137,30 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('f
   if (!user) {
     return {
       redirect: {
-        destination: '/welcome?from=/writing',
+        destination: '/welcome?from=/writing/drills',
         permanent: false,
       },
     };
   }
 
+  // Completed drills in last 14 days
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data: events } = await supabase
     .from('writing_drill_events')
-    .select('tags')
+    .select('tags, completed_at')
     .eq('user_id', user.id)
     .gte('completed_at', since);
 
   const completedSlugs = new Set<string>();
-  (events ?? []).forEach((event) => {
-    (event.tags ?? []).forEach((tag) => {
-      if (tag.toLowerCase().startsWith('drill-') || tag.toLowerCase().includes('task') || tag.toLowerCase().includes('coherence')) {
-        completedSlugs.add(tag.toLowerCase());
-      }
+  (events ?? []).forEach((e) => {
+    (e.tags ?? []).forEach((tag: string) => {
+      const t = (tag || '').toLowerCase();
+      if (t.startsWith('drill-')) completedSlugs.add(t.replace(/^drill-/, ''));
+      else completedSlugs.add(t);
     });
   });
 
-  const drills = allDrills();
+  const drills = allDrills; // NOTE: allDrills is an array in your codebase
 
   return {
     props: {
@@ -161,6 +168,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlanPage('f
       completed: Array.from(completedSlugs),
     },
   };
-});
+};
 
 export default DrillIndexPage;

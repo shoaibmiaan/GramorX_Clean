@@ -6,7 +6,7 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { EmptyState } from '@/components/design-system/EmptyState';
 import { WritingLayout } from '@/layouts/WritingLayout';
-import { withPlanPage } from '@/lib/plan/withPlanPage';
+import {   withPlan } from '@/lib/plan/withPlan';
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/types/supabase';
 import type { PlanId } from '@/types/pricing';
@@ -209,7 +209,7 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps<ProgressPageProps> = withPlanPage('starter')(async (ctx) => {
+export const getServerSideProps: GetServerSideProps<ProgressPageProps> = withPlan('starter')(async (ctx) => {
   const supabase = getServerClient(ctx.req as any, ctx.res as any);
   const {
     data: { user },
