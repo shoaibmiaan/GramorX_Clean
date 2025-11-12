@@ -1,4 +1,4 @@
-// components/navigation/constants.ts
+// File: components/navigation/constants.tsx
 import type { IconName } from '@/components/design-system/Icon';
 import { Icon as DSIcon } from '@/components/design-system/Icon';
 import type * as React from 'react';

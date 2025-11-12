@@ -1,10 +1,12 @@
+// File: components/layout/BottomNav.tsx
 'use client';
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon, type IconName } from '@/components/design-system/Icon';
 import { NavLink } from '@/components/design-system/NavLink';
-import { supabase } from '@/lib/supabaseClient'; // Replaced supabaseBrowser
+import { supabase } from '@/lib/supabaseClient';
+import { motion } from 'framer-motion'; // Added for slide-up animation on scroll
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: IconName; exact?: boolean }> = [
   { href: '/', label: 'Home', icon: 'Home', exact: true },
@@ -50,11 +52,14 @@ export const BottomNav: React.FC = () => {
   };
 
   return (
-    <nav
+    <motion.nav
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.3 }}
       className="
         fixed bottom-0 left-0 right-0 z-40 md:hidden
-        border-t border-border
-        bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70
+        border-t border-border dark:border-border-dark
+        bg-card/90 dark:bg-card-dark/90 backdrop-blur supports-[backdrop-filter]:bg-card/70
       "
       aria-label="Bottom navigation"
     >
@@ -67,16 +72,16 @@ export const BottomNav: React.FC = () => {
               onClick={gate(href)}
               className="
                 group flex flex-col items-center gap-1 py-2.5
-                text-caption text-muted-foreground transition
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                [&.is-active]:text-primary
+                text-caption text-muted-foreground dark:text-muted-foreground-dark transition
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                [&.is-active]:text-primary dark:[&.is-active]:text-primary-dark
               "
               aria-label={label}
             >
               <span
                 className="
                   inline-flex h-9 w-9 items-center justify-center rounded-full transition
-                  group-[.is-active]:bg-primary/15 group-hover:bg-primary/10
+                  group-[.is-active]:bg-primary/15 dark:group-[.is-active]:bg-primary-dark/15 group-hover:bg-primary/10 dark:group-hover:bg-primary-dark/10
                 "
                 aria-hidden="true"
               >
@@ -87,7 +92,7 @@ export const BottomNav: React.FC = () => {
           </li>
         ))}
       </ul>
-    </nav>
+    </motion.nav>
   );
 };
 

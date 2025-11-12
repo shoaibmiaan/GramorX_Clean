@@ -1,6 +1,8 @@
+// File: components/navigation/MobileNav.tsx
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // Added for slide animations
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
@@ -20,14 +22,14 @@ import { MODULE_LINKS } from './constants';
 
 const toneClassMap: Record<NonNullable<ModuleLink['tone']>, string> = {
   // DS-only tokens; no raw color scales or opacity hacks
-  blue:   'bg-muted text-primary ring-1 ring-border group-hover:bg-primary group-hover:text-primary-foreground',
-  purple: 'bg-muted text-primary ring-1 ring-border group-hover:bg-primary group-hover:text-primary-foreground',
-  orange: 'bg-muted text-accent-warm ring-1 ring-border group-hover:bg-accent-warm group-hover:text-accent-warm-foreground',
-  green:  'bg-muted text-success ring-1 ring-border group-hover:bg-success group-hover:text-success-foreground',
+  blue:   'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
+  purple: 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
+  orange: 'bg-muted dark:bg-muted-dark text-accent-warm dark:text-accent-warm-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-accent-warm dark:group-hover:bg-accent-warm-dark group-hover:text-accent-warm-foreground dark:group-hover:text-accent-warm-foreground-dark',
+  green:  'bg-muted dark:bg-muted-dark text-success dark:text-success-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-success dark:group-hover:bg-success-dark group-hover:text-success-foreground dark:group-hover:text-success-foreground-dark',
 };
 
 const getToneClass = (tone?: ModuleLink['tone']) =>
-  tone ? toneClassMap[tone] : 'bg-muted text-primary ring-1 ring-border group-hover:bg-primary group-hover:text-primary-foreground';
+  tone ? toneClassMap[tone] : 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark';
 
 interface UserInfo {
   id: string | null;
@@ -137,7 +139,7 @@ export function MobileNav({
   // Auto-close on route change
   useEffect(() => {
     if (mobileOpen) closeMenu();
-  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pathname, closeMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Body scroll-lock while panel is open (non-destructive)
   useEffect(() => {
@@ -165,378 +167,286 @@ export function MobileNav({
     setActiveSection(activeSection === section ? '' : section);
     if (section === 'practice') {
       setMobileModulesOpen(activeSection !== 'practice');
-      setMobileAiToolsOpen(false);
-    } else if (section === 'ai-tools') {
-      setMobileAiToolsOpen(activeSection !== 'ai-tools');
-      setMobileModulesOpen(false);
+    }
+    if (section === 'aiTools') {
+      setMobileAiToolsOpen(activeSection !== 'aiTools');
     }
   };
 
-  // Overlay — DS tokens only (no raw color or opacity suffixes)
   const overlay = mobileOpen ? (
-    <div
-      className="fixed inset-0 z-40 md:hidden bg-background opacity-70 backdrop-blur-sm transition-opacity"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-40 bg-background/80 dark:bg-background-dark/80 backdrop-blur-sm"
       onClick={closeMenu}
       aria-hidden="true"
     />
   ) : null;
 
   const panel = mobileOpen ? (
-    <div
-      className={[
-        'fixed inset-y-0 left-0 z-50 md:hidden w-4/5 max-w-sm',
-        'bg-background border-r border-border shadow-lg',
-        'transition-transform duration-300 ease-out',
-        className || '',
-      ].join(' ')}
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className="fixed right-0 top-0 z-50 h-full w-full max-w-sm bg-card dark:bg-card-dark shadow-2xl"
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"
-      {...rest}
     >
-      <Container className="flex h-full flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <div className="flex items-center gap-3">
-            <StreakChip value={streak} href="/profile/streak" />
-            {hasPremiumAccess && (
-              <Badge variant="accent" size="sm" className="font-semibold">
-                <Icon name="Crown" size={12} className="mr-1" />
-                Premium
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {headerOptional.notifications && <NotificationBell />}
-            {headerOptional.themeToggle && <IconOnlyThemeToggle />}
-            <button
-              onClick={closeMenu}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-label="Close menu"
-            >
-              <Icon name="X" size={20} />
-            </button>
-          </div>
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b border-border dark:border-border-dark p-4">
+          <motion.button
+            onClick={closeMenu}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted dark:hover:bg-muted-dark transition-colors"
+            aria-label="Close menu"
+          >
+            <Icon name="X" size={20} />
+          </motion.button>
+          <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <nav className="flex-1 overflow-y-auto p-4" aria-label="Mobile navigation">
           {/* Search */}
-          <div className="p-4 border-b border-border">
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Icon
-                  name="Search"
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-                <input
-                  type="text"
-                  placeholder="Search vocabulary, tips..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                />
-              </div>
-            </form>
-          </div>
-
-          {/* CTA Button */}
-          {headerCta && (
-            <div className="p-4 border-b border-border">
-              <Button asChild fullWidth size="lg" variant="primary" className="rounded-xl font-semibold">
-                <Link href={headerCta.href} onClick={closeMenu}>
-                  {headerCta.label}
-                </Link>
-              </Button>
+          <form onSubmit={handleSearch} className="mb-6">
+            <div className="relative">
+              <Icon
+                name="Search"
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-muted-foreground-dark"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-border dark:border-border-dark bg-surface-muted dark:bg-surface-muted-dark px-10 py-3 text-sm placeholder:text-muted-foreground dark:placeholder:text-muted-foreground-dark focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark"
+              />
             </div>
-          )}
+          </form>
 
-          {/* Premium Access */}
-          {hasPremiumAccess && (
-            <div className="p-4 border-b border-border bg-card">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Icon name="Crown" size={18} className="text-foreground" />
-                  <span className="font-semibold text-sm">Premium Access</span>
-                </div>
-                <Badge variant="success" size="sm">Active</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                {premiumRooms.length} room{premiumRooms.length !== 1 ? 's' : ''} available
-              </p>
-              {onClearPremiumAccess && (
-                <button
-                  onClick={handleClearPremium}
-                  className="w-full text-xs text-destructive font-medium text-center py-2 border-t border-border hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          {/* Main Nav */}
+          <ul className="space-y-1 mb-6">
+            {mainNavWithoutPractice.map((item) => (
+              <li key={item.id}>
+                <NavLink
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors"
+                  onClick={closeMenu}
                 >
-                  Clear All Access
-                </button>
-              )}
-            </div>
-          )}
+                  <Icon name={item.icon ?? 'Circle'} size={18} />
+                  <span className="font-medium">{item.label}</span>
+                </NavLink>
+              </li>
+            ))}
 
-          <nav className="p-4">
-            {/* Quick Actions */}
-            {user?.id && (
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <Button asChild variant="outline" size="sm" className="h-12 flex flex-col gap-1 rounded-xl hover:bg-muted">
-                  <Link href="/practice" onClick={closeMenu}>
-                    <Icon name="Play" size={16} />
-                    <span className="text-xs">Practice</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm" className="h-12 flex flex-col gap-1 rounded-xl hover:bg-muted">
-                  <Link href="/progress" onClick={closeMenu}>
-                    <Icon name="TrendingUp" size={16} />
-                    <span className="text-xs">Progress</span>
-                  </Link>
-                </Button>
-              </div>
+            {/* Practice Section */}
+            {practiceNavItem && (
+              <li>
+                <button
+                  onClick={() => toggleSection('practice')}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${mobileModulesOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon name="Layers" size={18} />
+                    <span className="font-medium">{practiceNavItem.label}</span>
+                  </div>
+                  <Icon name={mobileModulesOpen ? 'ChevronUp' : 'ChevronDown'} size={18} className="opacity-70" />
+                </button>
+                <AnimatePresence>
+                  {mobileModulesOpen && (
+                    <motion.ul
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="ml-6 mt-2 space-y-1 overflow-hidden"
+                    >
+                      {MODULE_LINKS.map(({ label: moduleLabel, desc, Icon: ModuleIcon, tone }) => (
+                        <li key={moduleLabel}>
+                          <Link
+                            href={`/practice/${moduleLabel.toLowerCase()}`}
+                            onClick={closeMenu}
+                            className="group flex items-start gap-3 rounded-lg p-3 text-sm transition"
+                          >
+                            <span
+                              className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ring-2 transition ${getToneClass(tone)}`}
+                            >
+                              {ModuleIcon ? <ModuleIcon className="h-4 w-4" /> : null}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <span className="block font-medium">{moduleLabel}</span>
+                              {desc && <span className="text-xs text-muted-foreground dark:text-muted-foreground-dark">{desc}</span>}
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </li>
             )}
 
-            <ul className="space-y-1">
-              {/* Dashboard/Teacher */}
-              {user?.id && (
-                <li>
-                  <NavLink
-                    href={isTeacher ? '/teacher' : '/dashboard'}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted transition-colors"
-                    onClick={closeMenu}
-                  >
-                    <Icon name={isTeacher ? 'Users' : 'LayoutDashboard'} size={18} />
-                    <span className="font-medium">{isTeacher ? 'Teacher' : 'Dashboard'}</span>
-                  </NavLink>
-                </li>
-              )}
-
-              {/* Premium Room */}
-              {hasPremiumAccess && (
-                <li>
-                  <NavLink
-                    href="/premium-room"
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 bg-muted border border-border hover:bg-background transition-colors"
-                    onClick={closeMenu}
-                  >
-                    <Icon name="Crown" size={18} />
-                    <span className="font-medium">Premium Room</span>
-                  </NavLink>
-                </li>
-              )}
-
-              {/* Practice Modules */}
-              {practiceNavItem && !isTeacher && (
-                <li>
-                  <button
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    onClick={() => toggleSection('practice')}
-                    aria-expanded={activeSection === 'practice'}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon name="Grid3X3" size={18} />
-                      <span className="font-medium">{practiceNavItem.label}</span>
-                    </div>
-                    <Icon
-                      name={activeSection === 'practice' ? 'ChevronUp' : 'ChevronDown'}
-                      size={16}
-                      className="text-muted-foreground"
-                    />
-                  </button>
-
-                  {activeSection === 'practice' && (
-                    <div className="mt-2 space-y-2 rounded-xl border border-border bg-muted p-3">
-                      <ul className="space-y-2">
-                        {MODULE_LINKS.map(({ href, label, desc, Icon: RoomIcon, tone }) => (
-                          <li key={href}>
-                            <Link
-                              href={href}
-                              onClick={closeMenu}
-                              className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 transition-all hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                            >
-                              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${getToneClass(tone)}`}>
-                                {RoomIcon ? <RoomIcon className="h-5 w-5" /> : null}
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block font-medium text-sm">{label}</span>
-                                {desc && (
-                                  <span className="text-xs text-muted-foreground mt-0.5 block">
-                                    {desc}
-                                  </span>
-                                )}
-                              </span>
-                              <Icon name="ArrowRight" size={14} className="text-muted-foreground" />
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              )}
-
-              {/* Main Navigation */}
-              {!isTeacher &&
-                mainNavWithoutPractice.map((item) => (
-                  <li key={item.id}>
-                    <NavLink
-                      href={item.href}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted transition-colors"
-                      onClick={closeMenu}
+            {/* AI Tools Section */}
+            {aiToolItems.length > 0 && (
+              <li>
+                <button
+                  onClick={() => toggleSection('aiTools')}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${mobileAiToolsOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon name="Sparkles" size={18} />
+                    <span className="font-medium">AI Tools</span>
+                  </div>
+                  <Icon name={mobileAiToolsOpen ? 'ChevronUp' : 'ChevronDown'} size={18} className="opacity-70" />
+                </button>
+                <AnimatePresence>
+                  {mobileAiToolsOpen && (
+                    <motion.ul
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="ml-6 mt-2 space-y-1 overflow-hidden"
                     >
-                      <span className="font-medium">{item.label}</span>
-                    </NavLink>
-                  </li>
-                ))}
-
-              {/* AI Tools */}
-              {!isTeacher && aiToolItems.length > 0 && (
-                <li>
-                  <button
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    onClick={() => toggleSection('ai-tools')}
-                    aria-expanded={activeSection === 'ai-tools'}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon name="Bot" size={18} />
-                      <span className="font-medium">AI &amp; Tools</span>
-                    </div>
-                    <Icon
-                      name={activeSection === 'ai-tools' ? 'ChevronUp' : 'ChevronDown'}
-                      size={16}
-                      className="text-muted-foreground"
-                    />
-                  </button>
-
-                  {activeSection === 'ai-tools' && (
-                    <ul className="mt-2 ml-4 space-y-1 border-l border-border pl-3">
                       {aiToolItems.map((item) => (
                         <li key={item.id}>
                           <NavLink
                             href={item.href}
-                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted transition-colors text-sm"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
                             onClick={closeMenu}
                           >
                             <span>{item.label}</span>
+                            {item.badge && (
+                              <Badge variant="secondary" size="sm" className="ml-auto">
+                                {item.badge}
+                              </Badge>
+                            )}
                           </NavLink>
                         </li>
                       ))}
-                    </ul>
+                    </motion.ul>
                   )}
-                </li>
-              )}
+                </AnimatePresence>
+              </li>
+            )}
 
-              {/* Partners & Admin */}
-              {canSeePartners && (
-                <li>
-                  <NavLink
-                    href="/partners"
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted transition-colors"
-                    onClick={closeMenu}
-                  >
-                    <Icon name="Handshake" size={18} />
-                    <span className="font-medium">Partners</span>
-                  </NavLink>
-                </li>
-              )}
-              {canSeeAdmin && (
-                <li>
-                  <NavLink
-                    href="/admin/partners"
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted transition-colors"
-                    onClick={closeMenu}
-                  >
-                    <Icon name="Settings" size={18} />
-                    <span className="font-medium">Admin</span>
-                  </NavLink>
-                </li>
-              )}
-            </ul>
+            {/* Partners & Admin */}
+            {canSeePartners && (
+              <li>
+                <NavLink
+                  href="/partners"
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors"
+                  onClick={closeMenu}
+                >
+                  <Icon name="Handshake" size={18} />
+                  <span className="font-medium">Partners</span>
+                </NavLink>
+              </li>
+            )}
+            {canSeeAdmin && (
+              <li>
+                <NavLink
+                  href="/admin/partners"
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors"
+                  onClick={closeMenu}
+                >
+                  <Icon name="Settings" size={18} />
+                  <span className="font-medium">Admin</span>
+                </NavLink>
+              </li>
+            )}
+          </ul>
 
-            {/* Sidebar Sections */}
-            <div className="mt-8 space-y-6">
-              {sidebarSections.map((section) => (
-                <div key={section.id}>
-                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-                    {section.icon && <Icon name={section.icon} className="h-3.5 w-3.5" />}
-                    <span>{section.label}</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {section.items.map((item) => (
-                      <li key={item.id}>
-                        <NavLink
-                          href={item.href}
-                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted transition-colors text-sm"
-                          onClick={closeMenu}
-                        >
-                          <span>{item.label}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            {/* Account Section */}
-            {profileMenu.length > 0 && user?.id && (
-              <div className="mt-8 pt-6 border-t border-border">
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-                  <Icon name="User" className="h-3.5 w-3.5" />
-                  <span>Account</span>
+          {/* Sidebar Sections */}
+          <div className="mt-8 space-y-6">
+            {sidebarSections.map((section) => (
+              <div key={section.id}>
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
+                  {section.icon && <Icon name={section.icon} className="h-3.5 w-3.5" />}
+                  <span>{section.label}</span>
                 </div>
                 <ul className="space-y-1">
-                  {profileMenu.map((item) => (
+                  {section.items.map((item) => (
                     <li key={item.id}>
                       <NavLink
                         href={item.href}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted transition-colors text-sm"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
                         onClick={closeMenu}
                       >
                         <span>{item.label}</span>
                       </NavLink>
                     </li>
                   ))}
-                  <li>
-                    <button
-                      onClick={() => {
-                        closeMenu();
-                        void signOut();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      <Icon name="LogOut" size={16} />
-                      <span>Sign out</span>
-                    </button>
-                  </li>
                 </ul>
               </div>
-            )}
+            ))}
+          </div>
 
-            {/* Auth Section */}
-            {!user?.id && ready && (
-              <div className="mt-8 space-y-3">
-                <Button asChild fullWidth variant="primary" className="rounded-xl font-semibold py-3.5">
-                  <Link href="/login" onClick={closeMenu}>
-                    Sign in
-                  </Link>
-                </Button>
-                <Button asChild fullWidth variant="outline" className="rounded-xl font-semibold py-3.5">
-                  <Link href="/signup" onClick={closeMenu}>
-                    Create account
-                  </Link>
-                </Button>
+          {/* Account Section */}
+          {profileMenu.length > 0 && user?.id && (
+            <div className="mt-8 pt-6 border-t border-border dark:border-border-dark">
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
+                <Icon name="User" className="h-3.5 w-3.5" />
+                <span>Account</span>
               </div>
-            )}
+              <ul className="space-y-1">
+                {profileMenu.map((item) => (
+                  <li key={item.id}>
+                    <NavLink
+                      href={item.href}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
+                      onClick={closeMenu}
+                    >
+                      <span>{item.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+                <li>
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      void signOut();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-destructive dark:text-destructive-dark hover:bg-destructive/10 dark:hover:bg-destructive-dark/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <Icon name="LogOut" size={16} />
+                    <span>Sign out</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
 
-            {!ready && (
-              <div className="mt-6 space-y-2">
-                <div className="h-12 w-full animate-pulse rounded-xl bg-muted" />
-                <div className="h-12 w-full animate-pulse rounded-xl bg-muted" />
-              </div>
-            )}
-          </nav>
-        </div>
-      </Container>
-    </div>
+          {/* Auth Section */}
+          {!user?.id && ready && (
+            <div className="mt-8 space-y-3">
+              <Button asChild fullWidth variant="primary" className="rounded-xl font-semibold py-3.5">
+                <Link href="/login" onClick={closeMenu}>
+                  Sign in
+                </Link>
+              </Button>
+              <Button asChild fullWidth variant="outline" className="rounded-xl font-semibold py-3.5">
+                <Link href="/signup" onClick={closeMenu}>
+                  Create account
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {!ready && (
+            <div className="mt-6 space-y-2">
+              <div className="h-12 w-full animate-pulse rounded-xl bg-muted dark:bg-muted-dark" />
+              <div className="h-12 w-full animate-pulse rounded-xl bg-muted dark:bg-muted-dark" />
+            </div>
+          )}
+        </nav>
+      </div>
+    </motion.div>
   ) : null;
 
   return (
@@ -544,14 +454,15 @@ export function MobileNav({
       <div className="flex items-center gap-2 md:hidden">
         {headerOptional.notifications && <NotificationBell />}
         {headerOptional.themeToggle && <IconOnlyThemeToggle />}
-        <button
+        <motion.button
           aria-label="Toggle menu"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          whileTap={{ scale: 0.95 }}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted dark:hover:bg-muted-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {mobileOpen ? <Icon name="X" size={20} /> : <Icon name="Menu" size={20} />}
-        </button>
+        </motion.button>
       </div>
 
       {typeof document !== 'undefined' ? createPortal(<>{overlay}{panel}</>, document.body) : null}

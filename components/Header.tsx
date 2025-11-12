@@ -257,19 +257,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                 <kbd className="hidden lg:inline-block px-1 py-0.5 text-xs border border-border rounded bg-muted">⌘K</kbd>
               </button>
 
-              {/* Auth CTAs */}
-              {!user?.id && (
-                <>
-                  <Button href="/login" variant="ghost" size="sm" className="font-semibold">
-                    Sign In
-                  </Button>
-                  <Button href="/waitlist" variant="primary" size="sm">
-                    Join Waitlist
-                  </Button>
-                </>
-              )}
-
-              {/* Premium & Navs */}
+              {/* Navs own *all* auth/UI controls */}
               <DesktopNav
                 user={user}
                 role={role ?? 'guest'}

@@ -17,7 +17,6 @@ import { AnimationProvider } from '@/components/providers/AnimationProvider';
 
 import { ToastProvider } from '@/components/design-system/Toaster';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
-// ❗️Use a safe getter so it works whether supabaseBrowser is a factory or an instance
 import { supabaseBrowser as supabaseClientSource } from '@/lib/supabaseBrowser';
 import { env } from '@/lib/env';
 import { LocaleProvider, useLocale } from '@/lib/locale';
@@ -39,7 +38,6 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
-// 🚩 Add banner (SSR-disabled) to explain why user was sent to /pricing
 const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }
@@ -312,25 +310,29 @@ function useRouteConfiguration(pathname: string) {
 
   return useMemo(() => {
     const routeConfig = getRouteConfig(pathname);
+
+    // ✅ Robust auth detection: trust routeConfig, but fall back to regex
+    const derivedIsAuth = routeConfig.layout === 'auth' || isAuthPage(pathname);
+
     const isAttempt = isAttemptPath(pathname);
 
-    // Hide chrome only where it must be hidden
+    // Hide chrome where it must be hidden
     const isNoChromeRoute =
-      routeConfig.layout === 'auth' ||
+      derivedIsAuth ||
       routeConfig.layout === 'proctoring' ||
       pathname.startsWith('/premium') ||
       /\/focus-mode(\/|$)/.test(pathname) ||
       routeConfig.showChrome === false ||
       isAttempt ||
-      isMockTestsFlowRoute(pathname); // keep attempt helper for backward compatibility
+      isMockTestsFlowRoute(pathname);
 
     const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
 
     return {
-      isAuthPage: routeConfig.layout === 'auth',
+      isAuthPage: derivedIsAuth,
       isProctoringRoute: routeConfig.layout === 'proctoring',
       showLayout,
-      forceLayoutOnAuthPage: routeConfig.layout === 'auth' && !!user,
+      forceLayoutOnAuthPage: derivedIsAuth && !!user,
       isAdminRoute: routeConfig.layout === 'admin',
       isInstitutionsRoute: routeConfig.layout === 'institutions',
       isDashboardRoute:
@@ -492,8 +494,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
-              {/* 🔹 Show reason banner on pricing routes, above the page content */}
-              {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? <PricingReasonBanner /> : null}
+              {(router.pathname === '/pricing' || router.pathname === '/pricing/overview') ? <PricingReasonBanner /> : null}
               {basePage}
             </AppLayoutManager>
           </AnimationProvider>

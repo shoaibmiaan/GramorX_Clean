@@ -1,6 +1,8 @@
+// File: components/layout/QuickAccessWidget.tsx
 'use client';
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // Added for smooth open/close
 import Link from 'next/link';
 import { navigationSchema } from '@/config/navigation';
 import { filterNavItems } from '@/lib/navigation/utils';
@@ -35,57 +37,68 @@ export const QuickAccessWidget: React.FC = () => {
 
   return (
     <div className="fixed inset-x-4 bottom-24 z-40 flex flex-col items-stretch gap-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-auto sm:items-end">
-      {open && (
-        <div
-          id="quick-actions-menu"
-          className="w-full max-w-xs rounded-2xl border border-border bg-card/95 p-4 shadow-xl sm:max-w-sm"
-          role="menu"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <p className="font-slab text-h4">Quick actions</p>
-              <p className="text-xs text-muted-foreground">Stay on track with a single tap.</p>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            id="quick-actions-menu"
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-xs rounded-2xl border border-border dark:border-border-dark bg-card/95 dark:bg-card-dark/95 p-4 shadow-xl sm:max-w-sm"
+            role="menu"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="font-slab text-h4">Quick actions</p>
+                <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Stay on track with a single tap.</p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted dark:hover:bg-muted-dark"
+                aria-label="Close quick actions"
+              >
+                <Icon name="X" className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"
-              aria-label="Close quick actions"
-            >
-              <Icon name="X" className="h-4 w-4" />
-            </button>
-          </div>
-          <ul className="space-y-2">
-            {items.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm transition hover:border-border hover:bg-muted"
-                  onClick={() => setOpen(false)}
-                >
-                  {item.icon && <Icon name={item.icon} className="h-5 w-5 text-primary" />}
-                  <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-auto inline-flex items-center rounded-full bg-muted px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+            <ul className="space-y-2">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-xl border border-border/60 dark:border-border-dark/60 px-3 py-2.5 text-sm transition hover:border-border dark:hover:border-border-dark hover:bg-muted dark:hover:bg-muted-dark"
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.icon && <Icon name={item.icon} className="h-5 w-5 text-primary dark:text-primary-dark" />}
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-auto inline-flex items-center rounded-full bg-muted dark:bg-muted-dark px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="self-end sm:self-auto">
-        <Button
-          variant="secondary"
-          className="w-full rounded-full bg-primary text-primary-foreground shadow-xl hover:opacity-90 sm:w-auto"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-expanded={open}
-          aria-controls="quick-actions-menu"
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          {open ? 'Close' : 'Quick Access'}
-        </Button>
+          <Button
+            variant="secondary"
+            className="w-full rounded-full bg-primary dark:bg-primary-dark text-primary-foreground dark:text-primary-foreground-dark shadow-xl hover:opacity-90 sm:w-auto"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-expanded={open}
+            aria-controls="quick-actions-menu"
+          >
+            {open ? 'Close' : 'Quick Access'}
+          </Button>
+        </motion.div>
       </div>
     </div>
   );

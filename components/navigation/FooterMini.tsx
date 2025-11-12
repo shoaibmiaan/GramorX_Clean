@@ -1,7 +1,9 @@
+// File: components/layout/FooterMini.tsx
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion'; // Added for subtle entrance animation
 
 import { Icon } from '@/components/design-system/Icon';
 import { Container } from '@/components/design-system/Container';
@@ -15,14 +17,19 @@ export const FooterMini: React.FC<{
   className?: string;
 }> = ({ showSocials = false, className = '' }) => {
   return (
-    <footer className={`relative border-t border-border bg-background ${className}`}>
+    <motion.footer 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`relative border-t border-border dark:border-border-dark bg-background dark:bg-background-dark ${className}`}
+    >
       {/* Slim brand bar */}
       <div
         className="h-[2px] w-full bg-gradient-to-r from-vibrantPurple via-electricBlue to-neonGreen opacity-80"
         aria-hidden="true"
       />
       <Container>
-        <div className="flex flex-col items-start justify-between gap-3 py-4 text-small text-muted-foreground sm:flex-row sm:items-center">
+        <div className="flex flex-col items-start justify-between gap-3 py-4 text-small text-muted-foreground dark:text-muted-foreground-dark sm:flex-row sm:items-center">
           {/* Left: brand + year */}
           <div className="flex items-center gap-2">
             <Link href="/" className="inline-flex items-center gap-2">
@@ -37,10 +44,10 @@ export const FooterMini: React.FC<{
           {/* Center: quick links */}
           <nav aria-label="Mini footer navigation" className="order-last w-full sm:order-none sm:w-auto">
             <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <li><NavLink href="/legal/terms" className="hover:text-foreground">Terms</NavLink></li>
-              <li><NavLink href="/legal/privacy" className="hover:text-foreground">Privacy</NavLink></li>
-              <li><NavLink href="/pricing" className="hover:text-foreground">Pricing</NavLink></li>
-              <li><NavLink href="/help" className="hover:text-foreground">Help</NavLink></li>
+              <li><NavLink href="/legal/terms" className="hover:text-foreground dark:hover:text-foreground-dark">Terms</NavLink></li>
+              <li><NavLink href="/legal/privacy" className="hover:text-foreground dark:hover:text-foreground-dark">Privacy</NavLink></li>
+              <li><NavLink href="/pricing" className="hover:text-foreground dark:hover:text-foreground-dark">Pricing</NavLink></li>
+              <li><NavLink href="/help" className="hover:text-foreground dark:hover:text-foreground-dark">Help</NavLink></li>
             </ul>
           </nav>
 
@@ -55,7 +62,7 @@ export const FooterMini: React.FC<{
             )}
             <a
               href="#top"
-              className="rounded-full border border-border px-3 py-1 hover:bg-muted"
+              className="rounded-full border border-border dark:border-border-dark px-3 py-1 hover:bg-muted dark:hover:bg-muted-dark"
               aria-label="Back to top"
             >
               Top
@@ -63,7 +70,7 @@ export const FooterMini: React.FC<{
           </div>
         </div>
       </Container>
-    </footer>
+    </motion.footer>
   );
 };
 

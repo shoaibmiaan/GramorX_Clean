@@ -1,3 +1,4 @@
+// pages/onboarding/index.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -17,17 +18,25 @@ import {
 import { markOnboardingComplete } from '@/lib/profile';
 import { useLocale } from '@/lib/locale';
 
+// NEW: extra roadmap fields
+type ExamType = 'academic' | 'general';
+type PreferredSlot = 'morning' | 'afternoon' | 'evening';
+type FocusSkill = 'listening' | 'reading' | 'writing' | 'speaking';
+
 type Language = (typeof languageOptions)[number];
 type Weekday = (typeof weekdayOptions)[number];
 
 type FormState = {
   preferredLanguage: Language;
   goalBand: string;
+  examType: ExamType;
   examDate: string;
   studyDays: Weekday[];
   minutesPerDay: string;
+  preferredSlot: PreferredSlot | null;
   whatsappOptIn: boolean;
   phone: string;
+  focusSkill: FocusSkill | null;
 };
 type FieldErrors = Partial<Record<keyof FormState, string>>;
 type StepId = 1 | 2 | 3 | 4 | 5;
@@ -35,28 +44,27 @@ type StepId = 1 | 2 | 3 | 4 | 5;
 const defaultFormState: FormState = {
   preferredLanguage: 'en',
   goalBand: '7.0',
+  examType: 'academic',
   examDate: '',
   studyDays: [],
   minutesPerDay: '45',
+  preferredSlot: null,
   whatsappOptIn: false,
   phone: '',
+  focusSkill: null,
 };
 
 const LANGUAGE_COPY: Record<(typeof languageOptions)[number], { title: string; description: string }> = {
-  en: {
-    title: 'English',
-    description: 'Interface, reminders, and lessons in English.',
-  },
-  ur: {
-    title: 'اردو',
-    description: 'Interface in Urdu with IELTS practice kept bilingual.',
-  },
+  en: { title: 'English', description: 'Interface, reminders, and lessons in English.' },
+  ur: { title: 'اردو', description: 'Interface in Urdu with IELTS practice kept bilingual.' },
 };
 
 const phoneRegex = /^\+?[1-9]\d{7,14}$/;
 const dayOrder = [...weekdayOptions];
-
 const quickBands = ['6.5', '7.0', '7.5', '8.0'] as const;
+const examTypes: ExamType[] = ['academic', 'general'];
+const slotOptions: PreferredSlot[] = ['morning', 'afternoon', 'evening'];
+const focusOptions: FocusSkill[] = ['listening', 'reading', 'writing', 'speaking'];
 
 export default function OnboardingWizard() {
   const router = useRouter();
@@ -93,14 +101,17 @@ export default function OnboardingWizard() {
         typeof state.goalBand === 'number'
           ? state.goalBand.toFixed(Number.isInteger(state.goalBand) ? 0 : 1)
           : defaultFormState.goalBand,
+      examType: (state.examType as ExamType) ?? defaultFormState.examType, // NEW
       examDate: state.examDate ?? defaultFormState.examDate,
       studyDays: Array.isArray(state.studyDays) ? state.studyDays : defaultFormState.studyDays,
       minutesPerDay:
         typeof state.studyMinutesPerDay === 'number'
           ? String(state.studyMinutesPerDay)
           : defaultFormState.minutesPerDay,
+      preferredSlot: (state.preferredSlot as PreferredSlot | null) ?? defaultFormState.preferredSlot, // NEW
       whatsappOptIn: state.whatsappOptIn ?? defaultFormState.whatsappOptIn,
       phone: state.phone ?? defaultFormState.phone,
+      focusSkill: (state.focusSkill as FocusSkill | null) ?? defaultFormState.focusSkill, // NEW
     });
   }, []);
 
@@ -243,6 +254,9 @@ export default function OnboardingWizard() {
         if (Number.isNaN(parsed) || parsed < 4 || parsed > 9 || !isHalfStep) {
           errors.goalBand = t('onboarding.errors.bandRange', 'Choose a band between 4.0 and 9.0 in 0.5 steps.');
         }
+        if (!form.examType) {
+          errors.examType = t('onboarding.errors.examType', 'Select Academic or General.');
+        }
       }
       if (currentStep === 3 && form.examDate) {
         const parsedDate = new Date(form.examDate);
@@ -254,12 +268,18 @@ export default function OnboardingWizard() {
         if (Number.isNaN(minutes) || minutes < 15 || minutes > 240) {
           errors.minutesPerDay = t('onboarding.errors.minutes', 'Set between 15 and 240 minutes.');
         }
+        // preferredSlot is optional; no error
       }
-      if (currentStep === 5 && form.whatsappOptIn) {
-        const trimmed = form.phone.trim();
-        if (!phoneRegex.test(trimmed)) {
-          errors.phone = t('onboarding.errors.invalidPhone', 'Enter a valid international phone number.');
-          setPhoneError(errors.phone);
+      if (currentStep === 5) {
+        if (form.whatsappOptIn) {
+          const trimmed = form.phone.trim();
+          if (!phoneRegex.test(trimmed)) {
+            errors.phone = t('onboarding.errors.invalidPhone', 'Enter a valid international phone number.');
+            setPhoneError(errors.phone);
+          }
+        }
+        if (!form.focusSkill) {
+          errors.focusSkill = t('onboarding.errors.focusSkill', 'Pick your primary focus.');
         }
       }
       setFieldErrors(errors);
@@ -285,7 +305,7 @@ export default function OnboardingWizard() {
       }
       if (step === 2) {
         const parsedGoal = Number(form.goalBand);
-        const parsed = await persistStep({ step: 2, data: { goalBand: parsedGoal } });
+        const parsed = await persistStep({ step: 2, data: { goalBand: parsedGoal, examType: form.examType } }); // NEW
         void emitUserEvent('onboarding_step_complete', { step: prev, delta: Math.max(0, determineStep(parsed) - prev) });
         return;
       }
@@ -296,12 +316,19 @@ export default function OnboardingWizard() {
       }
       if (step === 4) {
         const minutes = Number(form.minutesPerDay);
-        const parsed = await persistStep({ step: 4, data: { studyDays: form.studyDays, minutesPerDay: minutes } });
+        const parsed = await persistStep({
+          step: 4,
+          data: { studyDays: form.studyDays, minutesPerDay: minutes, preferredSlot: form.preferredSlot }, // NEW
+        });
         void emitUserEvent('onboarding_step_complete', { step: prev, delta: Math.max(0, determineStep(parsed) - prev) });
         return;
       }
+      // Step 5 (finish)
       const trimmedPhone = form.whatsappOptIn ? form.phone.trim() : '';
-      const parsed = await persistStep({ step: 5, data: { whatsappOptIn: form.whatsappOptIn, phone: trimmedPhone } });
+      const parsed = await persistStep({
+        step: 5,
+        data: { whatsappOptIn: form.whatsappOptIn, phone: trimmedPhone, focusSkill: form.focusSkill }, // NEW
+      });
       if (parsed.onboardingComplete) {
         await markOnboardingComplete().catch(() => undefined);
         void emitUserEvent('onboarding_done', { step: prev, delta: 0 });
@@ -323,8 +350,8 @@ export default function OnboardingWizard() {
       hint: t('onboarding.copy.language.hint', 'You can switch languages later from Settings → Preferences.'),
     },
     {
-      title: t('onboarding.copy.band.title', 'Set your target band'),
-      subtitle: t('onboarding.copy.band.subtitle', 'A clear goal helps us pace mocks, AI feedback, and review sessions.'),
+      title: t('onboarding.copy.band.title', 'Set your target band & exam type'),
+      subtitle: t('onboarding.copy.band.subtitle', 'A clear goal and test type help us tailor your roadmap.'),
     },
     {
       title: t('onboarding.copy.date.title', 'When is your IELTS exam?'),
@@ -332,13 +359,13 @@ export default function OnboardingWizard() {
     },
     {
       title: t('onboarding.copy.rhythm.title', 'Shape your weekly rhythm'),
-      subtitle: t('onboarding.copy.rhythm.subtitle', 'Tell us when you can put in focused time so we can schedule smarter.'),
-      hint: t('onboarding.copy.rhythm.hint', 'We’ll schedule AI-graded tasks and mocks on the days you pick.'),
+      subtitle: t('onboarding.copy.rhythm.subtitle', 'Tell us when you can study; we’ll schedule smarter.'),
+      hint: t('onboarding.copy.rhythm.hint', 'We’ll place mocks and AI-graded tasks on your chosen days.'),
     },
     {
-      title: t('onboarding.copy.whatsapp.title', 'Stay on track with WhatsApp'),
-      subtitle: t('onboarding.copy.whatsapp.subtitle', 'Opt in for gentle reminders and quick wins (totally optional).'),
-      hint: t('onboarding.copy.whatsapp.hint', 'We send at most three nudges per week and you can opt out anytime.'),
+      title: t('onboarding.copy.whatsapp.title', 'Stay on track & set your focus'),
+      subtitle: t('onboarding.copy.whatsapp.subtitle', 'Enable gentle reminders and choose the skill to prioritize.'),
+      hint: t('onboarding.copy.whatsapp.hint', 'You can opt out anytime and change focus later.'),
     },
   ][step - 1];
 
@@ -352,11 +379,17 @@ export default function OnboardingWizard() {
       steps={stepMeta}
       onBack={handleBack}
       onNext={handleNext}
-      nextLabel={saving ? t('onboarding.buttons.saving', 'Saving…') : step === TOTAL_ONBOARDING_STEPS ? t('onboarding.buttons.finish', 'Finish') : t('onboarding.buttons.continue', 'Continue')}
+      nextLabel={
+        saving
+          ? t('onboarding.buttons.saving', 'Saving…')
+          : step === TOTAL_ONBOARDING_STEPS
+          ? t('onboarding.buttons.finish', 'Finish')
+          : t('onboarding.buttons.continue', 'Continue')
+      }
       nextDisabled={saving || loading}
     >
       {error && (
-        <Alert variant="error" className="mb-4" role="alert">
+        <Alert variant="error" className="mb-4" role="alert" aria-live="assertive">
           {error}
         </Alert>
       )}
@@ -430,7 +463,7 @@ function StepContent({
 
   if (step === 2) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <Input
           type="number"
           label={t('onboarding.band.inputLabel', 'Target overall band')}
@@ -438,7 +471,7 @@ function StepContent({
           max={9}
           step={0.5}
           value={form.goalBand}
-          onChange={(event) => updateForm('goalBand', event.target.value)}
+          onChange={(e) => updateForm('goalBand', e.target.value)}
           helperText={t('onboarding.band.helper', 'Most universities aim for 6.5–7.0. Setting your target 0.5 higher gives breathing room.')}
           error={fieldErrors.goalBand}
         />
@@ -458,6 +491,27 @@ function StepContent({
             );
           })}
         </div>
+
+        <div className="mt-4">
+          <p className="mb-2 text-small font-medium">{t('onboarding.examType.label', 'Exam type')}</p>
+          <div className="flex flex-wrap gap-2">
+            {examTypes.map((type) => {
+              const selected = form.examType === type;
+              return (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={selected ? 'primary' : 'secondary'}
+                  className="rounded-ds-xl"
+                  onClick={() => updateForm('examType', type)}
+                >
+                  {type === 'academic' ? t('onboarding.examType.academic', 'Academic') : t('onboarding.examType.general', 'General')}
+                </Button>
+              );
+            })}
+          </div>
+          {fieldErrors.examType && <p className="mt-2 text-caption text-error">{fieldErrors.examType}</p>}
+        </div>
       </div>
     );
   }
@@ -469,8 +523,8 @@ function StepContent({
           type="date"
           label={t('onboarding.date.inputLabel', 'IELTS exam date')}
           value={form.examDate}
-          onChange={(event) => updateForm('examDate', event.target.value)}
-          helperText={t('onboarding.date.helper', 'Leave blank if you haven’t booked yet—we’ll suggest a four-week ramp.')}
+          onChange={(e) => updateForm('examDate', e.target.value)}
+          helperText={t('onboarding.date.helper', 'Leave blank if not booked yet—we’ll suggest a four-week ramp.')}
           error={fieldErrors.examDate}
         />
         <p className="text-small text-mutedText">
@@ -505,6 +559,7 @@ function StepContent({
           </div>
           {fieldErrors.studyDays && <p className="mt-2 text-caption text-error">{fieldErrors.studyDays}</p>}
         </div>
+
         <Input
           type="number"
           label={t('onboarding.minutes.label', 'Minutes per study day')}
@@ -512,39 +567,89 @@ function StepContent({
           max={240}
           step={5}
           value={form.minutesPerDay}
-          onChange={(event) => updateForm('minutesPerDay', event.target.value)}
+          onChange={(e) => updateForm('minutesPerDay', e.target.value)}
           helperText={t('onboarding.minutes.helper', 'We recommend at least 45 focused minutes. Your plan will adapt to this budget.')}
           error={fieldErrors.minutesPerDay}
         />
+
+        <div>
+          <p className="mb-2 text-small text-mutedText">{t('onboarding.slot.label', 'Preferred time of day (optional)')}</p>
+          <div className="flex flex-wrap gap-2">
+            {slotOptions.map((slot) => {
+              const selected = form.preferredSlot === slot;
+              return (
+                <Button
+                  key={slot}
+                  type="button"
+                  variant={selected ? 'primary' : 'secondary'}
+                  className="rounded-ds-xl"
+                  onClick={() => updateForm('preferredSlot', selected ? null : slot)}
+                >
+                  {slot === 'morning'
+                    ? t('onboarding.slot.morning', 'Morning')
+                    : slot === 'afternoon'
+                    ? t('onboarding.slot.afternoon', 'Afternoon')
+                    : t('onboarding.slot.evening', 'Evening')}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Step 5
   return (
-    <div className="space-y-4">
-      <Input
-        type="checkbox"
-        asChild
-        label={t('onboarding.whatsapp.optInTitle', 'Send me WhatsApp nudges')}
-      />
-      <div className="text-small text-mutedText">
-        {t('onboarding.whatsapp.optInDescription', '2–3 gentle reminders per week with prompts, checklists, and next steps.')}
+    <div className="space-y-6">
+      <div>
+        <p className="mb-2 text-small font-medium">{t('onboarding.focus.label', 'Pick your primary focus')}</p>
+        <div className="flex flex-wrap gap-2">
+          {focusOptions.map((fs) => {
+            const selected = form.focusSkill === fs;
+            return (
+              <Button
+                key={fs}
+                type="button"
+                variant={selected ? 'primary' : 'secondary'}
+                className="rounded-ds-xl"
+                onClick={() => updateForm('focusSkill', fs)}
+              >
+                {fs === 'listening'
+                  ? t('skills.listening', 'Listening')
+                  : fs === 'reading'
+                  ? t('skills.reading', 'Reading')
+                  : fs === 'writing'
+                  ? t('skills.writing', 'Writing')
+                  : t('skills.speaking', 'Speaking')}
+              </Button>
+            );
+          })}
+        </div>
+        {fieldErrors.focusSkill && <p className="mt-2 text-caption text-error">{fieldErrors.focusSkill}</p>}
       </div>
 
-      {form.whatsappOptIn ? (
-        <Input
-          label={t('onboarding.whatsapp.phoneLabel', 'WhatsApp number')}
-          placeholder={t('onboarding.whatsapp.placeholder', '+14155552671')}
-          value={form.phone}
-          onChange={(event) => updateForm('phone', event.target.value)}
-          helperText={t('onboarding.whatsapp.helper', 'Use your full international number including country code.')}
-          error={phoneError ?? fieldErrors.phone ?? undefined}
-        />
-      ) : (
-        <p className="text-small text-mutedText">
-          {t('onboarding.whatsapp.emailFallback', 'Prefer email? Enable WhatsApp reminders later from Settings → Notifications.')}
-        </p>
-      )}
+      <div className="space-y-3">
+        <Input type="checkbox" asChild label={t('onboarding.whatsapp.optInTitle', 'Send me WhatsApp nudges')} />
+        <div className="text-small text-mutedText">
+          {t('onboarding.whatsapp.optInDescription', '2–3 gentle reminders per week with prompts, checklists, and next steps.')}
+        </div>
+
+        {form.whatsappOptIn ? (
+          <Input
+            label={t('onboarding.whatsapp.phoneLabel', 'WhatsApp number')}
+            placeholder={t('onboarding.whatsapp.placeholder', '+14155552671')}
+            value={form.phone}
+            onChange={(e) => updateForm('phone', e.target.value)}
+            helperText={t('onboarding.whatsapp.helper', 'Use your full international number including country code.')}
+            error={phoneError ?? fieldErrors.phone ?? undefined}
+          />
+        ) : (
+          <p className="text-small text-mutedText">
+            {t('onboarding.whatsapp.emailFallback', 'Prefer email? Enable WhatsApp reminders later from Settings → Notifications.')}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
