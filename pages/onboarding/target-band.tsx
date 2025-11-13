@@ -1,4 +1,4 @@
-// pages/onboarding/index.tsx
+// pages/onboarding/target-band.tsx
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import React, { useMemo, useState } from 'react';
@@ -23,47 +23,112 @@ const ONBOARDING_STEPS: { id: OnboardingStepId; label: string }[] = [
   { id: 'notifications', label: 'Notifications' },
 ];
 
-type LanguageCode = 'en' | 'ur';
+const STEP_ROUTES: Record<OnboardingStepId, string> = {
+  language: '/onboarding',
+  'target-band': '/onboarding/target-band',
+  'exam-date': '/onboarding/exam-date',
+  'study-rhythm': '/onboarding/study-rhythm',
+  notifications: '/onboarding/notifications',
+};
 
-const OnboardingLanguagePage: NextPage = () => {
+type TargetBand =
+  | '5.5'
+  | '6.0'
+  | '6.5'
+  | '7.0'
+  | '7.5+';
+
+interface TargetBandOption {
+  id: TargetBand;
+  label: string;
+  subtitle: string;
+  badge?: string;
+}
+
+const TARGET_OPTIONS: TargetBandOption[] = [
+  {
+    id: '5.5',
+    label: 'Band 5.5',
+    subtitle: 'Solid starter goal if you’re still building basics.',
+  },
+  {
+    id: '6.0',
+    label: 'Band 6.0',
+    subtitle: 'Good for foundation programs and many colleges.',
+  },
+  {
+    id: '6.5',
+    label: 'Band 6.5',
+    subtitle: 'Common requirement for universities and visas.',
+    badge: 'Most popular',
+  },
+  {
+    id: '7.0',
+    label: 'Band 7.0',
+    subtitle: 'Competitive score for top universities and jobs.',
+  },
+  {
+    id: '7.5+',
+    label: 'Band 7.5 or above',
+    subtitle: 'Ambitious target — we’ll push you harder.',
+  },
+];
+
+const OnboardingTargetBandPage: NextPage = () => {
   const router = useRouter();
-  const [language, setLanguage] = useState<LanguageCode | null>('en');
+  const [targetBand, setTargetBand] = useState<TargetBand | null>('6.5');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nextPath = useMemo(() => {
     const { next } = router.query;
-    // we keep whatever you passed in ?next=, but fall back to dashboard after flow
     return typeof next === 'string' ? next : '/dashboard';
   }, [router.query]);
 
   const currentIndex = useMemo(
-    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'language'),
+    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'target-band'),
     []
   );
+
+  function handleBack() {
+    router.push({
+      pathname: STEP_ROUTES.language,
+      query: { next: nextPath },
+    });
+  }
+
+  function handleStepClick(stepId: OnboardingStepId) {
+    const pathname = STEP_ROUTES[stepId];
+    if (!pathname) return;
+
+    // keep ?next= consistent
+    router.push({
+      pathname,
+      query: { next: nextPath },
+    });
+  }
 
   async function handleContinue() {
     setError(null);
 
-    if (!language) {
-      setError('Please pick a language to continue.');
+    if (!targetBand) {
+      setError('Please choose a target band to continue.');
       return;
     }
 
     try {
       setSubmitting(true);
 
-      // TODO: wire this up to your actual API / Supabase call.
-      // Example (pseudo):
-      // await fetch('/api/onboarding/language', {
+      // TODO: wire this to Supabase (profiles.goal_band / target_band)
+      // await fetch('/api/onboarding/target-band', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ language }),
+      //   body: JSON.stringify({ targetBand }),
       // });
 
-      // For now, just move to the next onboarding step route.
+      // ✅ go to next step
       await router.push({
-        pathname: '/onboarding/target-band',
+        pathname: STEP_ROUTES['exam-date'],
         query: { next: nextPath },
       });
     } catch (e) {
@@ -75,77 +140,64 @@ const OnboardingLanguagePage: NextPage = () => {
     }
   }
 
-  function handleBack() {
-    // First step: go back to login/signup if someone hits Back
-    router.back();
-  }
-
   return (
     <main className="min-h-screen bg-background">
       <Container className="flex min-h-screen flex-col items-center justify-center py-10">
-        {/* Progress rail */}
+        {/* Progress rail (clickable) */}
         <div className="mb-6 w-full max-w-3xl">
           <OnboardingProgress
             steps={ONBOARDING_STEPS}
             currentIndex={currentIndex}
+            onStepClick={handleStepClick}
           />
         </div>
 
         {/* Main card */}
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
-          <header className="mb-6 flex items-start justify-between gap-4">
+          <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Pick your learning language
+                What&apos;s your target band score?
               </h1>
               <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                We&apos;ll translate nudges, reminders, and key instructions so
-                the platform feels natural to you. You can change this later
-                from <span className="font-medium">Settings → Preferences</span>.
+                Your goal band helps us set difficulty, pick question types, and
+                plan how aggressive your schedule should be.
               </p>
             </div>
 
-            <div className="hidden shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground sm:flex">
-              <Icon name="zap" className="h-3.5 w-3.5" />
-              Smart setup · under 1 minute
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Icon name="target" className="h-3.5 w-3.5" />
+              Clear goal, clearer path.
             </div>
           </header>
 
-          {/* Choices */}
+          {/* Options */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <LanguageChoice
-              code="en"
-              label="English"
-              description="Interface, reminders, and lessons in English."
-              selected={language === 'en'}
-              onSelect={() => setLanguage('en')}
-            />
-            <LanguageChoice
-              code="ur"
-              label="اردو + English mix"
-              description="Interface in Urdu with IELTS practice mostly kept bilingual."
-              selected={language === 'ur'}
-              onSelect={() => setLanguage('ur')}
-            />
+            {TARGET_OPTIONS.map((option) => (
+              <TargetBandCard
+                key={option.id}
+                option={option}
+                selected={targetBand === option.id}
+                onSelect={() => setTargetBand(option.id)}
+              />
+            ))}
           </div>
 
           {error && (
             <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
           )}
 
-          {/* Keyboard hint */}
+          {/* Hint */}
           <p className="mt-4 text-xs text-muted-foreground">
-            Tip: Use <span className="rounded bg-muted px-1.5 py-0.5">←</span>{' '}
-            and <span className="rounded bg-muted px-1.5 py-0.5">→</span>{' '}
-            arrow keys to move between options, then press{' '}
-            <span className="rounded bg-muted px-1.5 py-0.5">Enter</span> to
-            continue.
+            Not 100% sure? Pick the band you’d be happy with. You can always
+            adjust it later from{' '}
+            <span className="font-medium">Profile → Goals</span>.
           </p>
 
-          {/* Footer actions */}
+          {/* Footer */}
           <footer className="mt-6 flex flex-col-reverse items-center justify-between gap-3 border-t border-border pt-4 sm:flex-row">
             <Button
               variant="ghost"
@@ -159,12 +211,12 @@ const OnboardingLanguagePage: NextPage = () => {
 
             <div className="flex items-center gap-3">
               <p className="hidden text-xs text-muted-foreground sm:inline">
-                Next: <span className="font-medium">Set your target band</span>
+                Next: <span className="font-medium">Exam date</span>
               </p>
               <Button
                 size="lg"
                 onClick={handleContinue}
-                disabled={submitting || !language}
+                disabled={submitting || !targetBand}
               >
                 {submitting ? 'Saving…' : 'Continue'}
                 <Icon name="arrow-right" className="ml-2 h-4 w-4" />
@@ -180,41 +232,60 @@ const OnboardingLanguagePage: NextPage = () => {
 interface OnboardingProgressProps {
   steps: { id: OnboardingStepId; label: string }[];
   currentIndex: number;
+  onStepClick?: (id: OnboardingStepId) => void;
 }
 
 const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   steps,
   currentIndex,
+  onStepClick,
 }) => {
   return (
     <div className="flex flex-col gap-2">
+      {/* Dots / rail */}
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const active = index === currentIndex;
           const completed = index < currentIndex;
+
+          const circle = (
+            <div
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
+                completed &&
+                  'border-primary bg-primary text-primary-foreground',
+                active &&
+                  !completed &&
+                  'border-primary/80 bg-primary/10 text-primary',
+                !active &&
+                  !completed &&
+                  'border-border bg-muted text-muted-foreground'
+              )}
+            >
+              {completed ? (
+                <Icon name="check" className="h-3.5 w-3.5" />
+              ) : (
+                index + 1
+              )}
+            </div>
+          );
 
           return (
             <div
               key={step.id}
               className="flex flex-1 items-center last:flex-none"
             >
-              <div
-                className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
-                  completed &&
-                    'border-primary bg-primary text-primary-foreground',
-                  active &&
-                    !completed &&
-                    'border-primary/80 bg-primary/10 text-primary',
-                  !active && !completed && 'border-border bg-muted text-muted-foreground'
-                )}
-              >
-                {completed ? (
-                  <Icon name="check" className="h-3.5 w-3.5" />
-                ) : (
-                  index + 1
-                )}
-              </div>
+              {onStepClick ? (
+                <button
+                  type="button"
+                  onClick={() => onStepClick(step.id)}
+                  className="flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  {circle}
+                </button>
+              ) : (
+                circle
+              )}
 
               {index < steps.length - 1 && (
                 <div
@@ -230,12 +301,12 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
         })}
       </div>
 
+      {/* Labels */}
       <div className="flex justify-between text-xs text-muted-foreground">
         {steps.map((step, index) => {
           const active = index === currentIndex;
-          return (
+          const label = (
             <span
-              key={step.id}
               className={cn(
                 'flex-1 truncate text-center',
                 active && 'font-medium text-foreground'
@@ -244,23 +315,31 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
               {step.label}
             </span>
           );
+
+          return (
+            <button
+              key={step.id}
+              type="button"
+              onClick={onStepClick ? () => onStepClick(step.id) : undefined}
+              className="flex-1 focus-visible:outline-none"
+            >
+              {label}
+            </button>
+          );
         })}
       </div>
     </div>
   );
 };
 
-interface LanguageChoiceProps {
-  code: LanguageCode;
-  label: string;
-  description: string;
+interface TargetBandCardProps {
+  option: TargetBandOption;
   selected: boolean;
   onSelect: () => void;
 }
 
-const LanguageChoice: React.FC<LanguageChoiceProps> = ({
-  label,
-  description,
+const TargetBandCard: React.FC<TargetBandCardProps> = ({
+  option,
   selected,
   onSelect,
 }) => {
@@ -269,18 +348,20 @@ const LanguageChoice: React.FC<LanguageChoiceProps> = ({
       type="button"
       onClick={onSelect}
       className={cn(
-        'group flex h-full flex-col rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
+        'group flex h-full flex-col justify-between rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
         selected
           ? 'border-primary bg-primary/10 shadow-md'
           : 'border-border bg-muted/40 hover:border-primary/60 hover:bg-muted'
       )}
     >
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {label.charAt(0)}
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Icon name="target" className="h-4 w-4" />
           </span>
-          <span className="text-base font-semibold sm:text-lg">{label}</span>
+          <span className="text-base font-semibold sm:text-lg">
+            {option.label}
+          </span>
         </div>
 
         <div
@@ -295,9 +376,17 @@ const LanguageChoice: React.FC<LanguageChoiceProps> = ({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground sm:text-sm">{description}</p>
+      <p className="text-xs text-muted-foreground sm:text-sm">
+        {option.subtitle}
+      </p>
+
+      {option.badge && (
+        <span className="mt-3 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+          {option.badge}
+        </span>
+      )}
     </button>
   );
 };
 
-export default OnboardingLanguagePage;
+export default OnboardingTargetBandPage;
