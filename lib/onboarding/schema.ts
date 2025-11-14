@@ -1,67 +1,76 @@
+// lib/onboarding/schema.ts
 import { z } from 'zod';
 
-export const languageOptions = ['en', 'ur'] as const;
-export const weekdayOptions = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-
-export const onboardingStateSchema = z.object({
-  preferredLanguage: z.enum(languageOptions).nullable(),
-  goalBand: z.number().min(4).max(9).nullable(),
-  examDate: z.string().length(10).nullable(),
-  studyDays: z.array(z.enum(weekdayOptions)).min(1).nullable(),
-  studyMinutesPerDay: z.number().int().min(10).max(360).nullable(),
-  whatsappOptIn: z.boolean().nullable(),
-  phone: z.string().nullable(),
-  onboardingStep: z.number().int().nonnegative(),
-  onboardingComplete: z.boolean(),
+/**
+ * Language step
+ */
+export const LanguageBody = z.object({
+  language: z.enum(['en', 'ur']),
 });
 
-export type OnboardingState = z.infer<typeof onboardingStateSchema>;
+export type LanguageBodyInput = z.infer<typeof LanguageBody>;
 
-const languageStepSchema = z.object({
-  step: z.literal(1),
-  data: z.object({
-    preferredLanguage: z.enum(languageOptions),
-  }),
+/**
+ * Target band step
+ */
+export const TargetBandBody = z.object({
+  targetBand: z
+    .number()
+    .min(4, 'Band must be at least 4.0')
+    .max(9, 'Band must be at most 9.0'),
 });
 
-const bandStepSchema = z.object({
-  step: z.literal(2),
-  data: z.object({
-    goalBand: z.number().min(4).max(9),
-  }),
+export type TargetBandBodyInput = z.infer<typeof TargetBandBody>;
+
+/**
+ * Exam date step
+ */
+export const ExamDateBody = z.object({
+  timeframe: z.enum(['0-30', '30-60', '60-90', '90-plus', 'not-booked']),
+  examDate: z
+    .string()
+    .datetime({ offset: false })
+    .optional()
+    .or(z.literal('').transform(() => undefined))
+    .optional(),
 });
 
-const examDateStepSchema = z.object({
-  step: z.literal(3),
-  data: z.object({
-    examDate: z.string().length(10).optional().or(z.literal('')),
-  }),
+/**
+ * If you prefer yyyy-mm-dd without time, use this instead:
+ *
+ * export const ExamDateBody = z.object({
+ *   timeframe: z.enum(['0-30', '30-60', '60-90', '90-plus', 'not-booked']),
+ *   examDate: z
+ *     .string()
+ *     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+ *     .optional(),
+ * });
+ */
+
+export type ExamDateBodyInput = z.infer<typeof ExamDateBody>;
+
+/**
+ * Study rhythm step
+ */
+export const StudyRhythmBody = z.object({
+  rhythm: z.enum(['daily', '5days', 'weekends', 'flexible', 'intensive']),
 });
 
-const availabilityStepSchema = z.object({
-  step: z.literal(4),
-  data: z.object({
-    studyDays: z.array(z.enum(weekdayOptions)).min(1),
-    minutesPerDay: z.number().int().min(15).max(240),
-  }),
+export type StudyRhythmBodyInput = z.infer<typeof StudyRhythmBody>;
+
+/**
+ * Notifications step
+ */
+export const NotificationChannelEnum = z.enum(['email', 'push', 'whatsapp']);
+
+export const NotificationsBody = z.object({
+  channels: z
+    .array(NotificationChannelEnum)
+    .min(1, 'At least one channel is required'),
+  preferredTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, 'Expected HH:MM')
+    .optional(),
 });
 
-const whatsappStepSchema = z.object({
-  step: z.literal(5),
-  data: z.object({
-    whatsappOptIn: z.boolean(),
-    phone: z.string().min(8).max(20).optional().or(z.literal('')),
-  }),
-});
-
-export const onboardingStepPayloadSchema = z.discriminatedUnion('step', [
-  languageStepSchema,
-  bandStepSchema,
-  examDateStepSchema,
-  availabilityStepSchema,
-  whatsappStepSchema,
-]);
-
-export type OnboardingStepPayload = z.infer<typeof onboardingStepPayloadSchema>;
-
-export const TOTAL_ONBOARDING_STEPS = 5;
+export type NotificationsBodyInput = z.infer<typeof NotificationsBody>;

@@ -1,255 +1,177 @@
+// pages/vocabulary/index.tsx
+import type { NextPage } from 'next';
 import Head from 'next/head';
-import * as React from 'react';
-import { useDebouncedCallback } from 'use-debounce';
-import { Loader2 } from 'lucide-react';
-
-import { Alert } from '@/components/design-system/Alert';
-import { Badge } from '@/components/design-system/Badge';
-import { Button } from '@/components/design-system/Button';
-import { Card } from '@/components/design-system/Card';
+import Link from 'next/link';
 import { Container } from '@/components/design-system/Container';
-import { EmptyState } from '@/components/design-system/EmptyState';
-import { Heading } from '@/components/design-system/Heading';
-import { Filters } from '@/components/vocab/Filters';
-import { WordCard } from '@/components/vocab/WordCard';
-import { apiFetch, createQueryString } from '@/lib/db/api';
-import { useInfiniteQuery } from '@/lib/hooks/useInfiniteQuery';
-import type { PaginatedVocabularyResponse, WordSummary } from '@/types/vocabulary';
+import { Card } from '@/components/design-system/Card';
+import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
+import Icon from '@/components/design-system/Icon';
 
-const PAGE_SIZE = 24;
-
-const PART_OF_SPEECH_OPTIONS = [
-  { value: 'all', label: 'All parts of speech' },
-  { value: 'noun', label: 'Noun' },
-  { value: 'verb', label: 'Verb' },
-  { value: 'adjective', label: 'Adjective' },
-  { value: 'adverb', label: 'Adverb' },
-  { value: 'phrase', label: 'Phrase' },
-];
-
-const LEVEL_OPTIONS = [
-  { value: 'all', label: 'All levels' },
-  { value: 'A1', label: 'A1 Beginner' },
-  { value: 'A2', label: 'A2 Elementary' },
-  { value: 'B1', label: 'B1 Intermediate' },
-  { value: 'B2', label: 'B2 Upper-intermediate' },
-  { value: 'C1', label: 'C1 Advanced' },
-  { value: 'C2', label: 'C2 Mastery' },
-];
-
-const CATEGORY_OPTIONS = [
-  { value: 'all', label: 'All categories' },
-  { value: 'academic', label: 'Academic' },
-  { value: 'business', label: 'Business' },
-  { value: 'daily-life', label: 'Daily life' },
-  { value: 'technology', label: 'Technology' },
-  { value: 'travel', label: 'Travel' },
-];
-
-const DEFAULT_FILTERS = {
-  search: '',
-  partOfSpeech: 'all',
-  level: 'all',
-  category: 'all',
-};
-
-type FiltersState = typeof DEFAULT_FILTERS;
-
-export default function VocabularyBrowser() {
-  const [filters, setFilters] = React.useState<FiltersState>(DEFAULT_FILTERS);
-  const [searchInput, setSearchInput] = React.useState('');
-  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
-
-  const debouncedSearch = useDebouncedCallback((value: string) => {
-    setFilters((prev) => ({ ...prev, search: value }));
-  }, 300);
-
-  const filtersKey = React.useMemo(() => JSON.stringify(filters), [filters]);
-
-  const fetchPage = React.useCallback(
-    async ({ cursor, signal }: { cursor: string | null; signal?: AbortSignal }) => {
-      const query = createQueryString({
-        cursor: cursor ?? undefined,
-        limit: PAGE_SIZE,
-        q: filters.search || undefined,
-        pos: filters.partOfSpeech !== 'all' ? filters.partOfSpeech : undefined,
-        level: filters.level !== 'all' ? filters.level : undefined,
-        category: filters.category !== 'all' ? filters.category : undefined,
-      });
-
-      const response = await apiFetch<PaginatedVocabularyResponse<WordSummary>>(
-        `/api/vocabulary${query}`,
-        { signal },
-      );
-
-      return {
-        items: response.items ?? [],
-        nextCursor: response.nextCursor ?? null,
-        total: response.total ?? null,
-      };
-    },
-    [filters],
-  );
-
-  const { items, loadMore, hasMore, isLoading, isInitialLoading, error, refresh } = useInfiniteQuery<WordSummary>({
-    fetchPage,
-    deps: [filtersKey],
-  });
-
-  React.useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry?.isIntersecting) {
-          loadMore();
-        }
-      },
-      { rootMargin: '200px' },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, loadMore]);
-
-  const activeFilterCount = React.useMemo(() => {
-    let count = 0;
-    if (filters.partOfSpeech !== 'all') count += 1;
-    if (filters.level !== 'all') count += 1;
-    if (filters.category !== 'all') count += 1;
-    return count;
-  }, [filters.category, filters.level, filters.partOfSpeech]);
-
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    debouncedSearch(value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchInput('');
-    debouncedSearch.cancel();
-    setFilters((prev) => ({ ...prev, search: '' }));
-  };
-
-  const handleFilterChange = (
-    key: keyof Omit<FiltersState, 'search'>,
-    value: string,
-  ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleReset = () => {
-    setSearchInput('');
-    debouncedSearch.cancel();
-    setFilters(DEFAULT_FILTERS);
-  };
-
+const VocabularyIndexPage: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Vocabulary Explorer • Gramor_X</title>
+        <title>Vocabulary Lab — Gramor_X</title>
       </Head>
+      <section className="bg-lightBg py-20 dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+        <Container>
+          <div className="space-y-10">
+            <header className="space-y-3">
+              <Badge size="sm" variant="accent">
+                Vocabulary Lab
+              </Badge>
+              <h1 className="font-slab text-display">
+                Build band 7+ vocabulary without memorising random lists.
+              </h1>
+              <p className="max-w-2xl text-body text-grayish">
+                Topic packs, linking words, AI rewrites and quick quizzes — all wired to IELTS
+                Writing & Speaking.
+              </p>
+            </header>
 
-      <main className="bg-background py-16">
-        <Container className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <Heading as="h1" size="xl">
-              Vocabulary Explorer
-            </Heading>
-            <p className="text-body text-muted-foreground">
-              Search, filter, and save vocabulary aligned with the IELTS curriculum.
-            </p>
-          </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon name="Sparkles" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Daily word</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    One high-impact word each day with examples, synonyms and a quick check.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Link href="/vocabulary/daily">
+                    <Button className="rounded-ds-xl">Open daily vocab</Button>
+                  </Link>
+                </div>
+              </Card>
 
-          <Card className="space-y-4 p-6">
-            <Filters
-              searchValue={searchInput}
-              values={filters}
-              partOfSpeechOptions={PART_OF_SPEECH_OPTIONS}
-              levelOptions={LEVEL_OPTIONS}
-              categoryOptions={CATEGORY_OPTIONS}
-              activeCount={activeFilterCount}
-              onSearchChange={handleSearchChange}
-              onFilterChange={handleFilterChange}
-              onReset={handleReset}
-              onClearSearch={handleClearSearch}
-            />
-            {(filters.search || activeFilterCount > 0) && (
-              <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
-                <span>Active query:</span>
-                {filters.search && <Badge variant="secondary">“{filters.search}”</Badge>}
-                {filters.partOfSpeech !== 'all' && <Badge variant="subtle">{filters.partOfSpeech}</Badge>}
-                {filters.level !== 'all' && <Badge variant="subtle">Level {filters.level}</Badge>}
-                {filters.category !== 'all' && <Badge variant="subtle">{filters.category}</Badge>}
-              </div>
-            )}
-          </Card>
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                      <Icon name="Layers" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Topic packs</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Environment, education, technology and more — ready-made vocab for Writing &
+                    Speaking.
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href="/vocabulary/topic/environment">
+                    <Button size="sm" className="rounded-ds-xl">
+                      Environment
+                    </Button>
+                  </Link>
+                  <Link href="/vocabulary/topic/education">
+                    <Button size="sm" variant="secondary" className="rounded-ds-xl">
+                      Education
+                    </Button>
+                  </Link>
+                  <Link href="/vocabulary/topic/technology">
+                    <Button size="sm" variant="ghost" className="rounded-ds-xl">
+                      More topics
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
 
-          {error && (
-            <Alert variant="error" title="We couldn’t load vocabulary right now." className="p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{error}</span>
-                <Button size="sm" variant="ghost" onClick={refresh}>
-                  Try again
-                </Button>
-              </div>
-            </Alert>
-          )}
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-electricBlue/10 text-electricBlue">
+                      <Icon name="Link2" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Linking & paraphrasing</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Sound academic with proper linking words and smarter paraphrasing.
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href="/vocabulary/linking-words">
+                    <Button size="sm" className="rounded-ds-xl">
+                      Linking words
+                    </Button>
+                  </Link>
+                  <Link href="/vocabulary/ai-lab">
+                    <Button size="sm" variant="secondary" className="rounded-ds-xl">
+                      AI rewrite lab
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
 
-          <section className="space-y-6">
-            {isInitialLoading && (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
-                <span className="sr-only">Loading vocabulary…</span>
-              </div>
-            )}
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <Icon name="Mic" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Speaking packs</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Cue card-ready phrases sorted by topics for Speaking Part 2 & 3.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Link href="/vocabulary/speaking">
+                    <Button className="rounded-ds-xl">Speaking vocab</Button>
+                  </Link>
+                </div>
+              </Card>
 
-            {!isInitialLoading && items.length === 0 && !error && (
-              <EmptyState
-                title="No vocabulary found"
-                description="Try adjusting your filters or search for a different keyword."
-                actions={
-                  <Button variant="ghost" onClick={handleReset}>
-                    Reset filters
-                  </Button>
-                }
-              />
-            )}
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-success/10 text-success">
+                      <Icon name="CheckCircle2" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Quizzes & mastery</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Quick quizzes to test meaning, usage and synonym choice.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Link href="/vocabulary/quizzes">
+                    <Button className="rounded-ds-xl">Start a quiz</Button>
+                  </Link>
+                </div>
+              </Card>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((entry) => (
-                <WordCard key={entry.id} entry={entry} />
-              ))}
+              <Card className="flex flex-col justify-between rounded-ds-2xl p-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+                      <Icon name="Bookmark" size={18} />
+                    </span>
+                    <h2 className="font-slab text-h3">Saved words</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Your personal word bank — review, tag and practise on demand.
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <Link href="/vocabulary/saved">
+                    <Button className="rounded-ds-xl" variant="secondary">
+                      View saved words
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
             </div>
-
-            {hasMore && (
-              <div className="flex justify-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={loadMore}
-                  loading={isLoading}
-                  loadingText="Loading"
-                  className="px-6"
-                >
-                  Load more
-                </Button>
-              </div>
-            )}
-
-            {isLoading && !isInitialLoading && (
-              <div className="flex items-center justify-center py-8 text-small text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                Loading more words…
-              </div>
-            )}
-
-            <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
-          </section>
+          </div>
         </Container>
-      </main>
+      </section>
     </>
   );
-}
+};
+
+export default VocabularyIndexPage;

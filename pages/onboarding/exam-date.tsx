@@ -1,4 +1,4 @@
-// pages/onboarding/index.tsx
+// pages/onboarding/exam-date.tsx
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import React, { useMemo, useState } from 'react';
@@ -23,61 +23,107 @@ const ONBOARDING_STEPS: { id: OnboardingStepId; label: string }[] = [
   { id: 'notifications', label: 'Notifications' },
 ];
 
-type LanguageCode = 'en' | 'ur';
+type ExamTimeframe =
+  | '0-30'
+  | '30-60'
+  | '60-90'
+  | '90-plus'
+  | 'not-booked';
 
-const OnboardingLanguagePage: NextPage = () => {
+interface TimeframeOption {
+  id: ExamTimeframe;
+  label: string;
+  subtitle: string;
+}
+
+const TIMEFRAME_OPTIONS: TimeframeOption[] = [
+  {
+    id: '0-30',
+    label: 'Within 30 days',
+    subtitle: 'Very close — we’ll focus on high-impact revision.',
+  },
+  {
+    id: '30-60',
+    label: '1–2 months from now',
+    subtitle: 'Enough time for a structured plan and mocks.',
+  },
+  {
+    id: '60-90',
+    label: '2–3 months from now',
+    subtitle: 'Ideal window for deep skill building.',
+  },
+  {
+    id: '90-plus',
+    label: 'More than 3 months away',
+    subtitle: 'Slow and steady, with weekly consistency.',
+  },
+  {
+    id: 'not-booked',
+    label: 'I haven’t booked yet',
+    subtitle: 'We’ll suggest a realistic target date for you.',
+  },
+];
+
+const OnboardingExamDatePage: NextPage = () => {
   const router = useRouter();
-  const [language, setLanguage] = useState<LanguageCode | null>('en');
+  const [timeframe, setTimeframe] = useState<ExamTimeframe>('60-90');
+  const [specificDate, setSpecificDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nextPath = useMemo(() => {
     const { next } = router.query;
-    // we keep whatever you passed in ?next=, but fall back to dashboard after flow
     return typeof next === 'string' ? next : '/dashboard';
   }, [router.query]);
 
   const currentIndex = useMemo(
-    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'language'),
+    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'exam-date'),
     []
   );
+
+  function handleBack() {
+    router.push({
+      pathname: '/onboarding/target-band',
+      query: { next: nextPath },
+    });
+  }
 
   async function handleContinue() {
     setError(null);
 
-    if (!language) {
-      setError('Please pick a language to continue.');
+    if (!timeframe) {
+      setError('Please choose how far away your exam is.');
+      return;
+    }
+
+    // optional: simple check for date if user filled it
+    if (specificDate && Number.isNaN(Date.parse(specificDate))) {
+      setError('Please enter a valid exam date or clear the field.');
       return;
     }
 
     try {
       setSubmitting(true);
 
-      // TODO: wire this up to your actual API / Supabase call.
+      // TODO: persist exam info to your backend / Supabase profile table.
       // Example (pseudo):
-      // await fetch('/api/onboarding/language', {
+      // await fetch('/api/onboarding/exam-date', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ language }),
+      //   body: JSON.stringify({ timeframe, specificDate: specificDate || null }),
       // });
 
-      // For now, just move to the next onboarding step route.
       await router.push({
-        pathname: '/onboarding/target-band',
+        pathname: '/onboarding/study-rhythm',
         query: { next: nextPath },
       });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e);
-      setError('Something went wrong. Please try again.');
+      setError('Something went wrong while saving your exam plan.');
     } finally {
       setSubmitting(false);
     }
-  }
-
-  function handleBack() {
-    // First step: go back to login/signup if someone hits Back
-    router.back();
   }
 
   return (
@@ -93,56 +139,79 @@ const OnboardingLanguagePage: NextPage = () => {
 
         {/* Main card */}
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
-          <header className="mb-6 flex items-start justify-between gap-4">
+          <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Pick your learning language
+                When is your IELTS exam?
               </h1>
               <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                We&apos;ll translate nudges, reminders, and key instructions so
-                the platform feels natural to you. You can change this later
-                from <span className="font-medium">Settings → Preferences</span>.
+                We&apos;ll adjust the intensity of your study plan based on how
+                close your test date is. Shorter timelines get tighter, more
+                focused practice.
               </p>
             </div>
 
-            <div className="hidden shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground sm:flex">
-              <Icon name="zap" className="h-3.5 w-3.5" />
-              Smart setup · under 1 minute
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Icon name="calendar" className="h-3.5 w-3.5" />
+              Smarter schedule, same 24 hours.
             </div>
           </header>
 
-          {/* Choices */}
+          {/* Timeframe grid */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <LanguageChoice
-              code="en"
-              label="English"
-              description="Interface, reminders, and lessons in English."
-              selected={language === 'en'}
-              onSelect={() => setLanguage('en')}
-            />
-            <LanguageChoice
-              code="ur"
-              label="اردو + English mix"
-              description="Interface in Urdu with IELTS practice mostly kept bilingual."
-              selected={language === 'ur'}
-              onSelect={() => setLanguage('ur')}
-            />
+            {TIMEFRAME_OPTIONS.map((option) => (
+              <TimeframeCard
+                key={option.id}
+                option={option}
+                selected={timeframe === option.id}
+                onSelect={() => setTimeframe(option.id)}
+              />
+            ))}
+          </div>
+
+          {/* Optional specific date */}
+          <div className="mt-5 rounded-2xl border border-dashed border-border bg-muted/40 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  Do you already know the exact date?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Optional, but it helps us align your milestones with the
+                  calendar.
+                </p>
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center">
+                <label
+                  htmlFor="exam-date"
+                  className="text-xs font-medium text-muted-foreground sm:text-right"
+                >
+                  Exam date
+                </label>
+                <input
+                  id="exam-date"
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="min-w-[180px] rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
+            </div>
           </div>
 
           {error && (
             <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
           )}
 
-          {/* Keyboard hint */}
+          {/* Hint */}
           <p className="mt-4 text-xs text-muted-foreground">
-            Tip: Use <span className="rounded bg-muted px-1.5 py-0.5">←</span>{' '}
-            and <span className="rounded bg-muted px-1.5 py-0.5">→</span>{' '}
-            arrow keys to move between options, then press{' '}
-            <span className="rounded bg-muted px-1.5 py-0.5">Enter</span> to
-            continue.
+            Not booked yet? No problem. Pick the option that feels closest and
+            you can update the exact date anytime from{' '}
+            <span className="font-medium">Settings → Study plan</span>.
           </p>
 
           {/* Footer actions */}
@@ -159,12 +228,13 @@ const OnboardingLanguagePage: NextPage = () => {
 
             <div className="flex items-center gap-3">
               <p className="hidden text-xs text-muted-foreground sm:inline">
-                Next: <span className="font-medium">Set your target band</span>
+                Next:{' '}
+                <span className="font-medium">Choose your study rhythm</span>
               </p>
               <Button
                 size="lg"
                 onClick={handleContinue}
-                disabled={submitting || !language}
+                disabled={submitting || !timeframe}
               >
                 {submitting ? 'Saving…' : 'Continue'}
                 <Icon name="arrow-right" className="ml-2 h-4 w-4" />
@@ -250,17 +320,14 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   );
 };
 
-interface LanguageChoiceProps {
-  code: LanguageCode;
-  label: string;
-  description: string;
+interface TimeframeCardProps {
+  option: TimeframeOption;
   selected: boolean;
   onSelect: () => void;
 }
 
-const LanguageChoice: React.FC<LanguageChoiceProps> = ({
-  label,
-  description,
+const TimeframeCard: React.FC<TimeframeCardProps> = ({
+  option,
   selected,
   onSelect,
 }) => {
@@ -269,20 +336,16 @@ const LanguageChoice: React.FC<LanguageChoiceProps> = ({
       type="button"
       onClick={onSelect}
       className={cn(
-        'group flex h-full flex-col rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
+        'group flex h-full flex-col justify-between rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
         selected
           ? 'border-primary bg-primary/10 shadow-md'
           : 'border-border bg-muted/40 hover:border-primary/60 hover:bg-muted'
       )}
     >
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {label.charAt(0)}
-          </span>
-          <span className="text-base font-semibold sm:text-lg">{label}</span>
-        </div>
-
+        <span className="text-base font-semibold sm:text-lg">
+          {option.label}
+        </span>
         <div
           className={cn(
             'flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors',
@@ -294,10 +357,11 @@ const LanguageChoice: React.FC<LanguageChoiceProps> = ({
           {selected ? <Icon name="check" className="h-3 w-3" /> : ''}
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground sm:text-sm">{description}</p>
+      <p className="text-xs text-muted-foreground sm:text-sm">
+        {option.subtitle}
+      </p>
     </button>
   );
 };
 
-export default OnboardingLanguagePage;
+export default OnboardingExamDatePage;

@@ -17,17 +17,26 @@ import { Icon } from '@/components/design-system/Icon';
 type WordOfDay = { word: string; meaning?: string; example?: string };
 
 const ModuleCard: React.FC<{ title: string; href: string; caption: string; chip?: string }> = ({
-  title, href, caption, chip,
+  title,
+  href,
+  caption,
+  chip,
 }) => (
   <Link href={href} className="block focus-visible:outline-none group">
-    <div className="card-surface rounded-ds-2xl border border-border bg-card text-card-foreground p-5 transition
-                    hover:shadow-glow hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+    <div
+      className="card-surface rounded-ds-2xl border border-border bg-card text-card-foreground p-5 transition
+                    hover:shadow-glow hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-h4 font-semibold">{title}</h3>
         {chip ? <Badge variant="info">{chip}</Badge> : null}
       </div>
       <p className="text-small text-mutedText">{caption}</p>
-      <div className="mt-4"><Button variant="secondary" className="rounded-ds-xl">Open</Button></div>
+      <div className="mt-4">
+        <Button variant="secondary" className="rounded-ds-xl">
+          Open
+        </Button>
+      </div>
     </div>
   </Link>
 );
@@ -113,6 +122,7 @@ export default function WelcomePage() {
         } = await supabase.auth.getSession();
 
         if (error) {
+          // eslint-disable-next-line no-console
           console.error('Session fetch error:', error);
           if (mounted) sendToLogin();
           return;
@@ -148,8 +158,12 @@ export default function WelcomePage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
       if (error) {
+        // eslint-disable-next-line no-console
         console.error('Session fetch error:', error);
         return;
       }
@@ -163,6 +177,7 @@ export default function WelcomePage() {
         .maybeSingle();
 
       if (profileError) {
+        // eslint-disable-next-line no-console
         console.error('Profile fetch error:', profileError);
         return;
       }
@@ -171,7 +186,9 @@ export default function WelcomePage() {
         setName(data?.full_name ?? null);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Word of the day (robust normalization → always strings)
@@ -186,6 +203,7 @@ export default function WelcomePage() {
         if (!active) return;
         setWod(normalizeWod(j));
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('Word of the day fetch error:', err);
         if (!active) return;
         setWod(normalizeWod(null));
@@ -193,11 +211,14 @@ export default function WelcomePage() {
         if (active) setLoadingWord(false);
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const greeting = useMemo(
-    () => (name ? `Welcome, ${name.split(' ')[0]} 👋` : 'Welcome to GramorX'),
+    () =>
+      name ? `Welcome, ${name.split(' ')[0]} 👋` : 'Welcome to GramorX',
     [name]
   );
 
@@ -206,7 +227,9 @@ export default function WelcomePage() {
       <section className="py-16">
         <Container>
           <div className="rounded-ds-2xl border border-border bg-card p-8 text-center">
-            <p className="text-small text-mutedText">Preparing your welcome experience...</p>
+            <p className="text-small text-mutedText">
+              Preparing your welcome experience...
+            </p>
           </div>
         </Container>
       </section>
@@ -220,20 +243,38 @@ export default function WelcomePage() {
         <div className="rounded-ds-2xl border border-border bg-card text-card-foreground p-8 mb-10 header-glass">
           <div className="flex flex-wrap items-center gap-6 justify-between">
             <div>
-              <h1 className="font-slab text-h1 md:text-display mb-2">{greeting}</h1>
+              <h1 className="font-slab text-h1 md:text-display mb-2">
+                {greeting}
+              </h1>
               <p className="text-mutedText max-w-2xl">
-                Kickstart your IELTS prep with AI-powered practice, instant feedback, and a clear plan across all four modules.
+                Kickstart your IELTS prep with AI-powered practice, instant
+                feedback, and a clear plan across all four modules.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild className="rounded-ds-xl"><Link href="/profile">Begin Onboarding</Link></Button>
-                <Button asChild variant="secondary" className="rounded-ds-xl"><Link href="/dashboard">Go to Dashboard</Link></Button>
-                <Button asChild variant="ghost" className="rounded-ds-xl"><Link href="/band-predictor">Try Band Predictor</Link></Button>
+                {/* Primary CTA now starts onboarding */}
+                <Button asChild className="rounded-ds-xl">
+                  <Link href="/onboarding?next=/dashboard">
+                    Begin smart onboarding
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="rounded-ds-xl"
+                >
+                  <Link href="/dashboard">Skip for now · Go to dashboard</Link>
+                </Button>
+                <Button asChild variant="ghost" className="rounded-ds-xl">
+                  <Link href="/band-predictor">Try Band Predictor</Link>
+                </Button>
               </div>
             </div>
 
             <div className="min-w-[220px]">
               <div className="rounded-ds-2xl border border-border bg-background/60 p-4">
-                <div className="mb-2 text-small text-mutedText">Your streak</div>
+                <div className="mb-2 text-small text-mutedText">
+                  Your streak
+                </div>
                 {/* Conditional rendering of StreakIndicator */}
                 {streakLoading ? (
                   <div>Loading streak...</div>
@@ -242,7 +283,9 @@ export default function WelcomePage() {
                 ) : (
                   <StreakIndicator value={streakCurrent ?? 0} />
                 )}
-                <div className="mt-2 text-small text-mutedText">Keep a daily streak to unlock bonus mock tests.</div>
+                <div className="mt-2 text-small text-mutedText">
+                  Keep a daily streak to unlock bonus mock tests.
+                </div>
               </div>
             </div>
           </div>
@@ -253,33 +296,79 @@ export default function WelcomePage() {
           <div className="rounded-ds-2xl border border-border bg-card p-5">
             <div className="text-small mb-2 text-mutedText">Step 1</div>
             <h3 className="font-semibold mb-2">Set your target band</h3>
-            <p className="text-small text-mutedText mb-4">Pick a goal and we’ll tailor your plan.</p>
-            <Button asChild size="sm" className="rounded-ds-xl"><Link href="/profile#goal">Choose target</Link></Button>
+            <p className="text-small text-mutedText mb-4">
+              Pick a goal and we’ll tailor your plan.
+            </p>
+            <Button asChild size="sm" className="rounded-ds-xl">
+              <Link href="/onboarding/target-band?next=/dashboard">
+                Choose target
+              </Link>
+            </Button>
           </div>
           <div className="rounded-ds-2xl border border-border bg-card p-5">
             <div className="text-small mb-2 text-mutedText">Step 2</div>
             <h3 className="font-semibold mb-2">Take a placement test</h3>
-            <p className="text-small text-mutedText mb-4">Get an instant estimate of your current band.</p>
-            <Button asChild size="sm" variant="secondary" className="rounded-ds-xl"><Link href="/band-predictor">Start test</Link></Button>
+            <p className="text-small text-mutedText mb-4">
+              Get an instant estimate of your current band.
+            </p>
+            <Button
+              asChild
+              size="sm"
+              variant="secondary"
+              className="rounded-ds-xl"
+            >
+              <Link href="/band-predictor">Start test</Link>
+            </Button>
           </div>
           <div className="rounded-ds-2xl border border-border bg-card p-5">
             <div className="text-small mb-2 text-mutedText">Step 3</div>
             <h3 className="font-semibold mb-2">Begin daily practice</h3>
-            <p className="text-small text-mutedText mb-4">Short, focused tasks to build momentum.</p>
-            <Button asChild size="sm" variant="ghost" className="rounded-ds-xl"><Link href="/challenge">Go to daily tasks</Link></Button>
+            <p className="text-small text-mutedText mb-4">
+              Short, focused tasks to build momentum.
+            </p>
+            <Button
+              asChild
+              size="sm"
+              variant="ghost"
+              className="rounded-ds-xl"
+            >
+              <Link href="/challenge">Go to daily tasks</Link>
+            </Button>
           </div>
         </div>
 
         {/* MODULES */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-semibold text-h3">IELTS Modules</h2>
-          <Link href="/modules" className="text-primary hover:underline">View all</Link>
+          <Link href="/modules" className="text-primary hover:underline">
+            View all
+          </Link>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-          <ModuleCard title="Listening" href="/listening" caption="Section-wise practice with transcripts and timings." chip="Practice" />
-          <ModuleCard title="Reading" href="/reading" caption="True/False/NG, MCQs and passage strategy." chip="Practice" />
-          <ModuleCard title="Writing" href="/writing" caption="Task 1 & Task 2 with AI scoring and tips." chip="AI Feedback" />
-          <ModuleCard title="Speaking" href="/speaking" caption="Part 1–3 prompts with recording & evaluation." chip="Record" />
+          <ModuleCard
+            title="Listening"
+            href="/listening"
+            caption="Section-wise practice with transcripts and timings."
+            chip="Practice"
+          />
+          <ModuleCard
+            title="Reading"
+            href="/reading"
+            caption="True/False/NG, MCQs and passage strategy."
+            chip="Practice"
+          />
+          <ModuleCard
+            title="Writing"
+            href="/writing"
+            caption="Task 1 & Task 2 with AI scoring and tips."
+            chip="AI Feedback"
+          />
+          <ModuleCard
+            title="Speaking"
+            href="/speaking"
+            caption="Part 1–3 prompts with recording & evaluation."
+            chip="Record"
+          />
         </div>
 
         {/* CHALLENGES SPOTLIGHT */}
@@ -289,7 +378,10 @@ export default function WelcomePage() {
 
           <div className="relative z-10 grid items-start gap-10 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
             <div className="space-y-5">
-              <Badge variant="secondary" className="rounded-full bg-background/70 backdrop-blur">
+              <Badge
+                variant="secondary"
+                className="rounded-full bg-background/70 backdrop-blur"
+              >
                 Feature spotlight
               </Badge>
               <div className="space-y-3">
@@ -297,7 +389,9 @@ export default function WelcomePage() {
                   Stay motivated with our Daily & Weekly Challenge lane
                 </h2>
                 <p className="text-mutedText text-base md:text-lg max-w-xl">
-                  Master high-value collocations, protect your streak with forgiveness tokens, and collect XP bursts designed to keep your IELTS momentum unstoppable.
+                  Master high-value collocations, protect your streak with
+                  forgiveness tokens, and collect XP bursts designed to keep
+                  your IELTS momentum unstoppable.
                 </p>
               </div>
 
@@ -305,26 +399,38 @@ export default function WelcomePage() {
                 <div className="flex flex-col gap-2 rounded-ds-2xl border border-border/50 bg-background/70 p-4 backdrop-blur">
                   <div className="flex items-center gap-2 text-foreground">
                     <Icon name="Sparkles" size={18} className="text-primary" />
-                    <span className="text-caption uppercase tracking-wide text-mutedText">Collocations</span>
+                    <span className="text-caption uppercase tracking-wide text-mutedText">
+                      Collocations
+                    </span>
                   </div>
                   <p className="text-h4 font-semibold">5 mastered</p>
-                  <p className="text-small text-mutedText">Earn a bonus every time you complete today’s set.</p>
+                  <p className="text-small text-mutedText">
+                    Earn a bonus every time you complete today’s set.
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2 rounded-ds-2xl border border-border/50 bg-background/70 p-4 backdrop-blur">
                   <div className="flex items-center gap-2 text-foreground">
                     <Icon name="Flame" size={18} className="text-accent" />
-                    <span className="text-caption uppercase tracking-wide text-mutedText">Streak boost</span>
+                    <span className="text-caption uppercase tracking-wide text-mutedText">
+                      Streak boost
+                    </span>
                   </div>
                   <p className="text-h4 font-semibold">Every 7 days</p>
-                  <p className="text-small text-mutedText">Unlock forgiveness tokens to keep your run alive.</p>
+                  <p className="text-small text-mutedText">
+                    Unlock forgiveness tokens to keep your run alive.
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2 rounded-ds-2xl border border-border/50 bg-background/70 p-4 backdrop-blur">
                   <div className="flex items-center gap-2 text-foreground">
                     <Icon name="Trophy" size={18} className="text-success" />
-                    <span className="text-caption uppercase tracking-wide text-mutedText">XP rewards</span>
+                    <span className="text-caption uppercase tracking-wide text-mutedText">
+                      XP rewards
+                    </span>
                   </div>
                   <p className="text-h4 font-semibold">+10 — +12 XP</p>
-                  <p className="text-small text-mutedText">Stack daily wins and climb the leaderboard faster.</p>
+                  <p className="text-small text-mutedText">
+                    Stack daily wins and climb the leaderboard faster.
+                  </p>
                 </div>
               </div>
 
@@ -355,7 +461,9 @@ export default function WelcomePage() {
         {/* WORD OF THE DAY + BAND PREDICTOR */}
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="rounded-ds-2xl border border-border bg-card p-6">
-            <div className="mb-2 flex items-center gap-2"><Badge variant="success">Word of the day</Badge></div>
+            <div className="mb-2 flex items-center gap-2">
+              <Badge variant="success">Word of the day</Badge>
+            </div>
             {loadingWord ? (
               <div className="animate-pulse space-y-2">
                 <div className="h-6 bg-primary/10 rounded" />
@@ -365,19 +473,29 @@ export default function WelcomePage() {
             ) : (
               <>
                 <div className="text-h2 font-slab">{wod?.word ?? ''}</div>
-                {wod?.meaning ? <p className="text-mutedText mt-2">{wod.meaning}</p> : null}
-                {wod?.example ? <p className="text-small mt-2 italic">“{wod.example}”</p> : null}
+                {wod?.meaning ? (
+                  <p className="text-mutedText mt-2">{wod.meaning}</p>
+                ) : null}
+                {wod?.example ? (
+                  <p className="text-small mt-2 italic">“{wod.example}”</p>
+                ) : null}
               </>
             )}
           </div>
 
           <div className="rounded-ds-2xl border border-border bg-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <div className="mb-1 text-small text-mutedText">Unsure where to start?</div>
+              <div className="mb-1 text-small text-mutedText">
+                Unsure where to start?
+              </div>
               <h3 className="text-h3 font-semibold">Band Predictor</h3>
-              <p className="text-small text-mutedText mt-1">A quick adaptive test to gauge your current level.</p>
+              <p className="text-small text-mutedText mt-1">
+                A quick adaptive test to gauge your current level.
+              </p>
             </div>
-            <Button asChild className="rounded-ds-xl"><Link href="/band-predictor">Start now</Link></Button>
+            <Button asChild className="rounded-ds-xl">
+              <Link href="/band-predictor">Start now</Link>
+            </Button>
           </div>
         </div>
 
@@ -385,11 +503,17 @@ export default function WelcomePage() {
         <div className="mt-10 flex items-center justify-between rounded-ds-2xl border border-border bg-card p-6">
           <div>
             <h4 className="font-semibold mb-1">Need help?</h4>
-            <p className="text-small text-mutedText">Ask the community or talk to our AI assistant.</p>
+            <p className="text-small text-mutedText">
+              Ask the community or talk to our AI assistant.
+            </p>
           </div>
           <div className="flex gap-3">
-            <Button asChild variant="secondary" className="rounded-ds-xl"><Link href="/community">Visit Community</Link></Button>
-            <Button asChild variant="ghost" className="rounded-ds-xl"><Link href="/ai">Open AI Assistant</Link></Button>
+            <Button asChild variant="secondary" className="rounded-ds-xl">
+              <Link href="/community">Visit Community</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-ds-xl">
+              <Link href="/ai">Open AI Assistant</Link>
+            </Button>
           </div>
         </div>
       </Container>
@@ -397,7 +521,11 @@ export default function WelcomePage() {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ req, res, resolvedUrl }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  req,
+  res,
+  resolvedUrl,
+}) => {
   try {
     const supabaseServer = getServerClient(req as any, res as any);
     const {
@@ -406,6 +534,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res, resolve
     } = await supabaseServer.auth.getSession();
 
     if (error) {
+      // eslint-disable-next-line no-console
       console.error('Welcome GSSP session error:', error);
     }
 
@@ -438,8 +567,35 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res, resolve
       };
     }
 
+    // 🔥 Force onboarding from here:
+    // If onboarding is not completed, send user into the /onboarding wizard.
+    try {
+      const { data: profile, error: profileError } = await supabaseServer
+        .from('profiles')
+        .select('onboarding_completed_at')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        // eslint-disable-next-line no-console
+        console.error('Welcome GSSP profile error:', profileError);
+      } else if (!profile?.onboarding_completed_at) {
+        const nextParam = encodeURIComponent(resolvedUrl ?? '/welcome');
+        return {
+          redirect: {
+            destination: `/onboarding?next=${nextParam}`,
+            permanent: false,
+          },
+        };
+      }
+    } catch (profileErr) {
+      // eslint-disable-next-line no-console
+      console.error('Welcome GSSP onboarding check error:', profileErr);
+    }
+
     return { props: {} };
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('Welcome GSSP unexpected error:', err);
     return { props: {} };
   }

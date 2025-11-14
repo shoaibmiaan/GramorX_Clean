@@ -1,4 +1,4 @@
-// pages/onboarding/index.tsx
+// pages/onboarding/study-rhythm.tsx
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import React, { useMemo, useState } from 'react';
@@ -23,67 +23,98 @@ const ONBOARDING_STEPS: { id: OnboardingStepId; label: string }[] = [
   { id: 'notifications', label: 'Notifications' },
 ];
 
-type LanguageCode = 'en' | 'ur';
+type RhythmOption =
+  | 'daily'
+  | '5days'
+  | 'weekends'
+  | 'flexible'
+  | 'intensive';
 
-const OnboardingLanguagePage: NextPage = () => {
+interface RhythmChoice {
+  id: RhythmOption;
+  label: string;
+  subtitle: string;
+  badge?: string;
+}
+
+const OPTIONS: RhythmChoice[] = [
+  {
+    id: 'daily',
+    label: 'Daily study',
+    subtitle: 'Short sessions every day → fastest improvement.',
+    badge: 'Recommended',
+  },
+  {
+    id: '5days',
+    label: '5 days a week',
+    subtitle: 'Weekdays only. Balanced routine for professionals.',
+  },
+  {
+    id: 'weekends',
+    label: 'Weekends only',
+    subtitle: 'Longer sessions on Saturday & Sunday.',
+  },
+  {
+    id: 'flexible',
+    label: 'Flexible schedule',
+    subtitle: 'You pick your own days each week.',
+  },
+  {
+    id: 'intensive',
+    label: 'Intensive mode',
+    subtitle: '2–3 hours daily. Best for < 30 days exams.',
+  },
+];
+
+const OnboardingStudyRhythmPage: NextPage = () => {
   const router = useRouter();
-  const [language, setLanguage] = useState<LanguageCode | null>('en');
+  const [selected, setSelected] = useState<RhythmOption>('daily');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nextPath = useMemo(() => {
     const { next } = router.query;
-    // we keep whatever you passed in ?next=, but fall back to dashboard after flow
     return typeof next === 'string' ? next : '/dashboard';
   }, [router.query]);
 
   const currentIndex = useMemo(
-    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'language'),
+    () => ONBOARDING_STEPS.findIndex((s) => s.id === 'study-rhythm'),
     []
   );
+
+  function handleBack() {
+    router.push({
+      pathname: '/onboarding/exam-date',
+      query: { next: nextPath },
+    });
+  }
 
   async function handleContinue() {
     setError(null);
 
-    if (!language) {
-      setError('Please pick a language to continue.');
-      return;
-    }
-
     try {
       setSubmitting(true);
 
-      // TODO: wire this up to your actual API / Supabase call.
-      // Example (pseudo):
-      // await fetch('/api/onboarding/language', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ language }),
-      // });
+      // TODO: save to DB
+      // await fetch('/api/onboarding/study-rhythm', { ... })
 
-      // For now, just move to the next onboarding step route.
       await router.push({
-        pathname: '/onboarding/target-band',
+        pathname: '/onboarding/notifications',
         query: { next: nextPath },
       });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e);
-      setError('Something went wrong. Please try again.');
+      setError('Could not save your rhythm. Try again.');
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleBack() {
-    // First step: go back to login/signup if someone hits Back
-    router.back();
-  }
-
   return (
     <main className="min-h-screen bg-background">
       <Container className="flex min-h-screen flex-col items-center justify-center py-10">
-        {/* Progress rail */}
+        {/* Progress */}
         <div className="mb-6 w-full max-w-3xl">
           <OnboardingProgress
             steps={ONBOARDING_STEPS}
@@ -91,58 +122,47 @@ const OnboardingLanguagePage: NextPage = () => {
           />
         </div>
 
-        {/* Main card */}
+        {/* Card */}
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
-          <header className="mb-6 flex items-start justify-between gap-4">
+          <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Pick your learning language
+                How do you prefer to study?
               </h1>
               <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                We&apos;ll translate nudges, reminders, and key instructions so
-                the platform feels natural to you. You can change this later
-                from <span className="font-medium">Settings → Preferences</span>.
+                Your rhythm helps us shape daily tasks, reminders, rest days,
+                and mock-test scheduling. You can update it anytime.
               </p>
             </div>
 
-            <div className="hidden shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground sm:flex">
-              <Icon name="zap" className="h-3.5 w-3.5" />
-              Smart setup · under 1 minute
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Icon name="alarm-clock" className="h-3.5 w-3.5" />
+              Consistency beats intensity.
             </div>
           </header>
 
-          {/* Choices */}
+          {/* Option grid */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <LanguageChoice
-              code="en"
-              label="English"
-              description="Interface, reminders, and lessons in English."
-              selected={language === 'en'}
-              onSelect={() => setLanguage('en')}
-            />
-            <LanguageChoice
-              code="ur"
-              label="اردو + English mix"
-              description="Interface in Urdu with IELTS practice mostly kept bilingual."
-              selected={language === 'ur'}
-              onSelect={() => setLanguage('ur')}
-            />
+            {OPTIONS.map((option) => (
+              <RhythmCard
+                key={option.id}
+                option={option}
+                selected={selected === option.id}
+                onSelect={() => setSelected(option.id)}
+              />
+            ))}
           </div>
 
           {error && (
             <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
           )}
 
-          {/* Keyboard hint */}
           <p className="mt-4 text-xs text-muted-foreground">
-            Tip: Use <span className="rounded bg-muted px-1.5 py-0.5">←</span>{' '}
-            and <span className="rounded bg-muted px-1.5 py-0.5">→</span>{' '}
-            arrow keys to move between options, then press{' '}
-            <span className="rounded bg-muted px-1.5 py-0.5">Enter</span> to
-            continue.
+            Don’t worry — your study plan adapts automatically as your exam date
+            gets closer.
           </p>
 
           {/* Footer actions */}
@@ -159,12 +179,12 @@ const OnboardingLanguagePage: NextPage = () => {
 
             <div className="flex items-center gap-3">
               <p className="hidden text-xs text-muted-foreground sm:inline">
-                Next: <span className="font-medium">Set your target band</span>
+                Next: <span className="font-medium">Notifications</span>
               </p>
               <Button
                 size="lg"
                 onClick={handleContinue}
-                disabled={submitting || !language}
+                disabled={submitting || !selected}
               >
                 {submitting ? 'Saving…' : 'Continue'}
                 <Icon name="arrow-right" className="ml-2 h-4 w-4" />
@@ -177,15 +197,11 @@ const OnboardingLanguagePage: NextPage = () => {
   );
 };
 
-interface OnboardingProgressProps {
+/* --- Progress Component --- */
+const OnboardingProgress: React.FC<{
   steps: { id: OnboardingStepId; label: string }[];
   currentIndex: number;
-}
-
-const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
-  steps,
-  currentIndex,
-}) => {
+}> = ({ steps, currentIndex }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -231,57 +247,43 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
       </div>
 
       <div className="flex justify-between text-xs text-muted-foreground">
-        {steps.map((step, index) => {
-          const active = index === currentIndex;
-          return (
-            <span
-              key={step.id}
-              className={cn(
-                'flex-1 truncate text-center',
-                active && 'font-medium text-foreground'
-              )}
-            >
-              {step.label}
-            </span>
-          );
-        })}
+        {steps.map((step, index) => (
+          <span
+            key={step.id}
+            className={cn(
+              'flex-1 truncate text-center',
+              index === currentIndex && 'font-medium text-foreground'
+            )}
+          >
+            {step.label}
+          </span>
+        ))}
       </div>
     </div>
   );
 };
 
-interface LanguageChoiceProps {
-  code: LanguageCode;
-  label: string;
-  description: string;
+/* --- Rhythm Card --- */
+const RhythmCard: React.FC<{
+  option: RhythmChoice;
   selected: boolean;
   onSelect: () => void;
-}
-
-const LanguageChoice: React.FC<LanguageChoiceProps> = ({
-  label,
-  description,
-  selected,
-  onSelect,
-}) => {
+}> = ({ option, selected, onSelect }) => {
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        'group flex h-full flex-col rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
+        'group flex h-full flex-col justify-between rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-5',
         selected
           ? 'border-primary bg-primary/10 shadow-md'
           : 'border-border bg-muted/40 hover:border-primary/60 hover:bg-muted'
       )}
     >
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {label.charAt(0)}
-          </span>
-          <span className="text-base font-semibold sm:text-lg">{label}</span>
-        </div>
+        <span className="text-base font-semibold sm:text-lg">
+          {option.label}
+        </span>
 
         <div
           className={cn(
@@ -295,9 +297,17 @@ const LanguageChoice: React.FC<LanguageChoiceProps> = ({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground sm:text-sm">{description}</p>
+      <p className="text-xs text-muted-foreground sm:text-sm">
+        {option.subtitle}
+      </p>
+
+      {option.badge && (
+        <span className="mt-3 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+          {option.badge}
+        </span>
+      )}
     </button>
   );
 };
 
-export default OnboardingLanguagePage;
+export default OnboardingStudyRhythmPage;

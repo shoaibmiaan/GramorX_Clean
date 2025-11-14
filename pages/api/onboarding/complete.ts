@@ -1,114 +1,104 @@
+// pages/api/onboarding/complete.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
+
 import { getServerClient } from '@/lib/supabaseServer';
 
-const BodySchema = z.object({
-  examType: z.enum(['Academic','General Training']),
-  goalBand: z.number().min(4).max(9),
-  locale: z.enum(['en','ur']),
-  examDate: z.string().optional(), // ISO date (YYYY-MM-DD)
-  skills: z.object({
-    listening: z.number().optional(),
-    reading: z.number().optional(),
-    writing: z.number().optional(),
-    speaking: z.number().optional(),
-    weaknesses: z.array(z.string()).optional(),
-  }).optional(),
-  schedule: z.object({
-    days: z.array(z.enum(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'])).min(1),
-    minutesPerDay: z.number().min(15).max(180),
-  }),
+const Body = z.object({
+  step: z
+    .union([
+      z.number().int(),
+      z.string().transform((v) => {
+        const n = Number.parseInt(v, 10);
+        return Number.isNaN(n) ? 5 : n;
+      }),
+    ])
+    .optional(),
+  channels: z
+    .array(z.enum(['email', 'whatsapp', 'in-app']))
+    .min(1)
+    .optional(),
 });
 
-type Resp = { ok: true } | { ok: false; error: string };
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse<Resp>) {
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
-
-  const parse = BodySchema.safeParse(req.body);
-  if (!parse.success) {
-    return res.status(400).json({ ok: false, error: parse.error.issues.map(i => i.message).join(', ') });
-  }
-  const body = parse.data;
-
-  // Use per-request server client (cookie/JWT from the session)
-  const supabase = getServerClient(req, res);
-  const { data: userRes, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userRes.user?.id) return res.status(401).json({ ok: false, error: 'Unauthorized' });
-  const userId = userRes.user.id;
-
-  // 1) Update profile (note: write to canonical "id"; never to "user_id")
-  const { error: pErr } = await supabase
-    .from('profiles')
-    .update({
-      exam_type: body.examType,
-      goal_band: body.goalBand,
-      locale: body.locale,
-    })
-    .eq('id', userId);
-  if (pErr) return res.status(500).json({ ok: false, error: pErr.message });
-
-  // 2) Generate plan (4 weeks from today OR until examDate, whichever is sooner)
-  const today = new Date();
-  const exam = body.examDate ? new Date(`${body.examDate}T00:00:00`) : addDays(today, 28);
-  const fourWeeks = addDays(today, 28);
-  const end = exam.getTime() < fourWeeks.getTime() ? exam : fourWeeks;
-
-  const plan = generatePlan(today, end, body.schedule.days, body.schedule.minutesPerDay);
-
-  // study_plans still uses user_id (separate table) — that’s OK
-  const { error: sErr } = await supabase.from('study_plans').upsert(
-    {
-      user_id: userId,
-      start_date: iso(today),
-      end_date: iso(end),
-      plan_json: plan as unknown as Record<string, unknown>,
-      is_active: true,
-    },
-    { onConflict: 'user_id' }
-  );
-  if (sErr) return res.status(500).json({ ok: false, error: sErr.message });
-
-  // 3) Save skills (best-effort)
-  if (body.skills) {
+function normalizeBody(req: NextApiRequest): unknown {
+  const raw = req.body;
+  if (typeof raw === 'string') {
     try {
-      await supabase.from('skill_snapshots').insert({
-        user_id: userId,
-        listening: body.skills.listening ?? null,
-        reading: body.skills.reading ?? null,
-        writing: body.skills.writing ?? null,
-        speaking: body.skills.speaking ?? null,
-        weaknesses: body.skills.weaknesses ?? [],
-        created_at: new Date().toISOString(),
-      } as Record<string, unknown>);
+      return JSON.parse(raw);
     } catch {
-      // ignore if table missing
+      return {};
     }
+  }
+
+  if (raw instanceof Buffer) {
+    try {
+      return JSON.parse(raw.toString('utf8'));
+    } catch {
+      return {};
+    }
+  }
+
+  if (raw == null) return {};
+  return raw;
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const body = normalizeBody(req);
+  const parse = Body.safeParse(body);
+
+  let step = 5;
+  let channels: ('email' | 'whatsapp' | 'in-app')[] | undefined;
+
+  if (parse.success) {
+    step = parse.data.step ?? 5;
+    channels = parse.data.channels;
+  } else {
+    console.warn(
+      'onboarding/complete: body validation failed',
+      parse.error.flatten()
+    );
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    console.error('onboarding/complete auth error:', authError);
+  }
+
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const patch: Record<string, any> = {
+    onboarding_step: step,
+    onboarding_complete: true,
+    draft: false,
+  };
+
+  if (channels && channels.length > 0) {
+    patch.notification_channels = channels;
+  }
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update(patch)
+    .eq('user_id', user.id);
+
+  if (updateError) {
+    console.error('onboarding/complete update error:', updateError);
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
 
   return res.status(200).json({ ok: true });
 }
-
-/* --- helpers --- */
-type Module = 'listening' | 'reading' | 'writing' | 'speaking';
-type StudyTask = { module: Module; minutes: number };
-type PlanDay = { date: string; tasks: StudyTask[] };
-type StudyPlan = { days: PlanDay[] };
-
-function generatePlan(start: Date, end: Date, weekdays: readonly string[], minutesPerDay: number): StudyPlan {
-  const days: PlanDay[] = [];
-  const modules: Module[] = ['listening','reading','writing','speaking'];
-  let i = 0;
-  for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
-    const wd = mapToMonSun(d.getDay()); // 0..6 -> Mon..Sun
-    const wdName = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][wd];
-    if (weekdays.includes(wdName)) {
-      days.push({ date: iso(d), tasks: [{ module: modules[i % modules.length], minutes: minutesPerDay }] });
-      i++;
-    }
-  }
-  return { days };
-}
-const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-const mapToMonSun = (jsDay: number) => (jsDay + 6) % 7; // Sun(0)->6, Mon(1)->0 ...

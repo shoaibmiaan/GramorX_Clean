@@ -36,7 +36,10 @@ export function useRouteGuard() {
 
     (async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
         if (!mounted) return;
 
         const authed = !!session && !error;
@@ -54,6 +57,7 @@ export function useRouteGuard() {
             .select('preferred_language')
             .eq('user_id', user.id)
             .maybeSingle();
+
           const lang = profile?.preferred_language || 'en';
           setLocale(lang);
         }
@@ -67,7 +71,20 @@ export function useRouteGuard() {
             hasRedirected.current = true;
             const target = safeNext(router.query.next) || '/welcome';
             if (target && router.asPath !== target) {
-              await router.replace(target);
+              try {
+                await router.replace(target);
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // dev-only invariant – ignore
+                } else {
+                  throw err;
+                }
+              }
             }
           }
           return;
@@ -81,14 +98,31 @@ export function useRouteGuard() {
         // Protected routes begin here
         if (!authed) {
           hasRedirected.current = true;
-          const next = encodeURIComponent(router.asPath);
-          const targetQuery = { next };
-          const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
+
+          // IMPORTANT: do NOT encode twice. URLSearchParams will handle encoding.
+          const targetQuery = { next: router.asPath };
+          const targetAsPath = `/login?${new URLSearchParams(
+            targetQuery
+          ).toString()}`;
+
           if (router.asPath !== targetAsPath) {
-            await router.replace({
-              pathname: '/login',
-              query: targetQuery,
-            });
+            try {
+              await router.replace({
+                pathname: '/login',
+                query: targetQuery,
+              });
+            } catch (err: any) {
+              if (
+                typeof err?.message === 'string' &&
+                err.message.includes(
+                  'attempted to hard navigate to the same URL'
+                )
+              ) {
+                // dev-only invariant – ignore
+              } else {
+                throw err;
+              }
+            }
           }
           return;
         }
@@ -97,22 +131,52 @@ export function useRouteGuard() {
         if (!canAccess(pathname, role)) {
           const need = requiredRolesFor(pathname);
           hasRedirected.current = true;
+
           if (!role) {
             const targetQuery = {
               next: router.asPath,
               need: Array.isArray(need) ? need.join(',') : need ?? '',
             };
-            const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
+            const targetAsPath = `/login?${new URLSearchParams(
+              targetQuery
+            ).toString()}`;
+
             if (router.asPath !== targetAsPath) {
-              await router.replace({
-                pathname: '/login',
-                query: targetQuery,
-              });
+              try {
+                await router.replace({
+                  pathname: '/login',
+                  query: targetQuery,
+                });
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // dev-only invariant – ignore
+                } else {
+                  throw err;
+                }
+              }
             }
           } else {
             const target = '/403';
             if (router.asPath !== target) {
-              await router.replace('/403');
+              try {
+                await router.replace('/403');
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // ignore
+                } else {
+                  throw err;
+                }
+              }
             }
           }
           return;
