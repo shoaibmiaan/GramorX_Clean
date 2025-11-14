@@ -1,4 +1,4 @@
-const RestrictedPage = () => {
+    const RestrictedPage = () => {
   return (
     <div>
       <h1>Access Denied</h1>
