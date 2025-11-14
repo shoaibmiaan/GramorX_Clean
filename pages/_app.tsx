@@ -455,7 +455,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
       if (detail?.tier) setSubscriptionTier(detail.tier);
     };
     window.addEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
-    return () => window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
+    return () =>
+      window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
   }, []);
 
   // route configuration
@@ -504,16 +505,18 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const basePage =
     routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
       <PremiumThemeProvider>
-        <Component {...pageProps} />
+        <Component {...pageProps} key={router.asPath} />
       </PremiumThemeProvider>
     ) : (
-      <Component {...pageProps} />
+      <Component {...pageProps} key={router.asPath} />
     );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
-        <div className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}>
+        <div
+          className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}
+        >
           <AnimationProvider>
             <AppLayoutManager
               isAuthPage={routeConfiguration.isAuthPage}
@@ -534,7 +537,9 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
-              {(router.pathname === '/pricing' || router.pathname === '/pricing/overview') ? <PricingReasonBanner /> : null}
+              {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? (
+                <PricingReasonBanner />
+              ) : null}
               {basePage}
             </AppLayoutManager>
           </AnimationProvider>

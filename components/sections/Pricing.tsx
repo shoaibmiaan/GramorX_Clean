@@ -1,238 +1,181 @@
 // components/sections/Pricing.tsx
-import React, { useState } from 'react';
-import { Container } from '@/components/design-system/Container';
+import React from 'react';
 import { Section } from '@/components/design-system/Section';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
-import { Icon } from '@/components/design-system/Icon';
+import Icon from '@/components/design-system/Icon';
 import { Badge } from '@/components/design-system/Badge';
 
-type BillingCycle = 'monthly' | 'quarterly';
+type PlanId = 'free' | 'rocket' | 'institution';
 
-const plans = [
+type Plan = {
+  id: PlanId;
+  name: string;
+  tagline: string;
+  highlight?: boolean;
+  badge?: string;
+  priceLine: string;
+  note?: string;
+  href: string;
+  ctaLabel: string;
+  features: string[];
+};
+
+const plans: Plan[] = [
   {
-    name: 'Starter',
-    description: 'Perfect for beginners exploring IELTS preparation',
-    monthlyPrice: 'Free',
-    quarterlyPrice: 'Free',
-    cta: 'Get Started',
+    id: 'free',
+    name: 'Free',
+    tagline: 'Start IELTS prep without friction.',
+    priceLine: '$0 — no card required',
+    note: 'Best for testing the platform and light weekly use.',
     href: '/signup',
-    variant: 'outline' as const,
+    ctaLabel: 'Start on Free',
     features: [
-      'Basic adaptive learning path',
-      '2 AI writing reviews per month',
-      'Vocabulary builder',
-      'Progress tracking',
-      'Community support'
-    ],
-    popular: false
+      'Access to all four modules in limited mode',
+      'A few AI writing / speaking checks each month',
+      'Limited mock attempts with basic summaries',
+      'Basic streaks and saved questions',
+      'Good for “trying it out” before committing'
+    ]
   },
   {
-    name: 'Accelerator',
-    description: 'Most popular - Everything you need to achieve your target band',
-    monthlyPrice: '$14',
-    quarterlyPrice: '$35',
-    quarterlySavings: 'Save 15%',
-    cta: 'Join Waitlist',
+    id: 'rocket',
+    name: 'Rocket',
+    tagline: 'Serious prep for 6.0 → 7.0+ journeys.',
+    highlight: true,
+    badge: 'Most popular (planned)',
+    priceLine: 'Intro pricing will launch with the next cohort',
+    note: 'For learners who want consistent AI feedback and deeper analytics.',
     href: '#waitlist',
-    variant: 'primary' as const,
+    ctaLabel: 'Join Rocket waitlist',
     features: [
-      'Full adaptive learning path',
-      'Unlimited AI writing reviews',
-      'Speaking practice with transcription',
-      'Full mock tests with analytics',
-      'Priority teacher reviews',
-      'Band prediction reports',
-      'Email & chat support'
-    ],
-    popular: true
+      'Everything in Free, plus higher AI usage limits',
+      'Deeper band-style feedback for Writing & Speaking',
+      'More full mock attempts per month',
+      'Access to AI Lab and “Before / After” comparisons',
+      'Progress dashboards with skill-wise weak areas',
+      'Priority access to new features and experiments'
+    ]
   },
   {
-    name: 'Master',
-    description: 'For serious test-takers needing maximum support',
-    monthlyPrice: '$29',
-    quarterlyPrice: '$69',
-    quarterlySavings: 'Save 20%',
-    cta: 'Join Waitlist',
+    id: 'institution',
+    name: 'Teachers & Institutions',
+    tagline: 'For academies and coaching centers.',
+    badge: 'Coming soon',
+    priceLine: 'Custom pricing',
+    note: 'Built for teachers who manage multiple learners or cohorts.',
     href: '#waitlist',
-    variant: 'outline' as const,
+    ctaLabel: 'Talk to us via waitlist',
     features: [
-      'Everything in Accelerator',
-      'Weekly 1:1 coaching sessions',
-      'Custom study plans',
-      'Advanced analytics',
-      'Dedicated success manager',
-      'Guaranteed band improvement'
-    ],
-    popular: false
+      'Teacher / admin dashboards (planned)',
+      'Cohort and batch-level analytics',
+      'Shared content and assignment flows',
+      'Co-branded experiences for your academy',
+      'Early access to institutional features',
+      'We’ll contact you when this track is ready'
+    ]
   }
 ];
 
-const includedFeatures = [
-  'AI-powered adaptive learning',
-  'Instant writing & speaking feedback',
-  'Real exam simulation',
-  'Progress tracking & analytics',
-  'Mobile app access'
-];
-
-export const Pricing: React.FC = () => {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
-
+const Pricing: React.FC = () => {
   return (
-    <Section id="pricing">
-      <Container>
-        <div className="text-center mb-16">
-          <Badge variant="info" size="sm" className="mb-4 inline-flex items-center gap-2">
-            <Icon name="CreditCard" className="text-electricBlue" />
-            Simple, Transparent Pricing
-          </Badge>
-          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Choose Your Success Path
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free, upgrade when you're ready to accelerate. All plans include our core AI features.
-          </p>
-        </div>
+    <Section
+      id="pricing"
+      tone="default"
+      divider="top"
+      Container
+      containerClassName="py-24"
+    >
+      {/* Header */}
+      <div className="mb-10 max-w-3xl text-center mx-auto">
+        <p
+          id="pricing-heading"
+          className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary"
+        >
+          Pricing & plans
+        </p>
+        <h2 className="mt-2 font-slab text-2xl md:text-3xl text-foreground">
+          Start free. Upgrade to Rocket when you&apos;re serious.
+        </h2>
+        <p className="mt-3 text-xs md:text-sm text-muted-foreground">
+          Free gives you enough to get a feel for the platform. Rocket is where we unlock
+          higher AI limits, more mocks, and deeper analytics. Institutional plans are for
+          teachers and academies who need cohort-level visibility.
+        </p>
+      </div>
 
-        {/* Billing Toggle */}
-        <div className="flex justify-center mb-12">
-          <div className="inline-flex rounded-2xl bg-muted p-1">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-white dark:bg-dark shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle('quarterly')}
-              className={`px-6 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                billingCycle === 'quarterly'
-                  ? 'bg-white dark:bg-dark shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Quarterly
-              <span className="ml-2 text-xs bg-electricBlue/10 text-electricBlue px-2 py-1 rounded-full">
-                Save 15%
-              </span>
-            </button>
-          </div>
-        </div>
+      {/* Plans grid */}
+      <div className="grid gap-6 md:grid-cols-3 mb-10">
+        {plans.map((plan) => (
+          <Card
+            key={plan.id}
+            interactive
+            className={`relative h-full rounded-ds-2xl border border-border/70 bg-surface/95 p-6 ${
+              plan.highlight ? 'ring-2 ring-accent shadow-xl' : ''
+            }`}
+          >
+            {plan.badge ? (
+              <div className="absolute -top-3 right-4">
+                <Badge variant={plan.highlight ? 'accent' : 'neutral'} size="xs">
+                  {plan.badge}
+                </Badge>
+              </div>
+            ) : null}
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          {plans.map((plan, index) => (
-            <Card
-              key={plan.name}
-              className={`relative p-6 border-border/60 bg-white/70 dark:bg-dark/70 backdrop-blur ${
-                plan.popular
-                  ? 'ring-2 ring-electricBlue/50 shadow-xl'
-                  : 'hover:shadow-lg transition-shadow'
-              }`}
-              data-aos="fade-up"
-              data-aos-delay={index * 100}
-            >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge variant="accent" className="px-4 py-1">
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-
-              {/* Plan Header */}
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  {plan.description}
-                </p>
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                <p className="text-xs text-muted-foreground">{plan.tagline}</p>
               </div>
 
-              {/* Price */}
-              <div className="text-center mb-6">
-                <div className="font-slab text-4xl font-bold text-gradient-primary mb-1">
-                  {billingCycle === 'monthly' ? plan.monthlyPrice : plan.quarterlyPrice}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {billingCycle === 'monthly' ? 'per month' : 'per 3 months'}
-                  {plan.quarterlySavings && billingCycle === 'quarterly' && (
-                    <div className="text-green-600 font-semibold mt-1">
-                      {plan.quarterlySavings}
-                    </div>
-                  )}
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">{plan.priceLine}</p>
+                {plan.note ? (
+                  <p className="text-[11px] text-muted-foreground">{plan.note}</p>
+                ) : null}
               </div>
 
-              {/* CTA Button */}
-              <Button
-                href={plan.href}
-                variant={plan.variant}
-                size="lg"
-                className="w-full justify-center mb-6"
-              >
-                {plan.cta}
-              </Button>
-
-              {/* Features */}
-              <ul className="space-y-3">
-                {plan.features.map((feature, featureIndex) => (
-                  <li
-                    key={featureIndex}
-                    className="flex items-center gap-3 text-sm text-muted-foreground"
-                  >
-                    <Icon name="CheckCircle" className="text-green-500 flex-shrink-0" size={16} />
-                    {feature}
+              <ul className="mt-3 space-y-2 text-[11px] text-muted-foreground">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <span className="mt-[2px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] text-primary">
+                      <Icon name="Check" size={10} />
+                    </span>
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
-            </Card>
-          ))}
-        </div>
+            </div>
 
-        {/* Included in All Plans */}
-        <div
-          className="text-center"
-          data-aos="fade-up"
-        >
-          <Card className="inline-block border border-border/60 bg-background/80 px-8 py-6 max-w-2xl">
-            <h3 className="font-semibold text-foreground mb-4">
-              Included in All Plans:
-            </h3>
-            <div className="flex flex-wrap justify-center gap-4">
-              {includedFeatures.map((feature, index) => (
-                <div
-                  key={feature}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <Icon name="Check" className="text-electricBlue" size={16} />
-                  {feature}
-                </div>
-              ))}
+            <div className="mt-5">
+              <Button
+                as="a"
+                href={plan.href}
+                variant={plan.id === 'rocket' ? 'primary' : 'secondary'}
+                size="sm"
+                className="w-full rounded-ds-xl"
+              >
+                {plan.ctaLabel}
+              </Button>
             </div>
           </Card>
-        </div>
+        ))}
+      </div>
 
-        {/* Guarantee */}
-        <div
-          className="text-center mt-12"
-          data-aos="fade-up"
-        >
-          <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
-            <Icon name="ShieldCheck" className="text-green-500" size={20} />
-            <span>
-              <strong className="text-foreground">14-day money-back guarantee</strong> on all paid plans
-            </span>
-          </div>
+      {/* Footnote */}
+      <div className="flex flex-col items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="inline-flex items-center gap-2">
+          <Icon name="Info" size={14} />
+          <span>
+            We&apos;re finalizing exact Rocket pricing with early cohorts. Joining the
+            waitlist means we&apos;ll email you before anything gets charged.
+          </span>
         </div>
-      </Container>
+        <div className="inline-flex items-center gap-2">
+          <Icon name="ShieldCheck" size={14} />
+          <span>No surprise billing — upgrade flows will be explicit and transparent.</span>
+        </div>
+      </div>
     </Section>
   );
 };
