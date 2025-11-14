@@ -283,6 +283,43 @@ const Dashboard: NextPage = () => {
     return diffDays >= 0 ? diffDays : 0;
   }, [examDate]);
 
+  // 🔹 Speaking vocab topic + slug for today
+  const speakingVocabTopic = useMemo(() => {
+    const aiAny = ai as any;
+
+    const fromAI =
+      aiAny?.speakingFocusTopic ||
+      (ai.sessionMix ?? []).find(
+        (entry: any) => entry?.skill?.toLowerCase() === 'speaking',
+      )?.topic;
+
+    if (typeof fromAI === 'string' && fromAI.trim().length > 0) {
+      return fromAI;
+    }
+
+    // Fallback if no AI signal yet
+    return 'Family & relationships';
+  }, [ai]);
+
+  const speakingVocabSlug = useMemo(() => {
+    const label = speakingVocabTopic.toLowerCase();
+
+    if (label.includes('family')) return 'family';
+    if (label.includes('hometown') || label.includes('city') || label.includes('place'))
+      return 'hometown';
+    if (label.includes('work') || label.includes('job') || label.includes('study'))
+      return 'work';
+    if (label.includes('free time') || label.includes('hobby') || label.includes('leisure'))
+      return 'free-time';
+    if (label.includes('travel') || label.includes('holiday')) return 'travel';
+    if (label.includes('technology') || label.includes('tech')) return 'technology';
+    if (label.includes('health')) return 'health';
+    if (label.includes('environment')) return 'environment';
+
+    // Safe default
+    return 'family';
+  }, [speakingVocabTopic]);
+
   const todayKey = useMemo(() => getDayKeyInTZ(), []);
   const streakProtected = lastDayKey === todayKey;
 
@@ -338,8 +375,25 @@ const Dashboard: NextPage = () => {
       });
     }
 
+    // 🔹 Speaking vocab tile
+    items.push({
+      id: 'speaking-vocab',
+      title: 'Speaking vocab for today',
+      caption: `Warm up with phrases for ${speakingVocabTopic} before you practise or record.`,
+      icon: 'Mic',
+      accent: 'secondary',
+      primary: {
+        label: 'Open speaking pack',
+        href: `/vocabulary/speaking/${speakingVocabSlug}`,
+      },
+      secondary: {
+        label: 'See all speaking packs',
+        href: '/vocabulary/speaking',
+      },
+    });
+
     return items;
-  }, [daysUntilExam, examDate, streak, streakProtected]);
+  }, [daysUntilExam, examDate, streak, streakProtected, speakingVocabTopic, speakingVocabSlug]);
 
   const trackFeatureOpen = useCallback((feature: string) => {
     // window.analytics?.track('feature_open', { feature, userId: sessionUserId });
@@ -995,6 +1049,12 @@ const Dashboard: NextPage = () => {
                   <Link href="/reading">
                     <Button variant="secondary" className="rounded-ds-xl">
                       Practice reading
+                    </Button>
+                  </Link>
+                  {/* 🔹 Speaking vocab quick access */}
+                  <Link href={`/vocabulary/speaking/${speakingVocabSlug}`}>
+                    <Button variant="secondary" className="rounded-ds-xl">
+                      Speaking vocab today
                     </Button>
                   </Link>
                   <Link href="/progress">

@@ -5,10 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { Container } from '@/components/design-system/Container';
-import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
-import { Alert } from '@/components/design-system/Alert';
 import DesktopNav from '@/components/navigation/DesktopNav';
 import MobileNav from '@/components/navigation/MobileNav';
 import { useHeaderState } from '@/components/hooks/useHeaderState';
@@ -16,14 +14,11 @@ import { useUserContext } from '@/context/UserContext';
 import { PremiumRoomManager } from '@/premium-ui/access/roomUtils';
 import { cn } from '@/lib/utils';
 
-const ANNOUNCEMENT_KEY = 'gramorx:announcement-dismissed';
-
 const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [openDesktopModules, setOpenDesktopModules] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileModulesOpen, setMobileModulesOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [announcementVisible, setAnnouncementVisible] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -55,12 +50,6 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     const onStorage = (e: StorageEvent) => e.key === 'premiumRooms' && sync();
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  // Announcement one-time visibility
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.localStorage.getItem(ANNOUNCEMENT_KEY) === '1') setAnnouncementVisible(false);
   }, []);
 
   // Global ESC close + click-away for modules/search
@@ -110,13 +99,6 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 100);
   }, [showSearch]);
 
-  const dismissAnnouncement = () => {
-    setAnnouncementVisible(false);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(ANNOUNCEMENT_KEY, '1');
-    }
-  };
-
   const clearPremium = () => {
     PremiumRoomManager.clearAllAccess();
     setHasPremiumAccess(false);
@@ -155,53 +137,31 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   return (
     <>
-      {/* Announcement */}
-      {announcementVisible && (
-        <Alert variant="gradient" className="from-electricBlue via-purpleVibe to-pink-500 text-white border-0">
-          <Container>
-            <div className="flex items-center justify-between py-2 text-sm font-medium">
-              <div className="flex items-center gap-2">
-                <Icon name="Rocket" size={14} />
-                <span>IELTS Mission Control — Private Beta Access</span>
-                <Badge variant="secondary" className="bg-white/20 text-white border-0 text-[10px]">NEW</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button href="/waitlist" size="xs" variant="ghost" className="text-white hover:bg-white/10">
-                  Get Early Access
-                </Button>
-                <button
-                  onClick={dismissAnnouncement}
-                  className="p-1 hover:bg-white/10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  <Icon name="X" size={12} />
-                </button>
-              </div>
-            </div>
-          </Container>
-        </Alert>
-      )}
-
       {/* Search Overlay */}
       {showSearch && (
         <div className="fixed inset-0 z-[70] bg-surface/95 backdrop-blur-lg">
           <Container>
             <div className="flex items-center justify-between pt-4 pb-6">
-              <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-auto">
+              <form onSubmit={handleSearch} className="mx-auto flex-1 max-w-2xl">
                 <div className="relative">
-                  <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Icon
+                    name="Search"
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search vocabulary, grammar, or mock tests..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 text-base bg-transparent border-b border-border focus:border-electricBlue outline-none"
+                    className="w-full border-b border-border bg-transparent px-4 py-3 pl-10 text-base outline-none focus:border-electricBlue"
                   />
                 </div>
               </form>
               <button
                 onClick={() => setShowSearch(false)}
-                className="ml-4 p-2 hover:bg-muted rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="ml-4 rounded-lg p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Icon name="X" size={18} />
               </button>
@@ -237,12 +197,17 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
         <Container>
           <div className="flex items-center justify-between py-2.5">
             {/* Logo */}
-            <Link href={user?.id ? '/dashboard' : '/'} className="flex items-center gap-2 group hover:scale-[1.01] transition-all">
+            <Link
+              href={user?.id ? '/dashboard' : '/'}
+              className="group flex items-center gap-2 transition-all hover:scale-[1.01]"
+            >
               <Image src="/brand/logo.png" alt="GramorX logo" width={36} height={36} className="rounded-xl" />
-              <span className="font-slab text-lg font-bold bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text font-slab text-lg font-bold text-transparent">
                 GramorX
               </span>
-              <Badge variant="outline" size="sm" className="text-electricBlue border-electricBlue/30">BETA</Badge>
+              <Badge variant="outline" size="sm" className="border-electricBlue/30 text-electricBlue">
+                BETA
+              </Badge>
             </Link>
 
             {/* Right cluster */}
@@ -250,11 +215,13 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
               {/* Search trigger */}
               <button
                 onClick={() => setShowSearch(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="hidden items-center gap-2 rounded-full border border-border/50 px-3 py-1.5 hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
               >
                 <Icon name="Search" size={14} className="text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Search...</span>
-                <kbd className="hidden lg:inline-block px-1 py-0.5 text-xs border border-border rounded bg-muted">⌘K</kbd>
+                <kbd className="hidden rounded border border-border bg-muted px-1 py-0.5 text-xs lg:inline-block">
+                  ⌘K
+                </kbd>
               </button>
 
               {/* Navs own *all* auth/UI controls */}
