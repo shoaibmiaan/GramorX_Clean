@@ -46,7 +46,7 @@ export default function VerifyPage() {
   const hasCode = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
-    return params.has('code') || params.has('access_token');
+    return params.has('auth_code') || params.has('code') || params.has('access_token');
   }, [asPath]);
 
   React.useEffect(() => {
@@ -58,16 +58,51 @@ export default function VerifyPage() {
       setError(null);
 
       try {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        if (error) throw error;
+        const currentUrl = new URL(window.location.href);
+        const authCode = currentUrl.searchParams.get('auth_code') || currentUrl.searchParams.get('code');
+        const codeVerifier = currentUrl.searchParams.get('code_verifier');
+
+        if (authCode) {
+          if (codeVerifier) {
+            const response = await fetch('/api/auth/exchange-code', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ auth_code: authCode, code_verifier: codeVerifier }),
+            });
+
+            const payload: { data?: any; error?: string } | null = await response.json().catch(() => null);
+            if (!response.ok || !payload || payload.error) {
+              throw new Error(payload?.error || 'Unable to verify your email.');
+            }
+
+            const session = payload.data?.session ?? payload.data;
+
+            if (!session?.access_token) {
+              throw new Error('Verification payload was missing a session.');
+            }
+
+            await supabase.auth.setSession(session);
+          } else {
+            const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+            if (error) throw error;
+          }
+        } else {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+          if (error) throw error;
+
+          if (data.session) {
+            await supabase.auth.setSession(data.session);
+          }
+        }
 
         let bridgeOk = false;
         try {
+          const { data: sessionData } = await supabase.auth.getSession();
           const response = await fetch('/api/auth/set-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ event: 'SIGNED_IN', session: data.session ?? null }),
+            body: JSON.stringify({ event: 'SIGNED_IN', session: sessionData?.session ?? null }),
           });
 
           if (!response.ok) {
