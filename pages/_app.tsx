@@ -140,29 +140,38 @@ function useRouteLoading() {
       }, 160);
     };
 
-    const stopLoading = (url?: string) => {
-      if (url && pendingPathRef.current) {
-        const completedPath = toComparablePath(url);
-        if (completedPath !== pendingPathRef.current) {
-          pendingPathRef.current = null;
-        }
-      } else {
-        pendingPathRef.current = null;
-      }
+    const stopLoading = () => {
+      pendingPathRef.current = null;
       clearTimers();
       setIsRouteLoading(false);
     };
 
     const handleRouteError = () => stopLoading();
 
-    router.events.on('routeChangeStart', startLoading as any);
-    router.events.on('beforeHistoryChange', (url, opts) => {
-      if (!opts?.shallow && hasMeaningfulPathChange(url as string)) {
-        pendingPathRef.current = toComparablePath(url as string);
-      } else {
-        stopLoading();
+    const handleBeforeHistoryChange = (
+      url: string | { pathname?: string | null } = '',
+      opts: { shallow?: boolean } = {}
+    ) => {
+      const rawUrl = typeof url === 'string' ? url : url?.pathname ?? '';
+
+      if (opts.shallow) {
+        if (!pendingPathRef.current) {
+          stopLoading();
+        }
+        return;
       }
-    });
+
+      if (!hasMeaningfulPathChange(rawUrl)) {
+        pendingPathRef.current = null;
+        stopLoading();
+        return;
+      }
+
+      pendingPathRef.current = toComparablePath(rawUrl);
+    };
+
+    router.events.on('routeChangeStart', startLoading as any);
+    router.events.on('beforeHistoryChange', handleBeforeHistoryChange as any);
     router.events.on('routeChangeComplete', stopLoading as any);
     router.events.on('routeChangeError', handleRouteError);
 
@@ -176,7 +185,7 @@ function useRouteLoading() {
 
     return () => {
       router.events.off('routeChangeStart', startLoading as any);
-      router.events.off('beforeHistoryChange', stopLoading as any);
+      router.events.off('beforeHistoryChange', handleBeforeHistoryChange as any);
       router.events.off('routeChangeComplete', stopLoading as any);
       router.events.off('routeChangeError', handleRouteError);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
