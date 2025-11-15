@@ -140,13 +140,29 @@ function useRouteLoading() {
       }, 160);
     };
 
-    const stopLoading = () => {
-      pendingPathRef.current = null;
-      clearTimers();
-      setIsRouteLoading(false);
+    const stopLoading = (url?: string | null) => {
+      const finalize = () => {
+        pendingPathRef.current = null;
+        clearTimers();
+        setIsRouteLoading(false);
+      };
+
+      if (pendingPathRef.current && url) {
+        const normalizedUrl = toComparablePath(url);
+        if (normalizedUrl !== pendingPathRef.current) {
+          return;
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        requestAnimationFrame(() => requestAnimationFrame(finalize));
+        return;
+      }
+
+      finalize();
     };
 
-    const handleRouteError = () => stopLoading();
+    const handleRouteError = (_err: unknown, url: string) => stopLoading(url);
 
     const handleBeforeHistoryChange = (
       url: string | { pathname?: string | null } = '',
@@ -173,7 +189,7 @@ function useRouteLoading() {
     router.events.on('routeChangeStart', startLoading as any);
     router.events.on('beforeHistoryChange', handleBeforeHistoryChange as any);
     router.events.on('routeChangeComplete', stopLoading as any);
-    router.events.on('routeChangeError', handleRouteError);
+    router.events.on('routeChangeError', handleRouteError as any);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') stopLoading();
