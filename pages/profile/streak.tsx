@@ -7,7 +7,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { StreakChip } from '@/components/user/StreakChip';
 import { getServerClient } from '@/lib/supabaseServer';
-import { buildCompletionHistory, coerceStudyPlan } from '@/utils/streak';
+import { buildCompletionHistory } from '@/utils/streak';
 
 const Heatmap = dynamic(() => import('@/components/user/StreakHeatmap').then((mod) => mod.StreakHeatmap), {
   ssr: false,
@@ -121,22 +121,29 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     };
   }
 
-  const [{ data: streakRow }, { data: planRow }] = await Promise.all([
+  const DAYS_BACK = 84;
+
+  const [streakRes, historyRes] = await Promise.all([
     supabase
       .from('streaks')
       .select('current,longest,last_active_date')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase.from('study_plans').select('plan_json,start_iso,weeks,target_band').eq('user_id', user.id).maybeSingle(),
+    supabase.rpc('get_streak_history', {
+      p_user_id: user.id,
+      p_days_back: DAYS_BACK,
+    }),
   ]);
 
-  const plan = coerceStudyPlan(planRow?.plan_json ?? planRow ?? null, user.id, {
-    startISO: planRow?.start_iso ?? undefined,
-    weeks: planRow?.weeks ?? undefined,
-    goalBand: planRow?.target_band ?? undefined,
-  });
-
-  const history = buildCompletionHistory(plan, 84);
+  const streakRow = streakRes.data ?? null;
+  const rawHistory = historyRes.data ?? [];
+  if (streakRes.error) {
+    console.error('[profile/streak] Unable to load streak row:', streakRes.error.message);
+  }
+  if (historyRes.error) {
+    console.error('[profile/streak] Unable to load history:', historyRes.error.message);
+  }
+  const history = buildCompletionHistory(rawHistory, DAYS_BACK);
 
   return {
     props: {
