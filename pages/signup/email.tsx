@@ -10,6 +10,7 @@ import { PasswordInput } from '@/components/design-system/PasswordInput';
 import { Button } from '@/components/design-system/Button';
 import { Alert } from '@/components/design-system/Alert';
 import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
+import { buildPkcePair, submitPkceSignup } from '@/lib/auth/pkce';
 import { isValidEmail } from '@/utils/validation';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 
@@ -62,30 +63,35 @@ export default function SignUpWithEmail() {
       const fallbackNext = `/onboarding${nextQS.toString() ? `?${nextQS.toString()}` : ''}`;
       const nextPath = next || fallbackNext;
 
+      const pkcePair = await buildPkcePair();
+
       const verificationParams = new URLSearchParams();
       verificationParams.set('next', nextPath);
+      verificationParams.set('email', trimmedEmail);
       if (role) verificationParams.set('role', role);
       if (ref) verificationParams.set('ref', ref);
+      if (pkcePair.verifier) verificationParams.set('code_verifier', pkcePair.verifier);
 
-      const { error } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password,
-        options: {
-          emailRedirectTo: `${origin}/auth/verify?${verificationParams.toString()}`,
-          // persist intended role on the auth user for downstream use:
+      const redirectTarget = `${origin}/api/auth/pkce-redirect?${verificationParams.toString()}`;
+
+      try {
+        await submitPkceSignup({
+          email: trimmedEmail,
+          password,
+          redirectTo: redirectTarget,
           data: { role: role || 'student' },
-        },
-      });
-
-      if (error) {
-        // Common case: already registered but unverified
-        if (error.message.toLowerCase().includes('already')) {
+          codeChallenge: pkcePair.challenge,
+          codeChallengeMethod: pkcePair.method,
+        });
+      } catch (error: any) {
+        const message = error?.message?.toLowerCase?.() ?? '';
+        if (message.includes('already')) {
           await supabase.auth.resend({
             // @ts-expect-error: supabase-js may not expose resend type yet
             type: 'signup',
             email: trimmedEmail,
             options: {
-              emailRedirectTo: `${origin}/auth/verify?${verificationParams.toString()}`,
+              emailRedirectTo: redirectTarget,
             },
           });
 
@@ -93,10 +99,12 @@ export default function SignUpWithEmail() {
           if (role) verifyParams.set('role', role);
           if (ref) verifyParams.set('ref', ref);
           if (nextPath) verifyParams.set('next', nextPath);
+          if (pkcePair.verifier) verifyParams.set('code_verifier', pkcePair.verifier);
           await router.replace(`/signup/verify?${verifyParams.toString()}`);
           return;
         }
-        setErr(getAuthErrorMessage(error) || error.message);
+
+        setErr(getAuthErrorMessage(error) || error?.message || 'Unable to sign up.');
         setLoading(false);
         return;
       }
@@ -106,6 +114,7 @@ export default function SignUpWithEmail() {
       if (role) verifyParams.set('role', role);
       if (ref) verifyParams.set('ref', ref);
       if (nextPath) verifyParams.set('next', nextPath);
+      if (pkcePair.verifier) verifyParams.set('code_verifier', pkcePair.verifier);
       await router.replace(`/signup/verify?${verifyParams.toString()}`);
     } catch (_e: any) {
       setErr('Unable to sign up. Please try again.');
