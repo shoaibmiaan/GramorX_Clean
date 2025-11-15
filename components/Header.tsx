@@ -17,7 +17,7 @@ import { PremiumRoomManager } from '@/premium-ui/access/roomUtils';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/lib/search/types';
 
-const Header: React.FC<{ streak?: number }> = ({ streak }) => {
+export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [openDesktopModules, setOpenDesktopModules] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileModulesOpen, setMobileModulesOpen] = useState(false);
