@@ -1,11 +1,12 @@
 // File: components/navigation/MobileNav.tsx
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // Added for slide animations
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
+
 import { Container } from '@/components/design-system/Container';
 import { NavLink } from '@/components/design-system/NavLink';
 import { NotificationBell } from '@/components/design-system/NotificationBell';
@@ -21,15 +22,19 @@ import type { ModuleLink } from './constants';
 import { MODULE_LINKS } from './constants';
 
 const toneClassMap: Record<NonNullable<ModuleLink['tone']>, string> = {
-  // DS-only tokens; no raw color scales or opacity hacks
-  blue:   'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
-  purple: 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
-  orange: 'bg-muted dark:bg-muted-dark text-accent-warm dark:text-accent-warm-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-accent-warm dark:group-hover:bg-accent-warm-dark group-hover:text-accent-warm-foreground dark:group-hover:text-accent-warm-foreground-dark',
-  green:  'bg-muted dark:bg-muted-dark text-success dark:text-success-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-success dark:group-hover:bg-success-dark group-hover:text-success-foreground dark:group-hover:text-success-foreground-dark',
+  blue: 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
+  purple:
+    'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark',
+  orange:
+    'bg-muted dark:bg-muted-dark text-accent-warm dark:text-accent-warm-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-accent-warm dark:group-hover:bg-accent-warm-dark group-hover:text-accent-warm-foreground dark:group-hover:text-accent-warm-foreground-dark',
+  green:
+    'bg-muted dark:bg-muted-dark text-success dark:text-success-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-success dark:group-hover:bg-success-dark group-hover:text-success-foreground dark:group-hover:text-success-foreground-dark',
 };
 
 const getToneClass = (tone?: ModuleLink['tone']) =>
-  tone ? toneClassMap[tone] : 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark';
+  tone
+    ? toneClassMap[tone]
+    : 'bg-muted dark:bg-muted-dark text-primary dark:text-primary-dark ring-1 ring-border dark:ring-border-dark group-hover:bg-primary dark:group-hover:bg-primary-dark group-hover:text-primary-foreground dark:group-hover:text-primary-foreground-dark';
 
 interface UserInfo {
   id: string | null;
@@ -39,15 +44,15 @@ interface UserInfo {
 }
 
 type MobileNavProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'role'> & {
-  user: UserInfo;
+  user: UserInfo | null;
   role: string | null;
   ready: boolean;
-  streak: number;
+  streak?: number | null;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   mobileModulesOpen: boolean;
   setMobileModulesOpen: (open: boolean) => void;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<void> | void;
   showAdmin?: boolean;
   hasPremiumAccess?: boolean;
   premiumRooms?: string[];
@@ -59,7 +64,7 @@ export function MobileNav({
   user,
   role,
   ready,
-  streak,
+  streak = null,
   mobileOpen,
   setMobileOpen,
   mobileModulesOpen,
@@ -115,7 +120,9 @@ export function MobileNav({
   }, [navigationCtx, isTeacher]);
 
   const profileMenu = useMemo(() => {
-    if (isTeacher) return [{ id: 'account', label: 'Profile', href: '/account' }];
+    if (isTeacher) {
+      return [{ id: 'account', label: 'Profile', href: '/account' }];
+    }
     return filterNavItems(navigationSchema.header.profile, navigationCtx);
   }, [isTeacher, navigationCtx]);
 
@@ -141,7 +148,7 @@ export function MobileNav({
     if (mobileOpen) closeMenu();
   }, [pathname, closeMenu]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Body scroll-lock while panel is open (non-destructive)
+  // Body scroll lock while open
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
@@ -164,12 +171,14 @@ export function MobileNav({
   };
 
   const toggleSection = (section: string) => {
-    setActiveSection(activeSection === section ? '' : section);
+    const next = activeSection === section ? '' : section;
+    setActiveSection(next);
+
     if (section === 'practice') {
-      setMobileModulesOpen(activeSection !== 'practice');
+      setMobileModulesOpen(next === 'practice');
     }
     if (section === 'aiTools') {
-      setMobileAiToolsOpen(activeSection !== 'aiTools');
+      setMobileAiToolsOpen(next === 'aiTools');
     }
   };
 
@@ -195,6 +204,7 @@ export function MobileNav({
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation"
+      {...rest}
     >
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-border dark:border-border-dark p-4">
@@ -206,7 +216,9 @@ export function MobileNav({
           >
             <Icon name="X" size={20} />
           </motion.button>
-          <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
+          {typeof streak === 'number' && streak > 0 && (
+            <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
+          )}
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4" aria-label="Mobile navigation">
@@ -249,13 +261,19 @@ export function MobileNav({
               <li>
                 <button
                   onClick={() => toggleSection('practice')}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${mobileModulesOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''}`}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${
+                    mobileModulesOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon name="Layers" size={18} />
                     <span className="font-medium">{practiceNavItem.label}</span>
                   </div>
-                  <Icon name={mobileModulesOpen ? 'ChevronUp' : 'ChevronDown'} size={18} className="opacity-70" />
+                  <Icon
+                    name={mobileModulesOpen ? 'ChevronUp' : 'ChevronDown'}
+                    size={18}
+                    className="opacity-70"
+                  />
                 </button>
                 <AnimatePresence>
                   {mobileModulesOpen && (
@@ -274,13 +292,19 @@ export function MobileNav({
                             className="group flex items-start gap-3 rounded-lg p-3 text-sm transition"
                           >
                             <span
-                              className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ring-2 transition ${getToneClass(tone)}`}
+                              className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ring-2 transition ${getToneClass(
+                                tone
+                              )}`}
                             >
                               {ModuleIcon ? <ModuleIcon className="h-4 w-4" /> : null}
                             </span>
                             <div className="min-w-0 flex-1">
                               <span className="block font-medium">{moduleLabel}</span>
-                              {desc && <span className="text-xs text-muted-foreground dark:text-muted-foreground-dark">{desc}</span>}
+                              {desc && (
+                                <span className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                                  {desc}
+                                </span>
+                              )}
                             </div>
                           </Link>
                         </li>
@@ -296,13 +320,19 @@ export function MobileNav({
               <li>
                 <button
                   onClick={() => toggleSection('aiTools')}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${mobileAiToolsOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''}`}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 hover:bg-muted dark:hover:bg-muted-dark transition-colors ${
+                    mobileAiToolsOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon name="Sparkles" size={18} />
                     <span className="font-medium">AI Tools</span>
                   </div>
-                  <Icon name={mobileAiToolsOpen ? 'ChevronUp' : 'ChevronDown'} size={18} className="opacity-70" />
+                  <Icon
+                    name={mobileAiToolsOpen ? 'ChevronUp' : 'ChevronDown'}
+                    size={18}
+                    className="opacity-70"
+                  />
                 </button>
                 <AnimatePresence>
                   {mobileAiToolsOpen && (
@@ -410,7 +440,7 @@ export function MobileNav({
                   <button
                     onClick={() => {
                       closeMenu();
-                      void signOut();
+                      void signOut?.();
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-destructive dark:text-destructive-dark hover:bg-destructive/10 dark:hover:bg-destructive-dark/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
@@ -425,12 +455,22 @@ export function MobileNav({
           {/* Auth Section */}
           {!user?.id && ready && (
             <div className="mt-8 space-y-3">
-              <Button asChild fullWidth variant="primary" className="rounded-xl font-semibold py-3.5">
+              <Button
+                asChild
+                fullWidth
+                variant="primary"
+                className="rounded-xl font-semibold py-3.5"
+              >
                 <Link href="/login" onClick={closeMenu}>
                   Sign in
                 </Link>
               </Button>
-              <Button asChild fullWidth variant="outline" className="rounded-xl font-semibold py-3.5">
+              <Button
+                asChild
+                fullWidth
+                variant="outline"
+                className="rounded-xl font-semibold py-3.5"
+              >
                 <Link href="/signup" onClick={closeMenu}>
                   Create account
                 </Link>
@@ -444,6 +484,32 @@ export function MobileNav({
               <div className="h-12 w-full animate-pulse rounded-xl bg-muted dark:bg-muted-dark" />
             </div>
           )}
+
+          {/* Premium summary (optional bottom section) */}
+          {hasPremiumAccess && premiumRooms.length > 0 && (
+            <div className="mt-8 pt-4 border-t border-border dark:border-border-dark">
+              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                <span>Premium access</span>
+                <button
+                  type="button"
+                  onClick={handleClearPremium}
+                  className="text-[11px] font-medium text-destructive dark:text-destructive-dark hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="max-h-20 overflow-y-auto text-xs text-muted-foreground dark:text-muted-foreground-dark space-y-1">
+                {premiumRooms.slice(0, 4).map((room, idx) => (
+                  <div key={idx} className="truncate">
+                    • {room}
+                  </div>
+                ))}
+                {premiumRooms.length > 4 && (
+                  <div>+{premiumRooms.length - 4} more</div>
+                )}
+              </div>
+            </div>
+          )}
         </nav>
       </div>
     </motion.div>
@@ -451,26 +517,34 @@ export function MobileNav({
 
   return (
     <>
-      <div className="flex items-center gap-2 md:hidden">
-        {headerOptional.notifications && <NotificationBell />}
-        {headerOptional.themeToggle && <IconOnlyThemeToggle />}
-        <motion.button
-          aria-label="Toggle menu"
-          aria-expanded={mobileOpen}
-          onClick={() => setMobileOpen(!mobileOpen)}
-          whileTap={{ scale: 0.95 }}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted dark:hover:bg-muted-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          {mobileOpen ? <Icon name="X" size={20} /> : <Icon name="Menu" size={20} />}
-        </motion.button>
+      <div className={className} {...rest}>
+        <div className="flex items-center gap-2 md:hidden">
+          {headerOptional.notifications && <NotificationBell />}
+          {headerOptional.themeToggle && <IconOnlyThemeToggle />}
+          <motion.button
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted dark:hover:bg-muted-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {mobileOpen ? <Icon name="X" size={20} /> : <Icon name="Menu" size={20} />}
+          </motion.button>
+        </div>
       </div>
 
-      {typeof document !== 'undefined' ? createPortal(<>{overlay}{panel}</>, document.body) : null}
+      {typeof document !== 'undefined'
+        ? createPortal(
+            <>
+              {overlay}
+              {panel}
+            </>,
+            document.body
+          )
+        : null}
     </>
   );
 }
 
 MobileNav.displayName = 'MobileNav';
-
-// keep the named export AND add default:
 export default MobileNav;

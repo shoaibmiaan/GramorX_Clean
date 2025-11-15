@@ -1,46 +1,49 @@
-// File: components/navigation/DesktopNav.tsx
+// components/navigation/DesktopNav.tsx
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+
+import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
+import Icon from '@/components/design-system/Icon';
 import { NavLink } from '@/components/design-system/NavLink';
 import { UserMenu } from '@/components/design-system/UserMenu';
 import { NotificationBell } from '@/components/design-system/NotificationBell';
 import { StreakChip } from '@/components/user/StreakChip';
 import { IconOnlyThemeToggle } from './IconOnlyThemeToggle';
 import ModuleMenu from './ModuleMenu';
+
 import { navigationSchema } from '@/config/navigation';
 import { filterNavItems } from '@/lib/navigation/utils';
 import type { SubscriptionTier } from '@/lib/navigation/types';
-import { Button } from '@/components/design-system/Button';
-import { Badge } from '@/components/design-system/Badge';
-import { Icon } from '@/components/design-system/Icon'; // FIXED: Added missing import
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
-interface UserInfo {
-  id: string | null;
-  email: string | null;
-  name: string | null;
-  avatarUrl: string | null;
-}
-
-type DesktopNavProps = Omit<React.HTMLAttributes<HTMLElement>, 'role'> & {
-  user: UserInfo | null;
-  role: string | null;
+type DesktopNavProps = {
+  user: SupabaseUser | null;
+  role: string;
   ready: boolean;
-  streak: number;
+  streak?: number | null;
   openModules: boolean;
   setOpenModules: (open: boolean) => void;
   modulesRef: React.RefObject<HTMLLIElement>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<void> | void;
   showAdmin?: boolean;
-  hasPremiumAccess?: boolean;
-  premiumRooms?: string[];
-  onClearPremiumAccess?: () => void;
+  className?: string;
+  hasPremiumAccess: boolean;
+  premiumRooms: string[];
+  onClearPremiumAccess: () => void;
   subscriptionTier: SubscriptionTier;
 };
 
-export function DesktopNav({
+type NavContext = {
+  isAuthenticated: boolean;
+  tier: SubscriptionTier;
+};
+
+export const DesktopNav: React.FC<DesktopNavProps> = ({
   user,
   role,
   ready,
@@ -50,64 +53,65 @@ export function DesktopNav({
   modulesRef,
   signOut,
   showAdmin = true,
-  hasPremiumAccess = false,
-  premiumRooms = [],
+  className,
+  hasPremiumAccess,
+  premiumRooms,
   onClearPremiumAccess,
   subscriptionTier,
-  className,
-  ...rest
-}: DesktopNavProps) {
+}) => {
   const uid = user?.id ?? null;
-
+  const isTeacher = role === 'teacher';
   const canSeePartners = role === 'partner' || role === 'admin';
   const canSeeAdmin = role === 'admin' && showAdmin;
-  const isTeacher = role === 'teacher';
+  const isAuthenticated = Boolean(uid);
 
-  const navigationCtx = React.useMemo(
-    () => ({ isAuthenticated: Boolean(uid), tier: subscriptionTier }),
-    [uid, subscriptionTier]
+  const navCtx: NavContext = React.useMemo(
+    () => ({ isAuthenticated, tier: subscriptionTier }),
+    [isAuthenticated, subscriptionTier]
   );
 
   const navItemClass =
     'nav-pill text-small font-medium text-foreground/80 dark:text-foreground-dark/80 hover:text-foreground dark:hover:text-foreground-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
-  // Teachers: only show Profile in menu; Sign out comes from UserMenu via onSignOut
+  // Profile menu entries for user dropdown
   const profileMenu = React.useMemo(() => {
     if (isTeacher) {
       return [{ id: 'account', label: 'Profile', href: '/account' }];
     }
-    return filterNavItems(navigationSchema.header.profile, navigationCtx);
-  }, [isTeacher, navigationCtx]);
+    return filterNavItems(navigationSchema.header.profile, navCtx);
+  }, [isTeacher, navCtx]);
 
+  // Main header nav items
   const mainNavItems = React.useMemo(() => {
     if (isTeacher) return [];
-    const items = filterNavItems(navigationSchema.header.main, navigationCtx);
-    // If authed, hide the "Home" duplicate
+    const items = filterNavItems(navigationSchema.header.main, navCtx);
+    // If authed, hide duplicate "Home"
     return items.filter((item) => !(item.id === 'home' && uid));
-  }, [navigationCtx, isTeacher, uid]);
+  }, [navCtx, isTeacher, uid]);
 
   const aiToolItems = React.useMemo(() => {
     if (isTeacher) return [];
-    return filterNavItems(navigationSchema.header.aiTools, navigationCtx);
-  }, [navigationCtx, isTeacher]);
+    return filterNavItems(navigationSchema.header.aiTools, navCtx);
+  }, [navCtx, isTeacher]);
 
   const headerCtaConfig = navigationSchema.header.cta ?? {};
   const headerCta = uid ? headerCtaConfig.authed : headerCtaConfig.guest;
   const headerOptional = navigationSchema.header.optional ?? {};
 
+  // AI tools dropdown state
   const [openAiTools, setOpenAiTools] = React.useState(false);
   const aiMenuRef = React.useRef<HTMLDivElement | null>(null);
   const aiButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const aiToolsRef = React.useRef<HTMLLIElement | null>(null);
 
-  // Move focus into menu when opened
+  // Focus on first item when AI tools opens
   React.useEffect(() => {
     if (!openAiTools) return;
     const firstLink = aiMenuRef.current?.querySelector<HTMLAnchorElement>('a,button');
     firstLink?.focus();
   }, [openAiTools]);
 
-  // Outside click + Esc to close AI menu
+  // Close AI tools on outside click / Esc
   React.useEffect(() => {
     if (!openAiTools) return;
 
@@ -138,9 +142,18 @@ export function DesktopNav({
     if (openModules) setOpenAiTools(false);
   }, [openModules]);
 
+  const isPremiumTier = subscriptionTier && subscriptionTier !== 'free';
+
   return (
-    <nav className={className} aria-label="Primary" {...rest}>
+    <nav
+      className={cn(
+        'flex items-center justify-between gap-4 text-sm',
+        className
+      )}
+      aria-label="Primary"
+    >
       <div className="flex items-center gap-4">
+        {/* LEFT: main nav */}
         <ul className="relative flex items-center gap-2">
           {/* Dashboard shortcut for authenticated learners */}
           {uid && !isTeacher && (
@@ -156,7 +169,7 @@ export function DesktopNav({
             </li>
           )}
 
-          {/* Main items; 'practice' is ModuleMenu */}
+          {/* Main items; "practice" becomes ModuleMenu */}
           {!isTeacher &&
             mainNavItems.map((item) =>
               item.id === 'practice' ? (
@@ -178,13 +191,21 @@ export function DesktopNav({
             <li ref={aiToolsRef}>
               <motion.button
                 ref={aiButtonRef}
-                onClick={() => setOpenAiTools(!openAiTools)}
+                type="button"
+                onClick={() => setOpenAiTools((v) => !v)}
                 whileHover={{ scale: 1.02 }}
-                className={navItemClass + (openAiTools ? ' is-active' : '')}
+                className={cn(navItemClass, openAiTools && 'is-active')}
               >
                 <Icon name="Sparkles" size={16} className="mr-1" />
                 AI Tools
-                <svg className="ml-1 h-3.5 w-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <svg
+                  className="ml-1 h-3.5 w-3.5 opacity-80"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
                   <path d={openAiTools ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
                 </svg>
               </motion.button>
@@ -226,7 +247,7 @@ export function DesktopNav({
             </li>
           )}
 
-          {/* Partners / Admin */}
+          {/* Partners / Admin links */}
           {canSeePartners && (
             <li>
               <NavLink href="/partners" className={navItemClass} label="Partners" />
@@ -238,103 +259,134 @@ export function DesktopNav({
             </li>
           )}
 
-          {/* Premium Access (hover card) */}
-          {hasPremiumAccess && (
+          {/* Premium badge (hover card / indicator) */}
+          {(hasPremiumAccess || isPremiumTier) && (
             <li className="relative group">
-              <Badge variant="accent" size="sm" className="cursor-default">
-                Premium
+              <Badge
+                variant="accent"
+                size="sm"
+                className="cursor-default inline-flex items-center gap-1"
+              >
+                <Icon name="Rocket" size={14} />
+                <span>{subscriptionTier === 'free' ? 'Premium' : subscriptionTier}</span>
               </Badge>
 
-              <div className="absolute top-full right-0 z-50 mt-2 hidden w-64 group-hover:block">
-                <div className="rounded-xl border border-border dark:border-border-dark bg-card dark:bg-card-dark p-3 shadow-lg">
-                  <div className="mb-1 text-xs font-medium text-success dark:text-success-dark">Premium Access Active</div>
-                  <div className="mb-2 text-xs text-foreground-muted dark:text-foreground-muted-dark">
-                    Access to {premiumRooms.length} room{premiumRooms.length !== 1 ? 's' : ''}
-                  </div>
-
-                  {premiumRooms.length > 0 && (
-                    <div className="max-h-24 overflow-y-auto text-xs text-foreground-muted dark:text-foreground-muted-dark">
-                      {premiumRooms.slice(0, 3).map((room, idx) => (
-                        <div key={idx} className="truncate">• {room}</div>
-                      ))}
-                      {premiumRooms.length > 3 && (
-                        <div className="text-xs">+{premiumRooms.length - 3} more</div>
-                      )}
+              {hasPremiumAccess && (
+                <div className="absolute top-full right-0 z-50 mt-2 hidden w-64 group-hover:block">
+                  <div className="rounded-xl border border-border dark:border-border-dark bg-card dark:bg-card-dark p-3 shadow-lg">
+                    <div className="mb-1 text-xs font-medium text-success dark:text-success-dark">
+                      Premium Access Active
                     </div>
-                  )}
+                    <div className="mb-2 text-xs text-foreground-muted dark:text-foreground-muted-dark">
+                      Access to {premiumRooms.length} room{premiumRooms.length !== 1 ? 's' : ''}
+                    </div>
 
-                  {onClearPremiumAccess && (
-                    <button
-                      onClick={onClearPremiumAccess}
-                      className="mt-2 text-xs text-destructive dark:text-destructive-dark hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark rounded"
-                    >
-                      Clear All Access
-                    </button>
-                  )}
+                    {premiumRooms.length > 0 && (
+                      <div className="max-h-24 overflow-y-auto text-xs text-foreground-muted dark:text-foreground-muted-dark">
+                        {premiumRooms.slice(0, 3).map((room, idx) => (
+                          <div key={idx} className="truncate">
+                            • {room}
+                          </div>
+                        ))}
+                        {premiumRooms.length > 3 && (
+                          <div className="text-xs">+{premiumRooms.length - 3} more</div>
+                        )}
+                      </div>
+                    )}
+
+                    {onClearPremiumAccess && (
+                      <button
+                        type="button"
+                        onClick={onClearPremiumAccess}
+                        className="mt-2 text-xs text-destructive dark:text-destructive-dark hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark rounded"
+                      >
+                        Clear All Access
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </li>
           )}
 
           {/* Header CTA */}
           {headerCta && (
             <li className="hidden lg:block">
-              <Button href={headerCta.href} variant="primary" size="sm" className="shadow-sm">
+              <Button
+                href={headerCta.href}
+                variant="primary"
+                size="sm"
+                className="shadow-sm rounded-full"
+              >
                 {headerCta.label}
               </Button>
             </li>
           )}
         </ul>
+      </div>
 
-        {/* Right cluster */}
-        <ul className="flex items-center gap-2">
-          <li>
-            <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
-          </li>
+      {/* RIGHT CLUSTER: streak, notifications, theme, user */}
+      <div className="flex items-center gap-3">
+        {/* Streak chip: always show when ready + logged in */}
+        {ready && uid && (
+          <StreakChip
+            value={streak ?? 0}
+            href="/profile/streak"
+            className="shrink-0"
+          />
+        )}
 
-          {headerOptional.notifications && (
-            <li>
-              <NotificationBell />
-            </li>
-          )}
+        {/* Notification bell */}
+        {headerOptional.notifications && <NotificationBell />}
 
-          {headerOptional.themeToggle && (
-            <li>
-              <IconOnlyThemeToggle />
-            </li>
-          )}
+        {/* Theme toggle */}
+        {headerOptional.themeToggle && <IconOnlyThemeToggle />}
 
-          <li className="ml-1">
-            {ready ? (
-              uid ? (
-                <UserMenu
-                  userId={uid}
-                  email={user?.email ?? undefined}
-                  name={user?.name ?? undefined}
-                  role={role ?? undefined}
-                  avatarUrl={user?.avatarUrl ?? undefined}
-                  onSignOut={signOut}
-                  isAdmin={role === 'admin'}
-                  items={profileMenu.map((link) => ({
-                    id: link.id,
-                    label: link.label,
-                    href: link.href,
-                  }))}
-                />
-              ) : (
-                <Button href="/login" variant="outline" size="sm" className="w-full sm:w-auto">
-                  Sign in
-                </Button>
-              )
+        {/* User menu / Sign-in */}
+        <div className="ml-1">
+          {ready ? (
+            uid ? (
+              <UserMenu
+                userId={uid}
+                email={user?.email ?? undefined}
+                name={
+                  (user?.user_metadata as any)?.full_name ??
+                  (user?.user_metadata as any)?.name ??
+                  undefined
+                }
+                role={role ?? undefined}
+                avatarUrl={
+                  (user?.user_metadata as any)?.avatar_url ??
+                  (user?.user_metadata as any)?.avatar ??
+                  undefined
+                }
+                onSignOut={async () => {
+                  await signOut?.();
+                }}
+                isAdmin={role === 'admin'}
+                items={profileMenu.map((link) => ({
+                  id: link.id,
+                  label: link.label,
+                  href: link.href,
+                }))}
+              />
             ) : (
-              <div className="h-9 w-24 animate-pulse rounded-full bg-surface-muted dark:bg-surface-muted-dark" />
-            )}
-          </li>
-        </ul>
+              <Button
+                href="/login"
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto rounded-full"
+              >
+                Sign in
+              </Button>
+            )
+          ) : (
+            <div className="h-9 w-24 animate-pulse rounded-full bg-surface-muted dark:bg-surface-muted-dark" />
+          )}
+        </div>
       </div>
     </nav>
   );
-}
+};
 
-// keep the named export AND add default:
 export default DesktopNav;
