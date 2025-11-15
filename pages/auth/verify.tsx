@@ -8,6 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Alert } from '@/components/design-system/Alert';
 import { Button } from '@/components/design-system/Button';
 import { supabase } from '@/lib/supabaseClient'; // uses the shared client (exchangeCodeForSession)
+import { readStoredPkceVerifier } from '@/lib/auth/pkce';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -60,32 +61,34 @@ export default function VerifyPage() {
       try {
         const currentUrl = new URL(window.location.href);
         const authCode = currentUrl.searchParams.get('auth_code') || currentUrl.searchParams.get('code');
-        const codeVerifier = currentUrl.searchParams.get('code_verifier');
+        const codeVerifier =
+          currentUrl.searchParams.get('code_verifier') || readStoredPkceVerifier() || '';
 
         if (authCode) {
-          if (codeVerifier) {
-            const response = await fetch('/api/auth/exchange-code', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ auth_code: authCode, code_verifier: codeVerifier }),
-            });
-
-            const payload: { data?: any; error?: string } | null = await response.json().catch(() => null);
-            if (!response.ok || !payload || payload.error) {
-              throw new Error(payload?.error || 'Unable to verify your email.');
-            }
-
-            const session = payload.data?.session ?? payload.data;
-
-            if (!session?.access_token) {
-              throw new Error('Verification payload was missing a session.');
-            }
-
-            await supabase.auth.setSession(session);
-          } else {
-            const { error } = await supabase.auth.exchangeCodeForSession(authCode);
-            if (error) throw error;
+          if (!codeVerifier) {
+            throw new Error(
+              'This verification link is missing a required security token. Request a new email and try again.'
+            );
           }
+
+          const response = await fetch('/api/auth/exchange-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ auth_code: authCode, code_verifier: codeVerifier }),
+          });
+
+          const payload: { data?: any; error?: string } | null = await response.json().catch(() => null);
+          if (!response.ok || !payload || payload.error) {
+            throw new Error(payload?.error || 'Unable to verify your email.');
+          }
+
+          const session = payload.data?.session ?? payload.data;
+
+          if (!session?.access_token) {
+            throw new Error('Verification payload was missing a session.');
+          }
+
+          await supabase.auth.setSession(session);
         } else {
           const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
           if (error) throw error;
@@ -171,6 +174,11 @@ export default function VerifyPage() {
       params.set('next', redirectHref);
       if (role) params.set('role', role);
       if (ref) params.set('ref', ref);
+      const resendCodeVerifier =
+        (typeof query.code_verifier === 'string' && query.code_verifier) ||
+        readStoredPkceVerifier() ||
+        '';
+      if (resendCodeVerifier) params.set('code_verifier', resendCodeVerifier);
 
       // @ts-expect-error supabase-js may not expose resend type yet
       const { error: resendErr } = await supabase.auth.resend({
