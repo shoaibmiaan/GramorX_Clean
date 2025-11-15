@@ -1,3 +1,4 @@
+// components/Header.tsx
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -32,14 +33,14 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const modulesRef = useRef<HTMLLIElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll -> solid header
+  // Scroll → toggle solid header
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Premium access from local storage
+  // Load premium access from local storage
   useEffect(() => {
     const sync = () => {
       const list = PremiumRoomManager.getAccessList();
@@ -52,7 +53,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Global ESC close + click-away for modules/search
+  // Global ESC + click-away
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
@@ -79,22 +80,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     };
   }, [showSearch]);
 
-  // Lock body scroll when mobile menu open
-  useEffect(() => {
-    const lock = (e: TouchEvent) => e.preventDefault();
-    if (mobileOpen) {
-      document.documentElement.style.overflow = 'hidden';
-      document.addEventListener('touchmove', lock, { passive: false });
-    } else {
-      document.documentElement.style.overflow = '';
-      document.removeEventListener('touchmove', lock);
-    }
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.removeEventListener('touchmove', lock);
-    };
-  }, [mobileOpen]);
-
+  // Autofocus search
   useEffect(() => {
     if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 100);
   }, [showSearch]);
@@ -108,7 +94,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // TODO: hook up search
+      // TODO: hook up search routing
       setShowSearch(false);
       setSearchQuery('');
     }
@@ -116,11 +102,12 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   const solidHeader = scrolled || openDesktopModules || mobileOpen;
 
+  // Loading skeleton
   if (loading && !user) {
     return (
       <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/90 backdrop-blur-lg">
         <Container>
-          <div className="flex items-center justify-between py-2.5">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 animate-pulse rounded-xl bg-border" />
               <div className="space-y-1">
@@ -137,7 +124,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   return (
     <>
-      {/* Search Overlay */}
+      {/* 🔎 SEARCH OVERLAY */}
       {showSearch && (
         <div className="fixed inset-0 z-[70] bg-surface/95 backdrop-blur-lg">
           <Container>
@@ -159,6 +146,7 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                   />
                 </div>
               </form>
+
               <button
                 onClick={() => setShowSearch(false)}
                 className="ml-4 rounded-lg p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -170,61 +158,82 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
         </div>
       )}
 
-      {/* Main Header */}
+      {/* 🔥 MAIN HEADER */}
       <header
         ref={headerRef}
         role="banner"
         className={cn(
-          'sticky top-0 z-50 w-full border-b border-border/40 bg-surface/90 backdrop-blur-lg transition-all duration-300',
-          solidHeader && 'shadow-md'
+          'sticky top-0 z-50 w-full backdrop-blur-xl transition-all duration-300 border-b',
+          solidHeader
+            ? 'bg-lightBg/90 dark:bg-surface/90 border-border/60 shadow-sm'
+            : 'bg-transparent border-transparent'
         )}
       >
-        {/* Streak bar */}
+        {/* Subtle streak bar */}
         {user?.id && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-border">
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-border/40">
             <progress
               value={Math.min(streakState ?? 0, 10)}
               max={10}
               aria-label="Daily streak progress"
               className="block h-1 w-full appearance-none
-                         [&::-webkit-progress-bar]:bg-transparent
-                         [&::-webkit-progress-value]:bg-primary
-                         [&::-moz-progress-bar]:bg-primary"
+                [&::-webkit-progress-bar]:bg-transparent
+                [&::-webkit-progress-value]:bg-primary
+                [&::-moz-progress-bar]:bg-primary"
             />
           </div>
         )}
 
         <Container>
-          <div className="flex items-center justify-between py-2.5">
+          <div className="flex h-16 items-center justify-between gap-3">
             {/* Logo */}
             <Link
               href={user?.id ? '/dashboard' : '/'}
-              className="group flex items-center gap-2 transition-all hover:scale-[1.01]"
+              aria-label="Go to GramorX home"
+              className="group flex items-center gap-2 transition-transform hover:scale-[1.01]"
             >
-              <Image src="/brand/logo.png" alt="GramorX logo" width={36} height={36} className="rounded-xl" />
-              <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text font-slab text-lg font-bold text-transparent">
-                GramorX
+              <Image
+                src="/brand/logo.png"
+                alt="GramorX logo"
+                width={36}
+                height={36}
+                className="rounded-xl"
+              />
+
+              <span className="flex flex-col leading-tight">
+                <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text font-slab text-base font-bold text-transparent md:text-lg">
+                  GramorX
+                </span>
+                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  IELTS Mission Control
+                </span>
               </span>
-              <Badge variant="outline" size="sm" className="border-electricBlue/30 text-electricBlue">
+
+              <Badge
+                variant="outline"
+                size="sm"
+                className="ml-1 border-electricBlue/30 text-electricBlue"
+              >
                 BETA
               </Badge>
             </Link>
 
-            {/* Right cluster */}
+            {/* RIGHT SIDE */}
             <div className="flex items-center gap-2">
-              {/* Search trigger */}
+              {/* Search button (desktop) */}
               <button
+                type="button"
                 onClick={() => setShowSearch(true)}
-                className="hidden items-center gap-2 rounded-full border border-border/50 px-3 py-1.5 hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
+                className="hidden items-center gap-2 rounded-full border border-border/60 bg-surface/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm hover:border-border focus-visible:ring-2 focus-visible:ring-border md:flex"
               >
-                <Icon name="Search" size={14} className="text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Search...</span>
-                <kbd className="hidden rounded border border-border bg-muted px-1 py-0.5 text-xs lg:inline-block">
+                <Icon name="Search" size={14} />
+                <span>Search...</span>
+                <kbd className="hidden rounded-full border border-border bg-muted px-2 py-[1px] text-[10px] uppercase tracking-wide text-muted-foreground lg:inline-flex">
                   ⌘K
                 </kbd>
               </button>
 
-              {/* Navs own *all* auth/UI controls */}
+              {/* Desktop nav */}
               <DesktopNav
                 user={user}
                 role={role ?? 'guest'}
@@ -234,26 +243,42 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                 setOpenModules={setOpenDesktopModules}
                 modulesRef={modulesRef}
                 signOut={signOut}
+                className="hidden md:flex"
                 showAdmin={false}
-                className="hidden lg:flex"
                 hasPremiumAccess={hasPremiumAccess}
                 premiumRooms={premiumRooms}
                 onClearPremiumAccess={clearPremium}
                 subscriptionTier={subscriptionTier}
               />
 
+              {/* Mobile nav */}
               <MobileNav
-                user={user}
+                user={
+                  user
+                    ? {
+                        id: user.id,
+                        email: user.email ?? null,
+                        name:
+                          (user.user_metadata as any)?.full_name ??
+                          (user.user_metadata as any)?.name ??
+                          null,
+                        avatarUrl:
+                          (user.user_metadata as any)?.avatar_url ??
+                          (user.user_metadata as any)?.avatar ??
+                          null,
+                      }
+                    : null
+                }
                 role={role ?? 'guest'}
                 ready={ready}
-                streak={streakState}
+                streak={streakState ?? 0}
                 mobileOpen={mobileOpen}
                 setMobileOpen={setMobileOpen}
                 mobileModulesOpen={mobileModulesOpen}
                 setMobileModulesOpen={setMobileModulesOpen}
                 signOut={signOut}
                 showAdmin={false}
-                className="lg:hidden"
+                className="md:hidden"
                 hasPremiumAccess={hasPremiumAccess}
                 premiumRooms={premiumRooms}
                 onClearPremiumAccess={clearPremium}
