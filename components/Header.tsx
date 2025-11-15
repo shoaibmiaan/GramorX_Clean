@@ -1,9 +1,10 @@
 // components/Header.tsx
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 import { Container } from '@/components/design-system/Container';
 import { Badge } from '@/components/design-system/Badge';
@@ -14,6 +15,7 @@ import { useHeaderState } from '@/components/hooks/useHeaderState';
 import { useUserContext } from '@/context/UserContext';
 import { PremiumRoomManager } from '@/premium-ui/access/roomUtils';
 import { cn } from '@/lib/utils';
+import type { SearchResult } from '@/lib/search/types';
 
 const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [openDesktopModules, setOpenDesktopModules] = useState(false);
@@ -22,6 +24,9 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [scrolled, setScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const { user, role, loading } = useUserContext();
   const { streak: streakState, ready, signOut, subscriptionTier } = useHeaderState(streak);
@@ -32,6 +37,17 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const headerRef = useRef<HTMLElement>(null);
   const modulesRef = useRef<HTMLLIElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
+
+  const closeSearch = useCallback(() => {
+    setShowSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchLoading(false);
+    setSearchError(null);
+  }, []);
 
   // Scroll → toggle solid header
   useEffect(() => {
@@ -58,14 +74,16 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
       if (modulesRef.current && !modulesRef.current.contains(t)) setOpenDesktopModules(false);
-      if (showSearch && !searchInputRef.current?.contains(t)) setShowSearch(false);
+      if (showSearch && searchContainerRef.current && !searchContainerRef.current.contains(t)) {
+        closeSearch();
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setOpenDesktopModules(false);
         setMobileOpen(false);
         setMobileModulesOpen(false);
-        setShowSearch(false);
+        closeSearch();
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -78,12 +96,46 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
       document.removeEventListener('mousedown', onClick);
       document.removeEventListener('keydown', onKey);
     };
-  }, [showSearch]);
+  }, [closeSearch, showSearch]);
 
   // Autofocus search
   useEffect(() => {
     if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 100);
   }, [showSearch]);
+
+  // Fetch search suggestions/results when query changes
+  useEffect(() => {
+    if (!showSearch) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        setSearchError(null);
+        const query = searchQuery.trim();
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        const data = (await response.json()) as { results?: SearchResult[] };
+        setSearchResults(Array.isArray(data.results) ? data.results : []);
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+        console.error('[Header] search request failed', err);
+        setSearchResults([]);
+        setSearchError('Unable to search right now. Please try again.');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 220);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [searchQuery, showSearch]);
 
   const clearPremium = () => {
     PremiumRoomManager.clearAllAccess();
@@ -93,11 +145,42 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // TODO: hook up search routing
-      setShowSearch(false);
-      setSearchQuery('');
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      if (searchResults[0]) {
+        router.push(searchResults[0].href).catch((err) => {
+          console.error('[Header] failed to navigate to search result', err);
+        });
+        closeSearch();
+      }
+      return;
     }
+
+    const topResult = searchResults[0];
+    if (topResult) {
+      router.push(topResult.href).catch((err) => {
+        console.error('[Header] failed to navigate to search result', err);
+      });
+      closeSearch();
+    }
+  };
+
+  const handleResultSelect = useCallback(
+    (href: string) => {
+      router.push(href).catch((err) => {
+        console.error('[Header] failed to navigate to search result', err);
+      });
+      closeSearch();
+    },
+    [closeSearch, router],
+  );
+
+  const typeLabels: Record<SearchResult['type'], string> = {
+    module: 'Module',
+    course: 'Course',
+    lesson: 'Lesson',
+    vocabulary: 'Vocabulary',
+    resource: 'Resource',
   };
 
   const solidHeader = scrolled || openDesktopModules || mobileOpen;
@@ -128,31 +211,96 @@ const Header: React.FC<{ streak?: number }> = ({ streak }) => {
       {showSearch && (
         <div className="fixed inset-0 z-[70] bg-surface/95 backdrop-blur-lg">
           <Container>
-            <div className="flex items-center justify-between pt-4 pb-6">
-              <form onSubmit={handleSearch} className="mx-auto flex-1 max-w-2xl">
-                <div className="relative">
-                  <Icon
-                    name="Search"
-                    size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search vocabulary, grammar, or mock tests..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full border-b border-border bg-transparent px-4 py-3 pl-10 text-base outline-none focus:border-electricBlue"
-                  />
-                </div>
-              </form>
+            <div ref={searchContainerRef} className="flex flex-col items-center gap-6 pt-4 pb-8">
+              <div className="flex w-full max-w-3xl items-center gap-3">
+                <form onSubmit={handleSearch} className="flex-1">
+                  <div className="relative">
+                    <Icon
+                      name="Search"
+                      size={18}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search vocabulary, grammar, or mock tests..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded-2xl border border-border/70 bg-background/80 px-4 py-3 pl-10 text-base shadow-sm outline-none transition focus:border-electricBlue focus:bg-background"
+                    />
+                  </div>
+                </form>
 
-              <button
-                onClick={() => setShowSearch(false)}
-                className="ml-4 rounded-lg p-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <Icon name="X" size={18} />
-              </button>
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Close search"
+                >
+                  <Icon name="X" size={18} />
+                </button>
+              </div>
+
+              <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-xl">
+                <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {searchQuery.trim() ? `Results for “${searchQuery.trim()}”` : 'Recommended destinations'}
+                  </span>
+                  <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground/80">Press Esc to close</span>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto">
+                  {searchLoading ? (
+                    <div className="flex flex-col gap-3 px-6 py-6">
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <div key={idx} className="animate-pulse rounded-xl border border-border/40 bg-muted/30 p-4">
+                          <div className="h-4 w-32 rounded bg-border/80" />
+                          <div className="mt-2 h-3 w-3/4 rounded bg-border/60" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : searchError ? (
+                    <div className="px-6 py-10 text-center text-sm text-danger">{searchError}</div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+                      {searchQuery.trim()
+                        ? 'No results matched your search. Try a different keyword.'
+                        : 'Type to discover lessons, modules, and vocabulary instantly.'}
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border/40" role="list">
+                      {searchResults.map((result) => (
+                        <li key={result.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleResultSelect(result.href)}
+                            className="flex w-full items-start justify-between gap-4 px-6 py-4 text-left transition hover:bg-primary/10"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="info" size="xs">
+                                  {typeLabels[result.type] || 'Result'}
+                                </Badge>
+                                <span className="font-medium text-sm text-foreground line-clamp-1">
+                                  {result.title}
+                                </span>
+                              </div>
+                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                {result.description}
+                              </p>
+                              {result.snippet ? (
+                                <p className="mt-2 line-clamp-1 text-[11px] text-muted-foreground/80">
+                                  {result.snippet}
+                                </p>
+                              ) : null}
+                            </div>
+                            <Icon name="ArrowUpRight" size={16} className="mt-1 text-muted-foreground/70" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
           </Container>
         </div>
