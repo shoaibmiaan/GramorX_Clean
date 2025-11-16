@@ -89,12 +89,18 @@ const isMockTestsFlowRoute = (pathname: string) => {
 };
 
 // ---------- Enhanced route loading ----------
+const ROUTE_LOADING_DELAY_MS = 260;
+const ROUTE_LOADING_MIN_VISIBLE_MS = 400;
+const ROUTE_LOADING_FALLBACK_MS = 12000;
+
 function useRouteLoading() {
   const router = useRouter();
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const routeLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const routeLoadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const routeLoadingHideDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPathRef = useRef<string | null>(null);
+  const visibleSinceRef = useRef<number | null>(null);
 
   useEffect(() => {
     const toComparablePath = (value: string) => {
@@ -120,6 +126,10 @@ function useRouteLoading() {
         clearTimeout(routeLoadingFallbackRef.current);
         routeLoadingFallbackRef.current = null;
       }
+      if (routeLoadingHideDelayRef.current) {
+        clearTimeout(routeLoadingHideDelayRef.current);
+        routeLoadingHideDelayRef.current = null;
+      }
     };
 
     const startLoading = (url: string, options: { shallow?: boolean } = {}) => {
@@ -132,18 +142,21 @@ function useRouteLoading() {
       pendingPathRef.current = toComparablePath(url);
       clearTimers();
       routeLoadingTimeoutRef.current = setTimeout(() => {
+        visibleSinceRef.current = Date.now();
         setIsRouteLoading(true);
         routeLoadingFallbackRef.current = setTimeout(() => {
           pendingPathRef.current = null;
+          visibleSinceRef.current = null;
           setIsRouteLoading(false);
-        }, 12000);
-      }, 160);
+        }, ROUTE_LOADING_FALLBACK_MS);
+      }, ROUTE_LOADING_DELAY_MS);
     };
 
     const stopLoading = (url?: string | null) => {
       const finalize = () => {
         pendingPathRef.current = null;
         clearTimers();
+        visibleSinceRef.current = null;
         setIsRouteLoading(false);
       };
 
@@ -154,12 +167,31 @@ function useRouteLoading() {
         }
       }
 
+      const ensureMinimumVisibility = () => {
+        if (visibleSinceRef.current == null) {
+          finalize();
+          return;
+        }
+
+        const elapsed = Date.now() - visibleSinceRef.current;
+        if (elapsed >= ROUTE_LOADING_MIN_VISIBLE_MS) {
+          finalize();
+          return;
+        }
+
+        const remaining = ROUTE_LOADING_MIN_VISIBLE_MS - elapsed;
+        routeLoadingHideDelayRef.current = setTimeout(() => {
+          visibleSinceRef.current = null;
+          finalize();
+        }, remaining);
+      };
+
       if (typeof window !== 'undefined') {
-        requestAnimationFrame(() => requestAnimationFrame(finalize));
+        requestAnimationFrame(() => requestAnimationFrame(ensureMinimumVisibility));
         return;
       }
 
-      finalize();
+      ensureMinimumVisibility();
     };
 
     const handleRouteError = (_err: unknown, url: string) => stopLoading(url);
