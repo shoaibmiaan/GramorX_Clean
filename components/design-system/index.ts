@@ -15,4 +15,4 @@ export { Separator } from './Separator';
 export { Section } from './Section';
 export { Tabs } from './Tabs';
 export { Textarea } from './Textarea';
-export { Toaster, ToastProvider, useToast } from './Toaster';
+export { Toaster, ToastProvider, useToast, toast } from './Toaster';

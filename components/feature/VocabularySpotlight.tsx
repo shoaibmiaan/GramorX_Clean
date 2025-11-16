@@ -34,6 +34,42 @@ const difficultyLabel: Record<VocabItem['difficulty'], string> = {
   hard: 'Band 8+ choice',
 };
 
+const usageContexts = [
+  {
+    title: 'When to use it',
+    detail: 'Perfect for Task 2 body paragraphs when presenting solutions to social or academic issues.',
+  },
+  {
+    title: 'Pair it with',
+    detail: 'cause, impact, strain, disruption. It shines when you describe how a policy reduces negative outcomes.',
+  },
+  {
+    title: 'Pronunciation tip',
+    detail: 'Stress the first syllable: MI-ti-gate. Keep the middle “ti” short to sound confident in Speaking Part 3.',
+  },
+];
+
+const microPractice = [
+  {
+    label: 'Writing drill',
+    action: 'Rewrite a sentence from yesterday’s essay replacing “reduce” with “mitigate” and explain the nuance.',
+  },
+  {
+    label: 'Speaking flash',
+    action: 'Record a 30-second answer about traffic congestion using the word twice with different reasons.',
+  },
+  {
+    label: 'Listening moment',
+    action: 'During a podcast, note any synonyms (limit, soften, alleviate) and add them to your word bank.',
+  },
+];
+
+const synonymNotes = [
+  { term: 'alleviate', note: 'Softer tone, good for minor issues (e.g., “alleviate anxiety”).' },
+  { term: 'counteract', note: 'More forceful, works when describing strategies that oppose a trend.' },
+  { term: 'offset', note: 'Useful for economic topics when describing balancing effects.' },
+];
+
 export function VocabularySpotlightFeature() {
   return (
     <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-6 shadow-sm">
@@ -146,6 +182,75 @@ export function VocabularySpotlightFeature() {
         </div>
       </div>
     </Card>
+  );
+}
+
+export function WordOfTheDayDeepDive() {
+  return (
+    <section className="px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+        <VocabularySpotlightFeature />
+
+        <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+          <Card className="rounded-ds-2xl border border-border/60 bg-card/60 p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Badge size="xs" variant="soft" tone="info">
+                Deep dive
+              </Badge>
+              <p className="text-xs text-muted-foreground">Master today’s word in 10 focused minutes.</p>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {usageContexts.map((context) => (
+                <div key={context.title} className="rounded-ds-xl border border-border/40 bg-background/80 p-4">
+                  <p className="text-sm font-semibold text-foreground">{context.title}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{context.detail}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Example sentence</p>
+              <blockquote className="mt-3 rounded-ds-2xl bg-muted/30 p-4 text-sm italic text-muted-foreground">
+                “{todaysWord.example}”
+              </blockquote>
+            </div>
+          </Card>
+
+          <div className="flex flex-col gap-6">
+            <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Icon name="BookOpen" size={16} />
+                Synonyms & tone
+              </div>
+              <ul className="mt-4 space-y-3 text-sm">
+                {synonymNotes.map((synonym) => (
+                  <li key={synonym.term} className="rounded-ds-lg bg-muted/30 p-3">
+                    <p className="font-medium text-foreground">{synonym.term}</p>
+                    <p className="text-xs text-muted-foreground">{synonym.note}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
+            <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Icon name="Timer" size={16} />
+                10-minute routine
+              </div>
+              <ul className="mt-4 space-y-3 text-sm">
+                {microPractice.map((item) => (
+                  <li key={item.label} className="rounded-ds-lg border border-border/40 p-3">
+                    <p className="font-medium text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.action}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
