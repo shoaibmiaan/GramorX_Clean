@@ -1,99 +1,185 @@
-// pages/mock/index.tsx
+import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
-import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
-import { track } from '@/lib/analytics/track';
-import { mockTests } from '@/data/mock';
+import { Badge } from '@/components/design-system/Badge';
+import Icon from '@/components/design-system/Icon';
 
-export default function MockTestsIndex() {
-  const handleClick = (slug: string, skill: string) => {
-    track('mock_test_open', { slug, skill });
-  };
+const mockTestOverview = {
+  title: 'Full Mock Tests',
+  description: 'Serious exam rehearsals with band estimates and post-test breakdowns.',
+  bullets: [
+    'Full-length timed mocks',
+    'Module-wise band estimates',
+    'Cheating-safe exam workspace',
+    'Post-test analysis with AI feedback',
+  ],
+  status: 'Rolling out',
+  statusTone: 'info',
+};
 
+const mockTestFeatures = [
+  {
+    title: 'Module 1: Listening',
+    description: 'Simulate listening tests with timed modules and AI-based band estimates.',
+    icon: 'Headphones',
+    href: '/mock/listening/overview', // Link to the new overview page
+  },
+  {
+    title: 'Module 2: Reading',
+    description: 'Practice reading comprehension with realistic exam conditions and feedback.',
+    icon: 'FileText',
+    href: '/mock/reading/overview',
+  },
+  {
+    title: 'Module 3: Writing',
+    description: 'Get instant feedback on writing tasks with AI scoring and analysis.',
+    icon: 'PenSquare',
+    href: '/mock/writing/overview',
+  },
+  {
+    title: 'Module 4: Speaking',
+    description: 'Practice speaking with AI evaluation and simulated examiner interactions.',
+    icon: 'Microphone',
+    href: '/mock/speaking/overview',
+  },
+];
+
+const MockTestPage: React.FC = () => {
   return (
     <>
       <Head>
-        <title>Mock Tests • IELTS (Full + Modules)</title>
+        <title>GramorX AI — Full Mock Tests</title>
         <meta
           name="description"
-          content="Full-length IELTS mocks and module-wise practice with AI scoring, analytics, and review."
+          content="Take full-length IELTS mock tests with realistic time conditions and AI-powered band estimates."
         />
       </Head>
 
-      <section
-        className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90"
-        aria-labelledby="mock-tests-heading"
-      >
-        <Container>
-          <header className="mb-6">
-            <h1 id="mock-tests-heading" className="font-slab text-display mb-3 text-gradient-primary">
-              Mock Tests
-            </h1>
-            <p className="text-grayish max-w-2xl">
-              Full-length exams and section-wise practice with AI scoring, analytics, and review.
-            </p>
-          </header>
+      <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+        {/* Hero Section */}
+        <section className="pb-16 pt-16 md:pt-20">
+          <Container>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
+              {/* Left side: text + CTAs */}
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="Timer" size={14} />
+                  </span>
+                  <span>{mockTestOverview.status} • IELTS Full Mock Tests</span>
+                </div>
 
-          {mockTests.length === 0 ? (
-            <Card className="card-surface p-8 rounded-ds-2xl">
-              <div className="flex flex-col gap-3">
-                <h2 className="text-h4 font-semibold">Nothing here yet</h2>
-                <p className="text-body opacity-90">
-                  We’re assembling the best mocks for you. In the meantime, explore practice by skill.
-                </p>
-                <div className="mt-2 flex gap-3">
-                  <Button variant="primary" className="rounded-ds" asChild>
-                    <Link href="/practice">Go to Practice Hub</Link>
+                <div className="space-y-4">
+                  <h1 className="font-slab text-display text-gradient-primary">{mockTestOverview.title}</h1>
+                  <p className="max-w-xl text-body text-grayish">{mockTestOverview.description}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <Button
+                    asChild
+                    variant="primary"
+                    size="lg"
+                    className="rounded-ds-2xl px-6"
+                  >
+                    <Link href="/mock/listening/overview">Explore Listening Module</Link>
                   </Button>
-                  <Button variant="secondary" className="rounded-ds" asChild>
-                    <Link href="/study-plan">Set Study Plan</Link>
+                  <Button
+                    asChild
+                    variant="secondary"
+                    size="lg"
+                    className="rounded-ds-2xl px-6"
+                  >
+                    <Link href="/pricing">View Pricing Plans</Link>
                   </Button>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-4 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="ShieldCheck" size={14} /> No cheating, secured environment
+                  </span>
+                  <span>•</span>
+                  <span>Full mock tests with time tracking and performance analysis</span>
+                </div>
               </div>
-            </Card>
-          ) : (
-            <ul role="list" className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label="Available mock tests">
-              {mockTests.map((m) => {
-                const headingId = `mock-${m.slug}`;
-                return (
-                  <li key={m.slug} role="listitem">
-                    <Card as="article" className="card-surface p-6 rounded-ds-2xl" aria-labelledby={headingId}>
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 id={headingId} className="text-h3 font-semibold">
-                          {m.title}
-                        </h3>
-                        <Badge variant={m.skill === 'Full' ? 'success' : 'info'} size="sm" aria-label={`Skill: ${m.skill}`}>
-                          {m.skill}
-                        </Badge>
-                      </div>
 
-                      <p className="mt-2 text-body opacity-90">{m.description}</p>
+              {/* Right side: Mock Test Info */}
+              <div className="space-y-4">
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                        Mock Test Details
+                      </p>
+                      <h2 className="font-slab text-h3">Full-Length Timed Mocks</h2>
+                    </div>
+                    <Badge variant="accent" size="sm">
+                      {mockTestOverview.status}
+                    </Badge>
+                  </div>
 
-                      <div className="mt-6">
-                        <Button
-                          variant="primary"
-                          className="rounded-ds"
-                          asChild
-                          data-testid={`open-${m.slug}`}
-                          onClick={() => handleClick(m.slug, m.skill)}
-                        >
-                          <Link href={m.href}>
-                            <span className="sr-only">Open {m.title} — </span>
-                            {m.skill === 'Full' ? 'Start full mock' : 'Open practice'}
-                          </Link>
-                        </Button>
+                  <div className="mt-4 space-y-3">
+                    <p className="text-small text-grayish">{mockTestOverview.description}</p>
+                    <ul className="space-y-2 text-xs text-muted-foreground">
+                      {mockTestOverview.bullets.map((b, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="mt-[3px] inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] text-primary">
+                            <Icon name="Check" size={10} />
+                          </span>
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* Mock Test Modules */}
+        <section className="pb-16">
+          <Container>
+            <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="font-slab text-h2">Mock Test Modules</h2>
+                <p className="text-small text-grayish">
+                  Take mock tests for each module: Listening, Reading, Writing, and Speaking.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {mockTestFeatures.map((feature) => (
+                <Card
+                  key={feature.href}
+                  className="group flex h-full cursor-pointer flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/70 p-4 transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
+                >
+                  <Link href={feature.href} className="flex h-full flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon name={feature.icon} size={18} />
+                      </span>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">{feature.title}</p>
+                        <p className="text-xs text-muted-foreground">{feature.description}</p>
                       </div>
-                    </Card>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Container>
-      </section>
+                    </div>
+                    <span className="mt-1 inline-flex items-center text-xs font-medium text-primary group-hover:underline">
+                      Start Test
+                      <Icon name="ArrowRight" size={14} className="ml-1" />
+                    </span>
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+      </main>
     </>
   );
-}
+};
+
+export default MockTestPage;

@@ -1,4 +1,3 @@
-// pages/pricing/overview.tsx
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -25,7 +24,6 @@ type PlanRow = {
   key: PlanKey;
   title: 'Seedling' | 'Rocket' | 'Owl';
   subtitle: string;
-  // NOTE: Both monthly and annual are expressed as *per-month* USD cents.
   priceMonthly: number; // cents (USD)
   priceAnnual: number;  // cents (USD, per month when billed annually)
   features: string[];
@@ -165,14 +163,14 @@ const PricingPage: NextPage = () => {
 
     let message = '';
     let backPath = from;
-    let module = qk ? qk.replace(/_/g, ' ') : 'this feature';
+    let featureLabel = qk ? qk.replace(/_/g, ' ') : 'this feature';
 
     switch (reason) {
       case 'plan_required':
         message = `This feature requires the ${need || 'higher'} plan or higher.`;
         break;
       case 'quota_limit':
-        message = `You've reached your quota for ${module}. Try again tomorrow or upgrade to increase your limits.`;
+        message = `You've reached your quota for ${featureLabel}. Try again tomorrow or upgrade to increase your limits.`;
         break;
       case 'trial_ended':
         message = 'Your trial has ended. Upgrade to continue.';
@@ -221,7 +219,7 @@ const PricingPage: NextPage = () => {
       </Head>
 
       {/* MAIN landmark */}
-      <main role="main" className="min-h-screen bg-marketing-aurora text-foreground antialiased">
+      <main role="main" className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90 text-foreground antialiased">
         <Section id="pricing">
           <Container className="pt-6 md:pt-8 pb-12 md:pb-16" aria-labelledby="pricing-title">
 
@@ -400,7 +398,7 @@ const PricingPage: NextPage = () => {
 
                 <Button
                   variant="primary"
-                  className="mt-3 w-full justify-center"
+                  className="mt-3 w-full justify_center"
                   onClick={() => {
                     const qs = new URLSearchParams();
                     qs.set('plan', 'booster');
