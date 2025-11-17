@@ -130,7 +130,7 @@ const quickLinks = [
   },
   {
     label: 'Check pricing & plans',
-    description: 'Free vs Rocket vs higher tiers.',
+    description: 'Free vs Starter vs Rocket vs Master.',
     href: '/pricing',
     icon: 'CreditCard' as IconName,
   },
@@ -176,26 +176,37 @@ const plans = [
     ],
   },
   {
-    id: 'rocket',
+    id: 'starter',
+    name: 'Starter',
+    price: 'Entry plan for first-timers',
+    tag: 'New learners',
+    bullets: [
+      'More AI checks each month across skills',
+      'Extra mock attempts with band estimates',
+      'Core analytics and study suggestions',
+    ],
+  },
+  {
+    id: 'booster',
     name: 'Rocket',
     price: 'Best for 6.5 → 7.5+',
     tag: 'Most popular',
     bullets: [
       'Deeper AI writing + speaking feedback',
-      'More mocks per month',
+      'More full mocks per month',
       'Full analytics and AI Lab features',
     ],
     highlight: true,
   },
   {
-    id: 'institution',
-    name: 'Institution / Teacher',
-    price: 'Talk to us',
-    tag: 'For schools',
+    id: 'master',
+    name: 'Master',
+    price: 'For 7.5–9.0 & serious prep',
+    tag: 'All-in access',
     bullets: [
-      'Teacher dashboards',
-      'Cohort analytics',
-      'Co-branded experiences',
+      'Unlimited mocks across all four modules',
+      'Unlimited AI feedback & improvement deltas',
+      'Advanced reports, coach tools & streak heatmap',
     ],
   },
 ];
@@ -271,7 +282,7 @@ const LandingPage: React.FC = () => {
                     <Icon name="ShieldCheck" size={14} /> No-card free tier
                   </span>
                   <span>•</span>
-                  <span>AI usage is capped on Free and unlocked on Rocket</span>
+                  <span>AI usage is capped on Free and expands on every paid plan.</span>
                 </div>
               </div>
 
@@ -554,8 +565,9 @@ const LandingPage: React.FC = () => {
                   Start free. Upgrade when you’re serious.
                 </h2>
                 <p className="mt-1 text-small text-grayish md:max-w-xl">
-                  Free covers basic practice and a taste of AI. Rocket unlocks deeper
-                  feedback and more mocks. Institutional is for teachers and academies.
+                  Free covers basic practice and a taste of AI. Starter adds more checks
+                  and mocks. Rocket (Booster) unlocks deeper feedback and analytics. Master
+                  is for full-send prep. Institutional is for teachers and academies.
                 </p>
               </div>
               <Button
@@ -568,7 +580,7 @@ const LandingPage: React.FC = () => {
               </Button>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
               {plans.map((plan) => (
                 <Card
                   key={plan.id}
@@ -607,7 +619,7 @@ const LandingPage: React.FC = () => {
                     <Button
                       asChild
                       size="sm"
-                      variant={plan.id === 'rocket' ? 'primary' : 'secondary'}
+                      variant={plan.id === 'booster' ? 'primary' : 'secondary'}
                       className="w-full rounded-ds-xl"
                     >
                       <Link href="/pricing">
@@ -617,6 +629,24 @@ const LandingPage: React.FC = () => {
                   </div>
                 </Card>
               ))}
+            </div>
+
+            {/* Institution / Teacher strip */}
+            <div className="mt-8 rounded-ds-2xl border border-dashed border-border/60 bg-card/80 px-4 py-4 md:flex md:items-center md:justify-between md:px-6">
+              <div className="space-y-1">
+                <p className="text-body-sm font-medium text-foreground">
+                  Institution / Teacher plans
+                </p>
+                <p className="text-body-xs text-muted-foreground">
+                  Running a coaching centre or academy? Get cohort analytics, teacher
+                  dashboards and co-branded experiences.
+                </p>
+              </div>
+              <div className="mt-3 flex justify-start md:mt-0 md:justify-end">
+                <Button variant="outline" size="sm" asChild className="rounded-ds-xl">
+                  <Link href="/pricing#institution">Talk to us</Link>
+                </Button>
+              </div>
             </div>
           </Container>
         </section>

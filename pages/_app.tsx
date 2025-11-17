@@ -187,7 +187,9 @@ function useRouteLoading() {
       };
 
       if (typeof window !== 'undefined') {
-        requestAnimationFrame(() => requestAnimationFrame(ensureMinimumVisibility));
+        requestAnimationFrame(() =>
+          requestAnimationFrame(ensureMinimumVisibility)
+        );
         return;
       }
 
@@ -264,16 +266,16 @@ function useAuthBridge() {
   const bridgeSession = useCallback(
     async (event: AuthChangeEvent, sessionNow: Session | null) => {
       const shouldPost =
-        event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
+        event === 'SIGNED_IN' ||
+        event === 'SIGNED_OUT' ||
+        event === 'TOKEN_REFRESHED';
       if (!shouldPost) return;
 
-      // For SIGNED_IN / TOKEN_REFRESHED → need a token
       if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
 
       const token = sessionNow?.access_token ?? '';
       const dedupeKey = `${event}:${token}`;
 
-      // Avoid spamming the API with repeated events for the same token
       if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
       lastBridgeKeyRef.current = event === 'SIGNED_OUT' ? null : dedupeKey;
 
@@ -295,7 +297,6 @@ function useAuthBridge() {
     if (IS_CI) return;
 
     if (typeof window !== 'undefined') {
-      // Prevent multiple bridges in multi-mount scenarios
       if ((window as any).__GX_AUTH_BRIDGE_ACTIVE) return;
       (window as any).__GX_AUTH_BRIDGE_ACTIVE = true;
     }
@@ -305,7 +306,6 @@ function useAuthBridge() {
     (async () => {
       const supa = getSupa();
 
-      // Initial sync: get current session and push it to the server
       syncingRef.current = true;
       const {
         data: { session },
@@ -318,12 +318,10 @@ function useAuthBridge() {
           await bridgeSession('SIGNED_OUT', null);
         }
 
-        // Hydrate feature/plan flags once we know who the user is
         if (!flagsHydratedRef.current) {
           void refreshClientFlags();
         }
 
-        // If user hits /login or /signup while already logged in → send them to their area
         if (session?.user && isAuthPage(router.pathname)) {
           const pathname = router.pathname;
           const isSpecialAuthHandler =
@@ -331,7 +329,6 @@ function useAuthBridge() {
             pathname === '/auth/confirm' ||
             pathname === '/auth/verify';
 
-          // Let /auth/callback, /auth/confirm, /auth/verify control their own redirects
           if (!isSpecialAuthHandler) {
             const url = new URL(window.location.href);
             const next = url.searchParams.get('next');
@@ -366,7 +363,6 @@ function useAuthBridge() {
               pathname === '/auth/confirm' ||
               pathname === '/auth/verify';
 
-            // ✅ Do NOT override redirects for the auth handler pages themselves
             if (!isSpecialAuthHandler) {
               const url = new URL(window.location.href);
               const next = url.searchParams.get('next');
@@ -407,13 +403,10 @@ function useRouteConfiguration(pathname: string) {
 
   return useMemo(() => {
     const routeConfig = getRouteConfig(pathname);
-
-    // ✅ Robust auth detection: trust routeConfig, but fall back to regex
     const derivedIsAuth = routeConfig.layout === 'auth' || isAuthPage(pathname);
 
     const isAttempt = isAttemptPath(pathname);
 
-    // Hide chrome where it must be hidden
     const isNoChromeRoute =
       derivedIsAuth ||
       routeConfig.layout === 'proctoring' ||
@@ -443,7 +436,8 @@ function useRouteConfiguration(pathname: string) {
       isCommunityRoute:
         routeConfig.layout === 'community' || routeConfig.layout === 'communication',
       isReportsRoute: routeConfig.layout === 'reports',
-      isMarketingRoute: routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
+      isMarketingRoute:
+        routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
       needPremium: pathname.startsWith('/premium'),
       isPremiumRoute: isPremiumRoomRoute(pathname),
       routeConfig,
@@ -459,10 +453,14 @@ function useRouteAccessCheck(pathname: string, role?: string | null) {
     const config = getRouteConfig(pathname);
     if (!config.requiresAuth) return;
 
+    // If we don't know the role yet, don't instantly redirect – let UserContext load.
+    if (role === undefined) return;
+
     if (!role) {
       router.replace('/login');
       return;
     }
+
     if (config.allowedRoles && role && !config.allowedRoles.includes(role)) {
       router.replace('/restricted');
     }
@@ -477,21 +475,20 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const isRouteLoading = useRouteLoading();
   useAuthBridge();
 
-  // i18n
   useEffect(() => {
     void loadTranslations(activeLocale as SupportedLocale);
   }, [activeLocale]);
 
-  // route analytics (stub)
   useEffect(() => {
-    const logRoute = (url: string) => { if (!url) return; };
+    const logRoute = (url: string) => {
+      if (!url) return;
+    };
     logRoute(router.asPath);
     const handleRouteChange = (url: string) => logRoute(url);
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => router.events.off('routeChangeComplete', handleRouteChange);
   }, [router]);
 
-  // user / tier
   const { user, role, isTeacherApproved } = useUserContext() as {
     user: SupabaseUser | null;
     role?: string | null;
@@ -516,23 +513,20 @@ function InnerApp({ Component, pageProps }: AppProps) {
       window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
   }, []);
 
-  // route configuration
   const routeConfiguration = useRouteConfiguration(pathname);
   const forceLayoutOnAuthPage = routeConfiguration.isAuthPage && !!user;
 
-  // access checks
   useRouteAccessCheck(pathname, role);
 
-  // teacher redirect
   useEffect(() => {
     if (!role) return;
     if (role === 'teacher') {
-      const onTeacherArea = pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
+      const onTeacherArea =
+        pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
       if (!onTeacherArea) router.replace('/teacher');
     }
   }, [role, pathname, routeConfiguration.isAuthPage, router]);
 
-  // idle timeout
   const idleMinutes = useMemo(() => {
     try {
       const minutes =
@@ -594,7 +588,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
-              {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? (
+              {router.pathname === '/pricing' ||
+              router.pathname === '/pricing/overview' ? (
                 <PricingReasonBanner />
               ) : null}
               {basePage}

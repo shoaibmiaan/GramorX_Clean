@@ -1,306 +1,371 @@
-import * as React from 'react';
+// components/mock/MockExamLayout.tsx
+import React, { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/router';
 
-import { Button } from '@/components/design-system/Button';
-import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
-import { Input } from '@/components/design-system/Input';
+import { Card } from '@/components/design-system/Card';
+import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import Icon from '@/components/design-system/Icon';
 
-const cn = (...values: Array<string | false | null | undefined>) =>
-  values.filter(Boolean).join(' ');
-
-type Step = 'pin' | 'theme' | 'exam';
-
-type ThemeKey = 'classic' | 'dim' | 'focus' | 'sepia' | 'contrast';
-
-type ThemeOption = {
-  key: ThemeKey;
-  name: string;
-  description: string;
-  previewClass: string;
-  examClass: string;
-};
-
-const THEME_OPTIONS: ThemeOption[] = [
-  {
-    key: 'classic',
-    name: 'Classic Light',
-    description: 'Bright interface similar to IELTS CBT labs.',
-    previewClass: 'bg-white text-slate-900 border-slate-200',
-    examClass: 'bg-slate-50 text-slate-900',
-  },
-  {
-    key: 'dim',
-    name: 'Dim Dark',
-    description: 'Low-light friendly neutral palette.',
-    previewClass: 'bg-slate-900 text-slate-50 border-slate-800',
-    examClass: 'bg-slate-950 text-slate-100',
-  },
-  {
-    key: 'focus',
-    name: 'Focus Mode',
-    description: 'Muted chrome with minimal distractions.',
-    previewClass: 'bg-slate-100 text-slate-900 border-slate-300',
-    examClass: 'bg-slate-100 text-slate-900',
-  },
-  {
-    key: 'sepia',
-    name: 'Sepia',
-    description: 'Paper-like tone for extended reading.',
-    previewClass: 'bg-amber-50 text-stone-900 border-amber-200',
-    examClass: 'bg-amber-50 text-stone-900',
-  },
-  {
-    key: 'contrast',
-    name: 'High Contrast',
-    description: 'Accessibility-first colours with high contrast.',
-    previewClass: 'bg-black text-white border-white/20',
-    examClass: 'bg-black text-white',
-  },
-];
-
-export type MockExamLayoutProps = {
-  children: React.ReactNode;
-  examTitle: string;
-  moduleKey: 'listening' | 'reading' | 'writing' | 'speaking' | 'full' | (string & {});
-  testSlug?: string;
+type MockExamLayoutProps = {
+  children: ReactNode;
+  examTitle?: string;
+  moduleName?: 'Listening' | 'Reading' | 'Writing' | 'Speaking' | string;
   showExitButton?: boolean;
 };
 
-export type PinValidateSuccess = {
-  ok: true;
-  sessionId: string;
-  module: string;
-  testSlug?: string;
-  expiresAt?: string | null;
-};
+type ThemeId = 'classic' | 'dark' | 'focus' | 'sepia' | 'high-contrast';
 
-export type PinValidateError = { ok: false; error: string };
+const THEMES: {
+  id: ThemeId;
+  name: string;
+  description: string;
+  bgClass: string;
+  headerClass: string;
+  panelClass: string;
+}[] = [
+  {
+    id: 'classic',
+    name: 'Classic Light',
+    description: 'Clean white exam layout. Closest to actual IELTS CBE feel.',
+    bgClass: 'bg-white',
+    headerClass: 'bg-slate-50 border-b border-slate-200',
+    panelClass: 'bg-slate-50',
+  },
+  {
+    id: 'dark',
+    name: 'Dim Dark',
+    description: 'Dark mode for tired eyes. Neutral, no distractions.',
+    bgClass: 'bg-slate-950',
+    headerClass: 'bg-slate-900 border-b border-slate-800',
+    panelClass: 'bg-slate-900',
+  },
+  {
+    id: 'focus',
+    name: 'Focus Mode',
+    description: 'Muted background, strong focus frame around questions.',
+    bgClass: 'bg-slate-900/90',
+    headerClass: 'bg-black/70 border-b border-slate-700',
+    panelClass: 'bg-slate-950/80',
+  },
+  {
+    id: 'sepia',
+    name: 'Paper Sepia',
+    description: 'Off-white sepia feel, easy on eyes during long mocks.',
+    bgClass: 'bg-[#f6f1e7]',
+    headerClass: 'bg-[#f0e7d8] border-b border-[#e0cfb1]',
+    panelClass: 'bg-[#f9f3e8]',
+  },
+  {
+    id: 'high-contrast',
+    name: 'High Contrast',
+    description: 'Strong contrast for low-vision / accessibility.',
+    bgClass: 'bg-black',
+    headerClass: 'bg-black border-b border-yellow-400',
+    panelClass: 'bg-black',
+  },
+];
 
-export type PinValidateResponse = PinValidateSuccess | PinValidateError;
-
-export function MockExamLayout({
+export const MockExamLayout: React.FC<MockExamLayoutProps> = ({
   children,
-  examTitle,
-  moduleKey,
-  testSlug,
+  examTitle = 'Full Mock Test',
+  moduleName = 'Listening',
   showExitButton = true,
-}: MockExamLayoutProps) {
+}) => {
   const router = useRouter();
-  const [step, setStep] = React.useState<Step>('pin');
-  const [pin, setPin] = React.useState('');
-  const [pinError, setPinError] = React.useState<string | null>(null);
-  const [pinBusy, setPinBusy] = React.useState(false);
-  const [session, setSession] = React.useState<PinValidateSuccess | null>(null);
-  const [theme, setTheme] = React.useState<ThemeKey | null>(null);
 
-  const moduleLabel = React.useMemo(() => {
-    if (!moduleKey) return '';
-    return moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1).toLowerCase();
-  }, [moduleKey]);
+  const [step, setStep] = useState<'PIN' | 'THEME' | 'EXAM'>('PIN');
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<ThemeId | null>(null);
 
-  const resolvedTheme = React.useMemo(() => {
-    return theme ? THEME_OPTIONS.find((opt) => opt.key === theme) ?? null : null;
-  }, [theme]);
+  const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
 
-  const rootClass = resolvedTheme?.examClass ?? 'bg-slate-50 text-slate-900';
+  async function handlePinSubmit(e: React.FormEvent) {
+    e.preventDefault();
 
-  const stepIndex = React.useMemo(() => {
-    switch (step) {
-      case 'pin':
-        return 0;
-      case 'theme':
-        return 1;
-      case 'exam':
-        return 2;
-      default:
-        return 0;
-    }
-  }, [step]);
-
-  const handlePinSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!pin) {
-      setPinError('Enter the PIN shared by the GramorX team.');
+    if (!pin || pin.length < 4) {
+      setPinError('Enter your 4–8 digit mock PIN.');
       return;
     }
 
-    setPinBusy(true);
+    // TODO: integrate with Supabase / API:
+    // const { data, error } = await supabase.rpc('validate_mock_pin', { pin });
+    // if (error || !data?.valid) { setPinError('Invalid PIN'); return; }
+
     setPinError(null);
+    setStep('THEME');
+  }
 
-    try {
-      const res = await fetch('/api/mock/pin/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin, module: moduleKey, testSlug }),
-      });
+  function handleThemeContinue() {
+    if (!themeId) return;
+    setStep('EXAM');
+  }
 
-      const data = (await res.json()) as PinValidateResponse;
-      if (!res.ok || !data.ok) {
-        const err = !res.ok
-          ? 'We could not validate that PIN. Try again.'
-          : data.error || 'We could not validate that PIN. Try again.';
-        setPinError(err);
-        return;
-      }
+  function handleExit() {
+    // Central place to exit the mock exam environment
+    router.push('/mock/dashboard');
+  }
 
-      setSession(data);
-      setStep('theme');
-    } catch (error) {
-      console.error('mock-pin-validate', error);
-      setPinError('Unable to reach the PIN service. Check your connection and try again.');
-    } finally {
-      setPinBusy(false);
-    }
-  };
+  // STEP 1 — PIN GATE
+  if (step === 'PIN') {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <Container className="max-w-md">
+          <Card className="rounded-ds-3xl px-6 py-7 shadow-2xl border border-slate-800 bg-slate-900">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                <Icon name="ShieldCheck" className="h-5 w-5 text-primary" />
+              </span>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                  MOCK ENTRY
+                </p>
+                <h1 className="text-lg font-semibold text-slate-50">
+                  Enter your mock PIN to continue
+                </h1>
+              </div>
+            </div>
 
-  const handleContinueToExam = () => {
-    if (!resolvedTheme) return;
-    setStep('exam');
-  };
+            <p className="mb-6 text-sm text-slate-400">
+              This PIN is unique for your booked mock. No PIN, no access.
+            </p>
 
-  const handleExit = () => {
-    void router.push('/mock/dashboard');
-  };
+            <form onSubmit={handlePinSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="mock-pin"
+                  className="block text-xs font-medium text-slate-300 mb-1.5"
+                >
+                  Mock PIN
+                </label>
+                <input
+                  id="mock-pin"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.trim())}
+                  className="w-full rounded-ds-2xl border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                  placeholder="4–8 digit PIN"
+                />
+                {pinError && (
+                  <p className="mt-1 text-xs text-red-400">{pinError}</p>
+                )}
+              </div>
 
-  return (
-    <div className={cn('min-h-screen w-full bg-background text-foreground transition-colors', rootClass)}>
-      <Container className="py-10">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6">
-          <div className="flex flex-col gap-2 text-center">
-            <p className="text-xs font-semibold tracking-[0.2em] text-primary">GRAMORX MOCK</p>
-            <h1 className="text-3xl font-semibold text-foreground">{examTitle}</h1>
-            <p className="text-sm text-muted-foreground">{moduleLabel} module</p>
+              <div className="flex items-center justify-between">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="rounded-ds-2xl px-6"
+                >
+                  Unlock Mock
+                </Button>
+                <button
+                  type="button"
+                  className="text-xs text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline"
+                  onClick={() => router.push('/mock')}
+                >
+                  Back to mock home
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-6 border-t border-slate-800 pt-4 text-xs text-slate-500 space-y-1">
+              <p>
+                • Don’t share this PIN on WhatsApp groups or Telegram. You’re
+                just helping others cheat.
+              </p>
+              <p>• If the PIN doesn’t work, ping support on WhatsApp.</p>
+            </div>
+          </Card>
+        </Container>
+      </main>
+    );
+  }
+
+  // STEP 2 — THEME PICKER
+  if (step === 'THEME') {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <Container className="max-w-5xl">
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
+                <Icon name="MonitorCog" className="h-5 w-5 text-primary" />
+              </span>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                  MOCK ENVIRONMENT
+                </p>
+                <h1 className="text-xl font-semibold text-slate-50">
+                  Pick how your exam screen should look
+                </h1>
+                <p className="text-xs text-slate-400">
+                  You can’t change this in the middle of the mock. Choose what
+                  actually helps you focus.
+                </p>
+              </div>
+            </div>
+
+            <Badge tone="info" size="sm">
+              Module: {moduleName}
+            </Badge>
           </div>
 
-          <ol className="grid gap-4 rounded-ds-xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground sm:grid-cols-3">
-            {['Enter PIN', 'Pick theme', 'Workspace'].map((label, idx) => (
-              <li
-                key={label}
-                className={cn(
-                  'flex flex-col items-center rounded-ds-lg border border-transparent px-3 py-2 text-center transition-colors',
-                  stepIndex === idx && 'border-primary/40 bg-primary/5 text-primary',
-                  stepIndex > idx && 'text-foreground'
-                )}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setThemeId(t.id)}
+                className={`group relative overflow-hidden rounded-ds-3xl border text-left transition ${
+                  themeId === t.id
+                    ? 'border-primary ring-2 ring-primary/40'
+                    : 'border-slate-800 hover:border-slate-600'
+                }`}
               >
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step {idx + 1}</span>
-                <span className="text-sm font-medium">{label}</span>
-              </li>
+                <div
+                  className={`h-24 w-full ${t.panelClass} border-b border-slate-700`}
+                >
+                  <div className="flex h-full items-center justify-center gap-2 text-xs text-slate-300">
+                    <span className="inline-flex h-5 w-20 rounded-full bg-slate-700/70" />
+                    <span className="inline-flex h-5 w-32 rounded-full bg-slate-700/40" />
+                    <span className="inline-flex h-5 w-16 rounded-full bg-slate-700/60" />
+                  </div>
+                </div>
+                <div className="p-4">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-50">
+                      {t.name}
+                    </p>
+                    {themeId === t.id && (
+                      <Badge tone="success" size="xs">
+                        Selected
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400">{t.description}</p>
+                </div>
+              </button>
             ))}
-          </ol>
+          </div>
 
-          {step === 'pin' && (
-            <Card className="mx-auto w-full max-w-2xl bg-card/80 p-6 shadow-lg">
-              <form className="space-y-4" onSubmit={handlePinSubmit}>
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">Enter your mock exam PIN</h2>
-                  <p className="text-sm text-muted-foreground">
-                    PINs are shared via official GramorX communications. Access is logged and expires after the scheduled slot.
-                  </p>
-                </div>
-                <Input
-                  label="PIN"
-                  placeholder="Enter 6-digit PIN"
-                  value={pin}
-                  onChange={(event) => setPin(event.target.value.trim())}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={64}
-                  required
-                  error={pinError ?? undefined}
-                />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <p>Need help? Contact the invigilator or support@gramorx.com.</p>
-                  <p>Session links expire after use.</p>
-                </div>
-                <Button type="submit" className="w-full" loading={pinBusy} loadingText="Verifying PIN…">
-                  Unlock mock workspace
-                </Button>
-              </form>
-            </Card>
-          )}
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              type="button"
+              className="text-xs text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline"
+              onClick={() => {
+                setThemeId(null);
+                setStep('PIN');
+              }}
+            >
+              Change PIN / mock
+            </button>
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              className="rounded-ds-2xl px-6"
+              disabled={!themeId}
+              onClick={handleThemeContinue}
+            >
+              Continue to exam
+            </Button>
+          </div>
+        </Container>
+      </main>
+    );
+  }
 
-          {step === 'theme' && (
-            <Card className="space-y-5 border-primary/10 bg-card/90 p-6">
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-foreground">Choose a workspace theme</h2>
-                <p className="text-sm text-muted-foreground">
-                  Themes affect the chrome around the mock workspace. You can change it later during the exam from settings.
-                </p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {THEME_OPTIONS.map((option) => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setTheme(option.key)}
-                    className={cn(
-                      'rounded-ds-xl border px-4 py-4 text-left transition-all',
-                      option.previewClass,
-                      theme === option.key && 'ring-2 ring-primary'
-                    )}
-                  >
-                    <p className="text-base font-semibold">{option.name}</p>
-                    <p className="text-sm text-muted-foreground/90">{option.description}</p>
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  PIN verified for session {session?.sessionId ? session.sessionId.slice(0, 8) : '—'}. Pick a theme to continue.
-                </p>
-                <Button type="button" disabled={!resolvedTheme} onClick={handleContinueToExam}>
-                  Continue to exam workspace
-                </Button>
-              </div>
-            </Card>
-          )}
+  // STEP 3 — EXAM SHELL
+  return (
+    <div className={`min-h-screen flex flex-col ${theme.bgClass}`}>
+      {/* HEADER */}
+      <header
+        className={`${theme.headerClass} px-3 py-2 md:px-6 md:py-3 flex items-center justify-between gap-3`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+            <Icon name="Gauge" className="h-4 w-4 text-primary" />
+          </span>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
+              GRAMORX MOCK
+            </p>
+            <p className="text-xs font-medium text-slate-50">
+              {examTitle} — {moduleName}
+            </p>
+          </div>
+        </div>
 
-          {step === 'exam' && (
-            <div className="space-y-6">
-              <Card className="border-primary/20 bg-card/90 p-6">
-                <header className="flex flex-col gap-4 border-b border-border/60 pb-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">GRAMORX MOCK</p>
-                    <h2 className="text-2xl font-semibold text-foreground">{examTitle}</h2>
-                    <p className="text-sm text-muted-foreground">{moduleLabel} • Session {session?.sessionId?.slice(0, 8)}</p>
-                  </div>
-                  <div className="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center">
-                    <div className="flex flex-col items-start">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide">Timer</span>
-                      <span className="font-mono text-lg text-foreground">00:00</span>
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide">Theme</span>
-                      <Badge tone="neutral" size="sm">{resolvedTheme?.name ?? 'Classic Light'}</Badge>
-                    </div>
-                    {showExitButton && (
-                      <Button variant="outline" onClick={handleExit} className="whitespace-nowrap">
-                        Exit mock
-                      </Button>
-                    )}
-                  </div>
-                </header>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-600/70 bg-black/30 px-3 py-1">
+            <Icon name="Timer" className="h-3.5 w-3.5 text-primary" />
+            {/* Hook into real timer logic */}
+            <span className="text-[11px] font-mono text-slate-50">
+              29:59
+            </span>
+          </div>
 
-                <div className="pt-6">{children}</div>
+          <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-600/70 bg-black/30 px-3 py-1">
+            <span className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-700">
+              <span className="block h-full w-1/3 bg-primary" />
+            </span>
+            <span className="text-[10px] text-slate-200">
+              Section 1 of 4
+            </span>
+          </div>
 
-                <footer className="mt-6 border-t border-border/60 pt-4 text-sm text-muted-foreground">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Connection secure
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Anti-cheat: camera, screen, and network events are logged for security.
-                    </div>
-                  </div>
-                </footer>
-              </Card>
-            </div>
+          <Badge tone="neutral" size="sm">
+            Theme: {theme.name}
+          </Badge>
+
+          {showExitButton && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-full border border-red-500/40 bg-black/40 text-[11px] text-red-300 hover:bg-red-900/40"
+              onClick={handleExit}
+            >
+              <Icon name="DoorOpen" className="mr-1.5 h-3.5 w-3.5" />
+              Exit mock
+            </Button>
           )}
         </div>
-      </Container>
+      </header>
+
+      {/* MAIN EXAM CONTENT */}
+      <main className="flex-1 overflow-y-auto">
+        <Container className="py-4 md:py-6">{children}</Container>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="border-t border-slate-700 bg-black/60 px-3 py-2 md:px-6 md:py-3">
+        <div className="flex flex-col gap-2 text-[11px] text-slate-300 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="Info" className="h-3 w-3 text-slate-400" />
+            <span>
+              Your answers auto-save every few seconds. Internet drops won’t
+              instantly kill your mock.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+              <span>Connection OK</span>
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 text-slate-400">
+              <Icon name="Shield" className="h-3 w-3" />
+              Anti-cheat checks running in background.
+            </span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
