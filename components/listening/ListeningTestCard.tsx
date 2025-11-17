@@ -4,18 +4,18 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
 import { formatDistanceToNowStrict } from 'date-fns';
+import type { ListeningTestSummary } from '@/lib/listeningTests';
 
-export default function ListeningTestCard({ test }) {
-  const {
-    test_slug,
-    title,
-    sections,
-    totalQuestions,
-    master_audio_url,
-    lastAttempt,
-  } = test;
+type ListeningTestCardProps = {
+  test: ListeningTestSummary & {
+    lastAttempt?: { submitted_at: string | null; score_json?: any } | null;
+  };
+};
 
-  const slugUrl = `/mock/listening/run?id=${test_slug}`;
+export default function ListeningTestCard({ test }: ListeningTestCardProps) {
+  const { slug, title, sections, totalQuestions, master_audio_url, lastAttempt } = test;
+
+  const slugUrl = `/mock/listening/run?id=${slug}`;
 
   const hasAttempt = !!lastAttempt;
   const attemptCompleted = hasAttempt && lastAttempt.submitted_at !== null;
@@ -80,7 +80,7 @@ export default function ListeningTestCard({ test }) {
           size="sm"
           className="rounded-ds-2xl"
         >
-          <Link href={`/mock/listening/overview?id=${test_slug}`}>
+          <Link href={`/mock/listening/overview?id=${slug}`}>
             Details
           </Link>
         </Button>

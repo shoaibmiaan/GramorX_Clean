@@ -1,19 +1,18 @@
 // pages/mock/listening.tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
+import type { GetServerSideProps, NextPage } from 'next';
 
 import ModuleHero from '@/components/module/ModuleHero';
 import ModuleFeatures from '@/components/module/ModuleFeatures';
 import ListeningTestCard from '@/components/listening/ListeningTestCard';
-import {
-  fetchAllListeningTests,
-  type ListeningTestMeta,
-} from '@/lib/listeningTests';
+import type { ListeningTestSummary } from '@/lib/listeningTests';
 
-const ListeningModulePage: React.FC = () => {
-  const [tests, setTests] = useState<ListeningTestMeta[]>([]);
-  const [loading, setLoading] = useState(true);
+type ListeningModulePageProps = {
+  tests: ListeningTestSummary[];
+};
 
+const ListeningModulePage: NextPage<ListeningModulePageProps> = ({ tests }) => {
   const moduleFeatures = [
     {
       title: 'Timed Listening Tests',
@@ -25,24 +24,11 @@ const ListeningModulePage: React.FC = () => {
     },
     {
       title: 'Real Exam Environment',
-      description:
-        'Practice listening tests in a realistic exam environment with time tracking.',
+      description: 'Practice listening tests in a realistic exam environment with time tracking.',
     },
   ];
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const rows = await fetchAllListeningTests();
-        setTests(rows);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  // First test in DB (if exists)
-  const defaultTestSlug = tests[0]?.test_slug || null;
+  const defaultTestSlug = tests[0]?.slug || null;
 
   return (
     <>
@@ -60,9 +46,7 @@ const ListeningModulePage: React.FC = () => {
           title="Listening"
           description="Simulate listening tests with timed modules and AI-based band estimates."
           icon="Headphones"
-          testLink={
-            defaultTestSlug ? `/mock/listening/run?id=${defaultTestSlug}` : undefined
-          }
+          testLink={defaultTestSlug ? `/mock/listening/run?id=${defaultTestSlug}` : undefined}
         />
 
         {/* Module Features */}
@@ -70,24 +54,14 @@ const ListeningModulePage: React.FC = () => {
 
         {/* Test list */}
         <div className="max-w-3xl mx-auto px-4 py-10">
-          <h2 className="font-slab text-h4 mb-4">
-            Available Listening Mock Tests
-          </h2>
+          <h2 className="font-slab text-h4 mb-4">Available Listening Mock Tests</h2>
 
-          {loading && (
-            <p className="text-sm text-muted-foreground">Loading tests…</p>
-          )}
-
-          {!loading && tests.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No listening tests available yet.
-            </p>
-          )}
-
-          {!loading && tests.length > 0 && (
+          {tests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No listening tests available yet.</p>
+          ) : (
             <div className="space-y-4">
               {tests.map((t) => (
-                <ListeningTestCard key={t.test_slug} test={t} />
+                <ListeningTestCard key={t.slug} test={t} />
               ))}
             </div>
           )}
@@ -98,3 +72,15 @@ const ListeningModulePage: React.FC = () => {
 };
 
 export default ListeningModulePage;
+
+export const getServerSideProps: GetServerSideProps<ListeningModulePageProps> = async () => {
+  const { fetchAllListeningTests } = await import('@/lib/listeningTests');
+
+  const tests = await fetchAllListeningTests();
+
+  return {
+    props: {
+      tests,
+    },
+  };
+};
