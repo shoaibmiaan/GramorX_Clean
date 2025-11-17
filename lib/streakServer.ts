@@ -75,6 +75,7 @@ const ensureTimezone = (tz?: string | null) => {
 export type ActivityRow = Pick<StudyActivityLog, 'activity_date' | 'created_at' | 'weight'>;
 
 type ActivityMap = Map<string, number>;
+type ActivityTimestamps = number[];
 
 type BuildOptions = {
   supabase: SupabaseClient<Database>;
@@ -137,8 +138,8 @@ export const buildActivityMap = (
     const timestamp = row.created_at
       ? new Date(row.created_at)
       : row.activity_date
-      ? new Date(`${row.activity_date}T00:00:00Z`)
-      : null;
+        ? new Date(`${row.activity_date}T00:00:00Z`)
+        : null;
     if (!timestamp || Number.isNaN(timestamp.getTime())) continue;
     const key = formatInTimeZone(timestamp, timeZone);
     const weight = Number.isFinite(row.weight) ? Math.max(0, Math.round(row.weight as number)) : 1;
@@ -149,48 +150,112 @@ export const buildActivityMap = (
   return map;
 };
 
-const diffDays = (a: string, b: string): number => {
-  const aDate = parseDayKey(a);
-  const bDate = parseDayKey(b);
-  if (!aDate || !bDate) return Number.POSITIVE_INFINITY;
-  return Math.round((bDate.getTime() - aDate.getTime()) / MS_PER_DAY);
+const toTimestamp = (row: ActivityRow): number | null => {
+  if (row.created_at) {
+    const value = new Date(row.created_at);
+    if (!Number.isNaN(value.getTime())) {
+      return value.getTime();
+    }
+  }
+  if (row.activity_date) {
+    const value = Date.parse(`${row.activity_date}T00:00:00Z`);
+    if (!Number.isNaN(value)) {
+      return value;
+    }
+  }
+  return null;
 };
 
-export const computeSummaryFromMap = (
-  activity: ActivityMap,
+export const buildActivityTimeline = (rows: ActivityRow[]): ActivityTimestamps =>
+  rows
+    .map((row) => toTimestamp(row))
+    .filter((ts): ts is number => typeof ts === 'number' && Number.isFinite(ts))
+    .sort((a, b) => a - b);
+
+const findRunStartIndex = (events: ActivityTimestamps, fromIndex: number): number => {
+  let cursor = fromIndex;
+  while (cursor > 0) {
+    const prev = events[cursor - 1];
+    const current = events[cursor];
+    if (current - prev > MS_PER_DAY) break;
+    cursor -= 1;
+  }
+  return cursor;
+};
+
+const countWindowsInRange = (
+  events: ActivityTimestamps,
+  startIndex: number,
+  endIndex: number,
+): number => {
+  if (startIndex > endIndex) return 0;
+  let index = endIndex;
+  let windows = 0;
+  let windowEnd = events[endIndex];
+
+  while (index >= startIndex) {
+    const windowStart = windowEnd - MS_PER_DAY;
+    let found = false;
+    while (index >= startIndex) {
+      const timestamp = events[index];
+      if (timestamp > windowEnd) {
+        index -= 1;
+        continue;
+      }
+      if (timestamp > windowStart) {
+        found = true;
+        index -= 1;
+        continue;
+      }
+      break;
+    }
+    if (!found) {
+      break;
+    }
+    windows += 1;
+    windowEnd = windowStart;
+  }
+
+  return windows;
+};
+
+const computeBestStreak = (events: ActivityTimestamps): number => {
+  if (events.length === 0) return 0;
+  let best = 1;
+  let runStart = 0;
+
+  for (let index = 0; index < events.length; index += 1) {
+    const next = events[index + 1];
+    const current = events[index];
+    if (typeof next === 'number' && next - current <= MS_PER_DAY) {
+      continue;
+    }
+
+    const runEndIndex = index;
+    const runDays = countWindowsInRange(events, runStart, runEndIndex);
+    if (runDays > best) {
+      best = runDays;
+    }
+    runStart = index + 1;
+  }
+
+  return best;
+};
+
+export const computeSummaryFromEvents = (
+  events: ActivityTimestamps,
   timeZone: string,
   now: Date = new Date(),
 ): StreakSummary => {
-  const todayKey = formatInTimeZone(now, timeZone);
-  const allKeys = Array.from(activity.keys()).sort();
-  const lastActivityDate = allKeys.length ? allKeys[allKeys.length - 1] : null;
-
-  let current = 0;
-  let cursor = todayKey;
-  while (activity.has(cursor)) {
-    current += 1;
-    cursor = shiftDayKey(cursor, -1);
-  }
-
-  let best = 0;
-  let run = 0;
-  let previous: string | null = null;
-  for (const key of allKeys) {
-    if (previous && diffDays(previous, key) === 1) {
-      run += 1;
-    } else {
-      run = 1;
-    }
-    if (run > best) best = run;
-    previous = key;
-  }
-
-  if (best === 0 && current > 0) {
-    best = current;
-  }
-
-  const yesterdayKey = shiftDayKey(todayKey, -1);
-  const streakBrokenRecently = !activity.has(todayKey) && activity.has(yesterdayKey);
+  const latestTimestamp = events.length ? events[events.length - 1] : null;
+  const lastActivityDate = latestTimestamp ? formatInTimeZone(new Date(latestTimestamp), timeZone) : null;
+  const runEndIndex = events.length - 1;
+  const runStartIndex = runEndIndex >= 0 ? findRunStartIndex(events, runEndIndex) : -1;
+  const hasRecentActivity = latestTimestamp ? now.getTime() - latestTimestamp <= MS_PER_DAY : false;
+  const current = hasRecentActivity && runStartIndex >= 0 ? countWindowsInRange(events, runStartIndex, runEndIndex) : 0;
+  const best = Math.max(current, computeBestStreak(events));
+  const hoursSinceLast = latestTimestamp ? (now.getTime() - latestTimestamp) / 3_600_000 : Number.POSITIVE_INFINITY;
+  const streakBrokenRecently = hoursSinceLast > 24 && hoursSinceLast <= 48;
   const milestoneBase = Math.max(current, 1);
   const milestoneMultiplier = Math.max(1, Math.ceil(milestoneBase / 7));
   let nextMilestone = milestoneMultiplier * 7;
@@ -200,7 +265,7 @@ export const computeSummaryFromMap = (
 
   return {
     current_streak: current,
-    longest_streak: Math.max(best, current),
+    longest_streak: best,
     last_activity_date: lastActivityDate,
     timezone: timeZone,
     next_milestone_days: nextMilestone,
@@ -239,7 +304,8 @@ export const buildStreakAnalytics = async ({
   const lookback = Math.max(historyDays, summaryLookback ?? historyDays);
   const rows = await fetchActivityLog(supabase, userId, lookback);
   const activityMap = buildActivityMap(rows, timeZone);
-  const summary = computeSummaryFromMap(activityMap, timeZone, now);
+  const activityTimeline = buildActivityTimeline(rows);
+  const summary = computeSummaryFromEvents(activityTimeline, timeZone, now);
   const history = buildHeatmap(activityMap, timeZone, historyDays, now);
   return { summary, history };
 };
