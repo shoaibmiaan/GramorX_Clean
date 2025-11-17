@@ -1,47 +1,40 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { PLANS, getPlanBillingAmount, type PlanKey, type Cycle } from '@/lib/pricing';
+// lib/billing/manual.ts
+import {
+  PLANS,
+  type PlanId,
+  type Cycle,
+  getPlanBillingAmount,
+  CURRENCY_SYMBOL,
+} from '@/lib/pricing';
 
-export function priceCents(plan: PlanKey, cycle: Cycle): number {
-  const major = getPlanBillingAmount(plan, cycle);
-  // Stripe will also use 2dp for USD; if you ever support JPY, handle 0dp separately.
-  return Math.round(major * 100);
-}
-
-export async function createPendingPayment(opts: {
+export type ManualInvoiceInput = {
   userId: string;
-  email?: string | null;
-  plan: PlanKey;
+  planId: PlanId;
   cycle: Cycle;
-  name?: string;
-  phone?: string;
-  note?: string;
-}) {
-  const amount_cents = priceCents(opts.plan, opts.cycle);
-  const currency = (PLANS[opts.plan].currency || 'USD').toUpperCase();
+};
 
-  // 1) Add a pending due
-  const { error: insErr } = await supabaseAdmin
-    .from('pending_payments')
-    .insert({
-      user_id: opts.userId,
-      plan_key: opts.plan,
-      cycle: opts.cycle,
-      currency,
-      amount_cents,
-      status: 'due',
-      note: opts.note ?? null,
-      contact_name: opts.name ?? null,
-      contact_phone: opts.phone ?? null,
-      email: opts.email ?? null,
-    });
-  if (insErr) throw insErr;
+export type ManualInvoice = {
+  userId: string;
+  planId: PlanId;
+  cycle: Cycle;
+  amount: number;
+  currencySymbol: string;
+};
 
-  // 2) Provision plan immediately
-  const { error: updErr } = await supabaseAdmin
-    .from('profiles')
-    .update({ plan_id: opts.plan })
-    .eq('id', opts.userId);
-  if (updErr) throw updErr;
+export function createManualInvoice(input: ManualInvoiceInput): ManualInvoice {
+  const { userId, planId, cycle } = input;
 
-  return { amount_cents, currency };
+  if (!PLANS[planId]) {
+    throw new Error(`Unknown planId: ${planId}`);
+  }
+
+  const amount = getPlanBillingAmount(planId, cycle);
+
+  return {
+    userId,
+    planId,
+    cycle,
+    amount,
+    currencySymbol: CURRENCY_SYMBOL,
+  };
 }
