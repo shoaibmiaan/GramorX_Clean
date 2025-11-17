@@ -47,6 +47,86 @@ const mockTestFeatures = [
   },
 ];
 
+const pinGateModules = [
+  {
+    module: 'Listening',
+    summary: 'Enter the secure PIN before the audio-led workspace unlocks.',
+    color: 'text-sky-500',
+  },
+  {
+    module: 'Reading',
+    summary: 'PIN gate ensures the right passage set before loading the CBE view.',
+    color: 'text-emerald-500',
+  },
+  {
+    module: 'Writing',
+    summary: 'Task 1 + 2 unlock only after the unified PIN challenge.',
+    color: 'text-rose-500',
+  },
+  {
+    module: 'Speaking',
+    summary: 'PIN confirms examiner packs and recording permissions.',
+    color: 'text-amber-500',
+  },
+  {
+    module: 'Full Mock',
+    summary: 'Combined mocks inherit the same PIN session and theme state.',
+    color: 'text-indigo-500',
+  },
+];
+
+const pinFlow = [
+  {
+    title: '1. Request or assign a PIN',
+    details:
+      'Learners obtain module-specific PINs from their mentor, cohort admin, or automated email based on enrollment.',
+  },
+  {
+    title: '2. Unlock via Mock Exam Gate',
+    details:
+      'Every /mock/<module>/run route now renders inside the MockExamLayout, so the PIN challenge fires before any test data loads.',
+  },
+  {
+    title: '3. Continue the session',
+    details:
+      'A verified sessionId keeps the workspace open, theme synced, and attempts tracked until submission.',
+  },
+];
+
+const recoveryOptions = [
+  {
+    title: 'Self-serve reset',
+    description:
+      'Learners can request a fresh PIN from the dashboard if the previous one expired or exceeded usage count.',
+  },
+  {
+    title: 'Mentor verification',
+    description:
+      'Program mentors can look up the learner in the admin console, regenerate the PIN, or extend expiry in seconds.',
+  },
+  {
+    title: 'Escalate to support',
+    description:
+      'Enterprise cohorts route PIN issues to the GramorX support desk, which can revoke sessions tied to a lost device.',
+  },
+];
+
+const adminResponsibilities = [
+  {
+    title: 'Generate + scope PINs',
+    description: 'Admins decide module, testSlug, expiry, and max uses before handing the token to the learner.',
+  },
+  {
+    title: 'Monitor usage',
+    description: 'Usage counts, status, and active sessions are visible so suspicious attempts can be blocked.',
+  },
+  {
+    title: 'Audit + recover',
+    description:
+      'If a learner forgets or leaks a PIN, admins revoke the old one, issue a replacement, and attach notes to the session.',
+  },
+];
+
 const MockTestPage: React.FC = () => {
   return (
     <>
@@ -174,6 +254,95 @@ const MockTestPage: React.FC = () => {
                   </Link>
                 </Card>
               ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* Unified PIN Gate explainer */}
+        <section className="pb-16">
+          <Container>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                  Unified PIN Gate
+                </p>
+                <h2 className="font-slab text-h2">Every module flows through the same secure entry</h2>
+                <p className="text-sm text-grayish">
+                  The MockExamLayout sits in front of Listening, Reading, Writing, Speaking, and Full mocks. Learners
+                  cannot access test data until the PIN is validated, ensuring parity with live IELTS exam security.
+                </p>
+                <div className="rounded-ds-2xl border border-border/60 bg-card/70 p-4">
+                  <p className="text-xs font-semibold text-muted-foreground">Modules protected</p>
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {pinGateModules.map((module) => (
+                      <li key={module.module} className="rounded-xl border border-border/40 bg-background/60 p-3">
+                        <p className={`text-sm font-semibold ${module.color}`}>{module.module}</p>
+                        <p className="text-xs text-muted-foreground">{module.summary}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  PIN access journey
+                </p>
+                <div className="mt-4 space-y-4">
+                  {pinFlow.map((step, idx) => (
+                    <div key={step.title} className="rounded-xl border border-border/40 bg-background/60 p-4">
+                      <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {idx + 1}
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">{step.title}</p>
+                      <p className="text-xs text-muted-foreground">{step.details}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* PIN recovery + admin role */}
+        <section className="pb-24">
+          <Container>
+            <div className="grid gap-8 lg:grid-cols-2">
+              <div className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">PIN recovery</p>
+                    <h3 className="font-slab text-h3">Lost or expired PIN? No problem.</h3>
+                  </div>
+                  <Icon name="RefreshCw" size={28} className="text-primary" />
+                </div>
+                <div className="mt-5 grid gap-4">
+                  {recoveryOptions.map((option) => (
+                    <div key={option.title} className="rounded-xl border border-border/30 bg-background/60 p-4">
+                      <p className="text-sm font-semibold text-foreground">{option.title}</p>
+                      <p className="text-xs text-muted-foreground">{option.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Admin role-play</p>
+                    <h3 className="font-slab text-h3">What admins can do with mock PINs</h3>
+                  </div>
+                  <Icon name="Shield" size={28} className="text-primary" />
+                </div>
+                <div className="mt-5 space-y-4">
+                  {adminResponsibilities.map((role) => (
+                    <div key={role.title} className="rounded-xl border border-border/30 bg-background/60 p-4">
+                      <p className="text-sm font-semibold text-foreground">{role.title}</p>
+                      <p className="text-xs text-muted-foreground">{role.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </Container>
         </section>
