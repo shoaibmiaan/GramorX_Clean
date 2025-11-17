@@ -23,6 +23,7 @@ import {
   saveMockCheckpoint,
   saveMockDraft,
 } from '@/lib/mock/state';
+import { MockExamLayout } from '@/components/mock/MockExamLayout';
 
 // ------------------ Types ------------------
 
@@ -169,7 +170,8 @@ const REVIEW_SECONDS = 120;
 
 export default function ListeningCBERunPage() {
   const router = useRouter();
-  const { id } = router.query as { id?: string };
+  const { id: idParam, slug } = router.query as { id?: string; slug?: string };
+  const id = slug ?? idParam;
 
   const [paper, setPaper] = useState<ListeningPaper | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -565,9 +567,11 @@ export default function ListeningCBERunPage() {
         <Head>
           <title>Listening Mock • Loading…</title>
         </Head>
-        <Shell title="Loading Listening mock…">
-          <div>Loading paper…</div>
-        </Shell>
+        <MockExamLayout examTitle="Listening Mock" moduleKey="listening" testSlug={id ?? undefined}>
+          <Shell title="Loading Listening mock…">
+            <div>Loading paper…</div>
+          </Shell>
+        </MockExamLayout>
       </>
     );
   }
@@ -603,12 +607,17 @@ export default function ListeningCBERunPage() {
       <Head>
         <title>Listening Mock • CBE Mode</title>
       </Head>
-      <Shell
-        title={`Listening — ${paper.title}`}
-        subtitle="Full IELTS-style Listening mock in computer-based exam mode."
-        phaseLabel={phaseLabel}
-        right={rightHeader}
+      <MockExamLayout
+        examTitle="Listening Mock"
+        moduleKey="listening"
+        testSlug={id ?? undefined}
       >
+        <Shell
+          title={`Listening — ${paper.title}`}
+          subtitle="Full IELTS-style Listening mock in computer-based exam mode."
+          phaseLabel={phaseLabel}
+          right={rightHeader}
+        >
         {/* PHASE: INTRO */}
         {phase === 'intro' && (
           <div className="space-y-4 text-small">
@@ -920,7 +929,8 @@ export default function ListeningCBERunPage() {
             </div>
           </div>
         )}
-      </Shell>
+        </Shell>
+      </MockExamLayout>
     </>
   );
 }
