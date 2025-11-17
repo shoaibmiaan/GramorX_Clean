@@ -2,11 +2,9 @@
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
-type Datum = {
-  date: string;
-  completed: number;
-  total: number;
-};
+import type { StreakDay } from '@/types/streak';
+
+type Datum = StreakDay;
 
 type Props = {
   data: Datum[];
@@ -25,11 +23,11 @@ type HeatmapCell = Datum & {
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const LEGEND_STEPS = [
-  { label: 'No tasks', className: 'bg-muted border border-border/40' },
-  { label: 'Started', className: 'bg-primary/20 border border-primary/20' },
-  { label: 'In progress', className: 'bg-primary/40 border border-primary/40' },
-  { label: 'On track', className: 'bg-primary/70 border border-primary/70' },
-  { label: 'Complete', className: 'bg-primary border border-primary' },
+  { label: 'No activity', className: 'bg-muted border border-border/40' },
+  { label: '1 action', className: 'bg-primary/20 border border-primary/20' },
+  { label: '2-3 actions', className: 'bg-primary/40 border border-primary/40' },
+  { label: '4-6 actions', className: 'bg-primary/70 border border-primary/70' },
+  { label: '7+ actions', className: 'bg-primary border border-primary' },
 ];
 
 type MonthGroup = {
@@ -63,16 +61,12 @@ const parseISODate = (iso: string): Date | null => {
 };
 
 function getColorClass(entry: Datum) {
-  if (entry.total === 0) {
+  if (entry.count <= 0) {
     return LEGEND_STEPS[0].className;
   }
-
-  const ratio = entry.total === 0 ? 0 : entry.completed / entry.total;
-
-  if (ratio === 0) return LEGEND_STEPS[0].className;
-  if (ratio < 0.33) return LEGEND_STEPS[1].className;
-  if (ratio < 0.66) return LEGEND_STEPS[2].className;
-  if (ratio < 1) return LEGEND_STEPS[3].className;
+  if (entry.count === 1) return LEGEND_STEPS[1].className;
+  if (entry.count <= 3) return LEGEND_STEPS[2].className;
+  if (entry.count <= 6) return LEGEND_STEPS[3].className;
   return LEGEND_STEPS[4].className;
 }
 
@@ -157,7 +151,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
         const offset = group.leading + index;
         const column = offset % 7;
         const weekRow = Math.floor(offset / 7);
-        const description = cell.total === 0 ? 'No tasks scheduled' : `${cell.completed} of ${cell.total} completed`;
+        const description = cell.count === 0 ? 'No study activity' : `${cell.count} action${cell.count === 1 ? '' : 's'}`;
         return {
           ...cell,
           column,
@@ -262,7 +256,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
             <div className="flex items-baseline justify-between">
               <h3 className="font-semibold text-small text-foreground">{month.label}</h3>
               <span className="text-xs text-muted-foreground">
-                {month.cells.filter((cell) => cell.completed > 0).length} productive days
+                {month.cells.filter((cell) => cell.count > 0).length} productive days
               </span>
             </div>
 
@@ -282,6 +276,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
               {month.cells.map((cell) => {
                 const colorClass = getColorClass(cell);
                 const isFocused = focusedIndex === cell.globalIndex;
+                const tooltipLabel = `${cell.displayDate} • ${cell.description}${cell.isStreakDay ? ' • streak day' : ''}`;
                 return (
                   <button
                     key={cell.date}
@@ -291,6 +286,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
                     }}
                     role="gridcell"
                     aria-label={cell.ariaLabel}
+                    title={tooltipLabel}
                     tabIndex={isFocused ? 0 : -1}
                     onFocus={() => setFocusedIndex(cell.globalIndex)}
                     onKeyDown={(event) => handleKeyDown(event, cell)}

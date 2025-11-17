@@ -402,6 +402,29 @@ export interface StudyPlans extends TableBase {
   goal_band?: number;
 }
 
+export interface StudyActivityLog extends TableBase {
+  user_id: string;
+  activity_date: string;
+  weight: number;
+  source: string;
+  ref_id?: string | null;
+}
+
+export interface Streaks {
+  user_id: string;
+  current: number;
+  longest: number;
+  last_activity_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface StreakShields {
+  user_id: string;
+  tokens: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface UsageCounters extends TableBase {
   user_id: string;
   date_iso: string; // YYYY-MM-DD
@@ -800,7 +823,10 @@ export interface DBSchema {
   user_prefs: UserPrefs;
   profiles: Profiles;
   study_plans: StudyPlans;
+  study_activity_log: StudyActivityLog;
   usage_counters: UsageCounters;
+  streaks: Streaks;
+  streak_shields: StreakShields;
   attempts: Attempts;
   reading_notes: ReadingNoteTable;
   invoices: Invoices;

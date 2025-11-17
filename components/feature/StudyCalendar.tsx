@@ -10,8 +10,7 @@ type TravelEvent = { start: Date; end: Date; type: string };
 type StudyTask = { id: number; title: string; scheduled_date: string; catch_up: boolean };
 
 export const StudyCalendar: React.FC = () => {
-  // Merge: keep nextRestart from main + events from codex branch
-  const { current, lastDayKey, loading, nextRestart } = useStreak();
+  const { current, lastDayKey, loading } = useStreak();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [dragTask, setDragTask] = useState<number | null>(null);
@@ -188,11 +187,6 @@ export const StudyCalendar: React.FC = () => {
         </div>
       )}
 
-      {nextRestart && (
-        <div className="mt-4 text-center text-small text-muted-foreground">
-          Restart scheduled on {nextRestart}
-        </div>
-      )}
     </Card>
   );
 };
