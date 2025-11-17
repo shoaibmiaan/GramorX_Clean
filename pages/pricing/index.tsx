@@ -1,3 +1,4 @@
+// pages/pricing/index.tsx
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -198,9 +199,9 @@ const formatMoneyFromUsdCents = (usdCents: number, currency: Currency) => {
       PHP: '₱',
     };
     const s = sym[currency] ?? '$';
-    return `${s}${
-      ZERO_DECIMAL.includes(currency) ? Math.round(raw) : raw.toFixed(2)
-    }`;
+    return `${
+      s
+    }${ZERO_DECIMAL.includes(currency) ? Math.round(raw) : raw.toFixed(2)}`;
   }
 };
 
@@ -374,8 +375,8 @@ const PricingPage: NextPage = () => {
             </div>
 
             {/* Hero */}
-            <header className="mx-auto text-center max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground md:text-caption backdrop-blur supports-[backdrop-filter]:bg-card/40">
+            <header className="mx-auto max-w-3xl text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur md:text-caption supports-[backdrop-filter]:bg-card/40">
                 Free tier available • Cancel anytime
               </p>
 
@@ -389,8 +390,9 @@ const PricingPage: NextPage = () => {
               </h1>
 
               <p className="mt-2 text-small text-muted-foreground text-pretty md:text-body">
-                Free gives you a taste. Starter adds more checks and mocks. Rocket (Booster)
-                is for serious progress. Master is for full-send, 7.5–9.0 prep.
+                Free gives you a taste. Starter adds more checks and mocks.
+                Rocket (Booster) is for serious progress. Master is for
+                full-send, 7.5–9.0 prep.
               </p>
               <div className="mt-2 text-caption text-muted-foreground">
                 Local timezone: <strong>{timezone}</strong>
@@ -494,7 +496,7 @@ const PricingPage: NextPage = () => {
                         />
                       )}
 
-                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 text-white text-h2">
+                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 text-h2 text-white">
                         <i className={`fas ${p.icon}`} aria-hidden="true" />
                         <span className="sr-only">{p.title} icon</span>
                       </div>

@@ -1,5 +1,5 @@
 // lib/pricing.ts
-// Three paid plans + "free". USD-first (or any currency via env) with clean formatting.
+// Canonical pricing + plan metadata for GramorX
 
 export type PlanKey = 'starter' | 'booster' | 'master';
 export type PlanId = 'free' | PlanKey;
@@ -15,12 +15,13 @@ type PlanPrice = {
 /**
  * Canonical USD pricing for all paid plans.
  *  - `monthly` is the amount a customer pays for one month.
- *  - `annual` is the full upfront charge for one year (should be 12 × the per-month display value).
+ *  - `annual` is the full upfront charge for one year
+ *    (should be ≈ 12 × the per-month *display* value, with discount baked in).
  */
 export const USD_PLAN_PRICES: Record<PlanKey, PlanPrice> = {
-  starter: { monthly: 9, annual: 96 },
-  booster: { monthly: 19, annual: 192 },
-  master: { monthly: 39, annual: 420 },
+  starter: { monthly: 9, annual: 96 },   // ≈ $8/mo effective
+  booster: { monthly: 19, annual: 192 }, // ≈ $16/mo effective
+  master: { monthly: 29, annual: 288 },  // ≈ $24/mo effective
 };
 
 const readPlanConfig = (plan: PlanKey) => {
@@ -56,97 +57,89 @@ export type PlanCard = {
   title: string;
   icon: string;
   badge?: string;
-  mostPopular?: boolean;
-
-  currency: string;                // e.g., 'USD'
-  displayPriceMonthly: number;     // e.g., 9 (→ $9)
-  displayPriceAnnual: number;      // e.g., 8 (show per-month equivalent for annual plan)
-
-  stripe: {
-    priceIdMonthly?: string;       // Stripe Price ID (USD/monthly)
-    priceIdAnnual?: string;        // Stripe Price ID (USD/annual)
-  };
 };
 
-// Set your USD price points here (examples)
-export const PLANS: Record<PlanKey, PlanCard> = {
-  starter: {
-    key: 'starter',
-    title: 'Seedling',
-    icon: 'fa-seedling',
-    currency: CURRENCY,
-    displayPriceMonthly: getPlanDisplayPrice('starter', 'monthly'),
-    displayPriceAnnual: getPlanDisplayPrice('starter', 'annual'),
-    stripe: {
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_M,
-      priceIdAnnual:  process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_Y,
-    },
+const PLAN_LIST: PlanDefinition[] = [
+  {
+    id: 'free',
+    label: 'Free',
+    description: 'Try core IELTS tools with limited mocks & AI feedback.',
+    order: 0,
+    isPaid: false,
+    badge: 'Start here',
   },
-  booster: {
-    key: 'booster',
-    title: 'Rocket',
-    icon: 'fa-rocket',
-    badge: 'MOST POPULAR',
-    mostPopular: true,
-    currency: CURRENCY,
-    displayPriceMonthly: getPlanDisplayPrice('booster', 'monthly'),
-    displayPriceAnnual: getPlanDisplayPrice('booster', 'annual'),
-    stripe: {
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_BOOSTER_M,
-      priceIdAnnual:  process.env.NEXT_PUBLIC_STRIPE_PRICE_BOOSTER_Y,
-    },
+  {
+    id: 'starter',
+    label: 'Starter',
+    description: 'Serious prep for one module with AI insights.',
+    order: 1,
+    isPaid: true,
   },
-  master: {
-    key: 'master',
-    title: 'Owl',
-    icon: 'fa-feather',
-    currency: CURRENCY,
-    displayPriceMonthly: getPlanDisplayPrice('master', 'monthly'),
-    displayPriceAnnual: getPlanDisplayPrice('master', 'annual'),
-    stripe: {
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_MASTER_M,
-      priceIdAnnual:  process.env.NEXT_PUBLIC_STRIPE_PRICE_MASTER_Y,
-    },
+  {
+    id: 'booster',
+    label: 'Booster',
+    description: 'Full IELTS coverage with rich analytics.',
+    order: 2,
+    isPaid: true,
+    highlight: true,
+    badge: 'Most popular',
   },
+  {
+    id: 'master',
+    label: 'Master',
+    description: 'All-access IELTS mission control, max AI usage.',
+    order: 3,
+    isPaid: true,
+  },
+];
+
+/**
+ * Object lookup by plan id, so `PLANS['starter']` works.
+ */
+export const PLANS: Record<PlanId, PlanDefinition> = PLAN_LIST.reduce(
+  (acc, plan) => {
+    acc[plan.id] = plan;
+    return acc;
+  },
+  {} as Record<PlanId, PlanDefinition>,
+);
+
+/**
+ * Ordered list (use for rendering cards in UI).
+ */
+export const ORDERED_PLANS: PlanDefinition[] = [...PLAN_LIST].sort(
+  (a, b) => a.order - b.order,
+);
+
+/**
+ * Human label for a plan id.
+ */
+export const PLAN_LABEL: Record<PlanId, string> = {
+  free: 'Free',
+  starter: 'Starter',
+  booster: 'Booster',
+  master: 'Master',
 };
 
-// Entitlements
-export type Entitlements = {
-  libraryFull: boolean;
-  aiFeedback: 'none' | 'basic' | 'full';
-  mockTestsPerMonth: number | 'unlimited';
-  analytics: 'none' | 'basic' | 'advanced';
-  proctoring: boolean;
-  placement: boolean;
-  prioritySupport: boolean;
+/**
+ * Display price per *month* (for showing “$X/mo”), not necessarily
+ * the actual amount charged in one transaction.
+ */
+export const getPlanDisplayPrice = (plan: PlanId, cycle: Cycle): number => {
+  if (plan === 'free') return 0;
+
+  const base = USD_PLAN_PRICES[plan];
+  return cycle === 'monthly' ? base.monthly : base.annual / 12;
 };
 
-export const PLAN_ENTITLEMENTS: Record<PlanId, Entitlements> = {
-  free:    { libraryFull: false, aiFeedback: 'basic', mockTestsPerMonth: 0,            analytics: 'basic',    proctoring: false, placement: false, prioritySupport: false },
-  starter: { libraryFull: true,  aiFeedback: 'full',  mockTestsPerMonth: 2,            analytics: 'advanced', proctoring: false, placement: true,  prioritySupport: false },
-  booster: { libraryFull: true,  aiFeedback: 'full',  mockTestsPerMonth: 4,            analytics: 'advanced', proctoring: false, placement: true,  prioritySupport: false },
-  master:  { libraryFull: true,  aiFeedback: 'full',  mockTestsPerMonth: 'unlimited',  analytics: 'advanced', proctoring: true,  placement: true,  prioritySupport: true },
+/**
+ * Actual billing amount for the transaction:
+ *  - monthly  → one month
+ *  - annual   → full year upfront
+ */
+export const getPlanBillingAmount = (plan: PlanId, cycle: Cycle): number => {
+  if (plan === 'free') return 0;
+
+  const base = USD_PLAN_PRICES[plan];
+  return cycle === 'monthly' ? base.monthly : base.annual;
 };
-
-const PLAN_RANK: Record<PlanId, number> = { free: 0, starter: 1, booster: 2, master: 3 };
-export const isAtLeast = (userPlan: PlanId, min: PlanId) => PLAN_RANK[userPlan] >= PLAN_RANK[min];
-
-// Stripe priceId → plan
-export function planFromPriceId(priceId?: string | null): PlanKey | null {
-  if (!priceId) return null;
-  const hit = Object.values(PLANS).find(p => p.stripe.priceIdMonthly === priceId || p.stripe.priceIdAnnual === priceId);
-  return hit?.key ?? null;
-}
-
-// USD-first formatter (works for any currency via env)
-export function formatMoney(amountMajorUnits: number, currency = CURRENCY, locale = CURRENCY_LOCALE) {
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: currency === 'JPY' ? 0 : 0, // keep clean whole numbers in UI
-    }).format(amountMajorUnits);
-  } catch {
-    return `${currency} ${amountMajorUnits}`;
-  }
-}
