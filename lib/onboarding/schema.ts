@@ -10,6 +10,41 @@ export const languageOptions = [
 const LanguageEnum = z.enum(supportedLanguageCodes);
 const StudyDayEnum = z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const);
 const PhoneSchema = z.union([z.string().min(6).max(32), z.literal('')]);
+const ExamTimeframeEnum = z.enum(
+  ['0-30', '30-60', '60-90', '90-plus', 'not-booked'] as const,
+);
+
+export const NotificationChannelEnum = z.enum(
+  ['email', 'whatsapp', 'in-app'] as const,
+);
+export type NotificationChannel = z.infer<typeof NotificationChannelEnum>;
+
+export const ExamDateBody = z.object({
+  timeframe: ExamTimeframeEnum,
+  examDate: z.string().optional().nullable(),
+});
+export type ExamDateBodyInput = z.infer<typeof ExamDateBody>;
+
+export const LanguageBody = z.object({
+  language: LanguageEnum,
+});
+export type LanguageBodyInput = z.infer<typeof LanguageBody>;
+
+export const NotificationsBody = z.object({
+  channels: z.array(NotificationChannelEnum).min(1),
+  preferredTime: z.string().optional().nullable(),
+});
+export type NotificationsBodyInput = z.infer<typeof NotificationsBody>;
+
+export const StudyRhythmBody = z.object({
+  rhythm: z.enum(['daily', '5days', 'weekends', 'flexible', 'intensive'] as const),
+});
+export type StudyRhythmBodyInput = z.infer<typeof StudyRhythmBody>;
+
+export const TargetBandBody = z.object({
+  targetBand: z.enum(['5.5', '6.0', '6.5', '7.0', '7.5+'] as const),
+});
+export type TargetBandBodyInput = z.infer<typeof TargetBandBody>;
 
 export const onboardingStateSchema = z.object({
   preferredLanguage: LanguageEnum.nullable(),

@@ -20,8 +20,10 @@ import {
 import type { Reason } from '@/lib/paywall/redirect';
 
 // ------------------ Types ------------------
+type DisplayPlanKey = PlanKey | 'free';
+
 type PlanRow = {
-  key: PlanKey;
+  key: DisplayPlanKey;
   title: 'Free' | 'Starter' | 'Rocket' | 'Master';
   subtitle: string;
   priceMonthly: number; // cents (USD)
@@ -48,7 +50,7 @@ type Currency =
 
 // ------------------ Data ------------------
 const PLAN_PRESENTATION: Record<
-  PlanKey,
+  DisplayPlanKey,
   Omit<PlanRow, 'key' | 'priceMonthly' | 'priceAnnual'>
 > = {
   free: {
@@ -98,14 +100,28 @@ const PLAN_PRESENTATION: Record<
 const toUsdCents = (major: number) => Math.round(major * 100);
 
 // Order of cards on page
-const PLAN_KEYS: readonly PlanKey[] = ['free', 'starter', 'booster', 'master'];
+const PLAN_KEYS: readonly DisplayPlanKey[] = ['free', 'starter', 'booster', 'master'];
 
-const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => ({
-  key,
-  ...PLAN_PRESENTATION[key],
-  priceMonthly: toUsdCents(getPlanDisplayPrice(key, 'monthly')),
-  priceAnnual: toUsdCents(getPlanDisplayPrice(key, 'annual')),
-})) as const;
+const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => {
+  const base = PLAN_PRESENTATION[key];
+
+  if (key === 'free') {
+    return {
+      key,
+      ...base,
+      priceMonthly: 0,
+      priceAnnual: 0,
+    } as const;
+  }
+
+  const paidKey = key as PlanKey;
+  return {
+    key,
+    ...base,
+    priceMonthly: toUsdCents(getPlanDisplayPrice(paidKey, 'monthly')),
+    priceAnnual: toUsdCents(getPlanDisplayPrice(paidKey, 'annual')),
+  } as const;
+}) as const;
 
 // Simple demo FX rates relative to USD. Replace with live rates from your backend/payments provider.
 const FX: Record<Currency, number> = {
@@ -224,7 +240,12 @@ const PricingPage: NextPage = () => {
   }, []);
 
   const handleSelect = React.useCallback(
-    (planKey: PlanKey) => {
+    (planKey: DisplayPlanKey) => {
+      if (planKey === 'free') {
+        void router.push(from || '/');
+        return;
+      }
+
       const qs = new URLSearchParams();
       qs.set('plan', planKey);
       qs.set('billingCycle', cycle);
@@ -232,7 +253,7 @@ const PricingPage: NextPage = () => {
       qs.set('currency', currency);
       void router.push(`/checkout?${qs.toString()}`);
     },
-    [cycle, referralCode, router, currency],
+    [cycle, referralCode, router, currency, from],
   );
 
   const getBanner = () => {
@@ -431,10 +452,10 @@ const PricingPage: NextPage = () => {
                 {PLANS.map((p) => {
                   const priceCentsUSD =
                     cycle === 'monthly' ? p.priceMonthly : p.priceAnnual;
-                  const priceLabel = formatMoneyFromUsdCents(
-                    priceCentsUSD,
-                    currency,
-                  );
+                  const priceLabel =
+                    p.key === 'free'
+                      ? 'Free'
+                      : formatMoneyFromUsdCents(priceCentsUSD, currency);
                   const periodLabel =
                     p.key === 'free'
                       ? 'forever (no card required)'
@@ -491,7 +512,7 @@ const PricingPage: NextPage = () => {
 
                       <div className="mb-4">
                         <div className="font-slab text-displayLg leading-none bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-cyan-500 bg-clip-text text-transparent">
-                          {p.key === 'free' ? 'Free' : priceLabel}
+                          {priceLabel}
                         </div>
                         <div className="mt-1 text-muted-foreground">
                           {periodLabel}

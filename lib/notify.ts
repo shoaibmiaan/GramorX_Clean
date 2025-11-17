@@ -28,4 +28,19 @@ export async function enqueueEvent(
   return handleEnqueueEvent(req, res, body);
 }
 
+export function getNotificationContactByUser(userId: string) {
+  return getNotificationContact(userId);
+}
+
 export { queueNotificationEvent, getNotificationContact, dispatchPending };
+
+const Notify = {
+  notify,
+  enqueueEvent,
+  queueNotificationEvent,
+  dispatchPending,
+  getNotificationContact,
+  getNotificationContactByUser,
+};
+
+export default Notify;

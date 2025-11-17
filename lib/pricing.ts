@@ -23,13 +23,23 @@ export const USD_PLAN_PRICES: Record<PlanKey, PlanPrice> = {
   master: { monthly: 39, annual: 420 },
 };
 
-export const getPlanDisplayPrice = (plan: PlanKey, cycle: Cycle): number =>
-  cycle === 'monthly'
-    ? USD_PLAN_PRICES[plan].monthly
-    : USD_PLAN_PRICES[plan].annual / 12;
+const readPlanConfig = (plan: PlanKey) => {
+  const config = USD_PLAN_PRICES[plan];
+  if (!config) {
+    throw new Error(`Missing USD_PLAN_PRICES config for plan "${plan}"`);
+  }
+  return config;
+};
 
-export const getPlanBillingAmount = (plan: PlanKey, cycle: Cycle): number =>
-  cycle === 'monthly' ? USD_PLAN_PRICES[plan].monthly : USD_PLAN_PRICES[plan].annual;
+export const getPlanDisplayPrice = (plan: PlanKey, cycle: Cycle): number => {
+  const config = readPlanConfig(plan);
+  return cycle === 'monthly' ? config.monthly : config.annual / 12;
+};
+
+export const getPlanBillingAmount = (plan: PlanKey, cycle: Cycle): number => {
+  const config = readPlanConfig(plan);
+  return cycle === 'monthly' ? config.monthly : config.annual;
+};
 
 export const PLAN_LABEL: Record<PlanKey, string> = {
   starter: 'Seedling 🌱',
