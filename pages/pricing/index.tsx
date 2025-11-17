@@ -1,3 +1,4 @@
+// pages/pricing/index.tsx
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -20,8 +21,12 @@ import {
 import type { Reason } from '@/lib/paywall/redirect';
 
 // ------------------ Types ------------------
+
+// What we show on the pricing page: includes "free".
+type DisplayPlanKey = PlanKey | 'free';
+
 type PlanRow = {
-  key: PlanKey;
+  key: DisplayPlanKey;
   title: 'Free' | 'Starter' | 'Rocket' | 'Master';
   subtitle: string;
   priceMonthly: number; // cents (USD)
@@ -48,7 +53,7 @@ type Currency =
 
 // ------------------ Data ------------------
 const PLAN_PRESENTATION: Record<
-  PlanKey,
+  DisplayPlanKey,
   Omit<PlanRow, 'key' | 'priceMonthly' | 'priceAnnual'>
 > = {
   free: {
@@ -98,14 +103,30 @@ const PLAN_PRESENTATION: Record<
 const toUsdCents = (major: number) => Math.round(major * 100);
 
 // Order of cards on page
-const PLAN_KEYS: readonly PlanKey[] = ['free', 'starter', 'booster', 'master'];
+const PLAN_KEYS: readonly DisplayPlanKey[] = ['free', 'starter', 'booster', 'master'];
 
-const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => ({
-  key,
-  ...PLAN_PRESENTATION[key],
-  priceMonthly: toUsdCents(getPlanDisplayPrice(key, 'monthly')),
-  priceAnnual: toUsdCents(getPlanDisplayPrice(key, 'annual')),
-})) as const;
+const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => {
+  const base = PLAN_PRESENTATION[key];
+
+  if (key === 'free') {
+    // Free has no billing; no calls into USD_PLAN_PRICES
+    return {
+      key,
+      ...base,
+      priceMonthly: 0,
+      priceAnnual: 0,
+    };
+  }
+
+  const paidKey = key as PlanKey;
+  return {
+    key,
+    ...base,
+    priceMonthly: toUsdCents(getPlanDisplayPrice(paidKey, 'monthly')),
+    // store "per-month equivalent" (USD) for annual
+    priceAnnual: toUsdCents(getPlanDisplayPrice(paidKey, 'annual')),
+  };
+}) as const;
 
 // Simple demo FX rates relative to USD. Replace with live rates from your backend/payments provider.
 const FX: Record<Currency, number> = {
@@ -182,9 +203,9 @@ const formatMoneyFromUsdCents = (usdCents: number, currency: Currency) => {
       PHP: '₱',
     };
     const s = sym[currency] ?? '$';
-    return `${s}${
-      ZERO_DECIMAL.includes(currency) ? Math.round(raw) : raw.toFixed(2)
-    }`;
+    return `${
+      s
+    }${ZERO_DECIMAL.includes(currency) ? Math.round(raw) : raw.toFixed(2)}`;
   }
 };
 
@@ -224,7 +245,13 @@ const PricingPage: NextPage = () => {
   }, []);
 
   const handleSelect = React.useCallback(
-    (planKey: PlanKey) => {
+    (planKey: DisplayPlanKey) => {
+      // Free shouldn't hit checkout
+      if (planKey === 'free') {
+        void router.push(from || '/');
+        return;
+      }
+
       const qs = new URLSearchParams();
       qs.set('plan', planKey);
       qs.set('billingCycle', cycle);
@@ -232,7 +259,7 @@ const PricingPage: NextPage = () => {
       qs.set('currency', currency);
       void router.push(`/checkout?${qs.toString()}`);
     },
-    [cycle, referralCode, router, currency],
+    [cycle, referralCode, router, currency, from],
   );
 
   const getBanner = () => {
@@ -353,8 +380,8 @@ const PricingPage: NextPage = () => {
             </div>
 
             {/* Hero */}
-            <header className="mx-auto text-center max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground md:text-caption backdrop-blur supports-[backdrop-filter]:bg-card/40">
+            <header className="mx-auto max-w-3xl text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur md:text-caption supports-[backdrop-filter]:bg-card/40">
                 Free tier available • Cancel anytime
               </p>
 
@@ -368,8 +395,9 @@ const PricingPage: NextPage = () => {
               </h1>
 
               <p className="mt-2 text-small text-muted-foreground text-pretty md:text-body">
-                Free gives you a taste. Starter adds more checks and mocks. Rocket (Booster)
-                is for serious progress. Master is for full-send, 7.5–9.0 prep.
+                Free gives you a taste. Starter adds more checks and mocks.
+                Rocket (Booster) is for serious progress. Master is for
+                full-send, 7.5–9.0 prep.
               </p>
               <div className="mt-2 text-caption text-muted-foreground">
                 Local timezone: <strong>{timezone}</strong>
@@ -431,10 +459,10 @@ const PricingPage: NextPage = () => {
                 {PLANS.map((p) => {
                   const priceCentsUSD =
                     cycle === 'monthly' ? p.priceMonthly : p.priceAnnual;
-                  const priceLabel = formatMoneyFromUsdCents(
-                    priceCentsUSD,
-                    currency,
-                  );
+                  const priceLabel =
+                    p.key === 'free'
+                      ? 'Free'
+                      : formatMoneyFromUsdCents(priceCentsUSD, currency);
                   const periodLabel =
                     p.key === 'free'
                       ? 'forever (no card required)'
@@ -473,7 +501,7 @@ const PricingPage: NextPage = () => {
                         />
                       )}
 
-                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 text-white text-h2">
+                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 text-h2 text-white">
                         <i className={`fas ${p.icon}`} aria-hidden="true" />
                         <span className="sr-only">{p.title} icon</span>
                       </div>
@@ -490,8 +518,8 @@ const PricingPage: NextPage = () => {
                       </p>
 
                       <div className="mb-4">
-                        <div className="font-slab text-displayLg leading-none bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-cyan-500 bg-clip-text text-transparent">
-                          {p.key === 'free' ? 'Free' : priceLabel}
+                        <div className="bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-cyan-500 bg-clip-text font-slab text-displayLg leading-none text-transparent">
+                          {priceLabel}
                         </div>
                         <div className="mt-1 text-muted-foreground">
                           {periodLabel}
