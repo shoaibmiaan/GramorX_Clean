@@ -21,8 +21,6 @@ import {
 import type { Reason } from '@/lib/paywall/redirect';
 
 // ------------------ Types ------------------
-
-// What we show on the pricing page: includes "free".
 type DisplayPlanKey = PlanKey | 'free';
 
 type PlanRow = {
@@ -109,13 +107,12 @@ const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => {
   const base = PLAN_PRESENTATION[key];
 
   if (key === 'free') {
-    // Free has no billing; no calls into USD_PLAN_PRICES
     return {
       key,
       ...base,
       priceMonthly: 0,
       priceAnnual: 0,
-    };
+    } as const;
   }
 
   const paidKey = key as PlanKey;
@@ -123,9 +120,8 @@ const PLANS: readonly PlanRow[] = PLAN_KEYS.map((key) => {
     key,
     ...base,
     priceMonthly: toUsdCents(getPlanDisplayPrice(paidKey, 'monthly')),
-    // store "per-month equivalent" (USD) for annual
     priceAnnual: toUsdCents(getPlanDisplayPrice(paidKey, 'annual')),
-  };
+  } as const;
 }) as const;
 
 // Simple demo FX rates relative to USD. Replace with live rates from your backend/payments provider.
@@ -246,7 +242,6 @@ const PricingPage: NextPage = () => {
 
   const handleSelect = React.useCallback(
     (planKey: DisplayPlanKey) => {
-      // Free shouldn't hit checkout
       if (planKey === 'free') {
         void router.push(from || '/');
         return;
@@ -518,7 +513,7 @@ const PricingPage: NextPage = () => {
                       </p>
 
                       <div className="mb-4">
-                        <div className="bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-cyan-500 bg-clip-text font-slab text-displayLg leading-none text-transparent">
+                        <div className="font-slab text-displayLg leading-none bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-cyan-500 bg-clip-text text-transparent">
                           {priceLabel}
                         </div>
                         <div className="mt-1 text-muted-foreground">

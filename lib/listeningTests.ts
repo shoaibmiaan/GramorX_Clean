@@ -1,16 +1,20 @@
 import { supabaseService } from '@/lib/supabaseServer';
 import type { Database } from '@/types/supabase';
 
-export type ListeningTestSummary = {
+import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
+
+export type ListeningTestMeta = {
   id: string;
   slug: string;
+  test_slug: string;
   title: string;
   level?: 'easy' | 'medium' | 'hard' | null;
   createdAt?: string | null;
   master_audio_url: string | null;
   sections: number;
   totalQuestions: number;
-};
+  level?: 'easy' | 'medium' | 'hard' | null;
+  createdAt?: string | null;
 
 type ListeningTestRow = {
   test_slug: string;
@@ -20,10 +24,19 @@ type ListeningTestRow = {
   created_at: string | null;
 };
 
-type ListeningQuestionRow = {
-  test_slug: string;
-  section_order: number | null;
-};
+export type ListeningTestSummary = Pick<
+  ListeningTestMeta,
+  'id' | 'slug' | 'title' | 'level' | 'createdAt'
+>;
+
+export async function fetchAllListeningTestsWithStats(
+  userId: string | null,
+): Promise<ListeningTestMeta[]> {
+  // 1) Base tests
+  const { data: tests, error } = await supabase
+    .from('lm_listening_tests')
+    .select('test_slug, title, master_audio_url, level, created_at')
+    .order('test_slug', { ascending: true });
 
 export async function fetchAllListeningTests(): Promise<ListeningTestSummary[]> {
   const client = supabaseService<Database>();
@@ -58,8 +71,19 @@ export async function fetchAllListeningTests(): Promise<ListeningTestSummary[]> 
     if (typeof row.section_order === 'number') {
       entry.sections.add(row.section_order);
     }
-    entry.questions += 1;
-    stats.set(slug, entry);
+
+    results.push({
+      id: slug,
+      slug,
+      test_slug: slug,
+      title: test.title,
+      master_audio_url: test.master_audio_url,
+      sections: sectionCount ?? 0,
+      totalQuestions: questionCount ?? 0,
+      level: (test as { level?: ListeningTestMeta['level'] }).level ?? null,
+      createdAt: (test as { created_at?: string | null }).created_at ?? null,
+      lastAttempt,
+    });
   }
 
   return tests.map((test) => {
@@ -77,4 +101,9 @@ export async function fetchAllListeningTests(): Promise<ListeningTestSummary[]> 
       totalQuestions: stat?.questions ?? 0,
     } satisfies ListeningTestSummary;
   });
+}
+
+export async function fetchAllListeningTests(): Promise<ListeningTestMeta[]> {
+  const rows = await fetchAllListeningTestsWithStats(null);
+  return rows;
 }

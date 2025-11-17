@@ -47,7 +47,18 @@ export async function getNotificationContactByUser(
   return null;
 }
 
+export function getNotificationContactByUser(userId: string) {
+  return getNotificationContact(userId);
+}
+
+export { queueNotificationEvent, getNotificationContact, dispatchPending };
+
 const Notify = {
+  notify,
+  enqueueEvent,
+  queueNotificationEvent,
+  dispatchPending,
+  getNotificationContact,
   getNotificationContactByUser,
 };
 

@@ -36,16 +36,38 @@ const readPlanConfig = (plan: PlanKey): PlanPrice => {
   return config;
 };
 
-export const DEFAULT_CURRENCY = 'USD';
-export const CURRENCY_SYMBOL = '$';
+const readPlanConfig = (plan: PlanKey) => {
+  const config = USD_PLAN_PRICES[plan];
+  if (!config) {
+    throw new Error(`Missing USD_PLAN_PRICES config for plan "${plan}"`);
+  }
+  return config;
+};
 
-export type PlanDefinition = {
-  id: PlanId;
-  label: string;
-  description: string;
-  order: number;
-  isPaid: boolean;
-  highlight?: boolean;
+export const getPlanDisplayPrice = (plan: PlanKey, cycle: Cycle): number => {
+  const config = readPlanConfig(plan);
+  return cycle === 'monthly' ? config.monthly : config.annual / 12;
+};
+
+export const getPlanBillingAmount = (plan: PlanKey, cycle: Cycle): number => {
+  const config = readPlanConfig(plan);
+  return cycle === 'monthly' ? config.monthly : config.annual;
+};
+
+export const PLAN_LABEL: Record<PlanKey, string> = {
+  starter: 'Seedling 🌱',
+  booster: 'Rocket 🚀',
+  master:  'Owl 👑',
+};
+
+const CURRENCY = (process.env.NEXT_PUBLIC_CURRENCY ?? 'USD').toUpperCase();
+const CURRENCY_LOCALE = process.env.NEXT_PUBLIC_CURRENCY_LOCALE ?? (CURRENCY === 'USD' ? 'en-US' : 'en');
+
+// UI card data + Stripe price mapping (IDs from env; amounts are **major units** for display)
+export type PlanCard = {
+  key: PlanKey;
+  title: string;
+  icon: string;
   badge?: string;
 };
 
