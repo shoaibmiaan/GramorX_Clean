@@ -53,9 +53,9 @@ const THEMES: {
     id: 'sepia',
     name: 'Paper Sepia',
     description: 'Off-white sepia feel, easy on eyes during long mocks.',
-    bgClass: 'bg-[#f6f1e7]',
-    headerClass: 'bg-[#f0e7d8] border-b border-[#e0cfb1]',
-    panelClass: 'bg-[#f9f3e8]',
+    bgClass: 'bg-surface-muted',
+    headerClass: 'bg-muted border-b border-border/60',
+    panelClass: 'bg-surface',
   },
   {
     id: 'high-contrast',
