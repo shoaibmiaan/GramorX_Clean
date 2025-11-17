@@ -90,8 +90,7 @@ const VocabPage: NextPage<PageProps> = ({ initialDate, initialWord, initialSourc
   const [source, setSource] = React.useState<'rpc' | 'view' | null>(initialSource);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const { loading: streakLoading, current: streakCurrent, completeToday } = useStreak();
-  const [streakError, setStreakError] = React.useState<string | null>(null);
+  const { loading: streakLoading, current: streakCurrent } = useStreak();
   const [xpTotal, setXpTotal] = React.useState(0);
   const [attempts, setAttempts] = React.useState<{
     meaning?: { xpAwarded: number; correct: boolean; attempts: number };
@@ -139,23 +138,10 @@ const VocabPage: NextPage<PageProps> = ({ initialDate, initialWord, initialSourc
     setXpTotal(0);
   }, [word]);
 
-  const recordXp = React.useCallback(
-    (xp: number) => {
-      if (xp <= 0) return;
-      setXpTotal((current) => current + xp);
-      void completeToday()
-        .then(() => setStreakError(null))
-        .catch((err: unknown) => {
-          console.warn('[pages/vocab] streak update failed', err);
-          const message =
-            err instanceof Error && /unauthorized/i.test(err.message)
-              ? 'Sign in to sync your streak automatically.'
-              : 'Streak sync delayed — your XP is safe.';
-          setStreakError(message);
-        });
-    },
-    [completeToday],
-  );
+  const recordXp = React.useCallback((xp: number) => {
+    if (xp <= 0) return;
+    setXpTotal((current) => current + xp);
+  }, []);
 
   const handleMeaningComplete = React.useCallback(
     (result: { correct: boolean; xpAwarded: number }) => {
@@ -257,15 +243,6 @@ const VocabPage: NextPage<PageProps> = ({ initialDate, initialWord, initialSourc
                 className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-warning"
               >
                 {error}
-              </div>
-            ) : null}
-
-            {streakError ? (
-              <div
-                role="status"
-                className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-warning"
-              >
-                {streakError}
               </div>
             ) : null}
 

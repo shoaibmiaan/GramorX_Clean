@@ -19,7 +19,6 @@ import { VocabularySpotlightFeature } from '@/components/feature/VocabularySpotl
 import { HeaderStreakChip } from '@/components/feature/HeaderStreakChip';
 
 import { useStreak } from '@/hooks/useStreak';
-import { getDayKeyInTZ } from '@/lib/streak';
 import dynamic from 'next/dynamic';
 import { useSignedAvatar } from '@/hooks/useSignedAvatar';
 const StudyCalendar = dynamic(() => import('@/components/feature/StudyCalendar'), { ssr: false });
@@ -37,17 +36,7 @@ export default function Dashboard() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
-  // Hook now exposes: nextRestart + shields + claimShield + useShield
-  const {
-    current: streak,
-    lastDayKey,
-    loading: streakLoading,
-    completeToday,
-    nextRestart,
-    shields,
-    claimShield,
-    useShield,
-  } = useStreak();
+  const { current: streak, loading: streakLoading, shields, timezone } = useStreak();
 
   const handleShare = () => {
     const text = `I'm studying for IELTS on GramorX with a ${streak}-day streak!`;
@@ -162,12 +151,10 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (streakLoading) return;
-    const today = getDayKeyInTZ();
-    if (lastDayKey !== today) {
-      void completeToday().catch(() => {});
+    if (typeof window !== 'undefined') {
+      document.title = 'Dashboard — GramorX';
     }
-  }, [streakLoading, lastDayKey, completeToday]);
+  }, []);
 
   const avatarSource = loading ? null : profile?.avatar_url ?? null;
   const { signedUrl: profileAvatarUrl } = useSignedAvatar(avatarSource);
@@ -230,15 +217,13 @@ export default function Dashboard() {
             <Badge size="sm" variant="secondary">
               {(profile?.preferred_language ?? 'en').toUpperCase()}
             </Badge>
+            <Badge size="sm" variant="outline">
+              {timezone || 'Asia/Karachi'}
+            </Badge>
             <Badge size="sm">🛡 {shields}</Badge>
-            <Button onClick={claimShield} variant="secondary" className="rounded-ds-xl">
-              Claim Shield
-            </Button>
-            {shields > 0 && (
-              <Button onClick={useShield} variant="secondary" className="rounded-ds-xl">
-                Use Shield
-              </Button>
-            )}
+            <span className="text-xs text-muted-foreground">
+              Tokens auto-reload as you hit weekly streak milestones.
+            </span>
             {streak >= 7 && <Badge variant="success" size="sm">🔥 {streak}-day streak!</Badge>}
 
             {profileAvatarUrl ? (
@@ -252,12 +237,6 @@ export default function Dashboard() {
             ) : null}
           </div>
         </div>
-
-        {nextRestart && (
-          <Alert variant="info" className="mt-6">
-            Streak will restart on {nextRestart}.
-          </Alert>
-        )}
 
         {showTips && (
           <Alert variant="info" className="mt-6">

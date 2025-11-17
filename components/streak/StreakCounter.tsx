@@ -13,6 +13,7 @@ type StreakCounterProps = {
   longest: number;
   loading?: boolean;
   shields?: number;
+  timezone?: string;
 };
 
 type StatProps = {
@@ -55,6 +56,7 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
   longest,
   loading = false,
   shields = 0,
+  timezone,
 }) => {
   const tooltipIdRef = React.useRef<string>();
   if (!tooltipIdRef.current) {
@@ -70,6 +72,8 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
 
   const showTooltip = () => setOpen(true);
   const hideTooltip = () => setOpen(false);
+
+  const timezoneLabel = timezone || 'your timezone';
 
   return (
     <Card className={cn('flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between', className)}>
@@ -103,13 +107,13 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
           </div>
         </div>
         <p className="text-small text-muted-foreground">
-          Keep your streak alive to unlock streak shields and weekly reward drops.
+          Keep your streak alive by logging activity before midnight {timezoneLabel}.
         </p>
       </div>
       <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-3">
         <Stat label="Current streak" value={safeCurrent} tone="primary" loading={loading} />
         <Stat label="Longest streak" value={safeLongest} tone="neutral" loading={loading} />
-        <Stat label="Forgiveness tokens" value={safeShields} tone="neutral" loading={loading} />
+        <Stat label="Streak tokens" value={safeShields} tone="neutral" loading={loading} />
       </div>
     </Card>
   );

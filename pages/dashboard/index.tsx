@@ -110,13 +110,10 @@ const Dashboard: NextPage = () => {
   const {
     current: streak,
     longest,
-    lastDayKey,
     loading: streakLoading,
-    completeToday,
-    nextRestart,
     shields,
-    claimShield,
-    useShield,
+    timezone,
+    reload: reloadStreak,
   } = useStreak();
 
   const { latestEnrollment: challengeEnrollment, loading: challengeLoading } =
@@ -244,12 +241,10 @@ const Dashboard: NextPage = () => {
   };
 
   useEffect(() => {
-    if (streakLoading) return;
-    const today = getDayKeyInTZ();
-    if (lastDayKey !== today) {
-      void completeToday().catch(() => {});
+    if (typeof window !== 'undefined') {
+      document.body.dataset.view = 'dashboard';
     }
-  }, [streakLoading, lastDayKey, completeToday]);
+  }, []);
 
   const { signedUrl: profileAvatarUrl } = useSignedAvatar(profile?.avatar_url ?? null);
 
@@ -608,23 +603,13 @@ const Dashboard: NextPage = () => {
                       🔥 {streak}-day streak!
                     </Badge>
                   )}
+                  <Badge size="sm" variant="outline">
+                    {timezone || 'Asia/Karachi'}
+                  </Badge>
                   <Badge size="sm">🛡 {shields}</Badge>
-                  <Button
-                    onClick={claimShield}
-                    variant="secondary"
-                    className="rounded-ds-xl"
-                  >
-                    Claim Shield
-                  </Button>
-                  {shields > 0 && (
-                    <Button
-                      onClick={useShield}
-                      variant="secondary"
-                      className="rounded-ds-xl"
-                    >
-                      Use Shield
-                    </Button>
-                  )}
+                  <span className="text-xs text-muted-foreground">
+                    Tokens auto-issue every 7 study days.
+                  </span>
                 </div>
 
                 {topBadges.length ? (
@@ -792,12 +777,8 @@ const Dashboard: NextPage = () => {
                 longest={longest}
                 loading={streakLoading}
                 shields={shields}
+                timezone={timezone}
               />
-              {nextRestart && (
-                <Alert variant="info" className="mt-4">
-                  Streak will restart on {nextRestart}.
-                </Alert>
-              )}
             </div>
 
             {showTips && (

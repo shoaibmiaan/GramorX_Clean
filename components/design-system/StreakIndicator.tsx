@@ -1,15 +1,13 @@
 import * as React from 'react';
 import { useStreak } from '@/hooks/useStreak';
-import { getDayKeyInTZ } from '@/lib/streak';
 
 const cx = (...xs: Array<string | false | null | undefined>) => xs.filter(Boolean).join(' ');
 
 type Tone = 'electric' | 'primary' | 'accent';
 type Props = {
   className?: string;
-  value?: number; // external streak value; disables autoClaim
+  value?: number;
   compact?: boolean;
-  autoClaim?: boolean; // default: true (ignored if value is provided)
   tone?: Tone;
 };
 
@@ -24,30 +22,10 @@ const ShieldIcon = (p: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-export const StreakIndicator: React.FC<Props> = ({
-  className = '',
-  value,
-  compact = false,
-  autoClaim = true,
-  tone = 'electric',
-}) => {
-  const { current, lastDayKey, completeToday, loading, shields = 0, error } = useStreak();
-  const todayKey = React.useMemo(() => getDayKeyInTZ(), []);
-  const autoTriedRef = React.useRef(false);
+export const StreakIndicator: React.FC<Props> = ({ className = '', value, compact = false, tone = 'electric' }) => {
+  const { current, loading, shields = 0, error } = useStreak();
 
   const streakValue = value ?? current;
-
-  // Auto-claim once (only when using internal hook value)
-  React.useEffect(() => {
-    if (value !== undefined) return; // external control → don't auto-claim
-    if (autoTriedRef.current || loading) return;
-    autoTriedRef.current = true;
-    if (autoClaim && lastDayKey !== todayKey) {
-      completeToday().catch((err) => {
-        console.error('Auto-claim failed:', err);
-      });
-    }
-  }, [value, autoClaim, loading, lastDayKey, todayKey, completeToday]);
 
   // subtle glow on change
   const [pulse, setPulse] = React.useState(false);
@@ -89,7 +67,7 @@ export const StreakIndicator: React.FC<Props> = ({
       )}
       role="status"
       aria-live="polite"
-      aria-label={`Current streak ${Math.max(streakValue ?? 0, 0)} days, ${shields} shields left`}
+      aria-label={`Current streak ${Math.max(streakValue ?? 0, 0)} days, ${shields} tokens available`}
       title={`Streak: ${streakValue ?? 0}`}
     >
       <FireIcon />
