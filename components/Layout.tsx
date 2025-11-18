@@ -11,6 +11,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FooterMini from '@/components/navigation/FooterMini';
 import QuickAccessWidget from '@/components/navigation/QuickAccessWidget';
+import { BreadcrumbsBar } from '@/components/navigation/Breadcrumbs';
 
 // Load BottomNav only on the client (avoid SSR hydration mismatches)
 const BottomNav = dynamic(
@@ -50,6 +51,7 @@ export default function Layout({ children }: LayoutProps) {
     <>
       <a id="top" aria-hidden="true" />
       <Header />
+      <BreadcrumbsBar />
 
       <main className="min-h-[60vh] pt-safe pb-[calc(env(safe-area-inset-bottom,0px)+72px)] md:pb-16 lg:pb-20">
         {children}
