@@ -1,11 +1,15 @@
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { Container } from '@/components/design-system/Container';
-import { Card } from '@/components/design-system/Card';
-import { Button } from '@/components/design-system/Button';
+
 import { Badge } from '@/components/design-system/Badge';
+import { Button } from '@/components/design-system/Button';
+import { Card } from '@/components/design-system/Card';
+import { Container } from '@/components/design-system/Container';
 import Icon from '@/components/design-system/Icon';
+import { listMocksForModule } from '@/lib/mock/mockData';
+import type { ModuleMockMeta } from '@/lib/mock/types';
+import type { MockModuleId } from '@/types/mock';
 
 const mockTestOverview = {
   title: 'Full Mock Tests',
@@ -74,6 +78,18 @@ const pinGateModules = [
     color: 'text-indigo-500',
   },
 ];
+
+const moduleRoutes: Record<MockModuleId, string> = {
+  listening: '/mock/listening',
+  reading: '/mock/reading',
+  writing: '/mock/writing',
+  speaking: '/mock/speaking',
+};
+
+const moduleCardData = (['listening', 'reading', 'writing', 'speaking'] as MockModuleId[]).map((module) => {
+  const [firstMock] = listMocksForModule(module);
+  return { module, meta: firstMock };
+});
 
 const pinFlow = [
   {
@@ -215,6 +231,61 @@ const MockTestPage: React.FC = () => {
                   </div>
                 </Card>
               </div>
+            </div>
+          </Container>
+        </section>
+
+        <section className="bg-card/30 py-14">
+          <Container>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Modules</p>
+                <h2 className="font-slab text-h3 text-foreground">Pick your IELTS focus</h2>
+              </div>
+              <p className="max-w-xl text-sm text-muted-foreground">
+                Each module ships with curated mocks (at least five per skill) so you can follow the same overview → run →
+                submitted loop with shared analytics.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {moduleCardData.map(({ module, meta }) => (
+                <Card key={module} className="rounded-ds-3xl border border-border/60 bg-card/80 p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{module}</p>
+                      <h3 className="font-semibold text-foreground">
+                        {meta?.title ?? 'New mocks rolling out'}
+                      </h3>
+                    </div>
+                    <Badge size="sm" tone="info">
+                      {meta ? `${meta.sectionCount ?? 0} sets` : 'Beta'}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {meta?.description ?? 'Fresh CBE-style mocks with synced overview, runner, and review flow.'}
+                  </p>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div className="rounded-2xl border border-border/50 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em]">Duration</p>
+                      <p className="text-base font-semibold text-foreground">{meta?.durationMinutes ?? 60}m</p>
+                    </div>
+                    <div className="rounded-2xl border border-border/50 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em]">Questions</p>
+                      <p className="text-base font-semibold text-foreground">{meta?.questionCount ?? 2}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <Button asChild variant="primary" className="rounded-ds-2xl">
+                      <Link href={moduleRoutes[module]}>Open {module} hub</Link>
+                    </Button>
+                    {meta ? (
+                      <Button asChild variant="ghost" className="rounded-ds-2xl">
+                        <Link href={`${moduleRoutes[module]}/overview?mockId=${meta.id}`}>View overview</Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </Card>
+              ))}
             </div>
           </Container>
         </section>

@@ -4,9 +4,9 @@ import ModuleSubmittedView from '@/features/mock/components/ModuleSubmittedView'
 import type { ModuleSubmittedPageProps } from '@/features/mock/pageBuilders';
 import { buildModuleSubmittedProps } from '@/features/mock/pageBuilders';
 
-const WritingSubmittedPage: NextPage<ModuleSubmittedPageProps> = (props) => <ModuleSubmittedView {...props} />;
+const ReadingSubmittedPage: NextPage<ModuleSubmittedPageProps> = (props) => <ModuleSubmittedView {...props} />;
 
 export const getServerSideProps: GetServerSideProps<ModuleSubmittedPageProps> = (ctx) =>
-  buildModuleSubmittedProps(ctx, 'writing');
+  buildModuleSubmittedProps(ctx, 'reading');
 
-export default WritingSubmittedPage;
+export default ReadingSubmittedPage;
