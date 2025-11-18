@@ -1,7 +1,7 @@
 // components/Header.tsx
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -16,6 +16,7 @@ import { useUserContext } from '@/context/UserContext';
 import { PremiumRoomManager } from '@/premium-ui/access/roomUtils';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/lib/search/types';
+import { PrBreadcrumb, type PrBreadcrumbItem } from '@/premium-ui/components/PrBreadcrumb';
 
 export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const [openDesktopModules, setOpenDesktopModules] = useState(false);
@@ -40,6 +41,39 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
+
+  const premiumBreadcrumbItems = useMemo<PrBreadcrumbItem[] | null>(() => {
+    const rawPath = router.asPath?.split('#')[0]?.split('?')[0] ?? '/';
+    if (!rawPath.startsWith('/premium')) return null;
+    const segments = rawPath.split('/').filter(Boolean);
+    if (segments.length === 0) return null;
+
+    const crumbs: PrBreadcrumbItem[] = [
+      {
+        label: 'Premium Suite',
+        description: 'Enterprise controls',
+        href: '/premium',
+        meta: segments.length === 1 ? 'Home' : undefined,
+      },
+    ];
+
+    let hrefAccumulator = '/premium';
+    const detailSegments = segments.slice(1);
+    detailSegments.forEach((segment, index) => {
+      hrefAccumulator += `/${segment}`;
+      const isLast = index === detailSegments.length - 1;
+      crumbs.push({
+        label: formatBreadcrumbLabel(segment),
+        href: isLast ? undefined : hrefAccumulator,
+        meta: isLast ? undefined : `Level ${index + 2}`,
+        description: isLast ? 'Current section' : undefined,
+      });
+    });
+
+    return crumbs;
+  }, [router.asPath]);
+
+  const showPremiumBreadcrumb = Boolean(premiumBreadcrumbItems?.length);
 
   const closeSearch = useCallback(() => {
     setShowSearch(false);
@@ -436,8 +470,31 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
           </div>
         </Container>
       </header>
+      {showPremiumBreadcrumb && (
+        <div className="border-b border-border/60 bg-background/80 py-2 backdrop-blur">
+          <Container>
+            <PrBreadcrumb items={premiumBreadcrumbItems!} condensed />
+          </Container>
+        </div>
+      )}
     </>
   );
 };
 
 export default Header;
+
+function formatBreadcrumbLabel(segment: string) {
+  if (!segment) return '';
+  const sanitized = segment.replace(/\+/g, ' ');
+  let decoded = sanitized;
+  try {
+    decoded = decodeURIComponent(sanitized);
+  } catch {
+    decoded = sanitized;
+  }
+  return decoded
+    .split(/[-\s]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
