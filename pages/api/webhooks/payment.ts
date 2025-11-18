@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 import { trackor } from '@/lib/analytics/trackor.server';
 import { queueNotificationEvent, getNotificationContact } from '@/lib/notify';
 import { getBaseUrl } from '@/lib/url';
+import { sendNotificationWithClient } from '@/lib/notifications';
 
 // Important: disable body parsing so we can verify Stripe signatures
 export const config = { api: { bodyParser: false } };
@@ -164,6 +165,22 @@ const handler: NextApiHandler<Ok | Err> = async (req, res) => {
           plan: intent?.plan_id ?? plan,
           cycle: intent?.cycle ?? 'monthly',
         });
+
+        if (userId) {
+          const upgradedPlan = (intent?.plan_id ?? plan) || 'booster';
+          const formattedPlan = upgradedPlan.charAt(0).toUpperCase() + upgradedPlan.slice(1);
+          try {
+            await sendNotificationWithClient(supabase, {
+              userId,
+              type: 'plan_upgraded',
+              title: 'Plan Upgraded',
+              body: `You’re now on the ${formattedPlan} plan. Enjoy the perks!`,
+              data: { plan: upgradedPlan },
+            });
+          } catch (error) {
+            console.warn('[payments:webhook] plan notification failed', error);
+          }
+        }
         break;
       }
 

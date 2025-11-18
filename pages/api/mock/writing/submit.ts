@@ -4,6 +4,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
+import { sendNotification } from '@/lib/notifications';
 import { normalizeScorePayload } from '@/lib/writing/scoring';
 import { evaluateEssayWithAi } from '@/lib/writing/ai-evaluator';
 import { writingSubmitSchema } from '@/lib/validation/writing';
@@ -171,6 +172,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       durationSeconds,
     },
   });
+
+  try {
+    await sendNotification(req, res, {
+      userId: user.id,
+      type: 'mock_submitted',
+      title: 'Writing Mock Submitted',
+      body: 'Your writing has been received. We’ll analyse and update you soon.',
+      data: { attemptId },
+    });
+  } catch (error) {
+    console.warn('[writing/submit] notification failed', error);
+  }
 
   return res.status(200).json({ ok: true, attemptId, results });
 }
