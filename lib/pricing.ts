@@ -1,9 +1,25 @@
 // lib/pricing.ts
-// Canonical pricing + plan metadata for GramorX
+// Canonical plan IDs, labels, and pricing helpers for the whole app.
 
 export type PlanKey = 'starter' | 'booster' | 'master';
 export type PlanId = 'free' | PlanKey;
 export type Cycle = 'monthly' | 'annual';
+
+// Enum-style object so existing imports keep working
+export const PlanIdEnum = {
+  Free: 'free',
+  Starter: 'starter',
+  Booster: 'booster',
+  Master: 'master',
+} as const;
+
+// Convenient array for ordering in UI
+export const PLAN_ORDER: PlanId[] = [
+  PlanIdEnum.Free,
+  PlanIdEnum.Starter,
+  PlanIdEnum.Booster,
+  PlanIdEnum.Master,
+];
 
 type PlanPrice = {
   /** Amount billed each month for the monthly cycle (in major units). */
@@ -15,117 +31,66 @@ type PlanPrice = {
 /**
  * Canonical USD pricing for all paid plans.
  *  - `monthly` is the amount a customer pays for one month.
- *  - `annual` is the full upfront charge for one year
- *    (should be ≈ 12 × the per-month *display* value, with discount baked in).
+ *  - `annual` is the full upfront charge for one year.
  */
 export const USD_PLAN_PRICES: Record<PlanKey, PlanPrice> = {
-  starter: { monthly: 9, annual: 96 }, // ≈ $8/mo effective
-  booster: { monthly: 19, annual: 192 }, // ≈ $16/mo effective
-  master: { monthly: 29, annual: 288 }, // ≈ $24/mo effective
+  starter: { monthly: 9, annual: 96 },
+  booster: { monthly: 19, annual: 192 },
+  master: { monthly: 39, annual: 384 },
 };
 
 /**
- * Internal helper: ensure configs exist.
- */
-const readPlanConfig = (plan: PlanKey): PlanPrice => {
-  const config = USD_PLAN_PRICES[plan];
-  if (!config) {
-    throw new Error(`Missing USD_PLAN_PRICES config for plan "${plan}"`);
-  }
-  return config;
-};
-
-export const DEFAULT_CURRENCY = 'USD';
-export const CURRENCY_SYMBOL = '$';
-
-export type PlanDefinition = {
-  id: PlanId;
-  label: string;
-  description: string;
-  order: number;
-  isPaid: boolean;
-  highlight?: boolean;
-  badge?: string;
-};
-
-const PLAN_LIST: PlanDefinition[] = [
-  {
-    id: 'free',
-    label: 'Free',
-    description: 'Try core IELTS tools with limited mocks & AI feedback.',
-    order: 0,
-    isPaid: false,
-    badge: 'Start here',
-  },
-  {
-    id: 'starter',
-    label: 'Starter',
-    description: 'Serious prep for one module with AI insights.',
-    order: 1,
-    isPaid: true,
-  },
-  {
-    id: 'booster',
-    label: 'Booster',
-    description: 'Full IELTS coverage with rich analytics.',
-    order: 2,
-    isPaid: true,
-    highlight: true,
-    badge: 'Most popular',
-  },
-  {
-    id: 'master',
-    label: 'Master',
-    description: 'All-access IELTS mission control, max AI usage.',
-    order: 3,
-    isPaid: true,
-  },
-];
-
-/**
- * Object lookup by plan id.
- */
-export const PLANS: Record<PlanId, PlanDefinition> = PLAN_LIST.reduce(
-  (acc, plan) => {
-    acc[plan.id] = plan;
-    return acc;
-  },
-  {} as Record<PlanId, PlanDefinition>,
-);
-
-/**
- * Ordered list for UI.
- */
-export const ORDERED_PLANS: PlanDefinition[] = [...PLAN_LIST].sort(
-  (a, b) => a.order - b.order,
-);
-
-/**
- * Human labels.
+ * Nice labels for each plan ID.
  */
 export const PLAN_LABEL: Record<PlanId, string> = {
-  free: 'Free',
-  starter: 'Starter',
-  booster: 'Booster',
-  master: 'Master',
+  [PlanIdEnum.Free]: 'Free',
+  [PlanIdEnum.Starter]: 'Starter',
+  [PlanIdEnum.Booster]: 'Booster',
+  [PlanIdEnum.Master]: 'Master',
 };
 
 /**
- * Display price per month (used in UI).
+ * Short taglines if you need them in UI.
+ */
+export const PLAN_TAGLINE: Record<PlanId, string> = {
+  [PlanIdEnum.Free]: 'Try the basics',
+  [PlanIdEnum.Starter]: 'Lock in one module',
+  [PlanIdEnum.Booster]: 'All 4 core modules',
+  [PlanIdEnum.Master]: 'Everything, maxed out',
+};
+
+/**
+ * Returns the *display* price per month (even for annual plans we normalize).
+ * Handles "free" safely so it doesn’t crash if someone passes it in.
  */
 export const getPlanDisplayPrice = (plan: PlanId, cycle: Cycle): number => {
-  if (plan === 'free') return 0;
+  if (plan === PlanIdEnum.Free) return 0;
 
-  const config = readPlanConfig(plan);
+  const key = plan as PlanKey;
+  const config = USD_PLAN_PRICES[key];
+
+  if (!config) {
+    // Fails safe instead of blowing up with "undefined.monthly"
+    return 0;
+  }
+
   return cycle === 'monthly' ? config.monthly : config.annual / 12;
 };
 
 /**
- * Billing transaction amount.
+ * Returns the *billing* amount that will actually be charged.
+ * For monthly → one month
+ * For annual → full annual lump sum
  */
 export const getPlanBillingAmount = (plan: PlanId, cycle: Cycle): number => {
-  if (plan === 'free') return 0;
+  if (plan === PlanIdEnum.Free) return 0;
 
-  const config = readPlanConfig(plan);
+  const key = plan as PlanKey;
+  const config = USD_PLAN_PRICES[key];
+
+  if (!config) {
+    return 0;
+  }
+
   return cycle === 'monthly' ? config.monthly : config.annual;
 };
