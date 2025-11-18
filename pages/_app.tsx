@@ -38,6 +38,9 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
+import { Container } from '@/components/design-system/Container';
+import { PlanNavCta } from '@/components/layouts/PlanNavCta';
+
 const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }
@@ -237,7 +240,7 @@ function useRouteLoading() {
       router.events.off('routeChangeStart', startLoading as any);
       router.events.off('beforeHistoryChange', handleBeforeHistoryChange as any);
       router.events.off('routeChangeComplete', stopLoading as any);
-      router.events.off('routeChangeError', handleRouteError);
+      router.events.off('routeChangeError', handleRouteError as any);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
       clearTimers();
@@ -562,6 +565,16 @@ function InnerApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} key={router.asPath} />
     );
 
+  // Show global AppHeader-style nav for marketing & pricing routes
+  const shouldShowGlobalHeader =
+    routeConfiguration.isMarketingRoute ||
+    pathname === '/' ||
+    pathname === '/pricing' ||
+    pathname.startsWith('/pricing/');
+
+  const isPricingRoute =
+    pathname === '/pricing' || pathname === '/pricing/overview';
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
@@ -582,17 +595,30 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isCommunityRoute={routeConfiguration.isCommunityRoute}
               isReportsRoute={routeConfiguration.isReportsRoute}
               isMarketingRoute={routeConfiguration.isMarketingRoute}
+              isPremiumRoute={routeConfiguration.isPremiumRoute}
               subscriptionTier={subscriptionTier}
               isRouteLoading={isRouteLoading}
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
             >
-              {router.pathname === '/pricing' ||
-              router.pathname === '/pricing/overview' ? (
-                <PricingReasonBanner />
-              ) : null}
-              {basePage}
+              {shouldShowGlobalHeader ? (
+                <>
+                  <header className="border-b border-subtle bg-background/80 backdrop-blur">
+                    <Container className="flex h-14 items-center justify-between">
+                      <div className="text-sm font-semibold">GramorX</div>
+                      <PlanNavCta />
+                    </Container>
+                  </header>
+                  {isPricingRoute ? <PricingReasonBanner /> : null}
+                  {basePage}
+                </>
+              ) : (
+                <>
+                  {isPricingRoute ? <PricingReasonBanner /> : null}
+                  {basePage}
+                </>
+              )}
             </AppLayoutManager>
           </AnimationProvider>
         </div>

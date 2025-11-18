@@ -1,84 +1,105 @@
 // pages/api/internal/auth/state.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerClient } from '@/lib/supabaseServer';
 
-type AuthState =
-  | {
-      authenticated: false;
-    }
-  | {
-      authenticated: true;
-      userId: string;
-      role: string | null;
-      onboardingComplete: boolean;
-    };
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import type { PlanId } from '@/lib/pricing';
+import { PlanIdEnum } from '@/lib/pricing';
+
+type AuthStateUnauthenticated = {
+  authenticated: false;
+};
+
+type AuthStateAuthenticated = {
+  authenticated: true;
+  userId: string;
+  role: string | null;
+  onboardingComplete: boolean;
+  planId: PlanId;
+};
+
+type AuthState = AuthStateUnauthenticated | AuthStateAuthenticated;
 
 type ErrorResponse = { error: string };
 
 type Response = AuthState | ErrorResponse;
 
+// Runtime guard so we never leak weird plan ids
+const normalizePlanId = (raw: unknown): PlanId => {
+  if (raw === PlanIdEnum.Starter) return PlanIdEnum.Starter;
+  if (raw === PlanIdEnum.Booster) return PlanIdEnum.Booster;
+  if (raw === PlanIdEnum.Master) return PlanIdEnum.Master;
+  // Anything unknown falls back to free
+  return PlanIdEnum.Free;
+};
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Response>
+  res: NextApiResponse<Response>,
 ) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // No caching – this is per-user, per-request state
+  // No caching of auth state
   res.setHeader('Cache-Control', 'private, no-store');
 
   const supabase = getServerClient(req, res);
 
-  // --- 1) Get authenticated user in a SAFE way ---
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
   if (userError) {
-    // Do NOT 500 here – just treat as unauthenticated, or you'll hard-break the UI.
-    console.error('[auth/state] getUser error:', userError);
-    return res.status(200).json({ authenticated: false });
+    return res.status(500).json({ error: userError.message });
   }
 
   if (!user) {
-    // Not logged in
-    return res.status(200).json({ authenticated: false });
+    const unauth: AuthStateUnauthenticated = { authenticated: false };
+    return res.status(200).json(unauth);
   }
 
-  // --- 2) Try to load profile (non-fatal if it fails) ---
+  // Profile: role + onboarding
   const {
     data: profile,
     error: profileError,
   } = await supabase
     .from('profiles')
-    .select('role,onboarding_complete')
-    .eq('user_id', user.id) // keep it simple + RLS friendly
+    .select('role, onboarding_complete')
+    .eq('id', user.id)
     .maybeSingle();
 
   if (profileError) {
-    console.error('[auth/state] profile error:', profileError);
+    return res.status(500).json({ error: profileError.message });
   }
 
-  const role =
-    (profile as { role?: string | null } | null)?.role ??
-    (user.app_metadata?.role as string | undefined) ??
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((user.user_metadata as any)?.role as string | undefined) ??
-    null;
+  // Subscription / plan: from view v_latest_subscription_per_user
+  const {
+    data: subscriptionRow,
+    error: subscriptionError,
+  } = await supabase
+    .from('v_latest_subscription_per_user')
+    .select('plan_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
 
-  const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+    // PGRST116 = no rows; anything else is a real error
+    return res.status(500).json({ error: subscriptionError.message });
+  }
 
-  const onboardingComplete =
-    profile?.onboarding_complete === true ||
-    userMeta.onboarding_complete === true;
+  const rawPlanId = subscriptionRow?.plan_id ?? PlanIdEnum.Free;
+  const planId = normalizePlanId(rawPlanId);
 
-  return res.status(200).json({
+  const payload: AuthStateAuthenticated = {
     authenticated: true,
     userId: user.id,
-    role,
-    onboardingComplete,
-  });
+    role: profile?.role ?? null,
+    onboardingComplete: Boolean(profile?.onboarding_complete),
+    planId,
+  };
+
+  return res.status(200).json(payload);
 }
