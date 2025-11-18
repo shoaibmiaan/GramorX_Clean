@@ -10,6 +10,7 @@ export type SendNotificationPayload = {
   body: string;
   data?: Record<string, any>;
   type?: string;
+  url?: string | null;
 };
 
 async function insertNotification(
@@ -20,8 +21,10 @@ async function insertNotification(
     user_id: payload.userId,
     type: payload.type ?? 'generic',
     title: payload.title,
+    message: payload.body,
     body: payload.body,
-    data: payload.data ?? null,
+    metadata: payload.data ?? null,
+    url: payload.url ?? null,
     read: false,
     created_at: new Date().toISOString(),
   };

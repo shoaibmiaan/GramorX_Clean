@@ -10,7 +10,7 @@ import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
 import { NavLink } from '@/components/design-system/NavLink';
 import { UserMenu } from '@/components/design-system/UserMenu';
-import { NotificationBell } from '@/components/design-system/NotificationBell';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { StreakChip } from '@/components/user/StreakChip';
 import { IconOnlyThemeToggle } from './IconOnlyThemeToggle';
 import ModuleMenu from './ModuleMenu';
