@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import type { NotificationChannel, NotificationsOptIn, Profiles } from '@/types/supabase';
 import { Channel, PreferencesBody, type PreferencesBodyInput } from '@/types/notifications';
@@ -18,6 +20,12 @@ type PreferencesResponse = PreferencesBodyInput & {
   phone: string | null;
   phoneVerified: boolean;
 };
+
+const ChannelToggleSchema = z.object({
+  channel: z.enum(['email', 'in_app']),
+  type: z.string().min(1),
+  enabled: z.boolean(),
+});
 
 function toChannelSet(row?: PreferencesRow | null): Set<NotificationChannel> {
   const next = new Set<NotificationChannel>();
@@ -117,6 +125,26 @@ function buildChannelsArray(channels: Record<string, boolean>): string[] {
   return next;
 }
 
+async function recordConsent(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  userId: string,
+  channel: string,
+  enabled: boolean,
+  metadata: Record<string, any>,
+) {
+  try {
+    await supabase.from('notification_consent_events').insert({
+      user_id: userId,
+      actor_id: userId,
+      channel,
+      action: enabled ? 'opt_in' : 'opt_out',
+      metadata,
+    });
+  } catch (error) {
+    console.warn('[notifications.preferences] consent log failed', error);
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const supabase = createSupabaseServerClient({ req, res });
   const {
@@ -135,11 +163,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST') {
+      const toggleParsed = ChannelToggleSchema.safeParse(req.body);
+      if (toggleParsed.success) {
+        const payload = toggleParsed.data;
+
+        const { data: existing } = await supabase
+          .from('notifications_opt_in')
+          .select('channels, email_opt_in')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const channels = new Set<string>(
+          Array.isArray(existing?.channels) ? (existing?.channels as string[]) : [],
+        );
+
+        const update: Partial<NotificationsOptIn> & { user_id: string } = { user_id: user.id };
+
+        if (payload.channel === 'in_app') {
+          if (payload.enabled) {
+            channels.add('in_app');
+          } else {
+            channels.delete('in_app');
+          }
+          update.channels = Array.from(channels);
+        } else if (payload.channel === 'email') {
+          update.email_opt_in = payload.enabled;
+        }
+
+        const { error: upsertError } = await supabase
+          .from('notifications_opt_in')
+          .upsert(update, { onConflict: 'user_id' });
+
+        if (upsertError) {
+          return res.status(500).json({ error: upsertError.message });
+        }
+
+        await recordConsent(supabase, user.id, payload.channel, payload.enabled, {
+          type: payload.type,
+        });
+
+        return res.status(200).json({ ok: true });
+      }
+
       const parsed = PreferencesBody.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ 
-          error: 'Invalid payload', 
-          details: parsed.error.flatten() 
+        return res.status(400).json({
+          error: 'Invalid payload',
+          details: parsed.error.flatten(),
         });
       }
 
@@ -162,6 +232,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (upsertError) {
         return res.status(500).json({ error: upsertError.message });
       }
+
+      await Promise.all([
+        recordConsent(supabase, user.id, 'email', !!body.channels.email, { type: 'bulk_preferences' }),
+        recordConsent(
+          supabase,
+          user.id,
+          'whatsapp',
+          !!body.channels.whatsapp,
+          { type: 'bulk_preferences' },
+        ),
+      ]);
 
       const preferences = await loadPreferences(supabase, user.id);
       return res.status(200).json({ preferences });
