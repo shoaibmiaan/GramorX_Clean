@@ -25,8 +25,7 @@ export const USD_PLAN_PRICES: Record<PlanKey, PlanPrice> = {
 };
 
 /**
- * Internal helper: make sure we don't silently read undefined configs.
- * Only used for paid plans.
+ * Internal helper: ensure configs exist.
  */
 const readPlanConfig = (plan: PlanKey): PlanPrice => {
   const config = USD_PLAN_PRICES[plan];
@@ -84,7 +83,7 @@ const PLAN_LIST: PlanDefinition[] = [
 ];
 
 /**
- * Object lookup by plan id, so `PLANS['starter']` works.
+ * Object lookup by plan id.
  */
 export const PLANS: Record<PlanId, PlanDefinition> = PLAN_LIST.reduce(
   (acc, plan) => {
@@ -95,14 +94,14 @@ export const PLANS: Record<PlanId, PlanDefinition> = PLAN_LIST.reduce(
 );
 
 /**
- * Ordered list (use for rendering cards in UI).
+ * Ordered list for UI.
  */
 export const ORDERED_PLANS: PlanDefinition[] = [...PLAN_LIST].sort(
   (a, b) => a.order - b.order,
 );
 
 /**
- * Human label for a plan id.
+ * Human labels.
  */
 export const PLAN_LABEL: Record<PlanId, string> = {
   free: 'Free',
@@ -112,8 +111,7 @@ export const PLAN_LABEL: Record<PlanId, string> = {
 };
 
 /**
- * Display price per *month* (for showing “$X/mo”), not necessarily
- * the actual amount charged in one transaction.
+ * Display price per month (used in UI).
  */
 export const getPlanDisplayPrice = (plan: PlanId, cycle: Cycle): number => {
   if (plan === 'free') return 0;
@@ -123,9 +121,7 @@ export const getPlanDisplayPrice = (plan: PlanId, cycle: Cycle): number => {
 };
 
 /**
- * Actual billing amount for the transaction:
- *  - monthly  → one month
- *  - annual   → full year upfront
+ * Billing transaction amount.
  */
 export const getPlanBillingAmount = (plan: PlanId, cycle: Cycle): number => {
   if (plan === 'free') return 0;
