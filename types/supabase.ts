@@ -1,7 +1,6 @@
 // types/supabase.ts
 // Table-shaped types used by Supabase client and RLS-safe inserts/updates.
 
-import type { MockAttemptStatus, MockModuleId } from './mock';
 import type { StudyPlan } from './plan';
 import type { AnyAttempt } from './attempts';
 import type { PlanId } from './pricing';
@@ -10,19 +9,6 @@ export interface TableBase {
   id: string | number;
   created_at: string;  // ISO
   updated_at?: string; // ISO
-}
-
-export interface MockAttempt extends TableBase {
-  user_id: string;
-  module: MockModuleId;
-  mock_id: string;
-  status: MockAttemptStatus;
-  answers?: Record<string, unknown> | null;
-  score?: Record<string, unknown> | null;
-  duration_seconds?: number | null;
-  started_at: string;
-  submitted_at?: string | null;
-  metadata?: Record<string, unknown> | null;
 }
 
 export interface ReadingExplanation extends TableBase {
