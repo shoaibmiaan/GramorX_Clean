@@ -11,6 +11,7 @@ import '@/styles/tokens.css';
 import '@/styles/semantic.css';
 import '@/styles/globals.css';
 import '@/styles/themes/index.css';
+import '@/styles/premium.css';
 
 import 'aos/dist/aos.css';
 import { AnimationProvider } from '@/components/providers/AnimationProvider';
