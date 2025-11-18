@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 
 import { Container } from '@/components/design-system/Container';
 import { NavLink } from '@/components/design-system/NavLink';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { NotificationBell } from '@/components/design-system/NotificationBell';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { StreakChip } from '@/components/user/StreakChip';

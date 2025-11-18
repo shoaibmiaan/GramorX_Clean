@@ -8,14 +8,12 @@ const MAX_LIST_LIMIT = 100;
 
 type NotificationRow = {
   id: string;
-  message?: string | null;
   title?: string | null;
   body?: string | null;
   url?: string | null;
-  metadata?: Record<string, any> | null;
+  data?: Record<string, any> | null;
   read?: boolean | null;
   created_at?: string | null;
-  type?: string | null;
 };
 
 type ListOptions = {
@@ -31,7 +29,7 @@ const normalizeIso = (value?: string | null) => {
 };
 
 const extractMessage = (row: NotificationRow) => {
-  const parts = [row.message, row.title, row.body, row?.metadata?.message];
+  const parts = [row.title, row.body, row?.data?.message];
   for (const part of parts) {
     if (typeof part === 'string' && part.trim().length > 0) {
       return part;
@@ -41,7 +39,7 @@ const extractMessage = (row: NotificationRow) => {
 };
 
 const extractUrl = (row: NotificationRow): string | null => {
-  const candidates = [row.url, row?.metadata?.url];
+  const candidates = [row.url, row?.data?.url];
   for (const candidate of candidates) {
     if (typeof candidate === 'string') {
       const trimmed = candidate.trim();
@@ -83,10 +81,9 @@ export class NotificationService {
       user_id: userId,
       type: input.type ?? 'generic',
       title: input.message,
-      message: input.message,
       body: input.message,
       url: input.url ?? null,
-      metadata: input.data ?? null,
+      data: input.data ?? null,
       read: false,
       created_at: createdAt.toISOString(),
     };
@@ -94,7 +91,7 @@ export class NotificationService {
     const { data, error } = await this.supabase
       .from('notifications')
       .insert(payload)
-      .select('id, title, body, message, metadata, url, read, created_at')
+      .select('id, title, body, data, url, read, created_at')
       .single<NotificationRow>();
 
     if (error || !data) {
@@ -111,7 +108,7 @@ export class NotificationService {
     const limit = this.clampLimit(options.limit);
     let query = this.supabase
       .from('notifications')
-      .select('id, title, body, message, metadata, url, read, created_at')
+      .select('id, title, body, data, url, read, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit + 1);

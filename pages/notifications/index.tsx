@@ -1,175 +1,308 @@
 import * as React from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import type { GetServerSideProps } from 'next';
+import { DateTime } from 'luxon';
 
 import { Container } from '@/components/design-system/Container';
 import { Button } from '@/components/design-system/Button';
 import { Alert } from '@/components/design-system/Alert';
-import { NotificationList } from '@/components/notifications/NotificationList';
-import type { NotificationRecord } from '@/lib/notifications/types';
-import { getServerClient } from '@/lib/supabaseServer';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import {
+  NotificationListResponseSchema,
+  type NotificationListResponse,
+  type NotificationNudge,
+} from '@/lib/schemas/notifications';
 
-const PAGE_LIMIT = 50;
+const PAGE_SIZE = 20;
 
 type NotificationsPageProps = {
-  initial: NotificationRecord[];
+  initial: NotificationListResponse;
+  loadError?: string | null;
 };
 
-function filterItems(items: NotificationRecord[], filter: 'all' | 'unread') {
-  if (filter === 'unread') return items.filter((item) => !item.read);
-  return items;
+function formatTimestamp(iso: string): string {
+  const dt = DateTime.fromISO(iso);
+  if (!dt.isValid) return '';
+  const relative = dt.toRelative({ style: 'long' });
+  return relative ?? dt.toLocaleString(DateTime.DATETIME_MED);
 }
 
-async function markNotifications(ids: string[]) {
-  if (ids.length === 0) return;
-  await fetch('/api/notifications/mark-read', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ids }),
-  });
-}
+const EMPTY_PAYLOAD: NotificationListResponse = {
+  items: [],
+  nextCursor: null,
+  unreadCount: 0,
+};
 
-const NotificationsPage: React.FC<NotificationsPageProps> = ({ initial }) => {
-  const [items, setItems] = React.useState(initial);
-  const [filter, setFilter] = React.useState<'all' | 'unread'>('all');
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+const NotificationsPage: React.FC<NotificationsPageProps> = ({ initial, loadError = null }) => {
+  const [items, setItems] = React.useState<NotificationNudge[]>(initial.items);
+  const [nextCursor, setNextCursor] = React.useState<string | null>(initial.nextCursor);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(loadError);
 
-  const unreadCount = React.useMemo(() => items.filter((item) => !item.read).length, [items]);
-  const displayed = filterItems(items, filter);
-
-  const refresh = React.useCallback(async () => {
-    setLoading(true);
+  const handleLoadMore = React.useCallback(async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
     setError(null);
+
     try {
-      const res = await fetch(`/api/notifications/feed?limit=${PAGE_LIMIT}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to refresh');
-      const data = await res.json();
-      setItems(Array.isArray(data.items) ? data.items : []);
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (nextCursor) params.set('cursor', nextCursor);
+
+      const response = await fetch(`/api/notifications/list?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to load more notifications.');
+
+      const json = await response.json();
+      const payload = NotificationListResponseSchema.parse(json);
+
+      setItems((prev) => [...prev, ...payload.items]);
+      setNextCursor(payload.nextCursor);
     } catch (err) {
-      console.error('[notifications] refresh failed', err);
-      setError('Unable to refresh notifications. Please try again.');
+      console.error('[notifications] load more error', err);
+      setError('Unable to load more notifications.');
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [loadingMore, nextCursor]);
+
+  const handleMarkAsRead = React.useCallback(async (notificationId: string) => {
+    try {
+      // Optimistic update
+      setItems(prev => prev.map(item => 
+        item.id === notificationId ? { ...item, read: true } : item
+      ));
+
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update on error
+        setItems(prev => prev.map(item => 
+          item.id === notificationId ? { ...item, read: false } : item
+        ));
+        throw new Error('Failed to mark as read');
+      }
+    } catch (err) {
+      console.error('[notifications] mark as read error', err);
+      setError('Failed to mark notification as read');
     }
   }, []);
 
-  const handleItemClick = React.useCallback((item: NotificationRecord) => {
-    if (item.read) return;
-    setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
-    void markNotifications([item.id]);
-  }, []);
+  const handleMarkAllAsRead = React.useCallback(async () => {
+    const unreadIds = items.filter(item => !item.read).map(item => item.id);
+    if (unreadIds.length === 0) return;
 
-  const handleMarkAll = React.useCallback(() => {
-    const ids = items.filter((item) => !item.read).map((item) => item.id);
-    if (ids.length === 0) return;
-    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
-    void markNotifications(ids);
+    try {
+      // Optimistic update
+      setItems(prev => prev.map(item => ({ ...item, read: true })));
+
+      // Mark each notification as read individually
+      await Promise.all(
+        unreadIds.map(id => 
+          fetch(`/api/notifications/${id}`, { method: 'PATCH' })
+        )
+      );
+    } catch (err) {
+      console.error('[notifications] mark all as read error', err);
+      setError('Failed to mark all as read');
+      // TODO: Revert optimistic update on error (would need to refetch)
+    }
   }, [items]);
+
+  const hasNotifications = items.length > 0;
+  const hasUnread = items.some(item => !item.read);
 
   return (
     <>
       <Head>
         <title>Notifications | GramorX</title>
       </Head>
-      <Container className="mx-auto max-w-5xl space-y-8 py-10">
-        <header className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+      <Container className="mx-auto max-w-4xl space-y-8 py-10">
+        <header className="space-y-3">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-caption uppercase tracking-[0.2em] text-muted-foreground">Inbox</p>
               <h1 className="font-slab text-h2 text-foreground">Notifications</h1>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button href="/settings/notifications" variant="soft" tone="info" size="sm">
-                Manage preferences
-              </Button>
-              <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-                {loading ? 'Refreshing…' : 'Refresh'}
-              </Button>
-            </div>
-          </div>
-          <p className="text-body text-muted-foreground">
-            Stay on top of streak nudges, mock results, and plan updates in one smart feed.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
-              {(['all', 'unread'] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`rounded-full px-4 py-1 text-small font-medium transition ${
-                    filter === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                  }`}
-                  onClick={() => setFilter(key)}
-                >
-                  {key === 'all' ? 'All' : `Unread (${unreadCount})`}
-                </button>
-              ))}
-            </div>
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleMarkAll}>
+            {hasUnread && (
+              <Button 
+                onClick={handleMarkAllAsRead} 
+                variant="soft" 
+                size="sm"
+              >
                 Mark all as read
               </Button>
             )}
           </div>
+          <p className="text-body text-muted-foreground">
+            See announcements, study nudges, and progress updates across your GramorX workspace.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button href="/settings/notifications" variant="soft" tone="info" size="sm">
+              Manage preferences
+            </Button>
+            <Button href="/dashboard" variant="outline" size="sm">
+              Back to dashboard
+            </Button>
+          </div>
         </header>
 
         {error && (
-          <Alert variant="error" title="Something went wrong" className="max-w-2xl">
+          <Alert variant="error" title="Something went wrong" className="max-w-2xl" role="alert">
             {error}
           </Alert>
         )}
 
-        <section className="rounded-3xl border border-border bg-card/60 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.6)]">
-          <NotificationList
-            items={displayed}
-            onItemClick={handleItemClick}
-            emptyMessage={filter === 'unread' ? 'No unread notifications' : 'All caught up!'}
-          />
-        </section>
+        <section aria-live="polite" className="space-y-6">
+          {hasNotifications ? (
+            <ul className="divide-y divide-border rounded-2xl border border-border bg-card/50">
+              {items.map((notification) => {
+                const formatted = formatTimestamp(notification.createdAt);
+                const unreadBadge = notification.read ? null : (
+                  <span className="inline-flex items-center rounded-full bg-electricBlue/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-electricBlue">
+                    New
+                  </span>
+                );
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
-          <span>
-            Showing {displayed.length} of {items.length} notifications
-          </span>
-          <Button href="/dashboard" variant="outline" size="sm">
-            Back to dashboard
-          </Button>
-        </footer>
+                const content = (
+                  <article className="flex flex-col gap-1 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="text-small font-semibold text-foreground">{notification.message}</h2>
+                      <div className="flex items-center gap-2">
+                        {unreadBadge}
+                        {!notification.read && (
+                          <button
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            title="Mark as read"
+                          >
+                            ✓
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-caption text-muted-foreground">{formatted}</p>
+                  </article>
+                );
+
+                return (
+                  <li key={notification.id} className="px-5 hover:bg-muted/50 transition-colors">
+                    {notification.url ? (
+                      <Link
+                        href={notification.url}
+                        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <div onClick={() => !notification.read && handleMarkAsRead(notification.id)}>
+                        {content}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 p-8 text-center">
+              <h2 className="font-slab text-h4 text-foreground">You&apos;re all caught up</h2>
+              <p className="mt-2 text-small text-muted-foreground">
+                We&apos;ll drop a notification here when there&apos;s something new—like streak milestones, study reminders, or
+                payment updates.
+              </p>
+              <div className="mt-6 flex justify-center">
+                <Button href="/learning" size="sm" variant="primary">
+                  Explore practice modules
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {nextCursor && (
+            <div className="flex justify-center">
+              <Button onClick={handleLoadMore} disabled={loadingMore} variant="ghost" size="sm">
+                {loadingMore ? 'Loading…' : 'Load older notifications'}
+              </Button>
+            </div>
+          )}
+        </section>
       </Container>
     </>
   );
 };
 
 export const getServerSideProps: GetServerSideProps<NotificationsPageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
+  const supabase = createSupabaseServerClient({ req: ctx.req, res: ctx.res });
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
+    const next = encodeURIComponent(ctx.resolvedUrl ?? '/notifications');
     return {
       redirect: {
-        destination: '/login',
+        destination: `/login?next=${next}`,
         permanent: false,
       },
     };
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gramorx.com';
+  const limitPlusOne = PAGE_SIZE + 1;
+
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, user_id, message, url, read, created_at, updated_at, title, type, metadata')
+    .select('id, message, url, read, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(PAGE_LIMIT);
+    .limit(limitPlusOne);
 
   if (error) {
-    console.error('[notifications] server fetch failed', error);
+    return {
+      props: {
+        initial: EMPTY_PAYLOAD,
+        loadError: error.message,
+      },
+    };
   }
+
+  const notifications = (data ?? []).map((row) => ({
+    id: row.id,
+    message: row.message ?? 'Notification',
+    url:
+      row.url && row.url.trim() !== ''
+        ? row.url.startsWith('http')
+          ? row.url
+          : `${baseUrl}${row.url}` // relative -> absolute
+        : null,
+    read: Boolean(row.read),
+    createdAt:
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : typeof row.created_at === 'string' && !isNaN(Date.parse(row.created_at))
+        ? new Date(row.created_at).toISOString()
+        : new Date().toISOString(),
+  }));
+
+  const items = notifications.slice(0, PAGE_SIZE);
+  const hasMore = notifications.length > PAGE_SIZE;
+  const nextCursor = hasMore ? items[items.length - 1]?.createdAt ?? null : null;
+
+  // REMOVED: Automatic mark-as-read in getServerSideProps
+  // This is now handled explicitly by user actions
+
+  const initial = NotificationListResponseSchema.parse({
+    items,
+    nextCursor,
+    unreadCount: items.filter(item => !item.read).length,
+  });
 
   return {
     props: {
-      initial: data ?? [],
+      initial,
+      loadError: null,
     },
   };
 };

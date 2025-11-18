@@ -1,23 +1,27 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/design-system/Toaster';
-import type { NotificationRecord } from '@/lib/notifications/types';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+
+export type Notification = {
+  id: string;
+  message: string;
+  url?: string | null;
+  read: boolean;
+  created_at: string;
+  createdAt?: string;
+};
 
 type Ctx = {
-  notifications: NotificationRecord[];
+  notifications: Notification[];
   unread: number;
   markRead: (id: string) => Promise<void>;
-  markMany: (ids: string[]) => Promise<void>;
-  refresh: () => Promise<void>;
 };
 
 const NotificationCtx = createContext<Ctx | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [unread, setUnread] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasSession, setHasSession] = useState(false);
   const toast = useToast();
 
@@ -35,10 +39,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setHasSession(!!session);
-      if (!session) {
-        setNotifications([]);
-        setUnread(0);
-      }
+      if (!session) setNotifications([]);
     });
 
     return () => {
@@ -53,20 +54,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const fetchNotifications = async () => {
       try {
-        const res = await fetch('/api/notifications/feed?limit=20', {
-          credentials: 'include',
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.warn('No session for fetching notifications');
+          return;
+        }
+        const res = await fetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         const data = await res.json();
-        if (!Array.isArray(data.items)) throw new Error('Invalid response format');
+        if (!Array.isArray(data.notifications)) throw new Error('Invalid response format');
         if (active) {
           setNotifications(
-            data.items.map((n: NotificationRecord) => ({
+            data.notifications.map((n: Notification) => ({
               ...n,
-              created_at: n.created_at ?? new Date().toISOString(),
+              created_at: n.created_at ?? n.createdAt ?? new Date().toISOString(),
             })),
           );
-          setUnread(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
         }
       } catch (error) {
         console.error('Fetch notifications error:', error);
@@ -74,7 +79,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     };
 
-    void fetchNotifications();
+    fetchNotifications();
 
     return () => {
       active = false;
@@ -89,11 +94,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications' },
-        (payload: { new: NotificationRecord }) => {
+        (payload: { new: Notification }) => {
           const n = payload.new;
-          setNotifications((prev) => [n, ...prev]);
-          setUnread((prev) => prev + 1);
-          toast.info(n.message ?? n.title ?? 'New notification');
+          setNotifications(prev => [n, ...prev]);
+          toast.info(n.message);
         }
       )
       .subscribe((status) => {
@@ -107,58 +111,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
   }, [hasSession, toast]);
 
-  const refresh = useCallback(async () => {
-    if (!hasSession) return;
-    try {
-      const res = await fetch('/api/notifications/feed?limit=20', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to refresh');
-      const data = await res.json();
-      setNotifications(
-        (data.items ?? []).map((n: NotificationRecord) => ({
-          ...n,
-          created_at: n.created_at ?? new Date().toISOString(),
-        })),
-      );
-      setUnread(typeof data.unreadCount === 'number' ? data.unreadCount : 0);
-    } catch (error) {
-      console.error('Refresh notifications failed', error);
-    }
-  }, [hasSession]);
-
-  const markMany = useCallback(async (ids: string[]) => {
-    if (ids.length === 0) return;
-    setNotifications((prev) => {
-      const idSet = new Set(ids);
-      let changed = 0;
-      const next = prev.map((n) => {
-        if (idSet.has(n.id) && !n.read) {
-          changed += 1;
-          return { ...n, read: true };
-        }
-        return idSet.has(n.id) ? { ...n, read: true } : n;
-      });
-      if (changed > 0) {
-        setUnread((prevCount) => Math.max(0, prevCount - changed));
-      }
-      return next;
-    });
-    try {
-      await fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ids }),
-      });
-    } catch (error) {
-      console.error('markMany notifications failed', error);
-      void refresh();
-    }
-  }, [refresh]);
-
   const markRead = useCallback(async (id: string) => {
-    await markMany([id]);
-  }, [markMany]);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('No session for marking notification read');
+        return;
+      }
+      await fetch(`/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+    } catch {
+      /* noop */
+    }
+  }, []);
 
-  const value = { notifications, unread, markRead, markMany, refresh };
+  const unread = notifications.filter((n) => !n.read).length;
+
+  const value = { notifications, unread, markRead };
 
   return <NotificationCtx.Provider value={value}>{children}</NotificationCtx.Provider>;
 }
