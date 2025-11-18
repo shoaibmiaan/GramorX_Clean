@@ -1,6 +1,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import { sendNotification } from '@/lib/notifications';
 
 type StreakResponse = {
   current_streak: number;
@@ -80,6 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     let newStreak = 1;
+    const previousStreak = existing?.current_streak ?? 0;
     let shields = currentTokens;
 
     if (action === 'use' && currentTokens > 0) {
@@ -119,6 +121,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         return res.status(500).json({ error: shieldUpdateErr.message });
       }
       await supabase.from('streak_shield_logs').insert({ user_id: user.id, action: 'use' });
+    }
+
+    if (newStreak > previousStreak) {
+      try {
+        await sendNotification(req, res, {
+          userId: user.id,
+          type: 'streak_update',
+          title: '🔥 Streak Updated',
+          body: `You maintained your streak! Day ${newStreak}.`,
+          data: { streak: newStreak },
+        });
+      } catch (error) {
+        console.warn('[streak_handler] notification failed', error);
+      }
     }
 
     return res.status(200).json({

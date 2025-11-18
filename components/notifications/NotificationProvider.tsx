@@ -9,6 +9,7 @@ export type Notification = {
   url?: string | null;
   read: boolean;
   created_at: string;
+  createdAt?: string;
 };
 
 type Ctx = {
@@ -64,7 +65,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         const data = await res.json();
         if (!Array.isArray(data.notifications)) throw new Error('Invalid response format');
-        if (active) setNotifications(data.notifications);
+        if (active) {
+          setNotifications(
+            data.notifications.map((n: Notification) => ({
+              ...n,
+              created_at: n.created_at ?? n.createdAt ?? new Date().toISOString(),
+            })),
+          );
+        }
       } catch (error) {
         console.error('Fetch notifications error:', error);
         toast.error('Failed to load notifications');

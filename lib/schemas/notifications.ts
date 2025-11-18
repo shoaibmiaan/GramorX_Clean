@@ -9,10 +9,15 @@ export const CreateNotificationSchema = z.object({
   url: z.string().url().optional().or(z.literal('')),
 });
 
+const RelativeOrAbsoluteUrl = z
+  .string()
+  .url()
+  .or(z.string().regex(/^\//, 'relative_path'));
+
 export const NotificationNudgeSchema = z.object({
   id: z.string().uuid().or(z.literal('welcome')),
   message: z.string(),
-  url: z.string().url().nullable(),
+  url: RelativeOrAbsoluteUrl.nullable(),
   read: z.boolean(),
   createdAt: z.string().datetime(),
 });
