@@ -601,8 +601,25 @@ export interface ExamEvents extends TableBase {
   occurred_at: string;
 }
 
-export type NotificationChannel = 'email' | 'whatsapp';
+export type NotificationChannel = 'in_app' | 'email' | 'whatsapp' | 'push';
 export type DeliveryStatus = 'pending' | 'sent' | 'failed' | 'deferred';
+
+export interface NotificationRow extends TableBase {
+  user_id: string;
+  type?: string | null;
+  title?: string | null;
+  body?: string | null;
+  message?: string | null;
+  url?: string | null;
+  channel?: NotificationChannel | null;
+  meta?: Record<string, unknown> | null;
+  data?: Record<string, unknown> | null;
+  read?: boolean | null;
+  is_read?: boolean | null;
+  read_at?: string | null;
+  sent_at?: string | null;
+  template_id?: string | null;
+}
 
 export interface NotificationsOptIn extends TableBase {
   user_id: string;
@@ -613,15 +630,22 @@ export interface NotificationsOptIn extends TableBase {
   quiet_hours_start?: string | null;
   quiet_hours_end?: string | null;
   timezone?: string | null;
+  channel?: NotificationChannel | null;
+  enabled?: boolean | null;
+  updated_at?: string | null;
 }
 
 export interface NotificationTemplate extends TableBase {
   template_key: string;
-  channel: NotificationChannel;
+  event_key?: string | null;
+  channel: string;
   locale: string;
   subject?: string | null;
   body: string;
   metadata: Record<string, unknown>;
+  title_template?: string | null;
+  body_template?: string | null;
+  default_enabled?: boolean | null;
 }
 
 export interface NotificationEvent extends TableBase {
@@ -633,6 +657,7 @@ export interface NotificationEvent extends TableBase {
   idempotency_key?: string | null;
   error?: string | null;
   processed_at?: string | null;
+  created_at?: string | null;
 }
 
 export interface NotificationDelivery extends TableBase {
@@ -646,6 +671,7 @@ export interface NotificationDelivery extends TableBase {
   sent_at?: string | null;
   error?: string | null;
   metadata: Record<string, unknown>;
+  notification_id?: string | null;
 }
 
 export interface NotificationSchedule extends TableBase {
@@ -665,6 +691,8 @@ export interface NotificationConsentEvent extends TableBase {
   channel: 'email' | 'sms' | 'whatsapp';
   action: 'opt_in' | 'opt_out' | 'verify' | 'test_message' | 'task';
   metadata?: Record<string, unknown> | null;
+  source?: string | null;
+  meta?: Record<string, unknown> | null;
 }
 
 export interface AiAssistLog extends TableBase {
@@ -842,6 +870,7 @@ export interface DBSchema {
   study_plan_focus: StudyPlanFocusRow;
 
   // kept from codex/add-whatsapp-opt-in-preferences-panel
+  notifications: NotificationRow;
   notifications_opt_in: NotificationsOptIn;
   notification_templates: NotificationTemplate;
   notification_events: NotificationEvent;

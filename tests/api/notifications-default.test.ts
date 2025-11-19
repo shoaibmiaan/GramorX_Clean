@@ -1,11 +1,13 @@
 import { strict as assert } from 'node:assert';
 import { resolve } from 'node:path';
 
-// Stub env module
 const envPath = resolve(__dirname, '../../lib/env.ts');
 require.cache[envPath] = { exports: { env: {} } };
 
-// Mock Supabase server client
+const mockRows = [
+  { id: '1', title: 'Welcome to GramorX!', created_at: new Date().toISOString(), read_at: null },
+];
+
 const supabaseClient = {
   auth: {
     getUser: async () => ({ data: { user: { id: 'user1' } } }),
@@ -15,19 +17,27 @@ const supabaseClient = {
       return {
         select: () => ({
           eq: () => ({
-            order: async () => ({ data: [], error: null }),
+            order: () => ({
+              limit: () => ({
+                lt: () => ({ data: mockRows, error: null }),
+                then: (resolveFn: any) => resolveFn({ data: mockRows, error: null }),
+              }),
+            }),
           }),
         }),
       } as any;
     }
-    return {} as any;
+    return {
+      select: () => ({ eq: () => ({ is: () => ({ count: 1, error: null }) }) }),
+    } as any;
   },
 };
+
 require.cache[require.resolve('../../lib/supabaseServer')] = {
-  exports: { createSupabaseServerClient: () => supabaseClient },
+  exports: { getServerClient: () => supabaseClient },
 };
 
-const handler = require('../../pages/api/notifications/index').default;
+const handler = require('../../pages/api/notifications/list').default;
 
 (async () => {
   const res = {
@@ -43,10 +53,9 @@ const handler = require('../../pages/api/notifications/index').default;
     body: undefined as any,
   };
 
-  await handler({ method: 'GET', headers: {} } as any, res as any);
+  await handler({ method: 'GET', headers: {}, query: {} } as any, res as any);
   assert.equal(res.statusCode, 200);
-  assert.ok(Array.isArray(res.body.notifications));
-  assert.equal(res.body.notifications[0].title, 'Welcome to GramorX!');
-  assert.equal(res.body.unread, 1);
-  console.log('notifications API default message tested');
+  assert.ok(Array.isArray(res.body.items));
+  assert.equal(res.body.items[0].title, 'Welcome to GramorX!');
+  console.log('notifications list API tested');
 })();

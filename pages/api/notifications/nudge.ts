@@ -1,17 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { withPlan, type PlanGuardContext } from '@/lib/api/withPlan';
-import { enqueueEvent } from '@/lib/notify';
-import { EnqueueBody } from '@/types/notifications';
+import { z } from 'zod';
 
-const NudgeBody = EnqueueBody.pick({
-  user_id: true,
-  event_key: true,
-  payload: true,
-  channels: true,
-  locale: true,
-  bypass_quiet_hours: true,
-}).extend({
-  event_key: EnqueueBody.shape.event_key.default('nudge_manual'),
+import { withPlan, type PlanGuardContext } from '@/lib/api/withPlan';
+import { enqueueNotification } from '@/lib/notifications/enqueue';
+import type { NotificationChannel } from '@/lib/notifications/types';
+import { supabaseService } from '@/lib/supabaseServer';
+
+const ChannelEnum = z.enum(['in_app', 'email', 'whatsapp', 'push']);
+
+const NudgeBody = z.object({
+  user_id: z.string().uuid(),
+  event_key: z.string().min(1).default('nudge_manual'),
+  payload: z.record(z.unknown()).optional(),
+  channels: z.array(ChannelEnum).optional(),
+  channelOverride: ChannelEnum.optional(),
+  idempotency_key: z.string().optional(),
 });
 
 function buildIdempotencyKey(userId: string, eventKey: string): string {
@@ -19,7 +22,7 @@ function buildIdempotencyKey(userId: string, eventKey: string): string {
   return `${eventKey}:${userId}:${today}`;
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse, ctx?: PlanGuardContext) {
+export default withPlan('starter', async (req: NextApiRequest, res: NextApiResponse, ctx?: PlanGuardContext) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
@@ -32,19 +35,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse, ctx?: PlanGuar
 
   const parsed = NudgeBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ 
-      error: 'Invalid payload', 
-      details: parsed.error.flatten() 
-    });
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
   }
 
   const body = parsed.data;
-  const idempotencyKey = buildIdempotencyKey(body.user_id, body.event_key);
+  const supabase = supabaseService();
 
-  return enqueueEvent(req, res, { 
-    ...body, 
-    idempotency_key: idempotencyKey 
-  });
-}
-
-export default withPlan('starter', handler, { allowRoles: ['admin', 'teacher'] });
+  try {
+    await enqueueNotification(supabase, {
+      userId: body.user_id,
+      eventKey: body.event_key,
+      payload: body.payload,
+      channels: body.channels as NotificationChannel[] | undefined,
+      channelOverride: body.channelOverride,
+      idempotencyKey: body.idempotency_key ?? buildIdempotencyKey(body.user_id, body.event_key),
+    });
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to enqueue nudge';
+    console.error('[notifications/nudge] failed', error);
+    return res.status(500).json({ error: message });
+  }
+}, { allowRoles: ['admin', 'teacher'] });

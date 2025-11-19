@@ -1,25 +1,19 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Bell, Check, ExternalLink } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/design-system/DropdownMenu';
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/design-system/DropdownMenu';
 import { Button } from '@/components/design-system/Button';
 import { useNotifications } from '@/hooks/useNotifications';
-import { formatTimestamp } from '@/lib/utils';
+
+const MAX_VISIBLE = 5;
 
 export const NotificationsDropdown: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
+  const { items, unreadCount, markAsRead, markAllRead, loading } = useNotifications();
+  const visibleItems = items.slice(0, MAX_VISIBLE);
 
-  const handleNotificationClick = (notification: any) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
-    }
+  const handleNotificationClick = (notificationId: string) => {
+    void markAsRead(notificationId);
   };
 
   return (
@@ -38,72 +32,50 @@ export const NotificationsDropdown: React.FC = () => {
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={() => void markAllRead()} className="text-xs">
               Mark all read
             </Button>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         <div className="max-h-96 overflow-y-auto">
-          {isLoading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              Loading...
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications
-            </div>
+          {loading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : visibleItems.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
-            notifications.slice(0, 5).map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className="flex flex-col items-start p-3"
-                asChild
-              >
+            visibleItems.map((notification) => (
+              <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3" asChild>
                 {notification.url ? (
-                  <Link
-                    href={notification.url}
-                    className="w-full"
-                    onClick={() => handleNotificationClick(notification)}
-                  >
+                  <Link href={notification.url} className="w-full" onClick={() => handleNotificationClick(notification.id)}>
                     <div className="flex w-full items-start justify-between gap-2">
-                      <p className="text-sm font-medium flex-1">
-                        {notification.message}
+                      <p className="flex-1 text-sm font-medium">
+                        {notification.title ?? notification.message ?? 'Notification'}
                       </p>
-                      {!notification.read && (
+                      {!notification.readAt && (
                         <div className="flex items-center gap-1">
                           <span className="h-2 w-2 rounded-full bg-blue-500" />
                           <Check className="h-3 w-3" />
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatTimestamp(notification.createdAt)}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(notification.createdAt).toLocaleString()}
                     </p>
                   </Link>
                 ) : (
-                  <div 
-                    className="w-full"
-                    onClick={() => handleNotificationClick(notification)}
-                  >
+                  <button className="w-full text-left" onClick={() => handleNotificationClick(notification.id)}>
                     <div className="flex w-full items-start justify-between gap-2">
-                      <p className="text-sm font-medium flex-1">
-                        {notification.message}
+                      <p className="flex-1 text-sm font-medium">
+                        {notification.title ?? notification.message ?? 'Notification'}
                       </p>
-                      {!notification.read && (
-                        <Check className="h-3 w-3" />
-                      )}
+                      {!notification.readAt && <Check className="h-3 w-3" />}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatTimestamp(notification.createdAt)}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(notification.createdAt).toLocaleString()}
                     </p>
-                  </div>
+                  </button>
                 )}
               </DropdownMenuItem>
             ))
@@ -112,10 +84,7 @@ export const NotificationsDropdown: React.FC = () => {
 
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link
-            href="/notifications"
-            className="flex items-center justify-center text-sm font-medium"
-          >
+          <Link href="/notifications" className="flex items-center justify-center text-sm font-medium">
             View all notifications
             <ExternalLink className="ml-1 h-3 w-3" />
           </Link>
