@@ -13,6 +13,14 @@ import {
   type AppRole,
 } from '@/lib/routeAccess';
 
+const normalizeRole = (raw: unknown): AppRole | null => {
+  if (!raw) return null;
+  const value = String(raw).toLowerCase();
+  return value === 'student' || value === 'teacher' || value === 'admin'
+    ? (value as AppRole)
+    : null;
+};
+
 function safeNext(next?: string | string[] | null) {
   const n = typeof next === 'string' ? next : Array.isArray(next) ? next[0] : '';
   if (!n) return '';
@@ -44,7 +52,7 @@ export function useRouteGuard() {
 
         const authed = !!session && !error;
         const user = session?.user ?? null;
-        const role: AppRole | null = getUserRole(user);
+        let role: AppRole | null = getUserRole(user);
 
         // Public routes never redirect (but we can still hydrate locale)
         const publicR = isPublicRoute(path);
@@ -54,12 +62,20 @@ export function useRouteGuard() {
         if (authed && user) {
           const { data: profile } = await supabase
             .from('profiles') // keep your table name aligned with your schema
-            .select('preferred_language')
+            .select('preferred_language, role')
             .eq('user_id', user.id)
             .maybeSingle();
 
           const lang = profile?.preferred_language || 'en';
           setLocale(lang);
+
+          if (!role) {
+            role = normalizeRole(profile?.role) ?? 'student';
+          }
+        }
+
+        if (!role && authed) {
+          role = 'student';
         }
 
         // Prevent duplicate redirects

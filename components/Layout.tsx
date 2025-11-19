@@ -11,7 +11,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FooterMini from '@/components/navigation/FooterMini';
 import QuickAccessWidget from '@/components/navigation/QuickAccessWidget';
-import { BreadcrumbsBar } from '@/components/navigation/Breadcrumbs';
 
 // Load BottomNav only on the client (avoid SSR hydration mismatches)
 const BottomNav = dynamic(
@@ -41,8 +40,13 @@ const matches = (patterns: RegExp[], path: string): boolean =>
 export default function Layout({ children }: LayoutProps) {
   const { pathname } = useRouter();
 
-  // Mini footer for dashboard / auth screens
-  const useMiniFooter = matches(MINI_ROUTE_PATTERNS, pathname);
+  // 🔹 All mock overview pages → force mini footer
+  const isMockOverview = /^\/mock\/(listening|reading|writing|speaking)\/overview$/.test(
+    pathname
+  );
+
+  // Mini footer for dashboard/auth/etc + mock overview pages
+  const useMiniFooter = isMockOverview || matches(MINI_ROUTE_PATTERNS, pathname);
 
   // Hide mobile nav for restricted routes
   const showBottomNav = !matches(HIDE_BOTTOM_NAV_PATTERNS, pathname);
@@ -51,7 +55,6 @@ export default function Layout({ children }: LayoutProps) {
     <>
       <a id="top" aria-hidden="true" />
       <Header />
-      <BreadcrumbsBar />
 
       <main className="min-h-[60vh] pt-safe pb-[calc(env(safe-area-inset-bottom,0px)+72px)] md:pb-16 lg:pb-20">
         {children}

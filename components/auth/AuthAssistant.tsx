@@ -19,6 +19,7 @@ interface Message {
 export type AuthAssistantProps = {
   variant?: 'floating' | 'embedded';
   className?: string;
+  /** Optional initial assistant message (used by GX Brain) */
   initialMessage?: React.ReactNode;
 };
 
@@ -52,9 +53,11 @@ export default function AuthAssistant({
       setMessages([{ role: 'assistant', content: initialMessage }]);
       return;
     }
+
     const path = router.pathname;
     const isLogin = path.startsWith('/login');
     const isSignup = path.startsWith('/signup');
+
     setMessages([
       {
         role: 'assistant',
@@ -99,6 +102,7 @@ export default function AuthAssistant({
     ]);
   }, [initialMessage, router.pathname]);
 
+  // Keep embedded variant always open
   useEffect(() => {
     if (isEmbedded) {
       setOpen(true);
@@ -125,16 +129,21 @@ export default function AuthAssistant({
     e?.preventDefault();
     const text = input.trim();
     if (!text) return;
+
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setInput('');
     setLoading(true);
     setLongWait(false);
+
     if (waitTimerRef.current) {
       window.clearTimeout(waitTimerRef.current);
     }
     waitTimerRef.current = window.setTimeout(() => setLongWait(true), 10000);
+
+    // tiny jitter so it doesn’t feel robotic
     const jitter = 200 + Math.floor(Math.random() * 400);
     await new Promise((resolve) => setTimeout(resolve, jitter));
+
     try {
       const res = await fetch('/api/ai/test-drive', {
         method: 'POST',
@@ -274,9 +283,8 @@ export default function AuthAssistant({
       )}
       role="region"
       aria-label="Authentication assistant"
-        // Positioning: when dragged, we switch from bottom/right pinning to absolute top/left coordinates.
-        // eslint-disable-next-line ds-guard/no-inline-style
-        style={
+      // Positioning: when dragged, we switch from bottom/right pinning to absolute top/left coordinates.
+      style={
         !isEmbedded && position
           ? {
               top: position.y,

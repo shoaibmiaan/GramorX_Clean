@@ -1,177 +1,186 @@
 import * as React from 'react';
 import Head from 'next/head';
-import type { GetServerSideProps } from 'next';
+import Link from 'next/link';
+import type { GetServerSideProps, NextPage } from 'next';
 
 import { Container } from '@/components/design-system/Container';
 import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
 import { Alert } from '@/components/design-system/Alert';
-import { NotificationList } from '@/components/notifications/NotificationList';
-import type { NotificationRecord } from '@/lib/notifications/types';
-import { getServerClient } from '@/lib/supabaseServer';
+import { useNotifications } from '@/hooks/useNotifications';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
-const PAGE_LIMIT = 50;
+const Filters = ['all', 'unread'] as const;
+type FilterValue = (typeof Filters)[number];
 
-type NotificationsPageProps = {
-  initial: NotificationRecord[];
-};
+const NotificationsPage: NextPage = () => {
+  const { items, unreadCount, loading, error, markAllRead, markAsRead, refetch } = useNotifications();
+  const [filter, setFilter] = React.useState<FilterValue>('all');
 
-function filterItems(items: NotificationRecord[], filter: 'all' | 'unread') {
-  if (filter === 'unread') return items.filter((item) => !item.read);
-  return items;
-}
-
-async function markNotifications(ids: string[]) {
-  if (ids.length === 0) return;
-  await fetch('/api/notifications/mark-read', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ids }),
-  });
-}
-
-const NotificationsPage: React.FC<NotificationsPageProps> = ({ initial }) => {
-  const [items, setItems] = React.useState(initial);
-  const [filter, setFilter] = React.useState<'all' | 'unread'>('all');
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const unreadCount = React.useMemo(() => items.filter((item) => !item.read).length, [items]);
-  const displayed = filterItems(items, filter);
-
-  const refresh = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/notifications/feed?limit=${PAGE_LIMIT}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to refresh');
-      const data = await res.json();
-      setItems(Array.isArray(data.items) ? data.items : []);
-    } catch (err) {
-      console.error('[notifications] refresh failed', err);
-      setError('Unable to refresh notifications. Please try again.');
-    } finally {
-      setLoading(false);
+  const filteredItems = React.useMemo(() => {
+    if (filter === 'unread') {
+      return items.filter((item) => !item.readAt);
     }
-  }, []);
+    return items;
+  }, [filter, items]);
 
-  const handleItemClick = React.useCallback((item: NotificationRecord) => {
-    if (item.read) return;
-    setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
-    void markNotifications([item.id]);
-  }, []);
-
-  const handleMarkAll = React.useCallback(() => {
-    const ids = items.filter((item) => !item.read).map((item) => item.id);
-    if (ids.length === 0) return;
-    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
-    void markNotifications(ids);
-  }, [items]);
+  const hasNotifications = filteredItems.length > 0;
 
   return (
     <>
       <Head>
-        <title>Notifications | GramorX</title>
+        <title>Notifications • GramorX</title>
       </Head>
-      <Container className="mx-auto max-w-5xl space-y-8 py-10">
-        <header className="space-y-4">
+      <Container className="mx-auto max-w-4xl space-y-8 py-10">
+        <header className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-caption uppercase tracking-[0.2em] text-muted-foreground">Inbox</p>
               <h1 className="font-slab text-h2 text-foreground">Notifications</h1>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button href="/settings/notifications" variant="soft" tone="info" size="sm">
-                Manage preferences
-              </Button>
-              <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-                {loading ? 'Refreshing…' : 'Refresh'}
+            <div className="flex items-center gap-3">
+              <Badge tone={unreadCount > 0 ? 'info' : 'neutral'}>{unreadCount} unread</Badge>
+              <Button
+                variant="soft"
+                size="sm"
+                disabled={unreadCount === 0}
+                onClick={() => {
+                  void markAllRead();
+                }}
+              >
+                Mark all as read
               </Button>
             </div>
           </div>
           <p className="text-body text-muted-foreground">
-            Stay on top of streak nudges, mock results, and plan updates in one smart feed.
+            See announcements, study nudges, and progress updates across your GramorX workspace.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-full border border-border/70 bg-muted/40 p-0.5">
-              {(['all', 'unread'] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`rounded-full px-4 py-1 text-small font-medium transition ${
-                    filter === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                  }`}
-                  onClick={() => setFilter(key)}
-                >
-                  {key === 'all' ? 'All' : `Unread (${unreadCount})`}
-                </button>
-              ))}
-            </div>
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleMarkAll}>
-                Mark all as read
-              </Button>
-            )}
+          <div className="flex flex-wrap gap-3">
+            <Button href="/settings/notifications" variant="soft" tone="info" size="sm">
+              Manage preferences
+            </Button>
+            <Button href="/dashboard" variant="outline" size="sm">
+              Back to dashboard
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void refetch()}>
+              Refresh
+            </Button>
           </div>
         </header>
 
-        {error && (
-          <Alert variant="error" title="Something went wrong" className="max-w-2xl">
-            {error}
-          </Alert>
-        )}
+        <div className="flex gap-2">
+          {Filters.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilter(value)}
+              className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                filter === value ? 'bg-foreground text-background' : 'bg-muted text-foreground'
+              }`}
+            >
+              {value === 'all' ? 'All' : 'Unread'}
+            </button>
+          ))}
+        </div>
 
-        <section className="rounded-3xl border border-border bg-card/60 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.6)]">
-          <NotificationList
-            items={displayed}
-            onItemClick={handleItemClick}
-            emptyMessage={filter === 'unread' ? 'No unread notifications' : 'All caught up!'}
-          />
+        {error && <Alert variant="error" title="Something went wrong">{error}</Alert>}
+
+        <section aria-live="polite" className="space-y-3">
+          {loading ? (
+            <div className="rounded-2xl border border-border/60 bg-card/40 p-6 text-center text-muted-foreground">
+              Loading notifications…
+            </div>
+          ) : hasNotifications ? (
+            <div className="divide-y divide-border rounded-2xl border border-border bg-card/50">
+              {filteredItems.map((notification) => {
+                const isUnread = !notification.readAt;
+                const content = (
+                  <article className="flex flex-col gap-1 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-small font-semibold text-foreground">
+                          {notification.title ?? notification.message ?? 'Notification'}
+                        </h2>
+                        <p className="text-caption text-muted-foreground">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {isUnread && (
+                        <span className="inline-flex items-center rounded-full bg-electricBlue/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-electricBlue">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    {notification.message && (
+                      <p className="text-body text-muted-foreground">{notification.message}</p>
+                    )}
+                  </article>
+                );
+
+                if (notification.url) {
+                  return (
+                    <Link
+                      key={notification.id}
+                      href={notification.url}
+                      className="block px-5 transition-colors hover:bg-muted/40"
+                      onClick={() => {
+                        if (isUnread) void markAsRead(notification.id);
+                      }}
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div
+                    key={notification.id}
+                    className="px-5 transition-colors hover:bg-muted/40"
+                    onClick={() => {
+                      if (isUnread) void markAsRead(notification.id);
+                    }}
+                  >
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 p-8 text-center">
+              <h2 className="font-slab text-h4 text-foreground">You&apos;re all caught up</h2>
+              <p className="mt-2 text-small text-muted-foreground">
+                We&apos;ll drop a notification here when there&apos;s something new—like streak milestones, study reminders, or payment updates.
+              </p>
+              <div className="mt-6 flex justify-center">
+                <Button href="/learning" size="sm" variant="primary">
+                  Explore practice modules
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
-          <span>
-            Showing {displayed.length} of {items.length} notifications
-          </span>
-          <Button href="/dashboard" variant="outline" size="sm">
-            Back to dashboard
-          </Button>
-        </footer>
       </Container>
     </>
   );
 };
 
-export const getServerSideProps: GetServerSideProps<NotificationsPageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const supabase = createSupabaseServerClient({ req: ctx.req, res: ctx.res });
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
+    const next = encodeURIComponent(ctx.resolvedUrl ?? '/notifications');
     return {
       redirect: {
-        destination: '/login',
+        destination: `/login?next=${next}`,
         permanent: false,
       },
     };
   }
 
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('id, user_id, message, url, read, created_at, updated_at, title, type, metadata')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(PAGE_LIMIT);
-
-  if (error) {
-    console.error('[notifications] server fetch failed', error);
-  }
-
-  return {
-    props: {
-      initial: data ?? [],
-    },
-  };
+  return { props: {} };
 };
 
 export default NotificationsPage;

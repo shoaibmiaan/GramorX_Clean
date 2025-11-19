@@ -113,6 +113,7 @@ const Dashboard: NextPage = () => {
     loading: streakLoading,
     shields,
     timezone,
+    lastDayKey,
     reload: reloadStreak,
   } = useStreak();
 
