@@ -8,6 +8,9 @@ import { navigationSchema } from '@/config/navigation';
 import { filterNavItems } from '@/lib/navigation/utils';
 import { Icon } from '@/components/design-system/Icon';
 import { Button } from '@/components/design-system/Button';
+import AuthAssistant from '@/components/auth/AuthAssistant';
+
+type TabId = 'quick' | 'help';
 import { useUserContext } from '@/context/UserContext';
 import { isFeatureEnabled } from '@/lib/constants/features';
 import type { SubscriptionTier } from '@/lib/navigation/types';
@@ -30,8 +33,31 @@ export const QuickAccessWidget: React.FC = () => {
       }),
     [isAuthenticated, subscriptionTier]
   );
+  const hasQuickActions = items.length > 0;
+  const [activeTab, setActiveTab] = React.useState<TabId>(hasQuickActions ? 'quick' : 'help');
 
-  if (!isFeatureEnabled('floatingWidget') || items.length === 0) {
+  React.useEffect(() => {
+    if (!hasQuickActions && activeTab === 'quick') {
+      setActiveTab('help');
+    }
+  }, [activeTab, hasQuickActions]);
+
+  React.useEffect(() => {
+    if (!open && hasQuickActions) {
+      setActiveTab('quick');
+    }
+  }, [hasQuickActions, open]);
+
+  const tabs = React.useMemo(() => {
+    const base: { id: TabId; label: string }[] = [];
+    if (hasQuickActions) {
+      base.push({ id: 'quick', label: 'Quick actions' });
+    }
+    base.push({ id: 'help', label: 'Need help' });
+    return base;
+  }, [hasQuickActions]);
+
+  if (!isFeatureEnabled('floatingWidget')) {
     return null;
   }
 
@@ -50,8 +76,12 @@ export const QuickAccessWidget: React.FC = () => {
           >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="font-slab text-h4">Quick actions</p>
-                <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Stay on track with a single tap.</p>
+                <p className="font-slab text-h4">Quick help</p>
+                <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                  {activeTab === 'quick'
+                    ? 'Stay on track with a single tap.'
+                    : 'Ask a question or get support instantly.'}
+                </p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -61,25 +91,50 @@ export const QuickAccessWidget: React.FC = () => {
                 <Icon name="X" className="h-4 w-4" />
               </button>
             </div>
-            <ul className="space-y-2">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-3 rounded-xl border border-border/60 dark:border-border-dark/60 px-3 py-2.5 text-sm transition hover:border-border dark:hover:border-border-dark hover:bg-muted dark:hover:bg-muted-dark"
-                    onClick={() => setOpen(false)}
+            {tabs.length > 1 && (
+              <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl bg-muted/60 p-1 text-xs font-semibold text-muted-foreground dark:bg-muted-dark/60">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    className={`rounded-xl px-3 py-1 transition ${
+                      activeTab === tab.id
+                        ? 'bg-background text-foreground shadow-sm dark:bg-background-dark'
+                        : ''
+                    }`}
+                    onClick={() => setActiveTab(tab.id)}
+                    type="button"
                   >
-                    {item.icon && <Icon name={item.icon} className="h-5 w-5 text-primary dark:text-primary-dark" />}
-                    <span>{item.label}</span>
-                    {item.badge && (
-                      <span className="ml-auto inline-flex items-center rounded-full bg-muted dark:bg-muted-dark px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeTab === 'quick' && hasQuickActions && (
+              <ul className="space-y-2">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center gap-3 rounded-xl border border-border/60 dark:border-border-dark/60 px-3 py-2.5 text-sm transition hover:border-border dark:hover:border-border-dark hover:bg-muted dark:hover:bg-muted-dark"
+                      onClick={() => setOpen(false)}
+                    >
+                      {item.icon && <Icon name={item.icon} className="h-5 w-5 text-primary dark:text-primary-dark" />}
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto inline-flex items-center rounded-full bg-muted dark:bg-muted-dark px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {activeTab === 'help' && (
+              <div className="space-y-2 rounded-2xl border border-border/60 bg-card/80 p-2 dark:border-border-dark/60 dark:bg-card-dark/80">
+                <AuthAssistant variant="embedded" className="w-full rounded-xl border-none bg-transparent shadow-none" />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -96,7 +151,7 @@ export const QuickAccessWidget: React.FC = () => {
             aria-expanded={open}
             aria-controls="quick-actions-menu"
           >
-            {open ? 'Close' : 'Quick Access'}
+            {open ? 'Close' : 'Need help & quick actions'}
           </Button>
         </motion.div>
       </div>

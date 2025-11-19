@@ -7,7 +7,6 @@ import type { SubscriptionTier } from '@/lib/navigation/types';
 import Layout from '@/components/Layout';
 import { ImpersonationBanner } from '@/components/admin/ImpersonationBanner';
 import SidebarAI from '@/components/ai/SidebarAI';
-import AuthAssistant from '@/components/auth/AuthAssistant';
 import { Card } from '@/components/design-system/Card';
 import { Input } from '@/components/design-system/Input';
 import { Textarea } from '@/components/design-system/Textarea';
@@ -366,7 +365,6 @@ export function AppLayoutManager({
         </>
       )}
 
-      <AuthAssistant />
       <SidebarAI />
       <UpgradeModal />
       <RouteLoadingOverlay active={isRouteLoading} tier={subscriptionTier} />
