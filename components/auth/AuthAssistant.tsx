@@ -19,9 +19,15 @@ interface Message {
 export type AuthAssistantProps = {
   variant?: 'floating' | 'embedded';
   className?: string;
+  /** Optional initial assistant message (used by GX Brain) */
+  initialMessage?: React.ReactNode;
 };
 
-export default function AuthAssistant({ variant = 'floating', className }: AuthAssistantProps) {
+export default function AuthAssistant({
+  variant = 'floating',
+  className,
+  initialMessage,
+}: AuthAssistantProps) {
   const isEmbedded = variant === 'embedded';
   const [open, setOpen] = useState(isEmbedded);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,11 +47,17 @@ export default function AuthAssistant({ variant = 'floating', className }: AuthA
 
   const router = useRouter();
 
-  // Seed assistant message based on route
+  // Seed assistant message based on route or provided override
   useEffect(() => {
+    if (initialMessage) {
+      setMessages([{ role: 'assistant', content: initialMessage }]);
+      return;
+    }
+
     const path = router.pathname;
     const isLogin = path.startsWith('/login');
     const isSignup = path.startsWith('/signup');
+
     setMessages([
       {
         role: 'assistant',
@@ -88,8 +100,9 @@ export default function AuthAssistant({ variant = 'floating', className }: AuthA
         ),
       },
     ]);
-  }, [router.pathname]);
+  }, [initialMessage, router.pathname]);
 
+  // Keep embedded variant always open
   useEffect(() => {
     if (isEmbedded) {
       setOpen(true);
@@ -116,16 +129,21 @@ export default function AuthAssistant({ variant = 'floating', className }: AuthA
     e?.preventDefault();
     const text = input.trim();
     if (!text) return;
+
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setInput('');
     setLoading(true);
     setLongWait(false);
+
     if (waitTimerRef.current) {
       window.clearTimeout(waitTimerRef.current);
     }
     waitTimerRef.current = window.setTimeout(() => setLongWait(true), 10000);
+
+    // tiny jitter so it doesn’t feel robotic
     const jitter = 200 + Math.floor(Math.random() * 400);
     await new Promise((resolve) => setTimeout(resolve, jitter));
+
     try {
       const res = await fetch('/api/ai/test-drive', {
         method: 'POST',
