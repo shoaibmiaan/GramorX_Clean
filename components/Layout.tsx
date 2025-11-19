@@ -6,11 +6,13 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 
 // IMPORTANT: Header must be a **default** export.
+// If your Header file also exports named, keep default as the primary export.
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FooterMini from '@/components/navigation/FooterMini';
 import QuickAccessWidget from '@/components/navigation/QuickAccessWidget';
 
+// Load BottomNav only on the client (avoid SSR hydration mismatches)
 const BottomNav = dynamic(
   () => import('@/components/navigation/BottomNav').then((m) => m.default || m),
   { ssr: false }
@@ -20,31 +22,34 @@ type LayoutProps = {
   children: React.ReactNode;
 };
 
-// Default layout logic
+// Routes where we show the compact FooterMini
 const MINI_ROUTE_PATTERNS: RegExp[] = [
   /^\/(login|signup|verify|reset|onboarding)/,
   /^\/(dashboard|account|speaking|listening|reading|writing|ai|partners|admin)(\/|$)/,
 ];
 
+// Routes where we hide the BottomNav entirely
 const HIDE_BOTTOM_NAV_PATTERNS: RegExp[] = [
   /^\/(login|signup|verify|reset|admin)(\/|$)/,
 ];
 
-// NEW: All mock exam routes → /mock/*
-const MOCK_ROUTE_PATTERNS: RegExp[] = [
-  /^\/mock(\/|$)/,
-];
-
-const matches = (patterns: RegExp[], path: string) =>
+// Helper to test route patterns
+const matches = (patterns: RegExp[], path: string): boolean =>
   patterns.some((re) => re.test(path));
 
 export default function Layout({ children }: LayoutProps) {
   const { pathname } = useRouter();
 
-  const useMiniFooter = matches(MINI_ROUTE_PATTERNS, pathname);
-  const showBottomNav = !matches(HIDE_BOTTOM_NAV_PATTERNS, pathname);
+  // 🔹 All mock overview pages → force mini footer
+  const isMockOverview = /^\/mock\/(listening|reading|writing|speaking)\/overview$/.test(
+    pathname
+  );
 
-  const isMockRoute = matches(MOCK_ROUTE_PATTERNS, pathname);
+  // Mini footer for dashboard/auth/etc + mock overview pages
+  const useMiniFooter = isMockOverview || matches(MINI_ROUTE_PATTERNS, pathname);
+
+  // Hide mobile nav for restricted routes
+  const showBottomNav = !matches(HIDE_BOTTOM_NAV_PATTERNS, pathname);
 
   return (
     <>
@@ -55,13 +60,7 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {isMockRoute ? (
-        // 🔥 For ALL mock exam pages, always use FooterMini
-        <FooterMini />
-      ) : (
-        // Same old behavior for all other pages
-        useMiniFooter ? <FooterMini /> : <Footer />
-      )}
+      {useMiniFooter ? <FooterMini /> : <Footer />}
 
       {showBottomNav && <BottomNav />}
 
