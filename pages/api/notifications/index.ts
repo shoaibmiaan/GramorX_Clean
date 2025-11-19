@@ -1,42 +1,46 @@
-// pages/api/notifications/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createSupabaseServerClient } from '@/lib/supabaseServer';
-import { NotificationService } from '@/lib/notificationService';
+import { z } from 'zod';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createSupabaseServerClient({ req, res });
+import { getServerClient } from '@/lib/supabaseServer';
+
+const BodySchema = z.object({
+  action: z.literal('mark_all_read'),
+});
+
+type ResponseBody = { ok: true; updated: number } | { error: string };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseBody>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).end('Method Not Allowed');
+  }
+
+  const body = BodySchema.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+
+  const supabase = getServerClient(req, res);
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return res.status(401).json({ error: 'unauthorized' });
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const service = new NotificationService(supabase);
+  const { data, error } = await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString(), read: true, is_read: true })
+    .eq('user_id', user.id)
+    .is('read_at', null)
+    .select('id');
 
-  if (req.method === 'GET') {
-    try {
-      const result = await service.listNotifications(user.id);
-      return res.status(200).json({ notifications: result.items, unread: result.unreadCount });
-    } catch (error) {
-      console.error('[notifications:index] list failed', error);
-      const message = error instanceof Error ? error.message : 'failed_to_load';
-      return res.status(500).json({ error: message });
-    }
+  if (error) {
+    console.error('[notifications/index] mark all failed', error);
+    return res.status(500).json({ error: 'Failed to update notifications' });
   }
 
-  if (req.method === 'PATCH') {
-    try {
-      await service.markAllAsRead(user.id);
-      return res.status(200).json({ success: true });
-    } catch (error) {
-      console.error('[notifications:index] markAll failed', error);
-      const message = error instanceof Error ? error.message : 'failed_to_update';
-      return res.status(500).json({ error: message });
-    }
-  }
-
-  res.setHeader('Allow', 'GET, PATCH');
-  return res.status(405).json({ error: 'method_not_allowed' });
+  return res.status(200).json({ ok: true, updated: data?.length ?? 0 });
 }

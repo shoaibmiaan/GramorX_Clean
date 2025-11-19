@@ -17,7 +17,6 @@ import 'aos/dist/aos.css';
 import { AnimationProvider } from '@/components/providers/AnimationProvider';
 
 import { ToastProvider } from '@/components/design-system/Toaster';
-import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { supabaseBrowser as supabaseClientSource } from '@/lib/supabaseBrowser';
 import { env } from '@/lib/env';
 import { LocaleProvider, useLocale } from '@/lib/locale';
@@ -632,15 +631,13 @@ export default function App(props: AppProps) {
   return (
     <LocaleProvider initialLocale="en">
       <ToastProvider>
-        <NotificationProvider>
-          <UserProvider>
-            <OrgProvider>
-              <InstalledAppProvider>
-                <InnerApp {...props} />
-              </InstalledAppProvider>
-            </OrgProvider>
-          </UserProvider>
-        </NotificationProvider>
+        <UserProvider>
+          <OrgProvider>
+            <InstalledAppProvider>
+              <InnerApp {...props} />
+            </InstalledAppProvider>
+          </OrgProvider>
+        </UserProvider>
       </ToastProvider>
     </LocaleProvider>
   );

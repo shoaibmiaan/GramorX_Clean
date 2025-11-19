@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
+
 import { Button } from '@/components/design-system/Button';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -9,17 +10,19 @@ interface NotificationsBellProps {
 }
 
 export const NotificationsBell: React.FC<NotificationsBellProps> = ({ className }) => {
-  const { unreadCount, markAllAsRead } = useNotifications();
+  const { unreadCount, markAllRead } = useNotifications();
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className ?? ''}`}>
       <Button
         as={Link}
         href="/notifications"
         variant="ghost"
         size="sm"
         className="relative p-2"
-        onClick={markAllAsRead}
+        onClick={() => {
+          void markAllRead();
+        }}
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (

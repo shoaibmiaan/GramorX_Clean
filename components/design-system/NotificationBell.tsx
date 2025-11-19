@@ -1,28 +1,31 @@
-// components/notifications/NotificationBell.tsx
+// components/design-system/NotificationBell.tsx
 import * as React from 'react';
 import Link from 'next/link';
-import { BellIcon } from '@/lib/icons';
-import { useNotifications } from '@/components/notifications/NotificationProvider';
 
-const NotificationBellComponent: React.FC = () => {
+import { BellIcon } from '@/lib/icons';
+import { useNotifications } from '@/hooks/useNotifications';
+
+const MAX_VISIBLE = 5;
+
+export const NotificationBell: React.FC = () => {
   const [open, setOpen] = React.useState(false);
-  const { notifications, unread, markRead } = useNotifications();
+  const { items, unreadCount, markAsRead, markAllRead } = useNotifications();
   const buttonRef = React.useRef<HTMLButtonElement | null>(null);
   const popoverRef = React.useRef<HTMLDivElement | null>(null);
-  const itemsRef = React.useRef<Array<HTMLAnchorElement | HTMLButtonElement | null>>([]);
+  const listRef = React.useRef<Array<HTMLAnchorElement | HTMLButtonElement | null>>([]);
 
-  itemsRef.current = [];
+  const visibleItems = items.slice(0, MAX_VISIBLE);
 
   React.useEffect(() => {
     if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (buttonRef.current?.contains(t)) return;
-      if (popoverRef.current?.contains(t)) return;
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setOpen(false);
         buttonRef.current?.focus();
       }
@@ -37,28 +40,22 @@ const NotificationBellComponent: React.FC = () => {
 
   React.useEffect(() => {
     if (!open) return;
-    const focusable = itemsRef.current.filter(Boolean) as HTMLElement[];
-    if (focusable[0]) focusable[0].focus();
-    const onKey = (e: KeyboardEvent) => {
+    const focusable = listRef.current.filter(Boolean) as HTMLElement[];
+    focusable[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
       if (!popoverRef.current?.contains(document.activeElement)) return;
       const idx = focusable.indexOf(document.activeElement as HTMLElement);
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
         focusable[(idx + 1) % focusable.length]?.focus();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
         focusable[(idx - 1 + focusable.length) % focusable.length]?.focus();
-      } else if (e.key === 'Enter' && document.activeElement instanceof HTMLElement) {
-        (document.activeElement as HTMLElement).click();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, notifications]);
-
-  const markAllAsRead = async () => {
-    await Promise.all(notifications.filter(n => !n.read).map(n => markRead(n.id)));
-  };
+  }, [open, items.length]);
 
   return (
     <div className="relative">
@@ -69,16 +66,13 @@ const NotificationBellComponent: React.FC = () => {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls="notification-menu"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((prev) => !prev)}
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <BellIcon className="h-5 w-5" aria-hidden="true" />
-        {unread > 0 && (
-          <span
-            aria-live="polite"
-            className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-sunsetRed px-1 text-[10px] leading-none text-foreground"
-          >
-            {unread}
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-sunsetRed px-1 text-[10px] leading-none text-foreground">
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
@@ -86,74 +80,91 @@ const NotificationBellComponent: React.FC = () => {
       {open && (
         <div
           ref={popoverRef}
-          className="absolute right-0 mt-2 w-80 rounded-ds-2xl border border-border bg-card text-card-foreground shadow-lg z-50"
+          className="absolute right-0 z-50 mt-2 w-80 rounded-ds-2xl border border-border bg-card text-card-foreground shadow-lg"
         >
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <span className="text-small font-semibold">Notifications</span>
-            {unread > 0 && (
+            {unreadCount > 0 && (
               <button
-                onClick={markAllAsRead}
-                className="text-caption text-foreground/70 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-ds px-1.5 py-0.5"
+                onClick={() => {
+                  void markAllRead();
+                }}
+                className="text-caption text-foreground/70 hover:text-foreground"
               >
                 Mark all as read
               </button>
             )}
           </div>
           <ul id="notification-menu" role="menu" className="max-h-72 overflow-auto text-small" aria-live="polite">
-            {notifications.map((n, i) => {
-              const isInternal = n.url?.startsWith('/');
-              const common = 'flex items-start gap-2 px-3 py-2 hover:bg-muted/60 focus:bg-muted/60 rounded-none';
-              const row = (
-                <div className={n.read ? 'opacity-60' : 'font-bold'}>
-                  <div className="font-medium">{n.message}</div>
+            {visibleItems.map((notification, index) => {
+              const isUnread = !notification.readAt;
+              const content = (
+                <div className={isUnread ? 'font-semibold' : 'opacity-70'}>
+                  <div className="text-small">{notification.title ?? notification.message ?? 'Notification'}</div>
+                  <p className="text-caption text-muted-foreground">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </p>
                 </div>
               );
-              return (
-                <li key={n.id} role="none">
-                  {n.url ? (
-                    isInternal ? (
+
+              const refSetter = (el: HTMLAnchorElement | HTMLButtonElement | null) => {
+                listRef.current[index] = el;
+              };
+
+              if (notification.url) {
+                const isInternal = notification.url.startsWith('/');
+                return (
+                  <li key={notification.id} role="none">
+                    {isInternal ? (
                       <Link
-                        href={n.url}
+                        href={notification.url}
+                        ref={refSetter as React.Ref<HTMLAnchorElement>}
                         role="menuitem"
-                        ref={el => (itemsRef.current[i] = el as any)}
-                        className={common}
+                        className="block px-3 py-2 hover:bg-muted/60"
                         onClick={() => {
-                          markRead(n.id);
+                          void markAsRead(notification.id);
                           setOpen(false);
                         }}
                       >
-                        {row}
+                        {content}
                       </Link>
                     ) : (
                       <a
-                        href={n.url!}
+                        href={notification.url}
                         target="_blank"
                         rel="noreferrer"
+                        ref={refSetter as React.Ref<HTMLAnchorElement>}
                         role="menuitem"
-                        ref={el => (itemsRef.current[i] = el as any)}
-                        className={common}
+                        className="block px-3 py-2 hover:bg-muted/60"
                         onClick={() => {
-                          markRead(n.id);
+                          void markAsRead(notification.id);
                           setOpen(false);
                         }}
                       >
-                        {row}
+                        {content}
                       </a>
-                    )
-                  ) : (
-                    <button
-                      role="menuitem"
-                      ref={el => (itemsRef.current[i] = el as any)}
-                      className={common + ' w-full text-left'}
-                      onClick={() => markRead(n.id)}
-                    >
-                      {row}
-                    </button>
-                  )}
+                    )}
+                  </li>
+                );
+              }
+
+              return (
+                <li key={notification.id} role="none">
+                  <button
+                    ref={refSetter as React.Ref<HTMLButtonElement>}
+                    role="menuitem"
+                    className="block w-full px-3 py-2 text-left hover:bg-muted/60"
+                    onClick={() => {
+                      void markAsRead(notification.id);
+                      setOpen(false);
+                    }}
+                  >
+                    {content}
+                  </button>
                 </li>
               );
             })}
-            {notifications.length === 0 && (
+            {visibleItems.length === 0 && (
               <li className="px-3 py-3 text-muted-foreground">No notifications</li>
             )}
             <li className="border-t border-border/70">
@@ -161,7 +172,7 @@ const NotificationBellComponent: React.FC = () => {
                 href="/notifications"
                 role="menuitem"
                 ref={(el) => {
-                  itemsRef.current[notifications.length] = el as HTMLAnchorElement | null;
+                  listRef.current[visibleItems.length] = el as HTMLAnchorElement | null;
                 }}
                 className="block px-3 py-2 text-center text-caption font-semibold text-primary hover:underline"
                 onClick={() => setOpen(false)}
@@ -176,7 +187,6 @@ const NotificationBellComponent: React.FC = () => {
   );
 };
 
-export const NotificationBell = React.memo(NotificationBellComponent);
 NotificationBell.displayName = 'NotificationBell';
 
 export default NotificationBell;

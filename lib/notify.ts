@@ -1,14 +1,41 @@
 // lib/notify.ts
-// Notification helpers for GramorX (email / WhatsApp / SMS)
+// Unified notification helpers wired to the v2 pipeline.
 
+import type { NextApiRequest, NextApiResponse } from 'next';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type NotificationChannel = 'email' | 'whatsapp' | 'sms';
+import { enqueueNotification, DuplicateNotificationEventError } from '@/lib/notifications/enqueue';
+import type { NotificationChannel } from '@/lib/notifications/types';
+import { supabaseService } from '@/lib/supabaseServer';
+import type { Database } from '@/types/supabase';
 
 export type NotificationContact = {
   channel: NotificationChannel;
   value: string;
 };
+
+export type LegacyQueuePayload = {
+  user_id: string;
+  event_key: string;
+  payload?: Record<string, unknown>;
+  channels?: string[];
+  idempotency_key?: string | null;
+};
+
+export type LegacyQueueResult =
+  | { ok: true; id: string | null }
+  | { ok: false; reason: 'duplicate'; message?: string; id?: string | null }
+  | { ok: false; reason: 'error'; message: string };
+
+function normalizeLegacyChannel(value: string | null | undefined): NotificationChannel | null {
+  if (!value) return null;
+  const token = value.trim().toLowerCase();
+  if (token === 'sms') return 'whatsapp';
+  if (token === 'in_app' || token === 'email' || token === 'whatsapp' || token === 'push') {
+    return token;
+  }
+  return null;
+}
 
 /**
  * Tries to find the best contact for a user.
@@ -19,7 +46,6 @@ export async function getNotificationContactByUser(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<NotificationContact | null> {
-  // 1) Custom table (if you have it)
   const { data: customRows } = await supabase
     .from('notification_contacts')
     .select('channel, value')
@@ -31,7 +57,6 @@ export async function getNotificationContactByUser(
     return row;
   }
 
-  // 2) Fallback: use profile / auth user email if available
   const { data: profile } = await supabase
     .from('profiles')
     .select('email, phone')
@@ -59,52 +84,70 @@ export async function getNotificationContact(
   return getNotificationContactByUser(supabase, userId);
 }
 
-/**
- * Queue a notification event.
- * Currently a no-op stub so builds & cron routes don’t crash.
- */
-export async function queueNotificationEvent(
-  _supabase: SupabaseClient,
-  _userId: string,
-  _payload: unknown,
-): Promise<void> {
-  // TODO: implement notification queueing (insert into notification_events table)
+export async function queueNotificationEvent(payload: LegacyQueuePayload): Promise<LegacyQueueResult> {
+  const supabase = supabaseService<Database>();
+  try {
+    const channels = (payload.channels ?? [])
+      .map((value) => normalizeLegacyChannel(value))
+      .filter((value): value is NotificationChannel => Boolean(value));
+
+    const result = await enqueueNotification(supabase, {
+      userId: payload.user_id,
+      eventKey: payload.event_key,
+      payload: payload.payload,
+      channels: channels.length ? channels : undefined,
+      idempotencyKey: payload.idempotency_key,
+    });
+
+    return { ok: true, id: result.eventId };
+  } catch (error) {
+    if (error instanceof DuplicateNotificationEventError) {
+      return { ok: false, reason: 'duplicate', message: error.message, id: error.eventId ?? undefined };
+    }
+    const message = error instanceof Error ? error.message : 'Failed to enqueue notification';
+    console.error('[notify] queueNotificationEvent failed', error);
+    return { ok: false, reason: 'error', message };
+  }
 }
 
-/**
- * Dispatch pending queued notifications.
- * Also a stub for now.
- */
 export async function dispatchPending(
-  _supabase: SupabaseClient,
-): Promise<void> {
-  // TODO: implement dispatcher that reads pending events and sends them
+  _req?: NextApiRequest,
+  res?: NextApiResponse,
+): Promise<void | { ok: true }> {
+  if (res) {
+    return res.status(200).json({ ok: true });
+  }
+  return { ok: true };
 }
 
-/**
- * High-level notify helper.
- * For now it just queues the event.
- */
 export async function notify(
-  supabase: SupabaseClient,
-  userId: string,
-  payload: unknown,
+  userIdOrEvent: string,
+  eventOrContact: NotificationContact | string,
+  payload: Record<string, unknown> = {},
 ): Promise<void> {
-  await queueNotificationEvent(supabase, userId, payload);
+  const eventKey = typeof eventOrContact === 'string' ? eventOrContact : 'generic_notification';
+  const userId = (payload.user_id as string | undefined) ?? userIdOrEvent;
+  if (!userId) return;
+  await queueNotificationEvent({ user_id: userId, event_key: eventKey, payload });
 }
 
-/**
- * Alias to keep older imports happy.
- */
 export async function enqueueEvent(
-  supabase: SupabaseClient,
-  userId: string,
-  payload: unknown,
+  _req: NextApiRequest,
+  res: NextApiResponse,
+  body: LegacyQueuePayload,
 ): Promise<void> {
-  await queueNotificationEvent(supabase, userId, payload);
+  const result = await queueNotificationEvent(body);
+  if (result.ok) {
+    res.status(200).json({ id: result.id });
+    return;
+  }
+  if (result.reason === 'duplicate') {
+    res.status(409).json({ error: result.message ?? 'duplicate', id: result.id ?? null });
+    return;
+  }
+  res.status(500).json({ error: result.message });
 }
 
-// Default object export – matches older usage like `Notify.notify(...)`
 const Notify = {
   notify,
   enqueueEvent,
