@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/design-system/Button';
 import { Input } from '@/components/design-system/Input';
@@ -15,8 +16,19 @@ interface Message {
   content: React.ReactNode;
 }
 
-export default function AuthAssistant() {
-  const [open, setOpen] = useState(false);
+export type AuthAssistantProps = {
+  variant?: 'floating' | 'embedded';
+  className?: string;
+  initialMessage?: React.ReactNode;
+};
+
+export default function AuthAssistant({
+  variant = 'floating',
+  className,
+  initialMessage,
+}: AuthAssistantProps) {
+  const isEmbedded = variant === 'embedded';
+  const [open, setOpen] = useState(isEmbedded);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,8 +46,12 @@ export default function AuthAssistant() {
 
   const router = useRouter();
 
-  // Seed assistant message based on route
+  // Seed assistant message based on route or provided override
   useEffect(() => {
+    if (initialMessage) {
+      setMessages([{ role: 'assistant', content: initialMessage }]);
+      return;
+    }
     const path = router.pathname;
     const isLogin = path.startsWith('/login');
     const isSignup = path.startsWith('/signup');
@@ -81,7 +97,13 @@ export default function AuthAssistant() {
         ),
       },
     ]);
-  }, [router.pathname]);
+  }, [initialMessage, router.pathname]);
+
+  useEffect(() => {
+    if (isEmbedded) {
+      setOpen(true);
+    }
+  }, [isEmbedded]);
 
   // Autoscroll on new messages/loading
   useEffect(() => {
@@ -139,6 +161,7 @@ export default function AuthAssistant() {
 
   // Clamp position on viewport resize
   useEffect(() => {
+    if (isEmbedded) return;
     if (!position) return;
     if (typeof window === 'undefined') return;
 
@@ -160,10 +183,11 @@ export default function AuthAssistant() {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [position]);
+  }, [isEmbedded, position]);
 
   // Only start dragging from the header; ignore interactive targets
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (isEmbedded) return;
     if (!panelRef.current) return;
 
     // prevent drag-start on interactive elements (buttons, links, inputs...)
@@ -195,6 +219,7 @@ export default function AuthAssistant() {
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (isEmbedded) return;
     if (!isDragging || !panelRef.current) return;
     if (typeof window === 'undefined') return;
 
@@ -229,7 +254,7 @@ export default function AuthAssistant() {
     setIsDragging(false);
   }
 
-  if (!open) {
+  if (!open && !isEmbedded) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <Button aria-label="Open help assistant" onClick={() => setOpen(true)}>
@@ -242,12 +267,17 @@ export default function AuthAssistant() {
   return (
     <div
       ref={panelRef}
-      className="fixed bottom-4 right-4 z-50 flex w-80 flex-col rounded-md border border-border bg-background shadow-lg"
+      className={clsx(
+        'flex flex-col rounded-md border border-border bg-background shadow-lg dark:border-border-dark dark:bg-background-dark',
+        isEmbedded ? 'w-full' : 'fixed bottom-4 right-4 z-50 w-80',
+        className
+      )}
       role="region"
       aria-label="Authentication assistant"
-      // Positioning: when dragged, we switch from bottom/right pinning to absolute top/left coordinates.
-      style={
-        position
+        // Positioning: when dragged, we switch from bottom/right pinning to absolute top/left coordinates.
+        // eslint-disable-next-line ds-guard/no-inline-style
+        style={
+        !isEmbedded && position
           ? {
               top: position.y,
               left: position.x,
@@ -261,7 +291,7 @@ export default function AuthAssistant() {
       {/* Drag handle (header) */}
       <div
         className={`select-none touch-none border-b border-border p-2 ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          isEmbedded ? 'cursor-default' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         } flex items-center justify-between`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -270,14 +300,16 @@ export default function AuthAssistant() {
         aria-label="Assistant drag handle"
         role="presentation"
       >
-        <h2 className="text-small font-semibold">Assistant</h2>
-        <button
-          onClick={() => setOpen(false)}
-          aria-label="Close assistant"
-          className="px-2 text-small hover:opacity-80"
-        >
-          ✕
-        </button>
+        <h2 className="text-small font-semibold">Need help?</h2>
+        {!isEmbedded && (
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close assistant"
+            className="px-2 text-small hover:opacity-80"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Messages */}
