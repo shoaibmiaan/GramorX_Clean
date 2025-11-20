@@ -6,6 +6,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
+import { MockPinGate } from '@/components/mock/MockPinGate';
 
 const mockTestOverview = {
   title: 'Full Mock Tests',
@@ -138,9 +139,10 @@ const MockTestPage: React.FC = () => {
         />
       </Head>
 
-      <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        {/* Hero Section */}
-        <section className="pb-16 pt-16 md:pt-20">
+      <MockPinGate module="mock">
+        <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+          {/* Hero Section */}
+          <section className="pb-16 pt-16 md:pt-20">
           <Container>
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
               {/* Left side: text + CTAs */}
@@ -346,7 +348,8 @@ const MockTestPage: React.FC = () => {
             </div>
           </Container>
         </section>
-      </main>
+        </main>
+      </MockPinGate>
     </>
   );
 };
