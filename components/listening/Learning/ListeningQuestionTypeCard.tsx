@@ -8,7 +8,7 @@ import type { ListeningQuestionType } from '@/lib/listening/types';
 import { LISTENING_QUESTION_TYPE_LABELS } from '@/lib/listening/constants';
 
 type Props = {
-  type: ListeningQuestionType;
+  type?: ListeningQuestionType | null; // <- allow undefined / null safely
   description: string;
   commonTraps?: string;
   exampleLabel?: string;
@@ -33,7 +33,15 @@ const ListeningQuestionTypeCard: React.FC<Props> = ({
   commonTraps,
   exampleLabel,
 }) => {
-  const iconName = iconByType[type] ?? 'HelpCircle';
+  const iconName =
+    (type && iconByType[type]) || 'HelpCircle';
+
+  const label =
+    type && LISTENING_QUESTION_TYPE_LABELS[type]
+      ? LISTENING_QUESTION_TYPE_LABELS[type]
+      : 'Unknown question type';
+
+  const rawType = type ? type.replace(/_/g, ' ') : 'unknown';
 
   return (
     <Card className="flex h-full flex-col justify-between border-border bg-card/60 p-4 shadow-sm">
@@ -44,10 +52,10 @@ const ListeningQuestionTypeCard: React.FC<Props> = ({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground">
-              {LISTENING_QUESTION_TYPE_LABELS[type]}
+              {label}
             </h3>
             <Badge variant="neutral" size="sm" className="uppercase tracking-wide">
-              {type.replace(/_/g, ' ')}
+              {rawType}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
