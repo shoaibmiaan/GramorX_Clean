@@ -1,323 +1,260 @@
 // pages/listening/index.tsx
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as React from 'react';
+import type { GetServerSideProps, NextPage } from 'next';
+import Head from 'next/head';
 import Link from 'next/link';
-import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
-import { autosaveStorageKey } from '@/lib/autosave';
+
+import { getServerClient } from '@/lib/supabaseServer';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
-import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
-import { Alert } from '@/components/design-system/Alert';
-import { Skeleton } from '@/components/design-system/Skeleton';
+import Icon from '@/components/design-system/Icon';
 
-type TestRow = {
-  slug: string;
-  title: string;
-  master_audio_url: string | null;
+type ListeningDashboardProps = {
+  userFirstName: string | null;
 };
 
-type SectionRow = {
-  test_slug: string;
-  order_no: number;
-  start_ms: number;
-  end_ms: number;
-};
+export const getServerSideProps: GetServerSideProps<ListeningDashboardProps> = async (ctx) => {
+  const supabase = getServerClient(ctx.req, ctx.res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-type AttemptRow = {
-  test_slug: string;
-  last_activity_at: string | null;
-};
-
-type ListItem = {
-  slug: string;
-  title: string;
-  durationSec: number; // derived from sections
-  hasDraft: boolean;
-  lastActivityAt?: string | null; // last attempt activity if any
-};
-
-const AUTOSAVE_KEY = (slug: string) => autosaveStorageKey('listening', slug);
-const LEGACY_DRAFT_KEY = (slug: string) => `listen:${slug}`;
-const AUTOSAVE_PREFIX = autosaveStorageKey('listening', '');
-const LEGACY_PREFIX = 'listen:';
-
-export default function ListeningIndexPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [items, setItems] = useState<ListItem[]>([]);
-
-  const hasDraftFor = useCallback((slug: string) => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const storage = window.localStorage;
-      return !!storage.getItem(AUTOSAVE_KEY(slug)) || !!storage.getItem(LEGACY_DRAFT_KEY(slug));
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // auth (client only)
-  useEffect(() => {
-    const mounted = true;
-    supabase.auth.getUser().then(({ data }) => mounted && setUserId(data.user?.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    return () => sub?.subscription.unsubscribe();
-  }, []);
-
-  // load tests + sections (+ attempts if logged in)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setErr(null);
-      try {
-        const [tRes, sRes] = await Promise.all([
-          supabase
-            .from('lm_listening_tests')
-            .select('slug,title,master_audio_url')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('lm_listening_sections')
-            .select('test_slug,order_no,start_ms,end_ms')
-            .order('order_no', { ascending: true }),
-        ]);
-        if (tRes.error) throw tRes.error;
-        if (sRes.error) throw sRes.error;
-
-        const tests = (tRes.data ?? []) as TestRow[];
-        const sections = (sRes.data ?? []) as SectionRow[];
-
-        // duration per test from min(start_ms) .. max(end_ms)
-        const byTest: Record<string, { min: number; max: number }> = {};
-        for (const s of sections) {
-          const entry = byTest[s.test_slug] ?? { min: s.start_ms, max: s.end_ms };
-          entry.min = Math.min(entry.min, s.start_ms);
-          entry.max = Math.max(entry.max, s.end_ms);
-          byTest[s.test_slug] = entry;
-        }
-
-        // attempts (optional)
-        let attempts: AttemptRow[] = [];
-        if (userId) {
-          const attemptQuery = await supabase
-            .from('lm_listening_user_answers')
-            .select('test_slug, updated_at')
-            .eq('user_id', userId);
-
-          if (attemptQuery.error) {
-            const needsFallback = /column .*updated_at/i.test(attemptQuery.error.message ?? '');
-            if (!needsFallback) throw attemptQuery.error;
-
-            const fallbackQuery = await supabase
-              .from('lm_listening_user_answers')
-              .select('test_slug, created_at')
-              .eq('user_id', userId);
-            if (fallbackQuery.error) throw fallbackQuery.error;
-
-            const fallbackRows = (fallbackQuery.data ?? []) as {
-              test_slug: string;
-              created_at?: string | null;
-            }[];
-            attempts = fallbackRows.map((row) => ({
-              test_slug: row.test_slug,
-              last_activity_at: row.created_at ?? null,
-            }));
-          } else {
-            const attemptRows = (attemptQuery.data ?? []) as {
-              test_slug: string;
-              updated_at?: string | null;
-              created_at?: string | null;
-            }[];
-            attempts = attemptRows.map((row) => ({
-              test_slug: row.test_slug,
-              last_activity_at: row.updated_at ?? row.created_at ?? null,
-            }));
-          }
-        }
-        const lastByTest = attempts.reduce<Record<string, string | null>>((acc, r) => {
-          const prev = acc[r.test_slug];
-          const curr = r.last_activity_at;
-          acc[r.test_slug] =
-            prev && curr
-              ? new Date(prev) > new Date(curr)
-                ? prev
-                : curr
-              : prev ?? curr;
-          return acc;
-        }, {});
-
-        const list: ListItem[] = tests.map((t) => {
-          const span = byTest[t.slug];
-          const durationSec = span ? Math.max(0, Math.round((span.max - span.min) / 1000)) : 0;
-          const hasDraft = hasDraftFor(t.slug);
-          return {
-            slug: t.slug,
-            title: t.title,
-            durationSec,
-            hasDraft,
-            lastActivityAt: userId ? lastByTest[t.slug] ?? null : undefined,
-          };
-        });
-
-        if (!cancelled) setItems(list);
-      } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? 'Failed to load tests');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
+  if (!user) {
+    return {
+      redirect: {
+        destination: `/login?next=/listening`,
+        permanent: false,
+      },
     };
-  }, [userId, hasDraftFor]);
+  }
 
-  // keep hasDraft reactive if localStorage changes elsewhere
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      const key = e.key;
-      if (!key) return;
-      if (!key.startsWith(AUTOSAVE_PREFIX) && !key.startsWith(LEGACY_PREFIX)) return;
-      setItems((prev) =>
-        prev.map((it) =>
-          key === AUTOSAVE_KEY(it.slug) || key === LEGACY_DRAFT_KEY(it.slug)
-            ? { ...it, hasDraft: hasDraftFor(it.slug) }
-            : it,
-        ),
-      );
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [hasDraftFor]);
+  const rawName =
+    (user.user_metadata && (user.user_metadata.full_name as string | undefined)) ??
+    (user.user_metadata && (user.user_metadata.name as string | undefined)) ??
+    user.email ??
+    '';
 
-  const stats = useMemo(() => {
-    const total = items.length;
-    const withDraft = items.filter((i) => i.hasDraft).length;
-    return { total, withDraft };
-  }, [items]);
+  const firstName = rawName.trim().split(' ')[0] || null;
+
+  return {
+    props: {
+      userFirstName: firstName,
+    },
+  };
+};
+
+const ListeningHomePage: NextPage<ListeningDashboardProps> = ({ userFirstName }) => {
+  const nameLabel = userFirstName ?? 'there';
+
+  const modules = [
+    {
+      key: 'learn',
+      label: 'Learning Path',
+      href: '/listening/learn',
+      icon: 'GraduationCap',
+      status: 'Core lessons',
+      badge: 'Start here',
+      description:
+        'Understand IELTS Listening from scratch with structured lessons, tips, traps, and example walk-throughs.',
+      highlight: 'Theory + examples + strategies.',
+    },
+    {
+      key: 'practice',
+      label: 'Practice Drills',
+      href: '/listening/practice',
+      icon: 'Headphones',
+      status: 'Short tests',
+      badge: 'Daily grind',
+      description:
+        '10–15 question mini tests with instant checking, explanations, and time tracking to build stamina.',
+      highlight: 'Unlimited focused drills.',
+    },
+    {
+      key: 'game',
+      label: 'Game Mode',
+      href: '/listening/game',
+      icon: 'Gamepad2',
+      status: 'Gamified',
+      badge: 'Fun mode',
+      description:
+        'Fast-ear challenges, clip guessing, and streak-boost missions to make listening practice less boring.',
+      highlight: 'XP, streaks, and rewards.',
+    },
+    {
+      key: 'mock',
+      label: 'Full Mock Tests',
+      href: '/mock/listening',
+      icon: 'ClipboardList',
+      status: 'Exam-style',
+      badge: 'CBE style',
+      description:
+        'Real IELTS-style 4-section, 40-question, timed mock tests with strict rules and auto-scoring.',
+      highlight: 'Exact computer-based exam vibe.',
+    },
+    {
+      key: 'analytics',
+      label: 'Analytics & Reports',
+      href: '/listening/analytics',
+      icon: 'BarChart2',
+      status: 'Insights',
+      badge: 'Pro view',
+      description:
+        'Band trajectory, weak question types, time management, and AI-generated improvement plan.',
+      highlight: 'Make your prep data-driven.',
+    },
+  ] as const;
 
   return (
-    <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-      <Container>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="font-slab text-display text-gradient-primary">Listening Tests</h1>
-            <p className="text-grayish max-w-2xl">
-              Pick a paper to start or resume where you left off. Auto-play per section & answer
-              review are built in.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="info">Total: {stats.total}</Badge>
-            <Badge variant="warning">Drafts: {stats.withDraft}</Badge>
-          </div>
-        </div>
+    <>
+      <Head>
+        <title>Listening Mission Control • GramorX</title>
+        <meta
+          name="description"
+          content="Central hub for IELTS Listening – learning, practice, games, full mocks, and analytics in one place."
+        />
+      </Head>
 
-        {err && (
-          <Alert className="mt-6" variant="warning" title="Couldn’t load tests">
-            {err}
-          </Alert>
-        )}
+      <main className="min-h-screen bg-background py-10">
+        <Container>
+          {/* Top hero */}
+          <section className="mb-10 space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Icon name="Headphones" size={14} />
+              <span>IELTS Listening · Mission Control</span>
+            </div>
 
-        {loading ? (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="card-surface p-6 rounded-ds-2xl">
-                <Skeleton className="h-6 w-2/3 mb-3" />
-                <Skeleton className="h-4 w-1/3 mb-6" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-9 w-24" />
-                  <Skeleton className="h-9 w-24" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <Card className="card-surface p-6 rounded-ds-2xl mt-10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <div className="font-semibold mb-1">No tests available yet</div>
-                <p className="opacity-80">
-                  Add rows to <code>lm_listening_tests</code> and <code>lm_listening_sections</code>.
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Hi {nameLabel}, let&apos;s fix your Listening first.
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                  One place for everything: theory, drills, games, full mocks, and deep analytics. No fluff – just
+                  what moves your band.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-end gap-2 text-right">
+                <Badge variant="success" className="flex items-center gap-1">
+                  <Icon name="Sparkles" size={14} />
+                  <span>Listening module: Priority</span>
+                </Badge>
+                <p className="text-xs text-muted-foreground">
+                  Finish Listening 100% before touching the other modules. That&apos;s the plan.
                 </p>
               </div>
             </div>
-          </Card>
-        ) : (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((it) => {
-              const mins = Math.floor(it.durationSec / 60);
-              const secs = it.durationSec % 60;
-              const durationStr = it.durationSec ? `${mins}m ${secs}s` : '—';
-              return (
-                <Card key={it.slug} className="card-surface p-6 rounded-ds-2xl">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">{it.title}</h3>
-                      <div className="text-small opacity-80 mt-1">
-                        Slug: <code>{it.slug}</code>
+          </section>
+
+          {/* Quick nav pills */}
+          <section aria-label="Listening module navigation" className="mb-8">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/listening/learn"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:text-primary"
+              >
+                <Icon name="GraduationCap" size={14} />
+                Learn
+              </Link>
+              <Link
+                href="/listening/practice"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:text-primary"
+              >
+                <Icon name="Headphones" size={14} />
+                Practice
+              </Link>
+              <Link
+                href="/listening/game"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:text-primary"
+              >
+                <Icon name="Gamepad2" size={14} />
+                Game Mode
+              </Link>
+              <Link
+                href="/mock/listening"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:text-primary"
+              >
+                <Icon name="ClipboardList" size={14} />
+                Full Mock
+              </Link>
+              <Link
+                href="/listening/analytics"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:text-primary"
+              >
+                <Icon name="BarChart2" size={14} />
+                Analytics
+              </Link>
+            </div>
+          </section>
+
+          {/* Modules grid */}
+          <section aria-label="Listening module areas">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {modules.map((module) => (
+                <Card
+                  key={module.key}
+                  className="flex h-full flex-col justify-between border-border bg-card/60 shadow-sm transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex gap-3">
+                      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <Icon name={module.icon} size={18} className="text-primary" />
                       </div>
-                      <div className="text-small opacity-80 mt-1">Duration: {durationStr}</div>
-                      {it.lastActivityAt && (
-                        <div className="text-small opacity-80 mt-1">
-                          Last activity: {new Date(it.lastActivityAt).toLocaleString()}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-sm font-semibold text-foreground sm:text-base">
+                            {module.label}
+                          </h2>
+                          <Badge variant="neutral" size="sm">
+                            {module.status}
+                          </Badge>
                         </div>
-                      )}
+                        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                          {module.description}
+                        </p>
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      {it.hasDraft ? (
-                        <Badge variant="warning" size="sm">
-                          Draft
-                        </Badge>
-                      ) : (
-                        <Badge variant="neutral" size="sm">
-                          New
-                        </Badge>
-                      )}
-                    </div>
+
+                    <Badge variant="primary" size="sm" className="shrink-0">
+                      {module.badge}
+                    </Badge>
                   </div>
 
-                  <div className="mt-5 flex gap-3">
-                    {it.hasDraft ? (
-                      <>
-                        <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
-                          Resume
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            try {
-                              localStorage.removeItem(AUTOSAVE_KEY(it.slug));
-                              localStorage.removeItem(LEGACY_DRAFT_KEY(it.slug));
-                            } catch {}
-                            // update state immediately
-                            setItems((prev) =>
-                              prev.map((x) =>
-                                x.slug === it.slug
-                                  ? { ...x, hasDraft: hasDraftFor(it.slug) }
-                                  : x,
-                              ),
-                            );
-                          }}
-                        >
-                          Clear draft
-                        </Button>
-                      </>
-                    ) : (
-                      <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
-                        Start
-                      </Button>
-                    )}
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-muted-foreground sm:text-xs">
+                      {module.highlight}
+                    </p>
+                    <Link
+                      href={module.href}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+                    >
+                      <span>Go</span>
+                      <Icon name="ArrowRight" size={14} />
+                    </Link>
                   </div>
                 </Card>
-              );
-            })}
-          </div>
-        )}
-      </Container>
-    </section>
+              ))}
+            </div>
+          </section>
+
+          {/* Bottom note */}
+          <section className="mt-10 rounded-xl border border-dashed border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground sm:text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p>
+                Workflow: <span className="font-medium text-foreground">Learn → Practice → Game → Mock → Analytics</span>.
+                Don&apos;t skip steps if you actually care about your score.
+              </p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                <Icon name="Info" size={12} />
+                Listening is the first module we&apos;re taking to 100%.
+              </span>
+            </div>
+          </section>
+        </Container>
+      </main>
+    </>
   );
-}
+};
+
+export default ListeningHomePage;

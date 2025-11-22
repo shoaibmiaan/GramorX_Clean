@@ -1,4 +1,4 @@
-// pages/mock/listening/run.tsx
+// pages/listening/practice/[testSlug].tsx
 import * as React from 'react';
 import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
@@ -11,10 +11,10 @@ import Icon from '@/components/design-system/Icon';
 
 import ListeningNavTabs from '@/components/listening/ListeningNavTabs';
 import ListeningInfoBanner from '@/components/listening/ListeningInfoBanner';
-import MockTestShell from '@/components/listening/Mock/MockTestShell';
+import PracticeQuestionList from '@/components/listening/Practice/PracticeQuestionList';
+import PracticeAnswerInput from '@/components/listening/Practice/PracticeAnswerInput';
 import MockTimer from '@/components/listening/Mock/MockTimer';
-import MockQuestionRenderer from '@/components/listening/Mock/MockQuestionRenderer';
-import MockQuestionFlag from '@/components/listening/Mock/MockQuestionFlag';
+import MockTestShell from '@/components/listening/Mock/MockTestShell';
 
 import { useListeningTestRunner } from '@/lib/hooks/useListeningTestRunner';
 import type {
@@ -26,7 +26,7 @@ import type {
 type SectionNavQuestion = {
   id: string;
   label: string;
-  status: 'unanswered' | 'answered' | 'flagged';
+  status: 'unanswered' | 'answered';
 };
 
 type SectionNavItem = {
@@ -38,7 +38,7 @@ type Props = {
   test: ListeningTest;
 };
 
-const buildNav = (
+const buildNavSections = (
   sections: ListeningSection[],
   answers: Record<string, ListeningAttemptAnswer>,
 ): SectionNavItem[] => {
@@ -48,11 +48,7 @@ const buildNav = (
       const ans = answers[q.id];
       const hasValue =
         ans && (Array.isArray(ans.value) ? ans.value.length > 0 : ans.value !== '');
-      const status: SectionNavQuestion['status'] = ans?.flagged
-        ? 'flagged'
-        : hasValue
-        ? 'answered'
-        : 'unanswered';
+      const status: SectionNavQuestion['status'] = hasValue ? 'answered' : 'unanswered';
 
       return {
         id: q.id,
@@ -63,10 +59,10 @@ const buildNav = (
   }));
 };
 
-const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
+const ListeningPracticeRunPage: NextPage<Props> = ({ test }) => {
   const [attemptId, setAttemptId] = React.useState<string | null>(null);
-  const [startError, setStartError] = React.useState<string | null>(null);
   const [starting, setStarting] = React.useState(false);
+  const [startError, setStartError] = React.useState<string | null>(null);
 
   const {
     status,
@@ -81,46 +77,45 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     nextQuestion,
     prevQuestion,
     setAnswer,
-    setFlag,
     submit,
   } = useListeningTestRunner({
     test,
-    mode: 'mock',
+    mode: 'practice',
     attemptId: attemptId ?? '',
     durationSeconds: test.durationSeconds,
     enableAutosave: true,
     onSubmitSuccess: (attempt) => {
-      window.location.href = `/mock/listening/submitted?attemptId=${encodeURIComponent(
-        attempt.id,
-      )}`;
+      window.location.href = `/listening/practice/${encodeURIComponent(
+        test.slug,
+      )}/result?attemptId=${encodeURIComponent(attempt.id)}`;
     },
   });
 
-  // create mock attempt on mount
+  // create attempt on mount
   React.useEffect(() => {
     if (attemptId) return;
 
-    const slug = test.slug;
+    const testSlug = test.slug;
     setStarting(true);
     setStartError(null);
 
     void (async () => {
       try {
-        const res = await fetch('/api/listening/mock/start', {
+        const res = await fetch('/api/listening/practice/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ slug }),
+          body: JSON.stringify({ testSlug }),
         });
 
         if (!res.ok) {
-          throw new Error(`Failed to start mock attempt (${res.status})`);
+          throw new Error(`Failed to start practice attempt (${res.status})`);
         }
 
         const json = await res.json();
         setAttemptId(json.attempt.id);
       } catch (err) {
-        setStartError('Failed to start mock attempt. Go back and try again.');
+        setStartError('Failed to start practice attempt. Refresh and try again.');
       } finally {
         setStarting(false);
       }
@@ -128,11 +123,6 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
   }, [attemptId, test.slug]);
 
   const handleSelectQuestion = (sectionNumber: number, questionId: string) => {
-    // strict-ish: allow navigation within current section only
-    if (currentSection && currentSection.sectionNumber !== sectionNumber) {
-      return;
-    }
-
     const sectionIdx = test.sections.findIndex(
       (s) => s.sectionNumber === sectionNumber,
     );
@@ -145,9 +135,10 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
   };
 
   const handleSubmit = async () => {
-    if (!window.confirm('Submit this mock and lock your answers?')) {
+    if (!window.confirm('Submit this practice attempt and see your results?')) {
       return;
     }
+
     try {
       await submit();
     } catch (err) {
@@ -156,7 +147,11 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     }
   };
 
-  const navSections: SectionNavItem[] = buildNav(test.sections, answers);
+  const navSections: SectionNavItem[] = buildNavSections(
+    test.sections,
+    answers,
+  );
+
   const currentSectionNumber =
     currentSection?.sectionNumber ?? test.sections[0]?.sectionNumber ?? 1;
   const currentQuestionId = currentQuestion?.id ?? null;
@@ -166,10 +161,10 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
   return (
     <>
       <Head>
-        <title>{test.title} • Listening Mock • GramorX</title>
+        <title>{test.title} • Listening Practice • GramorX</title>
         <meta
           name="description"
-          content="Full IELTS-style Listening mock in strict exam conditions."
+          content="Practice an IELTS-style Listening test with flexible review so you can learn without wasting full mocks."
         />
       </Head>
 
@@ -178,24 +173,24 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Mock exams · Listening
+                Listening · Practice
               </p>
               <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
                 {test.title}
               </h1>
               <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Strict mode · {test.totalQuestions} questions ·{' '}
-                {Math.round(test.durationSeconds / 60)} minutes
+                {test.totalQuestions} questions ·{' '}
+                {Math.round(test.durationSeconds / 60)} min
               </p>
             </div>
-            <ListeningNavTabs activeKey="mock" />
+            <ListeningNavTabs activeKey="practice" />
           </div>
 
           <section className="mb-4">
             <ListeningInfoBanner
-              variant="danger"
-              title="No casual resets here"
-              body="If you mess this up because of poor sleep, bad focus, or no warm-up – that’s still your performance. Treat mocks like a real exam booking."
+              variant="info"
+              title="Practice ≠ mock"
+              body="Here you can pause between questions, move around sections, and experiment with strategies. Save full strict mode for the mock section."
             />
           </section>
 
@@ -213,7 +208,6 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
             currentSectionNumber={currentSectionNumber}
             currentQuestionId={currentQuestionId}
             onSelectQuestion={handleSelectQuestion}
-            strictMode
           >
             <div className="mb-3">
               <MockTimer
@@ -228,8 +222,8 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
                   <div className="flex items-start gap-2">
                     <Icon name="Info" size={16} className="mt-0.5 text-primary" />
                     <p className="text-xs text-muted-foreground sm:text-sm">
-                      When you hit <strong>Start mock</strong>, the timer begins and this attempt
-                      counts. Do not start if you&apos;re not ready to sit through the full test.
+                      Hit <strong>Start practice</strong> when you&apos;re ready. You&apos;ll
+                      still have a timer, but this is a safer lab to try different strategies.
                     </p>
                   </div>
                 </Alert>
@@ -240,69 +234,65 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
                   className="inline-flex items-center gap-2"
                 >
                   <Icon name="PlayCircle" size={16} />
-                  <span>{starting ? 'Preparing…' : 'Start mock'}</span>
+                  <span>{starting ? 'Preparing…' : 'Start practice'}</span>
                 </Button>
               </div>
             )}
 
             {hasStarted && (
-              <div className="space-y-4">
-                {currentQuestion && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Section {currentSection?.sectionNumber} · Question{' '}
-                        {currentQuestion.questionNumber}
-                      </p>
-                      <MockQuestionFlag
-                        questionId={currentQuestion.id}
-                        flagged={!!answers[currentQuestion.id]?.flagged}
-                        onToggle={(flag) => setFlag(currentQuestion.id, flag)}
-                      />
-                    </div>
+              <div className="grid gap-4 lg:grid-cols-[260px,1fr]">
+                {/* Question list / navigation */}
+                <div className="order-2 lg:order-1">
+                  <PracticeQuestionList
+                    sections={test.sections}
+                    answers={answers}
+                    currentQuestionId={currentQuestionId}
+                    onSelectQuestion={handleSelectQuestion}
+                  />
+                </div>
 
-                    <MockQuestionRenderer
+                {/* Active question + answer input */}
+                <div className="order-1 space-y-4 lg:order-2">
+                  {currentQuestion && (
+                    <PracticeAnswerInput
                       question={currentQuestion}
                       answer={answers[currentQuestion.id]}
                       onChangeAnswer={setAnswer}
                     />
-                  </div>
-                )}
+                  )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={prevQuestion}
+                      >
+                        <Icon name="ArrowLeft" size={14} />
+                        <span>Previous</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={nextQuestion}
+                      >
+                        <span>Next</span>
+                        <Icon name="ArrowRight" size={14} />
+                      </Button>
+                    </div>
                     <Button
                       type="button"
                       size="sm"
-                      variant="outline"
-                      onClick={prevQuestion}
+                      variant="primary"
+                      onClick={handleSubmit}
+                      disabled={!attemptId || status === 'submitting'}
                     >
-                      <Icon name="ArrowLeft" size={14} />
-                      <span>Previous</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={nextQuestion}
-                    >
-                      <span>Next</span>
-                      <Icon name="ArrowRight" size={14} />
+                      <Icon name="CheckSquare" size={14} />
+                      <span>{status === 'submitting' ? 'Submitting…' : 'Submit practice'}</span>
                     </Button>
                   </div>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    onClick={handleSubmit}
-                    disabled={!attemptId || status === 'submitting'}
-                  >
-                    <Icon name="CheckSquare" size={14} />
-                    <span>
-                      {status === 'submitting' ? 'Submitting…' : 'Submit mock'}
-                    </span>
-                  </Button>
                 </div>
               </div>
             )}
@@ -314,12 +304,12 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const slug = ctx.query.slug as string | undefined;
-  if (!slug) {
+  const supabase = getServerClient(ctx.req, ctx.res);
+
+  const testSlug = ctx.query.testSlug as string | undefined;
+  if (!testSlug) {
     return { notFound: true };
   }
-
-  const supabase = getServerClient(ctx.req, ctx.res);
 
   const {
     data: { user },
@@ -334,7 +324,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return {
       redirect: {
         destination: `/login?next=${encodeURIComponent(
-          `/mock/listening/run?slug=${slug}`,
+          `/listening/practice/${testSlug}`,
         )}`,
         permanent: false,
       },
@@ -346,8 +336,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     .select(
       'id, slug, title, description, difficulty, is_mock, total_questions, total_score, duration_seconds, audio_storage_key',
     )
-    .eq('slug', slug)
-    .eq('is_mock', true)
+    .eq('slug', testSlug)
+    .eq('is_mock', false)
     .single<any>();
 
   if (testError || !testRow) {
@@ -411,4 +401,4 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   };
 };
 
-export default ListeningMockRunPage;
+export default ListeningPracticeRunPage;

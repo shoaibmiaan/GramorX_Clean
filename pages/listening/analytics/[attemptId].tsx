@@ -1,4 +1,4 @@
-// pages/mock/listening/submitted.tsx
+// pages/listening/analytics/[attemptId].tsx
 import * as React from 'react';
 import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
@@ -6,12 +6,11 @@ import Link from 'next/link';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import { Container } from '@/components/design-system/Container';
-import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
+import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
 
-import ListeningNavTabs from '@/components/listening/ListeningNavTabs';
-import MockReviewSummary from '@/components/listening/Mock/MockReviewSummary';
+import PracticeResultSummary from '@/components/listening/Practice/PracticeResultSummary';
 import MockAnswerSheet from '@/components/listening/Mock/MockAnswerSheet';
 
 type AnswerRow = {
@@ -26,37 +25,40 @@ type AnswerRow = {
 type Props = {
   attemptId: string;
   testTitle: string;
-  testSlug: string;
+  mode: 'practice' | 'mock';
   createdAt: string;
   bandScore: number;
   rawScore: number;
   maxScore: number;
-  totalQuestions: number;
   timeSpentSeconds: number;
+  totalQuestions: number;
   answers: AnswerRow[];
 };
 
-const ListeningMockSubmittedPage: NextPage<Props> = ({
+const ListeningAttemptDetailPage: NextPage<Props> = ({
   attemptId,
   testTitle,
-  testSlug,
+  mode,
   createdAt,
   bandScore,
   rawScore,
   maxScore,
-  totalQuestions,
   timeSpentSeconds,
+  totalQuestions,
   answers,
 }) => {
-  const accuracy = maxScore > 0 ? rawScore / maxScore : 0;
+  const accuracy =
+    maxScore > 0 && rawScore >= 0 ? rawScore / maxScore : 0;
 
   return (
     <>
       <Head>
-        <title>{testTitle} • Mock Result • GramorX</title>
+        <title>
+          Listening Attempt • {testTitle} • GramorX
+        </title>
         <meta
           name="description"
-          content="Result, band estimate and breakdown for your strict-mode IELTS Listening mock."
+          content="Deep-dive into a single IELTS-style Listening attempt: band score, accuracy and question-by-question breakdown."
         />
       </Head>
 
@@ -65,7 +67,7 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Mock exams · Listening result
+                Listening · {mode === 'mock' ? 'Mock' : 'Practice'} attempt
               </p>
               <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
                 {testTitle}
@@ -80,11 +82,24 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
                 · Attempt ID: {attemptId.slice(0, 8)}…
               </p>
             </div>
-            <ListeningNavTabs activeKey="mock" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/listening/analytics">
+                  <Icon name="ArrowLeft" size={14} />
+                  <span>Back to analytics</span>
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/mock/listening">
+                  <Icon name="Headphones" size={14} />
+                  <span>Do another mock</span>
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <section className="mb-6">
-            <MockReviewSummary
+            <PracticeResultSummary
               bandScore={bandScore}
               rawScore={rawScore}
               maxScore={maxScore}
@@ -94,7 +109,7 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
             />
           </section>
 
-          <section className="mb-4">
+          <section className="space-y-3">
             <Card className="border-border bg-muted/40 px-3 py-3 text-[11px] text-muted-foreground sm:px-4 sm:py-3 sm:text-xs">
               <p className="flex items-start gap-2">
                 <Icon
@@ -103,43 +118,13 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
                   className="mt-0.5 text-primary"
                 />
                 <span>
-                  This mock is a snapshot of how you perform under exam rules today — not your final
-                  destiny. Your job now is to reverse-engineer every wrong answer and update your
-                  habits before the next mock.
+                  This is your replay. For every wrong answer, figure out exactly which part of the
+                  audio or which habit failed you — guessing, zoning out, or rushing.
                 </span>
               </p>
             </Card>
-          </section>
 
-          <section className="mb-6">
             <MockAnswerSheet rows={answers} />
-          </section>
-
-          <section className="flex flex-wrap items-center justify-between gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/mock/listening">
-                <Icon name="ArrowLeft" size={14} />
-                <span>Back to Listening mocks</span>
-              </Link>
-            </Button>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/listening/analytics">
-                  <Icon name="LineChart" size={14} />
-                  <span>View analytics</span>
-                </Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link
-                  href={`/listening/practice/${encodeURIComponent(
-                    testSlug,
-                  )}`}
-                >
-                  <Icon name="Repeat" size={14} />
-                  <span>Practice this test</span>
-                </Link>
-              </Button>
-            </div>
           </section>
         </Container>
       </main>
@@ -148,12 +133,12 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const supabase = getServerClient(ctx.req, ctx.res);
+
   const attemptId = ctx.query.attemptId as string | undefined;
   if (!attemptId) {
     return { notFound: true };
   }
-
-  const supabase = getServerClient(ctx.req, ctx.res);
 
   const {
     data: { user },
@@ -168,21 +153,21 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return {
       redirect: {
         destination: `/login?next=${encodeURIComponent(
-          `/mock/listening/submitted?attemptId=${attemptId}`,
+          `/listening/analytics/${attemptId}`,
         )}`,
         permanent: false,
       },
     };
   }
 
+  // Load attempt + test meta
   const { data: attemptRow, error: attemptError } = await supabase
     .from('attempts_listening')
     .select(
-      'id, user_id, test_id, mode, status, raw_score, band_score, total_questions, time_spent_seconds, created_at, listening_tests(slug, title, total_score, duration_seconds)',
+      'id, user_id, test_id, mode, status, raw_score, band_score, total_questions, time_spent_seconds, created_at, listening_tests(title, total_score, duration_seconds)',
     )
     .eq('id', attemptId)
     .eq('user_id', user.id)
-    .eq('mode', 'mock')
     .eq('status', 'submitted')
     .single<any>();
 
@@ -192,6 +177,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   const {
     id,
+    mode,
     raw_score,
     band_score,
     total_questions,
@@ -205,8 +191,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const timeSpentSeconds =
     time_spent_seconds ?? listening_tests?.duration_seconds ?? 30 * 60;
   const testTitle = listening_tests?.title ?? 'Listening Test';
-  const testSlug = listening_tests?.slug ?? '';
 
+  // Load answers with question meta
   const { data: answersRows, error: answersError } = await supabase
     .from('attempts_listening_answers')
     .select(
@@ -214,31 +200,46 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     )
     .eq('attempt_id', attemptId);
 
-  let answers: AnswerRow[] = [];
-
-  if (!answersError && answersRows) {
-    answers =
-      answersRows.map((row: any) => {
-        const q = row.listening_questions;
-        const userValue = Array.isArray(row.value)
-          ? row.value.join(', ')
-          : row.value ?? '';
-        const correct =
-          Array.isArray(q?.correct_answers) && q.correct_answers.length > 0
-            ? q.correct_answers.join(', ')
-            : '';
-
-        return {
-          questionNumber: q?.question_number ?? 0,
-          sectionNumber: q?.section_number ?? 0,
-          prompt: q?.prompt ?? '',
-          userAnswer: userValue,
-          correctAnswer: correct,
-          isCorrect: !!row.is_correct,
-        };
-      }) ?? [];
+  if (answersError) {
+    return {
+      props: {
+        attemptId: id,
+        testTitle,
+        mode,
+        createdAt: created_at,
+        bandScore: band_score ?? 0,
+        rawScore: raw_score ?? 0,
+        maxScore,
+        timeSpentSeconds,
+        totalQuestions: total_questions ?? 40,
+        answers: [],
+      },
+    };
   }
 
+  const answers: AnswerRow[] =
+    answersRows?.map((row: any) => {
+      const q = row.listening_questions;
+      const userValue = Array.isArray(row.value)
+        ? row.value.join(', ')
+        : row.value ?? '';
+      const correct =
+        Array.isArray(q?.correct_answers) &&
+        q.correct_answers.length > 0
+          ? q.correct_answers.join(', ')
+          : '';
+
+      return {
+        questionNumber: q?.question_number ?? 0,
+        sectionNumber: q?.section_number ?? 0,
+        prompt: q?.prompt ?? '',
+        userAnswer: userValue,
+        correctAnswer: correct,
+        isCorrect: !!row.is_correct,
+      };
+    }) ?? [];
+
+  // sort by section + question for a clean sheet
   answers.sort((a, b) => {
     if (a.sectionNumber !== b.sectionNumber) {
       return a.sectionNumber - b.sectionNumber;
@@ -250,16 +251,16 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     props: {
       attemptId: id,
       testTitle,
-      testSlug,
+      mode,
       createdAt: created_at,
       bandScore: band_score ?? 0,
       rawScore: raw_score ?? 0,
       maxScore,
-      totalQuestions: total_questions ?? 40,
       timeSpentSeconds,
+      totalQuestions: total_questions ?? 40,
       answers,
     },
   };
 };
 
-export default ListeningMockSubmittedPage;
+export default ListeningAttemptDetailPage;

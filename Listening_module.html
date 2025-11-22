@@ -1,0 +1,358 @@
+Alright, here’s your **Listening Module Master TODO** with:
+
+* ✅ **Checkboxes**
+* 🔥 **Per-file responsibility**
+* 🎯 **Priority tag** (`P0 / P1 / P2`)
+
+Legend:
+
+* **P0** = Must for Listening v1 go-live (Learning basic + Practice + Full Mock CBE + minimal analytics)
+* **P1** = Strongly recommended for v1.1 (better analytics, admin, game, nicer UX)
+* **P2** = Nice to have / phase 2 polish
+
+Design vibe is still aligned with your UI concept page.
+
+---
+
+## 🧾 docs/ — Specs & Audit
+
+```txt
+[ ] P0 docs/specs/listening_module_spec.md
+    → Canonical spec for Listening: flows, timers, UX rules, scoring, edge cases.
+
+[ ] P0 docs/audit/listening_go_live_checklist.md
+    → Go-live checklist: audio loading, timing, RLS, auth, mobile checks, perf, accessibility.
+
+[ ] P1 docs/mobile/listening_mobile_flow.md
+    → Mobile-specific UX: nav pattern, audio behaviour, small screen layouts, offline notes.
+```
+
+---
+
+## 🧠 lib/listening/ — Logic, Types, Brain
+
+```txt
+[ ] P0 lib/listening/types.ts
+    → Shared TS types for tests, sections, questions, attempts, answers, analytics slices.
+
+[ ] P0 lib/listening/constants.ts
+    → Constants: question types, default timers, scoring thresholds, section order.
+
+[ ] P0 lib/listening/tests.ts
+    → Fetch helpers to load tests (practice + mock) from Supabase / APIs, with typing.
+
+[ ] P0 lib/listening/attempts.ts
+    → Start/submit/auto-save helpers for attempts (wrap pages/api/listening/* routes).
+
+[ ] P0 lib/listening/analytics.ts
+    → Band estimation, accuracy by question type, time-per-section calculations.
+
+[ ] P1 lib/listening/game.ts
+    → Game scoring rules, challenge difficulty, reward logic for game mode.
+
+[ ] P1 lib/listening/audio.ts
+    → Build audio URLs, preload, handle errors/fallbacks (e.g. missing audio, retry).
+```
+
+### Hooks
+
+```txt
+[ ] P0 lib/hooks/useListeningTestRunner.ts
+    → Core hook for run pages (practice + mock): current question, answers state, navigation, submit.
+
+[ ] P1 lib/hooks/useListeningGame.ts
+    → State machine for game challenge mode: rounds, score, streak, timer.
+```
+
+---
+
+## 🎨 components/listening/ — Pure UI
+
+### General
+
+```txt
+[ ] P0 components/listening/ListeningModuleHero.tsx
+    → Hero/header for /listening: short overview + CTAs (Practice, Mock, Analytics).
+
+[ ] P0 components/listening/ListeningNavTabs.tsx
+    → Tabs to switch between Learn / Practice / Game / Mock / Analytics inside /listening.
+
+[ ] P1 components/listening/ListeningInfoBanner.tsx
+    → Info banner for tips, upcoming tests, or "resume last attempt".
+```
+
+### Learning
+
+```txt
+[ ] P1 components/listening/Learning/ListeningLessonCard.tsx
+    → Card UI for lessons (title, skill, level, duration) in /listening/learn.
+
+[ ] P1 components/listening/Learning/ListeningLessonLayout.tsx
+    → Layout wrapper for lesson page: content column + tips/CTA sidebar.
+
+[ ] P1 components/listening/Learning/ListeningTipCallout.tsx
+    → Highlighted tip boxes (do/don’t, exam hacks) used inside lesson content.
+
+[ ] P1 components/listening/Learning/ListeningQuestionTypeCard.tsx
+    → Visual tiles for question types (MCQ, matching, map, etc.).
+```
+
+### Practice
+
+```txt
+[ ] P0 components/listening/Practice/PracticeTestCard.tsx
+    → Card listing a practice test: difficulty, #questions, est. time, last score.
+
+[ ] P0 components/listening/Practice/PracticeQuestionList.tsx
+    → Renders question list for practice test (with proper numbering & grouping).
+
+[ ] P0 components/listening/Practice/PracticeAnswerInput.tsx
+    → Answer controls for practice (inputs, radios, dropdowns based on question type).
+
+[ ] P0 components/listening/Practice/PracticeResultSummary.tsx
+    → Result page component: raw score, band estimate, per-section accuracy summary.
+```
+
+### Game
+
+```txt
+[ ] P1 components/listening/Game/GameModeCard.tsx
+    → Cards at /listening/game: mode description, difficulty, rewards.
+
+[ ] P1 components/listening/Game/GameChallengeHUD.tsx
+    → On-screen HUD for game: timer, score, streak, question counter.
+
+[ ] P1 components/listening/Game/GameTimer.tsx
+    → Simple compact timer component used by game HUD.
+
+[ ] P1 components/listening/Game/GameLeaderboardTable.tsx
+    → Leaderboard with username, score, rank, attempt time.
+
+[ ] P2 components/listening/Game/GameRewardBadge.tsx
+    → Badge UI for achievements (“Fast Ear”, “Perfect Score”, etc.).
+```
+
+### Mock (Full CBE Exam)
+
+```txt
+[ ] P0 components/listening/Mock/MockOverviewStats.tsx
+    → On mock overview page: previous attempts, best band, average score, next recommended test.
+
+[ ] P0 components/listening/Mock/MockInstructions.tsx
+    → Instruction panel: rules, no-pause audio, timing, environment requirements.
+
+[ ] P0 components/listening/Mock/MockTestShell.tsx
+    → Main layout for /mock/listening/run: audio player area + question panel + timer bar.
+
+[ ] P0 components/listening/Mock/MockSectionNavigator.tsx
+    → Section tabs + question navigator grid (1–40 jump, highlight answered/flagged).
+
+[ ] P0 components/listening/Mock/MockQuestionRenderer.tsx
+    → Renders each question type correctly for the mock test (including maps, matching, etc.).
+
+[ ] P0 components/listening/Mock/MockTimer.tsx
+    → Countdown timer with warnings and “time up” behavior.
+
+[ ] P0 components/listening/Mock/MockAnswerSheet.tsx
+    → Side panel or modal showing all answers in one sheet before final submit.
+
+[ ] P0 components/listening/Mock/MockReviewSummary.tsx
+    → Post-submission detailed summary: band, sections, wrong answers overview, next steps.
+
+[ ] P1 components/listening/Mock/MockQuestionFlag.tsx
+    → Flag/bookmark toggle per question for “Review later”.
+```
+
+### Analytics
+
+```txt
+[ ] P0 components/listening/Analytics/ListeningAnalyticsOverview.tsx
+    → High-level dashboard widget composition: band, attempts, weak areas.
+
+[ ] P1 components/listening/Analytics/BandTrajectoryChart.tsx
+    → Chart component: band score over time across attempts.
+
+[ ] P1 components/listening/Analytics/QuestionTypeBreakdownChart.tsx
+    → Chart: accuracy by question type (MCQ, map, etc.).
+
+[ ] P1 components/listening/Analytics/TimeManagementChart.tsx
+    → Chart: time per section, time-per-question heat.
+
+[ ] P1 components/listening/Analytics/AttemptsHistoryTable.tsx
+    → Table: all attempts with date, score, band, type (practice/mock).
+```
+
+---
+
+## 🌐 pages/listening/ — Student Routes
+
+```txt
+[ ] P0 pages/listening/index.tsx
+    → Listening home: hero, module tabs, quick access tiles (Practice, Mock, Analytics).
+```
+
+### Learning
+
+```txt
+[ ] P1 pages/listening/learn/index.tsx
+    → Lists all lessons & question-type guides with filters (level, focus).
+
+[ ] P1 pages/listening/learn/[slug].tsx
+    → Single lesson page: theory, examples, mini drill, CTA to practice/mock.
+```
+
+### Practice
+
+```txt
+[ ] P0 pages/listening/practice/index.tsx
+    → Lists all practice tests: with filters (length, difficulty, skill focus).
+
+[ ] P0 pages/listening/practice/[testSlug].tsx
+    → Full practice runner: audio + questions using useListeningTestRunner.
+
+[ ] P0 pages/listening/practice/[testSlug]/result.tsx
+    → Result screen: uses PracticeResultSummary + basic analytics.
+```
+
+### Game
+
+```txt
+[ ] P1 pages/listening/game/index.tsx
+    → Game modes overview (Fast Ear, Clip Guess, etc.) with GameModeCard.
+
+[ ] P1 pages/listening/game/challenge.tsx
+    → Main challenge mode run page compatible with useListeningGame.
+
+[ ] P2 pages/listening/game/leaderboard.tsx
+    → Public leaderboard for game scores with filters.
+```
+
+### Analytics
+
+```txt
+[ ] P0 pages/listening/analytics/index.tsx
+    → User’s main listening analytics page using ListeningAnalyticsOverview.
+
+[ ] P1 pages/listening/analytics/[attemptId].tsx
+    → Deep dive into a specific attempt (question-level breakdown).
+```
+
+---
+
+## 🎧 pages/mock/listening/ — Full Exam Flow
+
+```txt
+[ ] P0 pages/mock/listening/index.tsx
+    → Mock module landing: list of full listening mock tests + attempt history.
+
+[ ] P0 pages/mock/listening/overview.tsx
+    → Pre-test overview: requirements, device checks, “Start test” to create attempt.
+
+[ ] P0 pages/mock/listening/run.tsx
+    → Core CBE run page (ties together MockTestShell, Navigator, Timer, Renderer, autosave).
+
+[ ] P0 pages/mock/listening/submitted.tsx
+    → Post-submission success page: band score, brief breakdown, CTA to analytics.
+```
+
+---
+
+## 🛠 pages/admin/listening/ — Internal Tools
+
+```txt
+[ ] P1 pages/admin/listening/index.tsx
+    → Admin dashboard overview: total tests, attempts, avg bands, quick links.
+
+[ ] P1 pages/admin/listening/tests.tsx
+    → CRUD UI for listening tests: create/edit test, sections, questions.
+
+[ ] P1 pages/admin/listening/attempts.tsx
+    → Searchable attempt list (date range, user, type, score).
+
+[ ] P2 pages/admin/listening/question-bank.tsx
+    → Master bank management: search + bulk edit/filter question bank.
+```
+
+---
+
+## 🔌 API — Student-facing
+
+### Tests
+
+```txt
+[ ] P0 pages/api/listening/tests/list.ts
+    → GET: list listening tests (practice + mock meta) based on filters.
+
+[ ] P0 pages/api/listening/tests/detail.ts
+    → GET: full test structure by slug/id (sections + questions).
+```
+
+### Practice
+
+```txt
+[ ] P0 pages/api/listening/practice/start.ts
+    → POST: create practice attempt row; returns attemptId + config.
+
+[ ] P0 pages/api/listening/practice/submit.ts
+    → POST: submit answers, compute score, store analytics snapshot.
+```
+
+### Mock
+
+```txt
+[ ] P0 pages/api/listening/mock/tests.ts
+    → GET: available full mock tests for the user (respect plan, PIN gate at /mock scope).
+
+[ ] P0 pages/api/listening/mock/start.ts
+    → POST: create mock attempt (locked to specific test + user + time window).
+
+[ ] P0 pages/api/listening/mock/submit.ts
+    → POST: final submission of mock: score, band, store analytics.
+
+[ ] P0 pages/api/listening/mock/autosave.ts
+    → POST: periodic partial saves for answers + remaining time.
+```
+
+### Analytics (student)
+
+```txt
+[ ] P0 pages/api/listening/analytics/summary.ts
+    → GET: compact summary for dashboard (avg band, attempts count, trend).
+
+[ ] P1 pages/api/listening/analytics/by-question-type.ts
+    → GET: accuracy per question type for current user.
+
+[ ] P1 pages/api/listening/analytics/attempts.ts
+    → GET: paginated list of user’s listening attempts.
+
+[ ] P1 pages/api/listening/analytics/attempt-detail.ts
+    → GET: detailed attempt info including question-level results.
+```
+
+---
+
+## 🔐 API — Admin-facing
+
+```txt
+[ ] P1 pages/api/admin/listening/tests/upsert.ts
+    → POST: create/update listening tests & sections; guarded by withPlan + admin roles.
+
+[ ] P1 pages/api/admin/listening/tests/delete.ts
+    → POST: soft-delete / archive tests.
+
+[ ] P1 pages/api/admin/listening/question-bank/import.ts
+    → POST: bulk import questions from CSV/JSON.
+
+[ ] P1 pages/api/admin/listening/question-bank/export.ts
+    → GET: export question bank for backup/editing.
+
+[ ] P1 pages/api/admin/listening/analytics/overview.ts
+    → GET: global admin analytics (usage, average bands, tests per day).
+```
+
+---
+
+If you want, next step I can do is:
+
+> **“Give me all P0 files grouped by build order”**
+> so you can knock out Listening v1 in a clean sequence.

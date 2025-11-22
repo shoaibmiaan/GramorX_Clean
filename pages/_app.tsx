@@ -575,6 +575,10 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const isPricingRoute =
     pathname === '/pricing' || pathname === '/pricing/overview';
 
+  // 🔥 NEW: page-level flag to hide footer (or other chrome) on specific pages
+  const pageHideFooter =
+    (Component as unknown as { hideFooter?: boolean }).hideFooter === true;
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
@@ -601,6 +605,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
+              // 🔥 pass this down, let AppLayoutManager decide how to hide footer
+              hideFooter={pageHideFooter}
             >
               {shouldShowGlobalHeader ? (
                 <>

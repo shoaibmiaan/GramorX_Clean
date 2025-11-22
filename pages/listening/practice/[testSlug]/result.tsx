@@ -1,4 +1,4 @@
-// pages/mock/listening/submitted.tsx
+// pages/listening/practice/[testSlug]/result.tsx
 import * as React from 'react';
 import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
@@ -10,8 +10,7 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import Icon from '@/components/design-system/Icon';
 
-import ListeningNavTabs from '@/components/listening/ListeningNavTabs';
-import MockReviewSummary from '@/components/listening/Mock/MockReviewSummary';
+import PracticeResultSummary from '@/components/listening/Practice/PracticeResultSummary';
 import MockAnswerSheet from '@/components/listening/Mock/MockAnswerSheet';
 
 type AnswerRow = {
@@ -24,9 +23,10 @@ type AnswerRow = {
 };
 
 type Props = {
-  attemptId: string;
-  testTitle: string;
   testSlug: string;
+  testTitle: string;
+  attemptId: string;
+  mode: 'practice' | 'mock';
   createdAt: string;
   bandScore: number;
   rawScore: number;
@@ -36,10 +36,11 @@ type Props = {
   answers: AnswerRow[];
 };
 
-const ListeningMockSubmittedPage: NextPage<Props> = ({
-  attemptId,
-  testTitle,
+const ListeningPracticeResultPage: NextPage<Props> = ({
   testSlug,
+  testTitle,
+  attemptId,
+  mode,
   createdAt,
   bandScore,
   rawScore,
@@ -53,10 +54,10 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
   return (
     <>
       <Head>
-        <title>{testTitle} • Mock Result • GramorX</title>
+        <title>{testTitle} • Practice Result • GramorX</title>
         <meta
           name="description"
-          content="Result, band estimate and breakdown for your strict-mode IELTS Listening mock."
+          content="Result and breakdown for your IELTS-style Listening practice test."
         />
       </Head>
 
@@ -65,7 +66,7 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Mock exams · Listening result
+                Listening · {mode === 'mock' ? 'Mock' : 'Practice'} result
               </p>
               <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
                 {testTitle}
@@ -80,11 +81,26 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
                 · Attempt ID: {attemptId.slice(0, 8)}…
               </p>
             </div>
-            <ListeningNavTabs activeKey="mock" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={`/listening/practice/${encodeURIComponent(testSlug)}`}
+                >
+                  <Icon name="RotateCcw" size={14} />
+                  <span>Retry this test</span>
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/listening/analytics">
+                  <Icon name="LineChart" size={14} />
+                  <span>View listening analytics</span>
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <section className="mb-6">
-            <MockReviewSummary
+            <PracticeResultSummary
               bandScore={bandScore}
               rawScore={rawScore}
               maxScore={maxScore}
@@ -94,7 +110,7 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
             />
           </section>
 
-          <section className="mb-4">
+          <section className="space-y-3">
             <Card className="border-border bg-muted/40 px-3 py-3 text-[11px] text-muted-foreground sm:px-4 sm:py-3 sm:text-xs">
               <p className="flex items-start gap-2">
                 <Icon
@@ -103,43 +119,14 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
                   className="mt-0.5 text-primary"
                 />
                 <span>
-                  This mock is a snapshot of how you perform under exam rules today — not your final
-                  destiny. Your job now is to reverse-engineer every wrong answer and update your
-                  habits before the next mock.
+                  This is practice, so be ruthless in analysis. For every wrong answer, note what
+                  exact trap caught you — mishearing, spelling, not reading instructions, or zoning
+                  out for 3 seconds.
                 </span>
               </p>
             </Card>
-          </section>
 
-          <section className="mb-6">
             <MockAnswerSheet rows={answers} />
-          </section>
-
-          <section className="flex flex-wrap items-center justify-between gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/mock/listening">
-                <Icon name="ArrowLeft" size={14} />
-                <span>Back to Listening mocks</span>
-              </Link>
-            </Button>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/listening/analytics">
-                  <Icon name="LineChart" size={14} />
-                  <span>View analytics</span>
-                </Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link
-                  href={`/listening/practice/${encodeURIComponent(
-                    testSlug,
-                  )}`}
-                >
-                  <Icon name="Repeat" size={14} />
-                  <span>Practice this test</span>
-                </Link>
-              </Button>
-            </div>
           </section>
         </Container>
       </main>
@@ -148,8 +135,10 @@ const ListeningMockSubmittedPage: NextPage<Props> = ({
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const testSlug = ctx.query.testSlug as string | undefined;
   const attemptId = ctx.query.attemptId as string | undefined;
-  if (!attemptId) {
+
+  if (!testSlug || !attemptId) {
     return { notFound: true };
   }
 
@@ -168,7 +157,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     return {
       redirect: {
         destination: `/login?next=${encodeURIComponent(
-          `/mock/listening/submitted?attemptId=${attemptId}`,
+          `/listening/practice/${testSlug}/result?attemptId=${attemptId}`,
         )}`,
         permanent: false,
       },
@@ -182,7 +171,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     )
     .eq('id', attemptId)
     .eq('user_id', user.id)
-    .eq('mode', 'mock')
     .eq('status', 'submitted')
     .single<any>();
 
@@ -192,6 +180,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   const {
     id,
+    mode,
     raw_score,
     band_score,
     total_questions,
@@ -205,7 +194,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const timeSpentSeconds =
     time_spent_seconds ?? listening_tests?.duration_seconds ?? 30 * 60;
   const testTitle = listening_tests?.title ?? 'Listening Test';
-  const testSlug = listening_tests?.slug ?? '';
 
   const { data: answersRows, error: answersError } = await supabase
     .from('attempts_listening_answers')
@@ -248,9 +236,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   return {
     props: {
-      attemptId: id,
+      testSlug: listening_tests?.slug ?? testSlug,
       testTitle,
-      testSlug,
+      attemptId: id,
+      mode,
       createdAt: created_at,
       bandScore: band_score ?? 0,
       rawScore: raw_score ?? 0,
@@ -262,4 +251,4 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   };
 };
 
-export default ListeningMockSubmittedPage;
+export default ListeningPracticeResultPage;
