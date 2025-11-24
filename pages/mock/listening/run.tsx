@@ -4,24 +4,19 @@ import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
 
 import { getServerClient } from '@/lib/supabaseServer';
-import { Container } from '@/components/design-system/Container';
-import { Button } from '@/components/design-system/Button';
-import { Alert } from '@/components/design-system/Alert';
-import Icon from '@/components/design-system/Icon';
-
-import ListeningNavTabs from '@/components/listening/ListeningNavTabs';
-import ListeningInfoBanner from '@/components/listening/ListeningInfoBanner';
-import MockTestShell from '@/components/listening/Mock/MockTestShell';
-import MockTimer from '@/components/listening/Mock/MockTimer';
-import MockQuestionRenderer from '@/components/listening/Mock/MockQuestionRenderer';
-import MockQuestionFlag from '@/components/listening/Mock/MockQuestionFlag';
-
-import { useListeningTestRunner } from '@/lib/hooks/useListeningTestRunner';
 import type {
   ListeningTest,
   ListeningSection,
+  ListeningQuestion,
   ListeningAttemptAnswer,
 } from '@/lib/listening/types';
+import MockTestShell from '@/components/listening/Mock/MockTestShell';
+import MockQuestionRenderer from '@/components/listening/Mock/MockQuestionRenderer';
+import MockTimer from '@/components/listening/Mock/MockTimer';
+import { Button } from '@/components/design-system/Button';
+import { Alert } from '@/components/design-system/Alert';
+import Icon from '@/components/design-system/Icon';
+import { useListeningTestRunner } from '@/lib/hooks/useListeningTestRunner';
 
 type SectionNavQuestion = {
   id: string;
@@ -38,9 +33,10 @@ type Props = {
   test: ListeningTest;
 };
 
-const buildNav = (
+const buildNavSections = (
   sections: ListeningSection[],
   answers: Record<string, ListeningAttemptAnswer>,
+  flagged: Record<string, boolean>,
 ): SectionNavItem[] => {
   return sections.map((section) => ({
     sectionNumber: section.sectionNumber,
@@ -48,11 +44,11 @@ const buildNav = (
       const ans = answers[q.id];
       const hasValue =
         ans && (Array.isArray(ans.value) ? ans.value.length > 0 : ans.value !== '');
-      const status: SectionNavQuestion['status'] = ans?.flagged
-        ? 'flagged'
-        : hasValue
-        ? 'answered'
-        : 'unanswered';
+      const isFlagged = flagged[q.id] === true;
+
+      let status: SectionNavQuestion['status'] = 'unanswered';
+      if (isFlagged) status = 'flagged';
+      else if (hasValue) status = 'answered';
 
       return {
         id: q.id,
@@ -63,10 +59,13 @@ const buildNav = (
   }));
 };
 
-const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
+const MockListeningRunPage: NextPage<Props> = ({ test }) => {
   const [attemptId, setAttemptId] = React.useState<string | null>(null);
-  const [startError, setStartError] = React.useState<string | null>(null);
+  const [flagged, setFlagged] = React.useState<Record<string, boolean>>({});
   const [starting, setStarting] = React.useState(false);
+  const [startError, setStartError] = React.useState<string | null>(null);
+
+  const durationSeconds = test.durationSeconds;
 
   const {
     status,
@@ -81,13 +80,12 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     nextQuestion,
     prevQuestion,
     setAnswer,
-    setFlag,
     submit,
   } = useListeningTestRunner({
     test,
     mode: 'mock',
     attemptId: attemptId ?? '',
-    durationSeconds: test.durationSeconds,
+    durationSeconds,
     enableAutosave: true,
     onSubmitSuccess: (attempt) => {
       window.location.href = `/mock/listening/submitted?attemptId=${encodeURIComponent(
@@ -96,11 +94,11 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     },
   });
 
-  // create mock attempt on mount
+  // Create attempt when page loads
   React.useEffect(() => {
     if (attemptId) return;
 
-    const slug = test.slug;
+    const testSlug = test.slug;
     setStarting(true);
     setStartError(null);
 
@@ -110,17 +108,17 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ slug }),
+          body: JSON.stringify({ testSlug }),
         });
 
         if (!res.ok) {
-          throw new Error(`Failed to start mock attempt (${res.status})`);
+          throw new Error(`Failed to start attempt (${res.status})`);
         }
 
         const json = await res.json();
         setAttemptId(json.attempt.id);
       } catch (err) {
-        setStartError('Failed to start mock attempt. Go back and try again.');
+        setStartError('Failed to start mock. Refresh the page and try again.');
       } finally {
         setStarting(false);
       }
@@ -128,11 +126,6 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
   }, [attemptId, test.slug]);
 
   const handleSelectQuestion = (sectionNumber: number, questionId: string) => {
-    // strict-ish: allow navigation within current section only
-    if (currentSection && currentSection.sectionNumber !== sectionNumber) {
-      return;
-    }
-
     const sectionIdx = test.sections.findIndex(
       (s) => s.sectionNumber === sectionNumber,
     );
@@ -144,8 +137,25 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     goToQuestion(sectionIdx, qIdx);
   };
 
+  const handleToggleFlag = (questionId: string) => {
+    setFlagged((prev) => ({
+      ...prev,
+      [questionId]: !prev[questionId],
+    }));
+  };
+
+  const navSections: SectionNavItem[] = buildNavSections(
+    test.sections,
+    answers,
+    flagged,
+  );
+
   const handleSubmit = async () => {
-    if (!window.confirm('Submit this mock and lock your answers?')) {
+    if (
+      !window.confirm(
+        'Submit your mock? You will not be able to change answers after this.',
+      )
+    ) {
       return;
     }
     try {
@@ -156,251 +166,233 @@ const ListeningMockRunPage: NextPage<Props> = ({ test }) => {
     }
   };
 
-  const navSections: SectionNavItem[] = buildNav(test.sections, answers);
+  const hasStarted = status !== 'idle';
+
   const currentSectionNumber =
     currentSection?.sectionNumber ?? test.sections[0]?.sectionNumber ?? 1;
   const currentQuestionId = currentQuestion?.id ?? null;
 
-  const hasStarted = status !== 'idle';
-
   return (
     <>
       <Head>
-        <title>{test.title} • Listening Mock • GramorX</title>
+        <title>{test.title} • Listening Mock Run • GramorX</title>
         <meta
           name="description"
-          content="Full IELTS-style Listening mock in strict exam conditions."
+          content="Run your strict IELTS-style Listening mock in real exam conditions."
         />
       </Head>
 
-      <main className="min-h-screen bg-background py-8">
-        <Container>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Mock exams · Listening
-              </p>
-              <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
-                {test.title}
-              </h1>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Strict mode · {test.totalQuestions} questions ·{' '}
-                {Math.round(test.durationSeconds / 60)} minutes
-              </p>
-            </div>
-            <ListeningNavTabs activeKey="mock" />
-          </div>
-
-          <section className="mb-4">
-            <ListeningInfoBanner
-              variant="danger"
-              title="No casual resets here"
-              body="If you mess this up because of poor sleep, bad focus, or no warm-up – that’s still your performance. Treat mocks like a real exam booking."
-            />
-          </section>
-
-          {startError && (
-            <section className="mb-3">
-              <Alert variant="error">{startError}</Alert>
-            </section>
+      <main className="min-h-screen bg-background py-6 sm:py-8">
+        <MockTestShell
+          testTitle={test.title}
+          durationSeconds={durationSeconds}
+          elapsedSeconds={durationSeconds - timeLeft}
+          navSections={navSections}
+          currentSectionNumber={currentSectionNumber}
+          currentQuestionId={currentQuestionId}
+          onSelectQuestion={handleSelectQuestion}
+        >
+          {!attemptId && (
+            <Alert variant="error" className="mb-3">
+              {startError ||
+                'Preparing your mock attempt. If this takes too long, refresh the page.'}
+            </Alert>
           )}
 
-          <MockTestShell
-            testTitle={test.title}
-            durationSeconds={test.durationSeconds}
-            elapsedSeconds={test.durationSeconds - timeLeft}
-            navSections={navSections}
-            currentSectionNumber={currentSectionNumber}
-            currentQuestionId={currentQuestionId}
-            onSelectQuestion={handleSelectQuestion}
-            strictMode
-          >
-            <div className="mb-3">
-              <MockTimer
-                timeLeftSeconds={timeLeft}
-                totalSeconds={test.durationSeconds}
-              />
+          <div className="mb-3">
+            <MockTimer timeLeftSeconds={timeLeft} totalSeconds={durationSeconds} />
+          </div>
+
+          {!hasStarted && (
+            <div className="space-y-3">
+              <Alert variant="info">
+                <div className="flex items-start gap-2">
+                  <Icon name="Info" size={16} className="mt-0.5 text-primary" />
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    Once you hit <strong>Start mock</strong>, the timer begins. No pause, no
+                    rewind. Exactly like the real IELTS Listening.
+                  </p>
+                </div>
+              </Alert>
+              <Button
+                type="button"
+                onClick={start}
+                disabled={!attemptId || starting}
+                className="inline-flex items-center gap-2"
+              >
+                <Icon name="Play" size={16} />
+                <span>{starting ? 'Preparing…' : 'Start mock'}</span>
+              </Button>
             </div>
+          )}
 
-            {!hasStarted && (
-              <div className="space-y-3">
-                <Alert variant="info">
-                  <div className="flex items-start gap-2">
-                    <Icon name="Info" size={16} className="mt-0.5 text-primary" />
-                    <p className="text-xs text-muted-foreground sm:text-sm">
-                      When you hit <strong>Start mock</strong>, the timer begins and this attempt
-                      counts. Do not start if you&apos;re not ready to sit through the full test.
-                    </p>
-                  </div>
-                </Alert>
-                <Button
-                  type="button"
-                  onClick={start}
-                  disabled={!attemptId || starting}
-                  className="inline-flex items-center gap-2"
-                >
-                  <Icon name="PlayCircle" size={16} />
-                  <span>{starting ? 'Preparing…' : 'Start mock'}</span>
-                </Button>
-              </div>
-            )}
+          {hasStarted && currentSection && currentQuestion && (
+            <div className="space-y-4">
+              <MockQuestionRenderer
+                question={currentQuestion}
+                answer={answers[currentQuestion.id]}
+                flagged={flagged[currentQuestion.id] === true}
+                onChangeAnswer={setAnswer}
+                onToggleFlag={() => handleToggleFlag(currentQuestion.id)}
+              />
 
-            {hasStarted && (
-              <div className="space-y-4">
-                {currentQuestion && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Section {currentSection?.sectionNumber} · Question{' '}
-                        {currentQuestion.questionNumber}
-                      </p>
-                      <MockQuestionFlag
-                        questionId={currentQuestion.id}
-                        flagged={!!answers[currentQuestion.id]?.flagged}
-                        onToggle={(flag) => setFlag(currentQuestion.id, flag)}
-                      />
-                    </div>
-
-                    <MockQuestionRenderer
-                      question={currentQuestion}
-                      answer={answers[currentQuestion.id]}
-                      onChangeAnswer={setAnswer}
-                    />
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={prevQuestion}
-                    >
-                      <Icon name="ArrowLeft" size={14} />
-                      <span>Previous</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={nextQuestion}
-                    >
-                      <span>Next</span>
-                      <Icon name="ArrowRight" size={14} />
-                    </Button>
-                  </div>
-
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                <div className="flex gap-2">
                   <Button
                     type="button"
+                    variant="outline"
                     size="sm"
-                    variant="primary"
-                    onClick={handleSubmit}
-                    disabled={!attemptId || status === 'submitting'}
+                    onClick={prevQuestion}
                   >
-                    <Icon name="CheckSquare" size={14} />
-                    <span>
-                      {status === 'submitting' ? 'Submitting…' : 'Submit mock'}
-                    </span>
+                    <Icon name="ArrowLeft" size={14} />
+                    <span>Previous</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={nextQuestion}
+                  >
+                    <span>Next</span>
+                    <Icon name="ArrowRight" size={14} />
                   </Button>
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="primary"
+                  onClick={handleSubmit}
+                  disabled={!attemptId || status === 'submitting'}
+                >
+                  <Icon name="CheckSquare" size={14} />
+                  <span>{status === 'submitting' ? 'Submitting…' : 'Submit mock'}</span>
+                </Button>
               </div>
-            )}
-          </MockTestShell>
-        </Container>
+            </div>
+          )}
+        </MockTestShell>
       </main>
     </>
   );
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const slug = ctx.query.slug as string | undefined;
-  if (!slug) {
-    return { notFound: true };
-  }
-
   const supabase = getServerClient(ctx.req, ctx.res);
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
-
-  if (userError) {
-    return { props: null as never };
-  }
 
   if (!user) {
     return {
       redirect: {
         destination: `/login?next=${encodeURIComponent(
-          `/mock/listening/run?slug=${slug}`,
+          ctx.resolvedUrl || '/mock/listening',
         )}`,
         permanent: false,
       },
     };
   }
 
-  const { data: testRow, error: testError } = await supabase
+  const testSlug = (ctx.query.testSlug as string | undefined) ?? null;
+
+  // 1) Get the selected mock test (or the first one)
+  const { data: testRows, error: testsError } = await supabase
     .from('listening_tests')
     .select(
-      'id, slug, title, description, difficulty, is_mock, total_questions, total_score, duration_seconds, audio_storage_key',
+      'id, slug, title, description, difficulty, is_mock, total_questions, total_score, duration_seconds, audio_storage_key, audio_url',
     )
-    .eq('slug', slug)
     .eq('is_mock', true)
-    .single<any>();
+    .order('title', { ascending: true });
 
-  if (testError || !testRow) {
+  if (testsError || !testRows || testRows.length === 0) {
     return { notFound: true };
   }
 
-  const { data: sectionRows, error: sectionError } = await supabase
+  const selected =
+    (testSlug && testRows.find((r: any) => r.slug === testSlug)) ?? testRows[0];
+
+  // 2) Load sections (flat)
+  const { data: sectionRows, error: sectionsError } = await supabase
     .from('listening_sections')
     .select(
-      'id, section_number, title, description, listening_questions(id, question_number, section_number, type, prompt, context, correct_answers, max_score)',
+      'id, test_id, section_number, title, description, audio_url, start_ms, end_ms, transcript',
     )
-    .eq('test_id', testRow.id)
+    .eq('test_id', selected.id)
     .order('section_number', { ascending: true });
 
-  if (sectionError || !sectionRows) {
-    return { notFound: true };
+  if (sectionsError) {
+    console.error('[mock/listening/run] sections error', sectionsError);
   }
 
-  const sections: ListeningSection[] = sectionRows.map((s: any) => ({
-    id: s.id,
-    testId: testRow.id,
-    sectionNumber: s.section_number,
-    title: s.title,
-    description: s.description,
-    questions:
-      s.listening_questions?.map((q: any) => ({
-        id: q.id,
-        testId: testRow.id,
-        sectionId: s.id,
-        questionNumber: q.question_number,
-        sectionNumber: q.section_number,
-        type: q.type,
-        prompt: q.prompt,
-        context: q.context,
-        options: undefined,
-        correctAnswers: q.correct_answers ?? [],
-        maxScore: q.max_score,
-        audioStartMs: null,
-        audioEndMs: null,
-      })) ?? [],
-  }));
+  // 3) Load questions for this test (flat)
+  const { data: questionRows, error: questionsError } = await supabase
+    .from('listening_questions')
+    .select(
+      'id, test_id, section_id, section_number, question_number, question_text, question_type, options, correct_answer, correct_answers, audio_start_ms, audio_end_ms, transcript, max_score',
+    )
+    .eq('test_id', selected.id)
+    .order('section_number', { ascending: true })
+    .order('question_number', { ascending: true });
+
+  if (questionsError) {
+    console.error('[mock/listening/run] questions error', questionsError);
+  }
+
+  const questionsBySectionId = new Map<string, ListeningQuestion[]>();
+
+  (questionRows ?? []).forEach((q: any) => {
+    const list = questionsBySectionId.get(q.section_id) ?? [];
+    list.push({
+      id: q.id,
+      testId: selected.id,
+      sectionId: q.section_id,
+      questionNumber: q.question_number,
+      sectionNumber: q.section_number,
+      type: q.question_type,
+      prompt: q.question_text,
+      context: q.transcript ?? null,
+      options: q.options ?? undefined,
+      correctAnswers: q.correct_answers ?? [],
+      maxScore: q.max_score ?? 1,
+      audioStartMs: q.audio_start_ms ?? null,
+      audioEndMs: q.audio_end_ms ?? null,
+    });
+    questionsBySectionId.set(q.section_id, list);
+  });
+
+  const sections: ListeningSection[] =
+    (sectionRows ?? []).map(
+      (s: any): ListeningSection => ({
+        id: s.id,
+        testId: selected.id,
+        sectionNumber: s.section_number,
+        title: s.title,
+        description: s.description,
+        audioUrl: s.audio_url ?? null,
+        startMs: s.start_ms ?? null,
+        endMs: s.end_ms ?? null,
+        transcript: s.transcript ?? null,
+        questions: questionsBySectionId.get(s.id) ?? [],
+      }),
+    ) ?? [];
+
+  const totalQuestions =
+    selected.total_questions ??
+    sections.reduce((acc, sec) => acc + sec.questions.length, 0);
 
   const test: ListeningTest = {
-    id: testRow.id,
-    slug: testRow.slug,
-    title: testRow.title,
-    description: testRow.description,
-    difficulty: testRow.difficulty,
-    isMock: !!testRow.is_mock,
-    totalQuestions: testRow.total_questions ?? 0,
-    totalScore: testRow.total_score ?? testRow.total_questions ?? 40,
-    durationSeconds: testRow.duration_seconds ?? 0,
-    audioStorageKey: testRow.audio_storage_key ?? null,
+    id: selected.id,
+    slug: selected.slug,
+    title: selected.title,
+    description: selected.description,
+    difficulty: selected.difficulty,
+    isMock: selected.is_mock,
+    totalQuestions,
+    totalScore: selected.total_score ?? totalQuestions,
+    durationSeconds: selected.duration_seconds,
+    audioStorageKey: selected.audio_storage_key ?? null,
+    audioUrl: selected.audio_url ?? null,
     sections,
   };
 
@@ -411,4 +403,4 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   };
 };
 
-export default ListeningMockRunPage;
+export default MockListeningRunPage;
