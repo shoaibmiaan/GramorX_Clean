@@ -1,215 +1,136 @@
 // pages/api/listening/practice/submit.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
-
 import { getServerClient } from '@/lib/supabaseServer';
 import { computeListeningBandFromRaw } from '@/lib/listening/analytics';
 
-const AnswerSchema = z.object({
-  questionId: z.string().min(1),
-  value: z.union([z.string(), z.array(z.string())]),
-});
-
 const BodySchema = z.object({
   attemptId: z.string().min(1),
-  answers: z.array(AnswerSchema),
   timeSpentSeconds: z.number().int().nonnegative(),
+  answers: z.array(
+    z.object({
+      questionId: z.string().min(1),
+      value: z.union([z.string(), z.array(z.string())]),
+    })
+  ),
 });
 
-type Body = z.infer<typeof BodySchema>;
-
-type AttemptRow = {
-  id: string;
-  test_id: string;
-  user_id: string;
-  mode: string;
-  status: string;
-  started_at: string;
-  submitted_at: string | null;
-  raw_score: number | null;
-  band_score: number | null;
-  time_spent_seconds: number | null;
-};
-
-type QuestionRow = {
-  id: string;
-  test_id: string;
-  max_score: number;
-  correct_answers: string[]; // stored as text[] in DB
-};
-
-type ListeningAttemptAnswerResponse = {
-  questionId: string;
-  value: string | string[];
-  isCorrect: boolean;
-  score: number;
-};
-
-type ListeningAttemptResponse = {
-  id: string;
-  testId: string;
-  userId: string;
-  mode: 'practice';
-  status: 'submitted';
-  startedAt: string;
-  submittedAt: string | null;
-  rawScore: number;
-  bandScore: number;
-  timeSpentSeconds: number;
-  answers: ListeningAttemptAnswerResponse[];
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ListeningAttemptResponse | { error: string }>,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const parse = BodySchema.safeParse(req.body);
-  if (!parse.success) {
-    return res.status(400).json({ error: 'Invalid body' });
-  }
-  const body: Body = parse.data;
+  if (!parse.success) return res.status(400).json({ error: 'Invalid body' });
+  const body = parse.data;
 
-  const supabase = getServerClient(req, res);
+  const supabase = getServerClient({ req, res });
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  if (userError) {
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  // Load attempt and ensure ownership + correct mode
-  const { data: attemptRow, error: attemptError } = await supabase
+  const { data: attempt, error: attErr } = await supabase
     .from('attempts_listening')
-    .select(
-      'id, test_id, user_id, mode, status, started_at, submitted_at, raw_score, band_score, time_spent_seconds',
-    )
+    .select('id, user_id, test_id, status, mode')
     .eq('id', body.attemptId)
-    .single<AttemptRow>();
+    .single();
 
-  if (attemptError || !attemptRow) {
-    return res.status(404).json({ error: 'Attempt not found' });
-  }
+  if (attErr || !attempt) return res.status(404).json({ error: 'Attempt not found' });
+  if (attempt.user_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
+  if (attempt.mode !== 'practice')
+    return res.status(400).json({ error: 'Not a practice attempt' });
+  if (attempt.status === 'submitted')
+    return res.status(400).json({ error: 'Already submitted' });
 
-  if (attemptRow.user_id !== user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  if (attemptRow.mode !== 'practice') {
-    return res.status(400).json({ error: 'Attempt is not a practice attempt' });
-  }
-
-  if (attemptRow.status === 'submitted') {
-    return res.status(400).json({ error: 'Attempt already submitted' });
-  }
-
-  // Load correct answers for this test
-  const { data: questionRows, error: questionsError } = await supabase
+  const { data: questions, error: qErr } = await supabase
     .from('listening_questions')
-    .select('id, test_id, max_score, correct_answers')
-    .eq('test_id', attemptRow.test_id)
-    .returns<QuestionRow[]>();
+    .select('id, question_type, correct_answer, correct_answers, max_score')
+    .eq('test_id', attempt.test_id);
 
-  if (questionsError || !questionRows) {
-    return res.status(500).json({ error: 'Failed to load questions' });
-  }
+  if (qErr || !questions) return res.status(500).json({ error: 'Missing questions' });
 
-  const questionMap = new Map<string, QuestionRow>();
-  questionRows.forEach((q) => {
-    questionMap.set(q.id, q);
-  });
+  const qMap = new Map<string, any>();
+  for (const q of questions) qMap.set(q.id, q);
 
   let rawScore = 0;
-  const enrichedAnswers: ListeningAttemptAnswerResponse[] = body.answers.map((answer) => {
-    const question = questionMap.get(answer.questionId);
-    if (!question) {
-      return {
-        questionId: answer.questionId,
-        value: answer.value,
-        isCorrect: false,
-        score: 0,
-      };
+  const enriched = body.answers.map((a) => {
+    const q = qMap.get(a.questionId);
+    if (!q) {
+      return { questionId: a.questionId, value: a.value, is_correct: false };
     }
 
-    const correctAnswersNormalized = question.correct_answers.map((a) => a.trim().toLowerCase());
-    const valueArray = Array.isArray(answer.value) ? answer.value : [answer.value];
-    const normalizedValues = valueArray.map((v) => v.trim().toLowerCase());
+    let isCorrect = false;
 
-    const isCorrect =
-      normalizedValues.length === correctAnswersNormalized.length &&
-      normalizedValues.every((v) => correctAnswersNormalized.includes(v));
+    if (q.question_type === 'mcq') {
+      isCorrect = a.value === q.correct_answer;
+    } else if (q.question_type === 'short_answer') {
+      const norm = (s: string) => s.trim().toLowerCase();
+      isCorrect = norm(a.value as string) === norm(q.correct_answer || '');
+    } else if (q.question_type === 'multiple_select') {
+      if (Array.isArray(a.value) && Array.isArray(q.correct_answers)) {
+        const u = [...a.value].sort().join('|');
+        const c = [...q.correct_answers].sort().join('|');
+        isCorrect = u === c;
+      }
+    }
 
-    const score = isCorrect ? question.max_score : 0;
-    rawScore += score;
+    if (isCorrect) rawScore += q.max_score ?? 1;
 
     return {
-      questionId: answer.questionId,
-      value: answer.value,
-      isCorrect,
-      score,
+      questionId: q.id,
+      value: a.value,
+      is_correct: isCorrect,
     };
   });
 
   const bandScore = computeListeningBandFromRaw(rawScore);
+  const submittedAt = new Date().toISOString();
 
-  // Persist answers + update attempt
-  const { error: answersInsertError } = await supabase
+  const rows = enriched.map((e) => ({
+    attempt_id: attempt.id,
+    question_id: e.questionId,
+    value: e.value,
+    is_correct: e.is_correct,
+  }));
+
+  const { error: ansErr } = await supabase
     .from('attempts_listening_answers')
-    .insert(
-      enrichedAnswers.map((a) => ({
-        attempt_id: attemptRow.id,
-        question_id: a.questionId,
-        value: a.value,
-        is_correct: a.isCorrect,
-        score: a.score,
-      })),
-    );
+    .upsert(rows, { onConflict: 'attempt_id,question_id' });
 
-  if (answersInsertError) {
-    return res.status(500).json({ error: 'Failed to save answers' });
+  if (ansErr) {
+    console.error(ansErr);
+    return res.status(500).json({ error: 'Failed to store answers' });
   }
 
-  const { data: updatedAttempt, error: updateError } = await supabase
+  const { data: final, error: updErr } = await supabase
     .from('attempts_listening')
     .update({
       status: 'submitted',
+      submitted_at: submittedAt,
       raw_score: rawScore,
       band_score: bandScore,
       time_spent_seconds: body.timeSpentSeconds,
-      submitted_at: new Date().toISOString(),
     })
-    .eq('id', attemptRow.id)
-    .select(
-      'id, test_id, user_id, mode, status, started_at, submitted_at, raw_score, band_score, time_spent_seconds',
-    )
-    .single<AttemptRow>();
+    .eq('id', attempt.id)
+    .select()
+    .single();
 
-  if (updateError || !updatedAttempt) {
-    return res.status(500).json({ error: 'Failed to update attempt' });
+  if (updErr || !final) {
+    return res.status(500).json({ error: 'Failed to finalise attempt' });
   }
 
-  const response: ListeningAttemptResponse = {
-    id: updatedAttempt.id,
-    testId: updatedAttempt.test_id,
-    userId: updatedAttempt.user_id,
-    mode: 'practice',
-    status: 'submitted',
-    startedAt: updatedAttempt.started_at,
-    submittedAt: updatedAttempt.submitted_at,
-    rawScore: updatedAttempt.raw_score ?? 0,
-    bandScore: updatedAttempt.band_score ?? 0,
-    timeSpentSeconds: updatedAttempt.time_spent_seconds ?? body.timeSpentSeconds,
-    answers: enrichedAnswers,
-  };
-
-  return res.status(200).json(response);
+  return res.status(200).json({
+    attemptId: final.id,
+    testId: final.test_id,
+    mode: final.mode,
+    status: final.status,
+    rawScore,
+    bandScore,
+    timeSpentSeconds: final.time_spent_seconds,
+    submittedAt: final.submitted_at,
+    answers: enriched,
+  });
 }

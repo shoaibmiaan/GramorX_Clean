@@ -1,7 +1,6 @@
 // pages/_app.tsx
 import type { AppProps } from 'next/app';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
@@ -39,12 +38,6 @@ import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
 import { Container } from '@/components/design-system/Container';
-import { PlanNavCta } from '@/components/layouts/PlanNavCta';
-
-const PricingReasonBanner = dynamic(
-  () => import('@/components/paywall/PricingReasonBanner'),
-  { ssr: false }
-);
 
 // ---- Safe Supabase getter (works for both factory or instance exports)
 function getSupa() {
@@ -456,7 +449,6 @@ function useRouteAccessCheck(pathname: string, role?: string | null) {
     const config = getRouteConfig(pathname);
     if (!config.requiresAuth) return;
 
-    // If we don't know the role yet, don't instantly redirect – let UserContext load.
     if (role === undefined) return;
 
     if (!role) {
@@ -565,17 +557,12 @@ function InnerApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} key={router.asPath} />
     );
 
-  // Show global AppHeader-style nav for marketing & pricing routes
   const shouldShowGlobalHeader =
     routeConfiguration.isMarketingRoute ||
     pathname === '/' ||
     pathname === '/pricing' ||
     pathname.startsWith('/pricing/');
 
-  const isPricingRoute =
-    pathname === '/pricing' || pathname === '/pricing/overview';
-
-  // 🔥 NEW: page-level flag to hide footer (or other chrome) on specific pages
   const pageHideFooter =
     (Component as unknown as { hideFooter?: boolean }).hideFooter === true;
 
@@ -605,7 +592,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
-              // 🔥 pass this down, let AppLayoutManager decide how to hide footer
               hideFooter={pageHideFooter}
             >
               {shouldShowGlobalHeader ? (
@@ -613,17 +599,12 @@ function InnerApp({ Component, pageProps }: AppProps) {
                   <header className="border-b border-subtle bg-background/80 backdrop-blur">
                     <Container className="flex h-14 items-center justify-between">
                       <div className="text-sm font-semibold">GramorX</div>
-                      <PlanNavCta />
                     </Container>
                   </header>
-                  {isPricingRoute ? <PricingReasonBanner /> : null}
                   {basePage}
                 </>
               ) : (
-                <>
-                  {isPricingRoute ? <PricingReasonBanner /> : null}
-                  {basePage}
-                </>
+                <>{basePage}</>
               )}
             </AppLayoutManager>
           </AnimationProvider>

@@ -1,93 +1,76 @@
 // pages/api/listening/analytics/by-question-type.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-
 import { getServerClient } from '@/lib/supabaseServer';
-import type { ListeningQuestionTypeStats } from '@/lib/listening/types';
 
-type AnswerRow = {
-  attempt_id: string;
-  question_id: string;
-  is_correct: boolean | null;
-  time_spent_seconds: number | null;
-  listening_questions: {
-    type: string;
-  } | null;
-  attempts_listening: {
-    user_id: string;
-    status: string;
-  } | null;
+type QuestionTypeStats = {
+  questionType: string;
+  attempts: number;
+  correct: number;
+  accuracy: number; // 0–1
 };
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<{ stats: ListeningQuestionTypeStats[] } | { error: string }>,
+  res: NextApiResponse<QuestionTypeStats[] | { error: string }>
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const supabase = getServerClient(req, res);
+  const supabase = getServerClient({ req, res });
 
   const {
     data: { user },
-    error: userError,
+    error: userErr,
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (userErr || !user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { data, error } = await supabase
+  // 1) Get all attempts for this user
+  const { data: attempts, error: attErr } = await supabase
+    .from('attempts_listening')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'submitted');
+
+  if (attErr || !attempts) {
+    return res.status(500).json({ error: 'Failed to load attempts' });
+  }
+  if (!attempts.length) return res.status(200).json([]);
+
+  const attemptIds = attempts.map((a) => a.id);
+
+  // 2) Get answers + question types
+  const { data: rows, error: joinErr } = await supabase
     .from('attempts_listening_answers')
     .select(
-      'attempt_id, question_id, is_correct, time_spent_seconds, listening_questions(type), attempts_listening(user_id, status)',
+      'is_correct, listening_questions!attempts_listening_answers_question_id_fkey(question_type)'
     )
-    .eq('attempts_listening.user_id', user.id)
-    .eq('attempts_listening.status', 'submitted')
-    .returns<AnswerRow[]>();
+    .in('attempt_id', attemptIds);
 
-  if (error || !data) {
-    return res.status(500).json({ error: 'Failed to load answers' });
+  if (joinErr || !rows) {
+    return res.status(500).json({ error: 'Failed to load data' });
   }
 
-  const map = new Map<string, ListeningQuestionTypeStats>();
+  const statsMap = new Map<string, { attempts: number; correct: number }>();
 
-  for (const row of data) {
-    const qTypeRaw = row.listening_questions?.type;
-    if (!qTypeRaw) continue;
+  for (const row of rows as any[]) {
+    const qt = row.listening_questions?.question_type ?? 'unknown';
+    const key = qt || 'unknown';
 
-    const qType = qTypeRaw as ListeningQuestionTypeStats['type'];
-
-    if (!map.has(qType)) {
-      map.set(qType, {
-        type: qType,
-        attempts: 0,
-        correct: 0,
-        accuracy: 0,
-        avgTimeSeconds: null,
-      });
+    if (!statsMap.has(key)) {
+      statsMap.set(key, { attempts: 0, correct: 0 });
     }
-
-    const stat = map.get(qType)!;
-    stat.attempts += 1;
-    if (row.is_correct) {
-      stat.correct += 1;
-    }
-
-    if (row.time_spent_seconds != null) {
-      const prevTotalTime = (stat.avgTimeSeconds ?? 0) * (stat.attempts - 1);
-      const newAvg = (prevTotalTime + row.time_spent_seconds) / stat.attempts;
-      stat.avgTimeSeconds = newAvg;
-    }
+    const st = statsMap.get(key)!;
+    st.attempts += 1;
+    if (row.is_correct === true) st.correct += 1;
   }
 
-  const result: ListeningQuestionTypeStats[] = Array.from(map.values()).map((s) => ({
-    ...s,
-    accuracy: s.attempts > 0 ? s.correct / s.attempts : 0,
-  }));
+  const result: QuestionTypeStats[] = [];
+  for (const [questionType, { attempts: a, correct }] of statsMap.entries()) {
+    result.push({
+      questionType,
+      attempts: a,
+      correct,
+      accuracy: a === 0 ? 0 : correct / a,
+    });
+  }
 
-  return res.status(200).json({ stats: result });
+  return res.status(200).json(result);
 }

@@ -1,143 +1,133 @@
 // pages/api/listening/analytics/attempt-detail.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-
 import { getServerClient } from '@/lib/supabaseServer';
-import type {
-  ListeningBandSnapshot,
-  ListeningQuestionTypeStats,
-} from '@/lib/listening/types';
 
-type AttemptRow = {
-  id: string;
-  test_id: string;
-  user_id: string;
-  mode: string;
+type QuestionDetail = {
+  questionId: string;
+  questionNumber: number | null;
+  sectionNumber: number | null;
+  questionText: string;
+  questionType: string | null;
+  maxScore: number;
+  correctAnswer: string | null;
+  correctAnswers: string[] | null;
+  userValue: unknown;
+  isCorrect: boolean | null;
+};
+
+type AttemptDetailResponse = {
+  attemptId: string;
+  testId: string | null;
+  mode: 'mock' | 'practice';
   status: string;
-  submitted_at: string | null;
-  raw_score: number | null;
-  band_score: number | null;
-  listening_tests: {
-    slug: string;
-    total_score: number | null;
-  } | null;
-};
-
-type AnswerRow = {
-  question_id: string;
-  is_correct: boolean | null;
-  time_spent_seconds: number | null;
-  listening_questions: {
-    type: string;
-  } | null;
-};
-
-type ResponseBody = {
-  attempt: ListeningBandSnapshot;
-  questionTypeStats: ListeningQuestionTypeStats[];
+  rawScore: number | null;
+  bandScore: number | null;
+  totalQuestions: number | null;
+  timeSpentSeconds: number | null;
+  startedAt: string | null;
+  submittedAt: string | null;
+  questions: QuestionDetail[];
 };
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ResponseBody | { error: string }>,
+  res: NextApiResponse<AttemptDetailResponse | { error: string }>
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const attemptId = req.query.attemptId;
+  const attemptIdStr = Array.isArray(attemptId) ? attemptId[0] : attemptId;
 
-  const attemptId = req.query.attemptId as string | undefined;
-  if (!attemptId) {
+  if (!attemptIdStr || typeof attemptIdStr !== 'string') {
     return res.status(400).json({ error: 'Missing attemptId' });
   }
 
-  const supabase = getServerClient(req, res);
+  const supabase = getServerClient({ req, res });
 
   const {
     data: { user },
-    error: userError,
+    error: userErr,
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (userErr || !user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { data: attempt, error: attemptError } = await supabase
+  // 1) Attempt
+  const { data: attempt, error: attErr } = await supabase
     .from('attempts_listening')
-    .select(
-      'id, test_id, user_id, mode, status, submitted_at, raw_score, band_score, listening_tests!inner(slug, total_score)',
-    )
-    .eq('id', attemptId)
-    .eq('user_id', user.id)
-    .single<AttemptRow>();
+    .select('id, user_id, test_id, mode, status, raw_score, band_score, total_questions, time_spent_seconds, started_at, submitted_at')
+    .eq('id', attemptIdStr)
+    .single();
 
-  if (attemptError || !attempt) {
-    return res.status(404).json({ error: 'Attempt not found' });
-  }
+  if (attErr || !attempt) return res.status(404).json({ error: 'Attempt not found' });
+  if (attempt.user_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const attemptSnapshot: ListeningBandSnapshot = {
-    attemptId: attempt.id,
-    testSlug: attempt.listening_tests?.slug ?? 'unknown',
-    attemptedAt: attempt.submitted_at ?? new Date().toISOString(),
-    mode: attempt.mode === 'mock' ? 'mock' : 'practice',
-    rawScore: attempt.raw_score ?? 0,
-    maxScore: attempt.listening_tests?.total_score ?? 40,
-    bandScore: attempt.band_score ?? 0,
-  };
-
-  const { data: answers, error: answersError } = await supabase
+  // 2) Answers
+  const { data: answers, error: ansErr } = await supabase
     .from('attempts_listening_answers')
-    .select(
-      'question_id, is_correct, time_spent_seconds, listening_questions(type)',
-    )
-    .eq('attempt_id', attempt.id)
-    .returns<AnswerRow[]>();
+    .select('question_id, value, is_correct')
+    .eq('attempt_id', attempt.id);
 
-  if (answersError || !answers) {
+  if (ansErr || !answers) {
     return res.status(500).json({ error: 'Failed to load answers' });
   }
 
-  const statsMap = new Map<string, ListeningQuestionTypeStats>();
+  // 3) Questions
+  const { data: questions, error: qErr } = await supabase
+    .from('listening_questions')
+    .select(
+      'id, question_number, section_number, question_text, question_type, max_score, correct_answer, correct_answers'
+    )
+    .eq('test_id', attempt.test_id);
 
-  for (const row of answers) {
-    const typeRaw = row.listening_questions?.type;
-    if (!typeRaw) continue;
-
-    const typeKey = typeRaw as ListeningQuestionTypeStats['type'];
-
-    if (!statsMap.has(typeKey)) {
-      statsMap.set(typeKey, {
-        type: typeKey,
-        attempts: 0,
-        correct: 0,
-        accuracy: 0,
-        avgTimeSeconds: null,
-      });
-    }
-
-    const stat = statsMap.get(typeKey)!;
-    stat.attempts += 1;
-    if (row.is_correct) {
-      stat.correct += 1;
-    }
-
-    if (row.time_spent_seconds != null) {
-      const prevTotal = (stat.avgTimeSeconds ?? 0) * (stat.attempts - 1);
-      const newAvg = (prevTotal + row.time_spent_seconds) / stat.attempts;
-      stat.avgTimeSeconds = newAvg;
-    }
+  if (qErr || !questions) {
+    return res.status(500).json({ error: 'Failed to load questions' });
   }
 
-  const questionTypeStats: ListeningQuestionTypeStats[] = Array.from(statsMap.values()).map(
-    (s) => ({
-      ...s,
-      accuracy: s.attempts > 0 ? s.correct / s.attempts : 0,
-    }),
-  );
+  const questionsById = new Map<string, any>();
+  for (const q of questions) questionsById.set(q.id, q);
 
-  return res.status(200).json({
-    attempt: attemptSnapshot,
-    questionTypeStats,
+  const questionsOut: QuestionDetail[] = answers.map((a) => {
+    const q = questionsById.get(a.question_id);
+    if (!q) {
+      return {
+        questionId: a.question_id,
+        questionNumber: null,
+        sectionNumber: null,
+        questionText: '[Unknown question]',
+        questionType: null,
+        maxScore: 1,
+        correctAnswer: null,
+        correctAnswers: null,
+        userValue: a.value,
+        isCorrect: a.is_correct,
+      };
+    }
+
+    return {
+      questionId: q.id,
+      questionNumber: q.question_number ?? null,
+      sectionNumber: q.section_number ?? null,
+      questionText: q.question_text,
+      questionType: q.question_type ?? null,
+      maxScore: q.max_score ?? 1,
+      correctAnswer: q.correct_answer ?? null,
+      correctAnswers: q.correct_answers ?? null,
+      userValue: a.value,
+      isCorrect: a.is_correct,
+    };
   });
+
+  const out: AttemptDetailResponse = {
+    attemptId: attempt.id,
+    testId: attempt.test_id ?? null,
+    mode: attempt.mode,
+    status: attempt.status,
+    rawScore: attempt.raw_score ?? null,
+    bandScore: attempt.band_score ?? null,
+    totalQuestions: attempt.total_questions ?? null,
+    timeSpentSeconds: attempt.time_spent_seconds ?? null,
+    startedAt: attempt.started_at ?? null,
+    submittedAt: attempt.submitted_at ?? null,
+    questions: questionsOut,
+  };
+
+  return res.status(200).json(out);
 }

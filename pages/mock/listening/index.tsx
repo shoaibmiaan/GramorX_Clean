@@ -69,9 +69,7 @@ const ListeningMockIndexPage: NextPage<Props> = ({ tests }) => {
             {defaultTestSlug && (
               <Button asChild size="sm">
                 <Link
-                  href={`/mock/listening/overview?slug=${encodeURIComponent(
-                    defaultTestSlug,
-                  )}`}
+                  href={`/mock/listening/overview?slug=${encodeURIComponent(defaultTestSlug)}`}
                 >
                   <Icon name="PlayCircle" size={14} />
                   <span>Start a mock</span>
@@ -119,9 +117,7 @@ const ListeningMockIndexPage: NextPage<Props> = ({ tests }) => {
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <Button asChild size="sm" variant="outline">
                         <Link
-                          href={`/mock/listening/overview?slug=${encodeURIComponent(
-                            test.slug,
-                          )}`}
+                          href={`/mock/listening/overview?slug=${encodeURIComponent(test.slug)}`}
                         >
                           <Icon name="FileText" size={13} />
                           <span>View instructions</span>
@@ -129,9 +125,7 @@ const ListeningMockIndexPage: NextPage<Props> = ({ tests }) => {
                       </Button>
                       <Button asChild size="sm">
                         <Link
-                          href={`/mock/listening/overview?slug=${encodeURIComponent(
-                            test.slug,
-                          )}`}
+                          href={`/mock/listening/overview?slug=${encodeURIComponent(test.slug)}`}
                         >
                           <Icon name="PlayCircle" size={13} />
                           <span>Start mock</span>
@@ -190,22 +184,30 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     };
   }
 
-  const tests: ListeningTestSummary[] = rows.map((row: any) => ({
-    id: row.id,
-    slug: row.slug,
-    title: row.title,
-    difficulty: row.difficulty,
-    isMock: !!row.is_mock,
-    totalQuestions: row.total_questions ?? 0,
-    durationSeconds: row.duration_seconds ?? 0,
-    estimatedBandRange:
-      row.estimated_band_min != null && row.estimated_band_max != null
-        ? {
-            min: Number(row.estimated_band_min),
-            max: Number(row.estimated_band_max),
-          }
-        : undefined,
-  }));
+  const tests: ListeningTestSummary[] = rows.map((row: any) => {
+    const base: ListeningTestSummary = {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      difficulty: row.difficulty,
+      isMock: !!row.is_mock,
+      totalQuestions: row.total_questions ?? 0,
+      durationSeconds: row.duration_seconds ?? 0,
+    };
+
+    if (row.estimated_band_min != null && row.estimated_band_max != null) {
+      return {
+        ...base,
+        estimatedBandRange: {
+          min: Number(row.estimated_band_min),
+          max: Number(row.estimated_band_max),
+        },
+      };
+    }
+
+    // no estimatedBandRange field at all when not set (avoids `undefined` in JSON)
+    return base;
+  });
 
   return {
     props: {

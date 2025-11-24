@@ -1,56 +1,15 @@
 // pages/api/listening/mock/start.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
-
 import { getServerClient } from '@/lib/supabaseServer';
 
 const BodySchema = z.object({
   testSlug: z.string().min(1),
 });
 
-type Body = z.infer<typeof BodySchema>;
-
-type ListeningTestRow = {
-  id: string;
-  slug: string;
-  title: string;
-  is_mock: boolean;
-  total_score: number | null;
-  duration_seconds: number;
-};
-
-type AttemptRow = {
-  id: string;
-  test_id: string;
-  user_id: string;
-  mode: string;
-  status: string;
-  started_at: string;
-  submitted_at: string | null;
-  raw_score: number | null;
-  band_score: number | null;
-  time_spent_seconds: number | null;
-};
-
-type ListeningAttemptResponse = {
-  id: string;
-  testId: string;
-  userId: string;
-  mode: 'mock';
-  status: 'in_progress';
-  startedAt: string;
-  submittedAt: string | null;
-  rawScore: number | null;
-  bandScore: number | null;
-  timeSpentSeconds: number | null;
-  answers: [];
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ListeningAttemptResponse | { error: string }>,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -58,8 +17,10 @@ export default async function handler(
   if (!parse.success) {
     return res.status(400).json({ error: 'Invalid body' });
   }
-  const body: Body = parse.data;
 
+  const { testSlug } = parse.data;
+
+  // 🔥 this is the correct way in YOUR codebase
   const supabase = getServerClient(req, res);
 
   const {
@@ -67,62 +28,45 @@ export default async function handler(
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-  if (!user) {
+  if (userError || !user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Find mock test by slug
-  const { data: testRows, error: testError } = await supabase
+  // 1) Resolve test
+  const { data: testRow, error: testErr } = await supabase
     .from('listening_tests')
-    .select('id, slug, title, is_mock, total_score, duration_seconds')
-    .eq('slug', body.testSlug)
-    .eq('is_mock', true)
-    .limit(1)
-    .returns<ListeningTestRow[]>();
+    .select('id, slug')
+    .eq('slug', testSlug)
+    .single();
 
-  if (testError) {
-    return res.status(500).json({ error: 'Failed to load test' });
+  if (testErr || !testRow) {
+    return res.status(404).json({ error: 'Test not found' });
   }
 
-  const test = testRows?.[0];
-  if (!test) {
-    return res.status(404).json({ error: 'Mock test not found' });
-  }
-
-  // Create mock attempt
-  const { data: attemptRow, error: attemptError } = await supabase
+  // 2) Create attempt
+  const { data: attemptRow, error: attErr } = await supabase
     .from('attempts_listening')
     .insert({
-      test_id: test.id,
       user_id: user.id,
+      test_id: testRow.id,
       mode: 'mock',
       status: 'in_progress',
+      started_at: new Date().toISOString(),
+      time_spent_seconds: 0,
     })
-    .select(
-      'id, test_id, user_id, mode, status, started_at, submitted_at, raw_score, band_score, time_spent_seconds',
-    )
-    .single<AttemptRow>();
+    .select('id, test_id')
+    .single();
 
-  if (attemptError || !attemptRow) {
-    return res.status(500).json({ error: 'Failed to create mock attempt' });
+  if (attErr || !attemptRow) {
+    console.error('[listening/mock/start] insert failed', attErr);
+    return res.status(500).json({ error: 'Failed to start mock attempt' });
   }
 
-  const response: ListeningAttemptResponse = {
-    id: attemptRow.id,
-    testId: attemptRow.test_id,
-    userId: attemptRow.user_id,
-    mode: 'mock',
-    status: 'in_progress',
-    startedAt: attemptRow.started_at,
-    submittedAt: attemptRow.submitted_at,
-    rawScore: attemptRow.raw_score,
-    bandScore: attemptRow.band_score,
-    timeSpentSeconds: attemptRow.time_spent_seconds,
-    answers: [],
-  };
-
-  return res.status(200).json(response);
+  return res.status(200).json({
+    attempt: {
+      id: attemptRow.id,
+      testId: attemptRow.test_id,
+      testSlug: testRow.slug,
+    },
+  });
 }

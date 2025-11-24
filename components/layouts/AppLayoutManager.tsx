@@ -45,15 +45,13 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   if (hasError) {
     return (
-      <Card className="mx-auto max-w-md mt-8">
+      <Card className="mx-auto mt-8 max-w-md">
         <div className="p-4 text-center">
-          <h3 className="text-lg font-semibold mb-2">Layout Error</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <h3 className="mb-2 text-lg font-semibold">Layout Error</h3>
+          <p className="mb-4 text-sm text-muted-foreground">
             There was a problem loading this page layout.
           </p>
-          <Button onClick={() => window.location.reload()}>
-            Reload Page
-          </Button>
+          <Button onClick={() => window.location.reload()}>Reload Page</Button>
         </div>
       </Card>
     );
@@ -81,6 +79,9 @@ type AppLayoutManagerProps = {
   role?: string | null;
   isTeacherApproved?: boolean | null;
   guardFallback: () => ReactNode;
+  // flags coming from _app / page
+  isPremiumRoute?: boolean;
+  hideFooter?: boolean; // <- used to tell Layout what to do with footer
 };
 
 function TeacherOnboardingGate() {
@@ -102,10 +103,13 @@ function TeacherOnboardingGate() {
         aria-describedby="teacher-onboarding-note"
       >
         <div className="space-y-2">
-          <p className="text-caption uppercase tracking-[0.12em] text-muted-foreground">Teacher onboarding</p>
+          <p className="text-caption uppercase tracking-[0.12em] text-muted-foreground">
+            Teacher onboarding
+          </p>
           <h2 className="text-h3 font-semibold text-foreground">Complete your profile</h2>
           <p className="text-small text-muted-foreground">
-            Your account is created but not approved yet. Share a quick profile so our team can unlock the teacher workspace for you.
+            Your account is created but not approved yet. Share a quick profile so our team
+            can unlock the teacher workspace for you.
           </p>
         </div>
 
@@ -132,7 +136,8 @@ function TeacherOnboardingGate() {
         </div>
 
         <p id="teacher-onboarding-note" className="text-caption text-muted-foreground">
-          Data entered here is not saved yet — you&apos;ll complete the official onboarding on the next screen.
+          Data entered here is not saved yet — you&apos;ll complete the official onboarding on
+          the next screen.
         </p>
       </form>
     </Card>
@@ -152,7 +157,7 @@ const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | nu
       canAccessTeacher,
       isApproved,
       shouldRedirect: isTeacherRoute && role && !canAccessTeacher,
-      showOnboarding: role === 'teacher' && !isApproved
+      showOnboarding: role === 'teacher' && !isApproved,
     };
   }, [role, isTeacherApproved, isTeacherRoute]);
 
@@ -170,7 +175,12 @@ type LayoutConfig = {
   type: string;
   component: React.ComponentType<{ children: ReactNode; userRole?: string }>;
   guard?: (role?: string | null, isTeacherApproved?: boolean | null) => boolean;
-  getContent?: (role?: string | null, isTeacherApproved?: boolean | null, children?: ReactNode, guardFallback?: () => ReactNode) => ReactNode;
+  getContent?: (
+    role?: string | null,
+    isTeacherApproved?: boolean | null,
+    children?: ReactNode,
+    guardFallback?: () => ReactNode
+  ) => ReactNode;
 };
 
 export function AppLayoutManager({
@@ -192,6 +202,8 @@ export function AppLayoutManager({
   role,
   isTeacherApproved,
   guardFallback,
+  isPremiumRoute,
+  hideFooter,
 }: AppLayoutManagerProps) {
   const router = useRouter();
   const pathname = router.pathname;
@@ -222,100 +234,113 @@ export function AppLayoutManager({
   }, [role, teacherAccessRole, teacherAccess.isApproved, children, guardFallback]);
 
   // Layout configuration
-  const layoutConfigs: LayoutConfig[] = useMemo(() => [
-    {
-      type: 'admin',
-      component: AdminLayout,
-      guard: () => isAdminRoute
-    },
-    {
-      type: 'teacher',
-      component: TeacherLayout,
-      guard: () => isTeacherRoute,
-      getContent: () => getTeacherContent()
-    },
-    {
-      type: 'institutions',
-      component: InstitutionsLayout,
-      guard: () => isInstitutionsRoute
-    },
-    {
-      type: 'dashboard',
-      component: DashboardLayout,
-      guard: () => isDashboardRoute
-    },
-    {
-      type: 'marketplace',
-      component: MarketplaceLayout,
-      guard: () => isMarketplaceRoute
-    },
-    {
-      type: 'learning',
-      component: LearningLayout,
-      guard: () => isLearningRoute
-    },
-    {
-      type: 'community',
-      component: CommunityLayout,
-      guard: () => isCommunityRoute
-    },
-    {
-      type: 'reports',
-      component: ReportsLayout,
-      guard: () => isReportsRoute
-    },
-    {
-      type: 'marketing',
-      component: PublicMarketingLayout,
-      guard: () => isMarketingRoute
-    },
-    // New layout types
-    {
-      type: 'profile',
-      component: ProfileLayout,
-      guard: () => pathname.startsWith('/profile') || pathname.startsWith('/user')
-    },
-    {
-      type: 'communication',
-      component: CommunicationLayout,
-      guard: () => pathname.startsWith('/messages') || pathname.startsWith('/chat') || pathname.startsWith('/inbox')
-    },
-    {
-      type: 'billing',
-      component: BillingLayout,
-      guard: () => pathname.startsWith('/billing') || pathname.startsWith('/payment') || pathname.startsWith('/subscription')
-    },
-    {
-      type: 'resources',
-      component: ResourcesLayout,
-      guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library')
-    },
-    {
-      type: 'analytics',
-      component: AnalyticsLayout,
-      guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats')
-    },
-    {
-      type: 'support',
-      component: SupportLayout,
-      guard: () => pathname.startsWith('/support') || pathname.startsWith('/help')
-    }
-  ], [
-    isAdminRoute, isTeacherRoute, isInstitutionsRoute, isDashboardRoute,
-    isMarketplaceRoute, isLearningRoute, isCommunityRoute, isReportsRoute,
-    isMarketingRoute, pathname, getTeacherContent
-  ]);
+  const layoutConfigs: LayoutConfig[] = useMemo(
+    () => [
+      {
+        type: 'admin',
+        component: AdminLayout,
+        guard: () => isAdminRoute,
+      },
+      {
+        type: 'teacher',
+        component: TeacherLayout,
+        guard: () => isTeacherRoute,
+        getContent: () => getTeacherContent(),
+      },
+      {
+        type: 'institutions',
+        component: InstitutionsLayout,
+        guard: () => isInstitutionsRoute,
+      },
+      {
+        type: 'dashboard',
+        component: DashboardLayout,
+        guard: () => isDashboardRoute,
+      },
+      {
+        type: 'marketplace',
+        component: MarketplaceLayout,
+        guard: () => isMarketplaceRoute,
+      },
+      {
+        type: 'learning',
+        component: LearningLayout,
+        guard: () => isLearningRoute,
+      },
+      {
+        type: 'community',
+        component: CommunityLayout,
+        guard: () => isCommunityRoute,
+      },
+      {
+        type: 'reports',
+        component: ReportsLayout,
+        guard: () => isReportsRoute,
+      },
+      {
+        type: 'marketing',
+        component: PublicMarketingLayout,
+        guard: () => isMarketingRoute,
+      },
+      // New layout types
+      {
+        type: 'profile',
+        component: ProfileLayout,
+        guard: () => pathname.startsWith('/profile') || pathname.startsWith('/user'),
+      },
+      {
+        type: 'communication',
+        component: CommunicationLayout,
+        guard: () =>
+          pathname.startsWith('/messages') ||
+          pathname.startsWith('/chat') ||
+          pathname.startsWith('/inbox'),
+      },
+      {
+        type: 'billing',
+        component: BillingLayout,
+        guard: () =>
+          pathname.startsWith('/billing') ||
+          pathname.startsWith('/payment') ||
+          pathname.startsWith('/subscription'),
+      },
+      {
+        type: 'resources',
+        component: ResourcesLayout,
+        guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library'),
+      },
+      {
+        type: 'analytics',
+        component: AnalyticsLayout,
+        guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats'),
+      },
+      {
+        type: 'support',
+        component: SupportLayout,
+        guard: () => pathname.startsWith('/support') || pathname.startsWith('/help'),
+      },
+    ],
+    [
+      isAdminRoute,
+      isTeacherRoute,
+      isInstitutionsRoute,
+      isDashboardRoute,
+      isMarketplaceRoute,
+      isLearningRoute,
+      isCommunityRoute,
+      isReportsRoute,
+      isMarketingRoute,
+      pathname,
+      getTeacherContent,
+    ]
+  );
 
   // Find matching layout
   const activeLayout = useMemo(() => {
-    return layoutConfigs.find(config => config.guard?.(role, isTeacherApproved)) || null;
+    return layoutConfigs.find((config) => config.guard?.(role, isTeacherApproved)) || null;
   }, [layoutConfigs, role, isTeacherApproved]);
 
-  const getNakedContent = (
-    auth: boolean,
-    proctoring: boolean,
-    content: ReactNode
-  ) => {
+  const getNakedContent = (auth: boolean, proctoring: boolean, content: ReactNode) => {
     if (auth) return <AuthLayout>{content}</AuthLayout>;
     if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
     return content;
@@ -332,7 +357,7 @@ export function AppLayoutManager({
       }
 
       const LayoutComponent = activeLayout.component;
-      return <LayoutComponent userRole={role}>{children}</LayoutComponent>;
+      return <LayoutComponent userRole={role ?? undefined}>{children}</LayoutComponent>;
     }
 
     return children;
@@ -354,7 +379,7 @@ export function AppLayoutManager({
       <GlobalPlanGuard />
 
       {shouldWrapInMainLayout ? (
-        <Layout>
+        <Layout hideFooter={hideFooter} isPremiumRoute={isPremiumRoute}>
           <ImpersonationBanner />
           {content}
         </Layout>
