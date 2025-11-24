@@ -9,8 +9,6 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https:;",
   "img-src 'self' data: blob: https:;",
   "font-src 'self' data: https:;",
-  // 👇 IMPORTANT: allow audio/video streams (Supabase storage etc.)
-  "media-src 'self' data: blob: https:;",
   "connect-src 'self' https: wss:;",
   "frame-src https://js.stripe.com https://*.stripe.com;",
   "object-src 'none';",
@@ -23,14 +21,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 let supabaseHost = '';
 try {
   if (SUPABASE_URL) supabaseHost = new URL(SUPABASE_URL).host;
-} catch {
-  /* ignore */
-}
+} catch { /* ignore */ }
 
-const writingBundlePath = new URL(
-  './lib/offline/packages/writing.bundle.json',
-  import.meta.url,
-);
+const writingBundlePath = new URL('./lib/offline/packages/writing.bundle.json', import.meta.url);
 let writingBundleAssets = [];
 try {
   const raw = fs.readFileSync(writingBundlePath, 'utf8');
@@ -38,11 +31,7 @@ try {
   if (Array.isArray(parsed?.assets)) {
     writingBundleAssets = parsed.assets
       .map((asset) => ({ url: asset?.url, revision: asset?.revision }))
-      .filter(
-        (asset) =>
-          typeof asset.url === 'string' &&
-          typeof asset.revision === 'string',
-      );
+      .filter((asset) => typeof asset.url === 'string' && typeof asset.revision === 'string');
   }
 } catch {
   writingBundleAssets = [];
@@ -58,14 +47,8 @@ const baseConfig = {
         headers: [
           { key: 'Content-Security-Policy', value: csp },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
-          },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
       {
@@ -73,14 +56,10 @@ const baseConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value:
-              'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
           },
           { key: 'Accept-Ranges', value: 'bytes' },
-          {
-            key: 'Access-Control-Expose-Headers',
-            value: 'Accept-Ranges, Content-Length',
-          },
+          { key: 'Access-Control-Expose-Headers', value: 'Accept-Ranges, Content-Length' },
         ],
       },
       {
@@ -88,14 +67,10 @@ const baseConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value:
-              'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
           },
           { key: 'Accept-Ranges', value: 'bytes' },
-          {
-            key: 'Access-Control-Expose-Headers',
-            value: 'Accept-Ranges, Content-Length',
-          },
+          { key: 'Access-Control-Expose-Headers', value: 'Accept-Ranges, Content-Length' },
         ],
       },
     ];
@@ -116,7 +91,9 @@ const baseConfig = {
   typescript: { ignoreBuildErrors: true },
 
   webpack: (config) => {
+    // keep your existing wasm output tweak
     config.output.webassemblyModuleFilename = 'static/wasm/[modulehash].wasm';
+
     return config;
   },
 
@@ -130,7 +107,7 @@ const baseConfig = {
           'lh3.googleusercontent.com',
           'res.cloudinary.com',
           'images.unsplash.com',
-        ].filter(Boolean),
+        ].filter(Boolean)
       ),
     ].map((hostname) => ({ protocol: 'https', hostname })),
   },
@@ -141,11 +118,7 @@ export default withPWA({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  buildExcludes: [
-    /.*\.map$/,
-    /middleware-manifest\.json$/,
-    /server\/middleware-manifest\.json$/,
-  ],
+  buildExcludes: [/.*\.map$/, /middleware-manifest\.json$/, /server\/middleware-manifest\.json$/],
   publicExcludes: ['**/*.map'],
   importScripts: ['sw-sync.js', 'sw-patches/push-handler.js'],
 })(baseConfig);

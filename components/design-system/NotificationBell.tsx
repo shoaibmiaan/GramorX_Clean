@@ -1,206 +1,192 @@
+// components/design-system/NotificationBell.tsx
 import * as React from 'react';
 import Link from 'next/link';
-import Icon from '@/components/design-system/Icon';
 
-const MAX_VISIBLE = 6;
+import { BellIcon } from '@/lib/icons';
+import { useNotifications } from '@/hooks/useNotifications';
 
-export type NotificationItem = {
-  id: string;
-  title?: string | null;
-  message: string;
-  url?: string | null;
-  created_at?: string | null;
-  read?: boolean | null;
-};
+const MAX_VISIBLE = 5;
 
-export type NotificationBellProps = {
-  /** Full list of notifications for the current user */
-  items?: NotificationItem[];
-  /** Unread count (for badge). If not provided, derived from items. */
-  unreadCount?: number;
-  /** Loading state for initial fetch */
-  loading?: boolean;
-  /** Optional callback when user clicks a notification */
-  onItemClick?: (item: NotificationItem) => void;
-};
-
-/**
- * NotificationBell
- *
- * - Safe if `items` is undefined (uses [] internally).
- * - Works on desktop + mobile (max-width + scroll).
- * - Accessible (ESC closes, outside click closes, focus ring).
- * - Exported as BOTH named and default to survive any import style in DesktopNav.
- */
-export function NotificationBell({
-  items,
-  unreadCount,
-  loading,
-  onItemClick,
-}: NotificationBellProps) {
+export const NotificationBell: React.FC = () => {
   const [open, setOpen] = React.useState(false);
+  const { items, unreadCount, markAsRead, markAllRead } = useNotifications();
+  const buttonRef = React.useRef<HTMLButtonElement | null>(null);
+  const popoverRef = React.useRef<HTMLDivElement | null>(null);
   const listRef = React.useRef<Array<HTMLAnchorElement | HTMLButtonElement | null>>([]);
 
-  // Always have a safe array so .slice() never explodes
-  const safeItems = React.useMemo<NotificationItem[]>(() => items ?? [], [items]);
-
-  const visibleItems = safeItems.slice(0, MAX_VISIBLE);
-
-  const computedUnread =
-    typeof unreadCount === 'number'
-      ? unreadCount
-      : safeItems.filter((n) => !n.read).length;
+  const visibleItems = items.slice(0, MAX_VISIBLE);
 
   React.useEffect(() => {
     if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-
-      const panel = document.getElementById('gx-notification-panel');
-      const button = document.getElementById('gx-notification-trigger');
-
-      if (panel && !panel.contains(target) && button && !button.contains(target)) {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setOpen(false);
+        buttonRef.current?.focus();
       }
     };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handleClickOutside);
-
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
     };
   }, [open]);
 
-  const handleItemClick = (item: NotificationItem) => {
-    if (onItemClick) onItemClick(item);
-    setOpen(false);
-  };
+  React.useEffect(() => {
+    if (!open) return;
+    const focusable = listRef.current.filter(Boolean) as HTMLElement[];
+    focusable[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (!popoverRef.current?.contains(document.activeElement)) return;
+      const idx = focusable.indexOf(document.activeElement as HTMLElement);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusable[(idx + 1) % focusable.length]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusable[(idx - 1 + focusable.length) % focusable.length]?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, items.length]);
 
   return (
-    <div className="relative flex items-center">
+    <div className="relative">
       <button
-        id="gx-notification-trigger"
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-foreground hover:bg-surface-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ring-offset-2 ring-offset-background transition"
-        aria-haspopup="dialog"
+        aria-label="Notifications"
+        aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={
-          computedUnread > 0
-            ? `${computedUnread} unread notifications`
-            : 'Notifications'
-        }
+        aria-controls="notification-menu"
+        onClick={() => setOpen((prev) => !prev)}
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <Icon name="bell" className="h-4 w-4" />
-        {computedUnread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 inline-flex min-h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-badge-critical px-1 text-[10px] font-semibold text-on-badge">
-            {computedUnread > 9 ? '9+' : computedUnread}
+        <BellIcon className="h-5 w-5" aria-hidden="true" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-sunsetRed px-1 text-[10px] leading-none text-foreground">
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
         <div
-          id="gx-notification-panel"
-          className="
-            absolute right-0 z-40 mt-2 w-80 max-w-[90vw]
-            rounded-2xl bg-surface shadow-elevated border border-border
-            sm:w-96
-          "
-          role="dialog"
-          aria-label="Notifications"
+          ref={popoverRef}
+          className="absolute right-0 z-50 mt-2 w-80 rounded-ds-2xl border border-border bg-card text-card-foreground shadow-lg"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border-muted">
-            <p className="text-sm font-semibold text-foreground">Notifications</p>
-            {loading && (
-              <span className="text-[11px] uppercase tracking-wide text-muted">
-                Syncing…
-              </span>
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="text-small font-semibold">Notifications</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={() => {
+                  void markAllRead();
+                }}
+                className="text-caption text-foreground/70 hover:text-foreground"
+              >
+                Mark all as read
+              </button>
             )}
           </div>
+          <ul id="notification-menu" role="menu" className="max-h-72 overflow-auto text-small" aria-live="polite">
+            {visibleItems.map((notification, index) => {
+              const isUnread = !notification.readAt;
+              const content = (
+                <div className={isUnread ? 'font-semibold' : 'opacity-70'}>
+                  <div className="text-small">{notification.title ?? notification.message ?? 'Notification'}</div>
+                  <p className="text-caption text-muted-foreground">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              );
 
-          {safeItems.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-muted">
-              <p className="font-medium">You&apos;re all caught up 🎧</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                We&apos;ll nudge you when something important happens.
-              </p>
-            </div>
-          ) : (
-            <ul className="max-h-[60vh] overflow-y-auto px-1 py-2">
-              {visibleItems.map((item, index) => {
-                const Wrapper: React.ElementType = item.url ? Link : 'button';
-                const wrapperProps: any = item.url
-                  ? { href: item.url }
-                  : { type: 'button' };
+              const refSetter = (el: HTMLAnchorElement | HTMLButtonElement | null) => {
+                listRef.current[index] = el;
+              };
 
+              if (notification.url) {
+                const isInternal = notification.url.startsWith('/');
                 return (
-                  <li key={item.id} className="px-3 py-1.5">
-                    <Wrapper
-                      {...wrapperProps}
-                      ref={(el: any) => {
-                        listRef.current[index] = el;
-                      }}
-                      onClick={() => handleItemClick(item)}
-                      className={`
-                        flex w-full flex-col items-start rounded-xl px-3 py-2
-                        text-left text-sm transition
-                        ${item.read ? 'bg-surface' : 'bg-surface-strong'}
-                        hover:bg-surface-strong/90
-                      `}
-                    >
-                      <div className="flex w-full items-start justify-between gap-2">
-                        <p className="text-xs font-semibold text-foreground line-clamp-1">
-                          {item.title ?? 'Update from GramorX'}
-                        </p>
-                        {!item.read && (
-                          <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-badge-critical" />
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted line-clamp-2">
-                        {item.message}
-                      </p>
-                      {item.created_at && (
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {new Date(item.created_at).toLocaleString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            month: 'short',
-                            day: '2-digit',
-                          })}
-                        </p>
-                      )}
-                    </Wrapper>
+                  <li key={notification.id} role="none">
+                    {isInternal ? (
+                      <Link
+                        href={notification.url}
+                        ref={refSetter as React.Ref<HTMLAnchorElement>}
+                        role="menuitem"
+                        className="block px-3 py-2 hover:bg-muted/60"
+                        onClick={() => {
+                          void markAsRead(notification.id);
+                          setOpen(false);
+                        }}
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <a
+                        href={notification.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        ref={refSetter as React.Ref<HTMLAnchorElement>}
+                        role="menuitem"
+                        className="block px-3 py-2 hover:bg-muted/60"
+                        onClick={() => {
+                          void markAsRead(notification.id);
+                          setOpen(false);
+                        }}
+                      >
+                        {content}
+                      </a>
+                    )}
                   </li>
                 );
-              })}
+              }
 
-              {safeItems.length > MAX_VISIBLE && (
-                <li className="px-3 py-2">
-                  <Link
-                    href="/notifications"
-                    className="block w-full rounded-xl bg-surface-muted px-3 py-2 text-center text-xs font-medium text-primary hover:bg-surface-muted/80"
-                    onClick={() => setOpen(false)}
+              return (
+                <li key={notification.id} role="none">
+                  <button
+                    ref={refSetter as React.Ref<HTMLButtonElement>}
+                    role="menuitem"
+                    className="block w-full px-3 py-2 text-left hover:bg-muted/60"
+                    onClick={() => {
+                      void markAsRead(notification.id);
+                      setOpen(false);
+                    }}
                   >
-                    View all {safeItems.length} notifications
-                  </Link>
+                    {content}
+                  </button>
                 </li>
-              )}
-            </ul>
-          )}
+              );
+            })}
+            {visibleItems.length === 0 && (
+              <li className="px-3 py-3 text-muted-foreground">No notifications</li>
+            )}
+            <li className="border-t border-border/70">
+              <Link
+                href="/notifications"
+                role="menuitem"
+                ref={(el) => {
+                  listRef.current[visibleItems.length] = el as HTMLAnchorElement | null;
+                }}
+                className="block px-3 py-2 text-center text-caption font-semibold text-primary hover:underline"
+                onClick={() => setOpen(false)}
+              >
+                View all notifications
+              </Link>
+            </li>
+          </ul>
         </div>
       )}
     </div>
   );
-}
+};
 
-// 👇 Default export so BOTH `import NotificationBell` and `import { NotificationBell }` work
+NotificationBell.displayName = 'NotificationBell';
+
 export default NotificationBell;

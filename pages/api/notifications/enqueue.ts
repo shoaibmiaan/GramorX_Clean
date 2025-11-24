@@ -1,69 +1,68 @@
-// pages/api/notifications/nudge.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { getServerClient } from '@/lib/supabaseServer';
+import { enqueueNotification, DuplicateNotificationEventError } from '@/lib/notifications/enqueue';
+import type { NotificationChannel } from '@/lib/notifications/types';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
+
+const ChannelEnum = z.enum(['in_app', 'email', 'whatsapp', 'push']);
 
 const BodySchema = z.object({
-  message: z.string().min(1),
-  url: z.string().url().optional(),
-  title: z.string().optional(),
-  data: z.record(z.any()).optional(),
+  userId: z.string().uuid(),
+  eventKey: z.string().min(1),
+  payload: z.record(z.unknown()).optional(),
+  channelOverride: ChannelEnum.optional(),
+  channels: z.array(ChannelEnum).optional(),
+  idempotencyKey: z.string().optional(),
 });
 
-type SuccessResponse = { ok: true; id: string };
-type ErrorResponse = { error: string };
+function authorised(req: NextApiRequest): boolean {
+  const secret = process.env.NOTIFICATIONS_ENQUEUE_SECRET ?? null;
+  if (!secret) {
+    return process.env.NODE_ENV !== 'production';
+  }
+  const header = req.headers['x-notifications-secret'] ?? req.headers['x-api-key'] ?? null;
+  if (!header) return false;
+  if (Array.isArray(header)) {
+    return header.some((value) => value === secret);
+  }
+  return header === secret;
+}
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<SuccessResponse | ErrorResponse>
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', 'POST');
+    return res.status(405).end('Method Not Allowed');
   }
 
-  const parse = BodySchema.safeParse(req.body);
-  if (!parse.success) {
-    return res.status(400).json({ error: 'Invalid body' });
-  }
-
-  const { message, url, title, data } = parse.data;
-
-  const supabase = getServerClient(req, res);
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError) {
-    return res.status(500).json({ error: 'Failed to resolve current user' });
-  }
-
-  if (!user) {
+  if (!authorised(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const finalTitle = title ?? 'Reminder from GramorX';
-
-  const { data: inserted, error: insertError } = await supabase
-    .from('notifications')
-    .insert({
-      user_id: user.id,
-      title: finalTitle,
-      body: message,
-      message,
-      url: url ?? null,
-      type: 'nudge',
-      data: data ?? {},
-      read: false,
-    })
-    .select('id')
-    .single();
-
-  if (insertError) {
-    console.error('[notifications/nudge] insert failed', insertError);
-    return res.status(500).json({ error: 'Failed to create nudge' });
+  const parsed = BodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
   }
 
-  return res.status(200).json({ ok: true, id: inserted!.id as string });
+  const body = parsed.data;
+  const supabase = createSupabaseServerClient({ serviceRole: true });
+
+  try {
+    await enqueueNotification(supabase, {
+      userId: body.userId,
+      eventKey: body.eventKey,
+      payload: body.payload,
+      channels: body.channels as NotificationChannel[] | undefined,
+      channelOverride: body.channelOverride,
+      idempotencyKey: body.idempotencyKey,
+    });
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    if (error instanceof DuplicateNotificationEventError) {
+      return res.status(409).json({ error: 'duplicate', id: error.eventId ?? null });
+    }
+    const message = error instanceof Error ? error.message : 'Failed to enqueue notification';
+    console.error('[notifications/enqueue] failed', error);
+    return res.status(500).json({ error: message });
+  }
 }

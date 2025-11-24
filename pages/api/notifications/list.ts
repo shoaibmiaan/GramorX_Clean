@@ -1,124 +1,101 @@
-// pages/api/notifications/list.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
+import type { NotificationDTO, NotificationsListResponse } from '@/lib/notifications/types';
 import { getServerClient } from '@/lib/supabaseServer';
 
 const QuerySchema = z.object({
-  limit: z
-    .preprocess((v) => (Array.isArray(v) ? v[0] : v), z.string().regex(/^\d+$/).transform((v) => parseInt(v, 10)))
-    .optional(),
-  before: z
-    .preprocess((v) => (Array.isArray(v) ? v[0] : v), z.string().datetime())
-    .optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  cursor: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((value) => (Array.isArray(value) ? value[0] : value)),
 });
 
-export type NotificationRow = {
-  id: string;
-  user_id: string | null;
-  message: string;
-  url: string | null;
-  read: boolean | null;
-  created_at: string | null;
-  title: string | null;
-  body: string | null;
-  type: string | null;
-  data: Record<string, unknown> | null;
-};
+type RawNotificationRow = Record<string, any>;
 
-export type NotificationsListResponse = {
-  notifications: NotificationRow[];
-  unreadCount: number;
-  nextCursor: string | null;
-};
+function mapRow(row: RawNotificationRow): NotificationDTO {
+  const createdAt = typeof row.created_at === 'string' ? row.created_at : new Date().toISOString();
+  const readAt =
+    row.read_at ??
+    (row.read === true || row.is_read === true ? createdAt : null);
+  return {
+    id: String(row.id),
+    title: row.title ?? null,
+    body: row.body ?? null,
+    message: row.message ?? row.body ?? row.title ?? null,
+    url: row.url ?? null,
+    type: row.type ?? null,
+    channel: row.channel ?? null,
+    readAt,
+    createdAt,
+  };
+}
 
-type ErrorResponse = { error: string };
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<NotificationsListResponse | ErrorResponse>
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<NotificationsListResponse | { error: string }>) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', 'GET');
+    return res.status(405).end('Method Not Allowed');
   }
-
-  const parseQuery = QuerySchema.safeParse(req.query);
-  if (!parseQuery.success) {
-    return res.status(400).json({ error: 'Invalid query parameters' });
-  }
-
-  const { limit: rawLimit, before } = parseQuery.data;
-  const limit = Math.min(Math.max(rawLimit ?? 20, 1), 50);
 
   const supabase = getServerClient(req, res);
   const {
     data: { user },
-    error: userError,
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    // auth failure from Supabase
-    return res.status(500).json({ error: 'Failed to resolve current user' });
-  }
-
-  if (!user) {
+  if (authError || !user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // 1) Fetch notifications with cursor pagination
-  let query = supabase
-    .from('notifications')
-    .select(
-      `
-      id,
-      user_id,
-      message,
-      url,
-      read,
-      created_at,
-      title,
-      body,
-      type,
-      data
-    `
-    )
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(limit + 1); // fetch one extra to detect hasMore
-
-  if (before) {
-    query = query.lt('created_at', before);
+  const parsed = QuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid query parameters' });
   }
 
-  const { data: rows, error: listError } = await query;
+  const { limit, cursor } = parsed.data;
 
-  if (listError) {
-    // This is what was previously showing as { message: '' } in logs
-    console.error('[notifications/list] list query failed', listError);
+  let query = supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) {
+    const cursorDate = new Date(cursor);
+    if (Number.isNaN(cursorDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid cursor format' });
+    }
+    query = query.lt('created_at', cursorDate.toISOString());
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('[notifications/list] query failed', error);
     return res.status(500).json({ error: 'Failed to load notifications' });
   }
 
-  const notifications: NotificationRow[] = (rows ?? []).slice(0, limit) as NotificationRow[];
-  const hasMore = (rows ?? []).length > limit;
-  const last = notifications[notifications.length - 1] ?? null;
+  const rows = (data ?? []) as RawNotificationRow[];
+  const hasMore = rows.length > limit;
+  const items = rows.slice(0, limit).map(mapRow);
+  const nextCursorRaw = hasMore ? rows[limit]?.created_at ?? null : null;
+  const nextCursor = nextCursorRaw ? new Date(nextCursorRaw).toISOString() : null;
 
-  const nextCursor = hasMore && last?.created_at ? last.created_at : null;
-
-  // 2) Unread count
-  const { count: unreadCount, error: countError } = await supabase
+  const { count: unreadCount, error: unreadError } = await supabase
     .from('notifications')
-    .select('id', { head: true, count: 'exact' })
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
-    .eq('read', false);
+    .is('read_at', null);
 
-  if (countError) {
-    console.error('[notifications/list] unread count failed', countError);
-    // Do NOT block response just because count failed
+  if (unreadError) {
+    console.error('[notifications/list] unread count failed', unreadError);
+    return res.status(500).json({ error: 'Failed to compute unread count' });
   }
 
   return res.status(200).json({
-    notifications,
-    unreadCount: unreadCount ?? 0,
+    items,
     nextCursor,
+    unreadCount: unreadCount ?? 0,
   });
 }
