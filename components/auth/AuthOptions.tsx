@@ -26,6 +26,7 @@ interface AuthOptionsProps {
 
 export default function AuthOptions({ mode }: AuthOptionsProps) {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<OAuthProvider | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -46,6 +47,8 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
   useEffect(() => {
     let mounted = true;
     const checkSession = async () => {
+      let shouldShowAuthOptions = true;
+
       try {
         const {
           data: { session },
@@ -60,23 +63,26 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
         }
 
         if (session) {
+          shouldShowAuthOptions = false;
           const blockedPath = mode === 'login' ? '/login' : '/signup';
-          const isBlockedNext =
-            !next || next === blockedPath || next.startsWith(`${blockedPath}?`);
+          const safe =
+            next && next !== blockedPath
+              ? next
+              : destinationByRole(session.user);
 
-          const safe = !isBlockedNext ? next : destinationByRole(session.user);
-
-          if (safe && router.asPath !== safe) {
+          if (router.asPath !== safe) {
             try {
               await router.replace(safe);
-              return;
             } catch (navigationError) {
               console.error('Failed to redirect after session detection:', navigationError);
+              shouldShowAuthOptions = true;
             }
           }
         }
       } catch (err) {
         if (mounted) console.error('Error checking session:', err);
+      } finally {
+        if (mounted && shouldShowAuthOptions) setReady(true);
       }
     };
     void checkSession();
@@ -164,6 +170,14 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
     } finally {
       setBusy(null);
     }
+  }
+
+  if (!ready) {
+    return (
+      <div className="p-6 text-mutedText" aria-live="polite">
+        {mode === 'login' ? 'Checking session… Please wait.' : 'Preparing sign up… Please wait.'}
+      </div>
+    );
   }
 
   return (
