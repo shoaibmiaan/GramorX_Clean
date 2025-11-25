@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { supabase } from '@/lib/supabaseClient'; // Replaced supabaseBrowser
 import { useLocale } from '@/lib/locale';
-import { useUserContext } from '@/context/UserContext';
 import {
   isGuestOnlyRoute,
   isPublicRoute,
@@ -26,101 +26,172 @@ export function useRouteGuard() {
   const { setLocale } = useLocale();
   const pathname = router.pathname;
   const path = router.asPath || pathname;
-  const { user, role, loading } = useUserContext();
 
+  const [isChecking, setIsChecking] = useState(true);
   const hasRedirected = useRef(false); // prevent double redirects in StrictMode/dev
 
   useEffect(() => {
-    if (!router.isReady || loading) return;
+    if (!router.isReady) return;
+    let mounted = true;
 
-    const authed = !!user;
-    const normalizedRole: AppRole | null =
-      role && role !== 'guest' ? (role as AppRole) : getUserRole(user);
+    (async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (!mounted) return;
 
-    const publicR = isPublicRoute(path);
-    const guestOnlyR = isGuestOnlyRoute(path);
+        const authed = !!session && !error;
+        const user = session?.user ?? null;
+        const role: AppRole | null = getUserRole(user);
 
-    if (authed) {
-      const preferredLanguage =
-        (user?.user_metadata as Record<string, unknown> | undefined)?.preferred_language;
-      if (typeof preferredLanguage === 'string' && preferredLanguage) {
-        setLocale(preferredLanguage);
-      }
-    }
+        // Public routes never redirect (but we can still hydrate locale)
+        const publicR = isPublicRoute(path);
+        const guestOnlyR = isGuestOnlyRoute(path);
 
-    // Prevent duplicate redirects
-    if (hasRedirected.current) return;
+        // hydrate locale if logged in
+        if (authed && user) {
+          const { data: profile } = await supabase
+            .from('profiles') // keep your table name aligned with your schema
+            .select('preferred_language')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-    // Guest-only routes (e.g., /login, /signup): if authed, go away
-    if (guestOnlyR) {
-      if (authed) {
-        hasRedirected.current = true;
-        const target = safeNext(router.query.next) || '/welcome';
-        if (target && router.asPath !== target) {
-          void router.replace(target);
+          const lang = profile?.preferred_language || 'en';
+          setLocale(lang);
         }
-      }
-      return;
-    }
 
-    // Public routes (e.g., /, /pricing, /community)
-    if (publicR) return;
+        // Prevent duplicate redirects
+        if (hasRedirected.current) return;
 
-    // Protected routes begin here
-    if (!authed) {
-      hasRedirected.current = true;
-
-      // IMPORTANT: do NOT encode twice. URLSearchParams will handle encoding.
-      const targetQuery = { next: router.asPath };
-      const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
-
-      if (router.asPath !== targetAsPath) {
-        void router.replace({
-          pathname: '/login',
-          query: targetQuery,
-        });
-      }
-      return;
-    }
-
-    // Role-guarded routes
-    if (!canAccess(pathname, normalizedRole)) {
-      const need = requiredRolesFor(pathname);
-      hasRedirected.current = true;
-
-      if (!normalizedRole) {
-        const targetQuery = {
-          next: router.asPath,
-          need: Array.isArray(need) ? need.join(',') : need ?? '',
-        };
-        const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
-
-        if (router.asPath !== targetAsPath) {
-          void router.replace({
-            pathname: '/login',
-            query: targetQuery,
-          });
+        // Guest-only routes (e.g., /login, /signup): if authed, go away
+        if (guestOnlyR) {
+          if (authed) {
+            hasRedirected.current = true;
+            const target = safeNext(router.query.next) || '/welcome';
+            if (target && router.asPath !== target) {
+              try {
+                await router.replace(target);
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // dev-only invariant – ignore
+                } else {
+                  throw err;
+                }
+              }
+            }
+          }
+          return;
         }
-      } else if (router.asPath !== '/403') {
-        void router.replace('/403');
+
+        // Public routes (e.g., /, /pricing, /community)
+        if (publicR) {
+          return;
+        }
+
+        // Protected routes begin here
+        if (!authed) {
+          hasRedirected.current = true;
+
+          // IMPORTANT: do NOT encode twice. URLSearchParams will handle encoding.
+          const targetQuery = { next: router.asPath };
+          const targetAsPath = `/login?${new URLSearchParams(
+            targetQuery
+          ).toString()}`;
+
+          if (router.asPath !== targetAsPath) {
+            try {
+              await router.replace({
+                pathname: '/login',
+                query: targetQuery,
+              });
+            } catch (err: any) {
+              if (
+                typeof err?.message === 'string' &&
+                err.message.includes(
+                  'attempted to hard navigate to the same URL'
+                )
+              ) {
+                // dev-only invariant – ignore
+              } else {
+                throw err;
+              }
+            }
+          }
+          return;
+        }
+
+        // Role-guarded routes
+        if (!canAccess(pathname, role)) {
+          const need = requiredRolesFor(pathname);
+          hasRedirected.current = true;
+
+          if (!role) {
+            const targetQuery = {
+              next: router.asPath,
+              need: Array.isArray(need) ? need.join(',') : need ?? '',
+            };
+            const targetAsPath = `/login?${new URLSearchParams(
+              targetQuery
+            ).toString()}`;
+
+            if (router.asPath !== targetAsPath) {
+              try {
+                await router.replace({
+                  pathname: '/login',
+                  query: targetQuery,
+                });
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // dev-only invariant – ignore
+                } else {
+                  throw err;
+                }
+              }
+            }
+          } else {
+            const target = '/403';
+            if (router.asPath !== target) {
+              try {
+                await router.replace('/403');
+              } catch (err: any) {
+                if (
+                  typeof err?.message === 'string' &&
+                  err.message.includes(
+                    'attempted to hard navigate to the same URL'
+                  )
+                ) {
+                  // ignore
+                } else {
+                  throw err;
+                }
+              }
+            }
+          }
+          return;
+        }
+      } finally {
+        if (mounted) setIsChecking(false);
       }
-      return;
-    }
+    })();
 
-  }, [
-    loading,
-    user,
-    role,
-    router.isReady,
-    router.pathname,
-    router.asPath,
-    path,
-    setLocale,
-    pathname,
-    router.query.next,
-  ]);
+    return () => {
+      mounted = false;
+    };
+  }, [router.isReady, router.pathname, router.asPath, path, setLocale]);
 
-  return { isChecking: false };
+  return { isChecking };
 }
 
 export default useRouteGuard;

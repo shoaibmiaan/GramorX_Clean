@@ -64,6 +64,14 @@ const slab = Roboto_Slab({
 
 const IS_CI = process.env.NEXT_PUBLIC_CI === 'true';
 
+function GuardSkeleton() {
+  return (
+    <div className="grid min-h-[100dvh] place-items-center">
+      <div className="h-6 w-40 animate-pulse rounded bg-border" />
+    </div>
+  );
+}
+
 // ---------- Route type helpers ----------
 const isAuthPage = (pathname: string) =>
   /^\/(login|signup|register)(\/|$)/.test(pathname) ||
@@ -516,7 +524,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
     }
   }, [idleMinutes]);
 
-  useRouteGuard();
+  const { isChecking } = useRouteGuard();
+  if (isChecking) return <GuardSkeleton />;
 
   const basePage =
     routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
@@ -551,7 +560,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isRouteLoading={isRouteLoading}
               role={role}
               isTeacherApproved={isTeacherApproved}
-              guardFallback={() => null}
+              guardFallback={() => <GuardSkeleton />}
             >
               {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? (
                 <PricingReasonBanner />
