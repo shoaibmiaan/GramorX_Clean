@@ -49,7 +49,7 @@ const modules = [
     bullets: [
       'Full-length timed mocks',
       'Section-wise band estimates',
-      'Cheating-safe exam workspace',
+      'Cheating-safe Exam workspace',
     ],
     href: '/mock',
   },
