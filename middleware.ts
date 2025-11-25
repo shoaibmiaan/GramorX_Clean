@@ -123,12 +123,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const res = NextResponse.next();
-  const authState = await loadAuthState(req, res);
-
   const isAuthPage = pathStartsWithAny(pathname, AUTH_PAGES);
   const isProtected = pathStartsWithAny(pathname, PROTECTED_PREFIXES);
   const isOnboardingRoute = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
+
+  const res = NextResponse.next();
 
   // ----- Premium PIN gate (takes precedence over generic auth) -----
   const isPremiumSection = pathname.startsWith('/premium');
@@ -160,6 +159,14 @@ export async function middleware(req: NextRequest) {
     return res;
   }
   // ----- end Premium PIN gate -----
+
+  const needsAuthState = isProtected || isOnboardingRoute || isAuthPage;
+  const authState = needsAuthState ? await loadAuthState(req, res) : { authenticated: false };
+
+  // For non-protected, non-auth pages we can proceed without fetching auth state
+  if (!needsAuthState) {
+    return res;
+  }
 
   // If not signed in and trying to view a protected route -> redirect to login
   if (!authState.authenticated && isProtected && !isAuthPage) {
