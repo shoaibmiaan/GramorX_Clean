@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useLocale } from '@/lib/locale';
 import { useUserContext } from '@/context/UserContext';
@@ -28,17 +28,10 @@ export function useRouteGuard() {
   const path = router.asPath || pathname;
   const { user, role, loading } = useUserContext();
 
-  const [isChecking, setIsChecking] = useState(true);
   const hasRedirected = useRef(false); // prevent double redirects in StrictMode/dev
 
   useEffect(() => {
-    if (!router.isReady) return;
-    if (loading) {
-      setIsChecking(true);
-      return;
-    }
-
-    setIsChecking(true);
+    if (!router.isReady || loading) return;
 
     const authed = !!user;
     const normalizedRole: AppRole | null =
@@ -56,10 +49,7 @@ export function useRouteGuard() {
     }
 
     // Prevent duplicate redirects
-    if (hasRedirected.current) {
-      setIsChecking(false);
-      return;
-    }
+    if (hasRedirected.current) return;
 
     // Guest-only routes (e.g., /login, /signup): if authed, go away
     if (guestOnlyR) {
@@ -69,17 +59,12 @@ export function useRouteGuard() {
         if (target && router.asPath !== target) {
           void router.replace(target);
         }
-      } else {
-        setIsChecking(false);
       }
       return;
     }
 
     // Public routes (e.g., /, /pricing, /community)
-    if (publicR) {
-      setIsChecking(false);
-      return;
-    }
+    if (publicR) return;
 
     // Protected routes begin here
     if (!authed) {
@@ -122,7 +107,6 @@ export function useRouteGuard() {
       return;
     }
 
-    setIsChecking(false);
   }, [
     loading,
     user,
@@ -136,7 +120,7 @@ export function useRouteGuard() {
     router.query.next,
   ]);
 
-  return { isChecking };
+  return { isChecking: false };
 }
 
 export default useRouteGuard;

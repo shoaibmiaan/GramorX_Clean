@@ -26,7 +26,6 @@ interface AuthOptionsProps {
 
 export default function AuthOptions({ mode }: AuthOptionsProps) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<OAuthProvider | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -67,12 +66,7 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
 
           const safe = !isBlockedNext ? next : destinationByRole(session.user);
 
-          if (!safe) {
-            setReady(true);
-            return;
-          }
-
-          if (router.asPath !== safe) {
+          if (safe && router.asPath !== safe) {
             try {
               await router.replace(safe);
               return;
@@ -80,15 +74,9 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
               console.error('Failed to redirect after session detection:', navigationError);
             }
           }
-
-          // Already on the intended path (or navigation failed) — unblock UI.
-          setReady(true);
-          return;
         }
       } catch (err) {
         if (mounted) console.error('Error checking session:', err);
-      } finally {
-        if (mounted) setReady(true);
       }
     };
     void checkSession();
@@ -176,14 +164,6 @@ export default function AuthOptions({ mode }: AuthOptionsProps) {
     } finally {
       setBusy(null);
     }
-  }
-
-  if (!ready) {
-    return (
-      <div className="p-6 text-mutedText" aria-live="polite">
-        {mode === 'login' ? 'Checking session… Please wait.' : 'Preparing sign up… Please wait.'}
-      </div>
-    );
   }
 
   return (
