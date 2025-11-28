@@ -17,7 +17,10 @@ type ReadingAttemptRow = {
   id: string;
   paper_id: string | null;
   submitted_at: string | null;
-  score_json: unknown;
+  answers: Record<string, unknown> | null;
+  score: number | null;
+  total: number | null;
+  duration_sec: number | null;
 };
 
 type ReadingTestRow = {
@@ -381,7 +384,7 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
 
   const { data: attempt, error: attemptError } = await supabase
     .from<ReadingAttemptRow>('attempts_reading')
-    .select('id, paper_id, submitted_at, score_json')
+    .select('id, paper_id, submitted_at, answers, score, total, duration_sec')
     .eq('id', attemptId)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -390,7 +393,7 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
     return { notFound: true };
   }
 
-  const score = parseScore(attempt.score_json);
+  const score = parseScore(attempt);
   const paperSlug = attempt.paper_id ?? slug;
 
   const { data: test, error: testError } = await supabase
@@ -449,16 +452,21 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
 };
 
 function parseScore(payload: any): ParsedScore {
-  const correct = Number(payload?.correct ?? payload?.score ?? 0);
-  const total = Number(payload?.total ?? payload?.questions ?? 0);
-  const durationSec = Number(payload?.durationSec ?? payload?.duration_sec ?? payload?.duration ?? 0);
-  const bandRaw = typeof payload?.band === 'number' ? payload.band : payload?.score_band;
-  const band =
-    typeof bandRaw === 'number' && Number.isFinite(bandRaw) ? bandRaw : readingBandFromRaw(correct, total);
-  const answers =
-    payload?.answers && typeof payload.answers === 'object'
-      ? (payload.answers as Record<string, { value?: string }>)
+  const source = payload?.score_json && typeof payload.score_json === 'object' ? payload.score_json : payload ?? {};
+  const correct = Number(source?.correct ?? source?.score ?? payload?.score ?? 0);
+  const total = Number(source?.total ?? source?.questions ?? payload?.total ?? 0);
+  const durationSec = Number(
+    source?.durationSec ?? source?.duration_sec ?? source?.duration ?? payload?.duration_sec ?? 0,
+  );
+  const bandRaw = typeof source?.band === 'number' ? source.band : source?.score_band ?? payload?.band ?? payload?.score_band;
+  const band = typeof bandRaw === 'number' && Number.isFinite(bandRaw) ? bandRaw : readingBandFromRaw(correct, total);
+  const answersSource =
+    source?.answers && typeof source.answers === 'object'
+      ? source.answers
+      : payload?.answers && typeof payload.answers === 'object'
+      ? payload.answers
       : {};
+  const answers = answersSource as Record<string, { value?: string }>;
 
   return {
     band,

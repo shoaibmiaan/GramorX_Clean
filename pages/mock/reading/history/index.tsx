@@ -48,7 +48,10 @@ type ReadingAttemptRow = {
   id: string;
   paper_id: string | null;
   submitted_at: string | null;
-  score_json: unknown;
+  answers: Record<string, unknown> | null;
+  score: number | null;
+  total: number | null;
+  duration_sec: number | null;
 };
 
 type ReadingTestRow = {
@@ -59,10 +62,14 @@ type ReadingTestRow = {
 };
 
 const parseScore = (payload: any) => {
-  const correct = Number(payload?.correct ?? payload?.score ?? 0);
-  const total = Number(payload?.total ?? payload?.questions ?? 0);
-  const durationSec = Number(payload?.durationSec ?? payload?.duration_sec ?? payload?.duration ?? 0);
-  const bandRaw = typeof payload?.band === 'number' ? payload.band : payload?.score_band;
+  const source = payload?.score_json && typeof payload.score_json === 'object' ? payload.score_json : payload ?? {};
+  const correct = Number(source?.correct ?? source?.score ?? payload?.score ?? 0);
+  const total = Number(source?.total ?? source?.questions ?? payload?.total ?? 0);
+  const durationSec = Number(
+    source?.durationSec ?? source?.duration_sec ?? source?.duration ?? payload?.duration_sec ?? 0,
+  );
+  const bandRaw =
+    typeof source?.band === 'number' ? source.band : source?.score_band ?? payload?.band ?? payload?.score_band;
   const band = typeof bandRaw === 'number' && Number.isFinite(bandRaw) ? bandRaw : null;
 
   return {
@@ -586,7 +593,7 @@ export const getServerSideProps: GetServerSideProps<ReadingHistoryPageProps> = a
 
   const { data: attemptRows, error: attemptsError } = await supabase
     .from('attempts_reading')
-    .select('id, paper_id, submitted_at, score_json')
+    .select('id, paper_id, submitted_at, answers, score, total, duration_sec')
     .eq('user_id', user.id)
     .order('submitted_at', { ascending: false })
     .limit(50);
@@ -634,7 +641,7 @@ export const getServerSideProps: GetServerSideProps<ReadingHistoryPageProps> = a
   const metaMap = buildTestMetaMap(testRows);
 
   const attempts: ReadingAttemptSummary[] = (attemptRows ?? []).map((row: ReadingAttemptRow) => {
-    const score = parseScore(row.score_json ?? {});
+    const score = parseScore(row);
     const meta = metaMap.get(row.paper_id ?? '') ?? {
       slug: row.paper_id ?? 'reading-mock',
       title: row.paper_id ?? 'Reading mock',
