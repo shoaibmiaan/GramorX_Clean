@@ -33,12 +33,20 @@ function toInt(value: unknown, fallback = 0): number {
 }
 
 function parseScore(row: any) {
-  const payload = row?.score_json ?? {};
-  const answers = (payload?.answers && typeof payload.answers === 'object') ? payload.answers : {};
-  const correct = Number(payload?.correct ?? payload?.score ?? 0);
-  const total = Number(payload?.total ?? payload?.questions ?? 0);
-  const durationSec = Number(payload?.durationSec ?? payload?.duration_sec ?? payload?.duration ?? 0);
-  const band = typeof payload?.band === 'number' ? payload.band : Number(payload?.score_band ?? 0);
+  const payload = row?.score_json && typeof row.score_json === 'object' ? row.score_json : row ?? {};
+  const answers = (payload?.answers && typeof payload.answers === 'object')
+    ? payload.answers
+    : (row?.answers && typeof row.answers === 'object')
+    ? row.answers
+    : {};
+  const correct = Number(payload?.correct ?? payload?.score ?? row?.score ?? 0);
+  const total = Number(payload?.total ?? payload?.questions ?? row?.total ?? 0);
+  const durationSec = Number(
+    payload?.durationSec ?? payload?.duration_sec ?? payload?.duration ?? row?.duration_sec ?? 0,
+  );
+  const band = typeof payload?.band === 'number'
+    ? payload.band
+    : Number(payload?.score_band ?? row?.band ?? row?.score_band ?? 0);
   return {
     band,
     correct,
@@ -52,7 +60,7 @@ async function loadAttemptSummary(userId: string, attemptId: string) {
   const svc = supabaseService();
   const { data, error } = await svc
     .from('attempts_reading')
-    .select('id, paper_id, submitted_at, score_json')
+    .select('id, paper_id, submitted_at, answers, score, total, duration_sec')
     .eq('user_id', userId)
     .eq('id', attemptId)
     .maybeSingle();
@@ -84,7 +92,7 @@ async function aggregateXp(userId: string) {
   const svc = supabaseService();
   const { data, error } = await svc
     .from('attempts_reading')
-    .select('score_json')
+    .select('answers, score, total, duration_sec')
     .eq('user_id', userId);
 
   if (error) throw error;
@@ -145,14 +153,6 @@ export default async function handler(
         ? body.attemptId
         : randomUUID();
 
-      const scorePayload = {
-        band,
-        correct,
-        total,
-        durationSec,
-        answers,
-      };
-
       const svc = supabaseService();
       const { error: upsertError } = await svc
         .from('attempts_reading')
@@ -162,7 +162,11 @@ export default async function handler(
             user_id: user.id,
             paper_id: paperId,
             submitted_at: new Date().toISOString(),
-            score_json: scorePayload,
+            answers,
+            score: correct,
+            total,
+            percentage: Math.round((correct / total) * 100),
+            duration_sec: durationSec,
           },
           { onConflict: 'id' },
         );
