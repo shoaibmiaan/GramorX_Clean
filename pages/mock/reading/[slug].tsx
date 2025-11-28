@@ -24,7 +24,6 @@ import { normalizeForPersist } from '@/lib/reading/normalize';
 import { getAnswerText, isFlagged, type ReadingAnswer } from '@/lib/reading/answers';
 import { mapServerNote as parseServerNote, type NoteRange } from '@/lib/reading/notes';
 import { diffAnswers } from '@/lib/reading/diff';
-import { normalizeText } from '@/lib/nlp/normalize';
 
 type QType = 'tfng' | 'yynn' | 'heading' | 'match' | 'mcq' | 'gap';
 type MatchOptionObject = {
@@ -1136,6 +1135,14 @@ export default function ReadingMockPage() {
     setIsStarted(true);
   }, []);
 
+  const makeAttemptId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    const random = Math.random().toString(16).slice(2, 10);
+    return `attempt-${Date.now()}-${random}`;
+  };
+
   const submit = async () => {
     if (!paper || !slug || isSubmitting) return;
 
@@ -1143,59 +1150,34 @@ export default function ReadingMockPage() {
 
     const normalizedAnswers = normalizeForPersist(answers);
     const durationSec = Math.max(0, Math.round(paper.durationSec - timeLeft));
-    const attemptId = attemptRef.current;
 
-    if (!attemptId) {
-      toast.error('Could not resolve attempt. Please reload and try again.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const answerText = (val?: { value?: string }) => normalizeText(val?.value ?? '');
-    const questionAnswers = new Map<string, string>();
-    paper.passages.forEach((passage) => {
-      passage.questions.forEach((q) => {
-        questionAnswers.set(q.id, normalizeText(q.answer));
-      });
-    });
-
-    let correct = 0;
-    let answered = 0;
-    questionAnswers.forEach((expected, qId) => {
-      const provided = answerText(normalizedAnswers[qId]);
-      if (provided) answered += 1;
-      if (provided && provided === expected) {
-        correct += 1;
-      }
-    });
-
-    const totalQuestions = questionAnswers.size || paper.passages.reduce((sum, psg) => sum + psg.questions.length, 0);
+    // temporary attempt id – later we’ll use Supabase’s id
+    const attemptId = makeAttemptId();
 
     try {
-      const response = await fetch('/api/mock/reading/result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          attemptId,
-          paperId: slug,
-          correct,
-          total: totalQuestions,
-          durationSec,
-          answers: normalizedAnswers,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('submit failed');
+      // TODO: later hit /api/mock/reading/submit-final and save to Supabase
+      // For now, just stash basic payload locally so result page can read it if needed.
+      try {
+        localStorage.setItem(
+          `read:attempt-res:${attemptId}`,
+          JSON.stringify({
+            slug,
+            paperId: paper.id,
+            answers: normalizedAnswers,
+            durationSec,
+          }),
+        );
+      } catch {
+        // ignore localStorage errors
       }
 
       // clear local draft/checkpoints for this test
       clearMockDraft('reading', slug);
 
       // go to result screen
-      const targetUrl = `/mock/reading/${encodeURIComponent(slug)}/result?attempt=${encodeURIComponent(
-        attemptId,
-      )}`;
+      const targetUrl = `/mock/reading/${encodeURIComponent(
+        slug,
+      )}/result?attempt=${encodeURIComponent(attemptId)}`;
 
       await router.replace(targetUrl);
     } catch (error) {
