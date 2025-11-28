@@ -91,42 +91,100 @@ const IDLE_CHECKPOINT_INTERVAL = 60_000;
 const IDLE_THRESHOLD_MS = 30_000;
 const READING_SECTION_INDEX = 1;
 
+// Default color for new reading notes. This is used both within the component and in
+// helper functions at the bottom of this file. Placing it at the module scope
+// ensures it is accessible to all helper functions and avoids reference errors.
+export const DEFAULT_NOTE_COLOR: string = 'warning';
+
+// Merge two arrays of notes by ID. If a note with the same ID appears in both
+// arrays, the latter array’s version takes precedence. The merged list is
+// returned in ascending order of the notes’ start positions.
+function mergeNotes(prev: ReadingNote[], next: ReadingNote[]): ReadingNote[] {
+  const map = new Map<string, ReadingNote>();
+  prev.forEach((note) => {
+    map.set(note.id, note);
+  });
+  next.forEach((note) => {
+    map.set(note.id, note);
+  });
+  return Array.from(map.values()).sort((a, b) => a.start - b.start);
+}
+
+// Check if two highlight ranges overlap. A and B overlap if the start of one
+// interval is before the end of the other and vice versa.
+function rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
+  return startA < endB && startB < endA;
+}
+
+// Extract a short excerpt of text for a given note. The excerpt is trimmed of
+// extra whitespace and capped at 120 characters. If the range is empty or
+// invalid, an empty string is returned.
+function excerptForNote(note: ReadingNote, text: string): string {
+  const start = typeof note.start === 'number' ? note.start : 0;
+  const end = typeof note.end === 'number' ? note.end : start;
+  if (end <= start) return '';
+  const raw = text.slice(start, end).replace(/\s+/g, ' ').trim();
+  return raw.length > 120 ? `${raw.slice(0, 117)}…` : raw;
+}
+
 const sampleReading: ReadingPaper = {
   id: 'sample-001',
   title: 'Reading Sample 001',
   durationSec: 3600,
   passages: [
-    { id: 'P1', title: 'The Honeybee', text: 'Bees are fascinating…', questions: [
-      { id: 'q1', type: 'tfng', prompt: 'Bees can see UV light.', answer: 'True' },
-      { id: 'q2', type: 'yynn', prompt: 'Honey is spicy.', answer: 'No' },
-      { id: 'q3', type: 'heading', prompt: 'Choose paragraph heading', options: ['Origins','Vision','Diet'], answer: 'Vision' },
-    ]},
-    { id: 'P2', title: 'Ancient Roads', text: 'Roads enabled trade…', questions: [
-      { id: 'q4', type: 'match', prompt: 'Match A with B', options: ['Roman','Silk','Inca'], answer: 'Roman' },
-      { id: 'q5', type: 'mcq', prompt: 'Pick one', options: ['A','B','C'], answer: 'C' },
-    ]},
+    {
+      id: 'P1',
+      title: 'The Honeybee',
+      text: 'Bees are fascinating…',
+      questions: [
+        { id: 'q1', type: 'tfng', prompt: 'Bees can see UV light.', answer: 'True' },
+        { id: 'q2', type: 'yynn', prompt: 'Honey is spicy.', answer: 'No' },
+        {
+          id: 'q3',
+          type: 'heading',
+          prompt: 'Choose paragraph heading',
+          options: ['Origins', 'Vision', 'Diet'],
+          answer: 'Vision',
+        },
+      ],
+    },
+    {
+      id: 'P2',
+      title: 'Ancient Roads',
+      text: 'Roads enabled trade…',
+      questions: [
+        { id: 'q4', type: 'match', prompt: 'Match A with B', options: ['Roman', 'Silk', 'Inca'], answer: 'Roman' },
+        { id: 'q5', type: 'mcq', prompt: 'Pick one', options: ['A', 'B', 'C'], answer: 'C' },
+      ],
+    },
   ],
 };
 
 const readingPaperLookup = new Map<string, ReadingPaper>(
-  readingPracticePapers.map((paper) => [paper.id, JSON.parse(JSON.stringify(paper)) as ReadingPaper]),
+  readingPracticePapers.map(
+    (paper) => [paper.id, JSON.parse(JSON.stringify(paper)) as ReadingPaper],
+  ),
 );
 
-const loadPaper = async (id: string): Promise<ReadingPaper> => {
-  const staticPaper = readingPaperLookup.get(id);
+const loadPaper = async (slug: string): Promise<ReadingPaper> => {
+  const staticPaper = readingPaperLookup.get(slug);
   if (staticPaper) {
     return JSON.parse(JSON.stringify(staticPaper)) as ReadingPaper;
   }
 
   try {
-    const mod = await import(`@/data/reading/${id}.json`);
+    const mod = await import(`@/data/reading/${slug}.json`);
     return mod.default as ReadingPaper;
   } catch {
     return sampleReading;
   }
 };
 
-const Shell: React.FC<{ title: string; right?: React.ReactNode; children: React.ReactNode }> = ({ title, right, children }) => (
+const Shell: React.FC<{ title: string; right?: React.ReactNode; children: React.ReactNode }> = ({
+  title,
+  right,
+  children,
+}) => (
   <div className="min-h-[100dvh] bg-background text-foreground pb-safe">
     <div className="mx-auto w-full max-w-screen-2xl px-3 pb-12 pt-safe sm:px-6 lg:px-8 xl:px-10">
       <header className="mb-8 rounded-3xl border border-border/80 bg-background/70 px-5 py-5 shadow-lg shadow-black/5 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
@@ -145,7 +203,7 @@ const Shell: React.FC<{ title: string; right?: React.ReactNode; children: React.
 export default function ReadingMockPage() {
   const router = useRouter();
   const toast = useToast();
-  const { id } = router.query as { id?: string };
+  const { slug } = router.query as { slug?: string };
   const [paper, setPaper] = useState<ReadingPaper | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [passageIdx, setPassageIdx] = useState(0);
@@ -191,7 +249,6 @@ export default function ReadingMockPage() {
   const noteRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [notesLoaded, setNotesLoaded] = useState(true);
-  const DEFAULT_NOTE_COLOR = 'warning';
 
   const questionLookup = useMemo(() => {
     if (!paper) return new Map<string, { passage: Passage; passageIndex: number }>();
@@ -204,49 +261,56 @@ export default function ReadingMockPage() {
     return map;
   }, [paper]);
 
+  // attempt id from local mock state (bridge to server)
   useEffect(() => {
-    if (!id) return;
-    const attempt = ensureMockAttemptId('reading', id);
+    if (!slug) return;
+    const attempt = ensureMockAttemptId('reading', slug);
     attemptRef.current = attempt;
     setAttemptReady(true);
-  }, [id]);
+  }, [slug]);
 
+  // Load paper + local draft
   useEffect(() => {
-    void router.prefetch('/review/reading/demo-attempt');
-  }, [router]);
-
-  useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
     (async () => {
-      const p = await loadPaper(id);
+      const p = await loadPaper(slug);
       setPaper(p);
-      const draft = loadMockDraft<DraftState>('reading', id);
+
+      const draft = loadMockDraft<DraftState>('reading', slug);
       const storedLayout = getStoredLayoutMode();
       const storedFocus = getStoredFocusMode();
+
       if (draft?.data) {
         const normalizedAnswers = draft.data.answers ? normalizeAnswerMap(draft.data.answers) : undefined;
         if (normalizedAnswers) setAnswers(normalizedAnswers);
+
         if (typeof draft.data.passageIdx === 'number') setPassageIdx(draft.data.passageIdx);
+
         if (typeof draft.data.timeLeft === 'number') {
           setTimeLeft(Math.max(0, Math.min(p.durationSec, Math.round(draft.data.timeLeft))));
         } else {
           setTimeLeft(p.durationSec);
         }
+
         const noteList = Array.isArray(draft.data.notes)
           ? draft.data.notes
               .map((note) => mapReadingNote(note))
               .filter((note): note is ReadingNote => Boolean(note))
           : undefined;
         if (noteList && noteList.length > 0) setNotes(noteList);
+
         if (draft.data.questionFilter) {
           setQuestionFilter(normalizeQuestionFilter(draft.data.questionFilter));
         }
+
         setLayoutMode(normalizeLayoutMode(draft.data.layoutMode ?? storedLayout));
+
         if (typeof draft.data.focusMode === 'boolean') {
           setFocusMode(draft.data.focusMode);
         } else {
           setFocusMode(storedFocus);
         }
+
         const hasAnsweredFromDraft = normalizedAnswers ? hasAnyAnswered(normalizedAnswers) : false;
         const hasNotes = Boolean(noteList && noteList.length > 0);
         const startedFromDraft =
@@ -254,10 +318,11 @@ export default function ReadingMockPage() {
           (typeof draft.data.timeLeft === 'number' && draft.data.timeLeft < p.durationSec) ||
           hasAnsweredFromDraft ||
           hasNotes;
+
         setIsStarted(startedFromDraft);
       } else {
         setTimeLeft(p.durationSec);
-        saveMockDraft('reading', id, {
+        saveMockDraft('reading', slug, {
           answers: normalizeForPersist({}),
           passageIdx: 0,
           timeLeft: p.durationSec,
@@ -271,10 +336,12 @@ export default function ReadingMockPage() {
         setFocusMode(storedFocus);
         setIsStarted(false);
       }
+
       setLayoutHydrated(true);
     })();
-  }, [id]);
+  }, [slug]);
 
+  // Load checkpoint from server
   useEffect(() => {
     if (!paper || !attemptReady) return;
     let cancelled = false;
@@ -293,6 +360,7 @@ export default function ReadingMockPage() {
           started?: unknown;
           focusMode?: unknown;
         };
+
         const normalizedAnswers = payload.answers ? normalizeAnswerMap(payload.answers) : undefined;
         if (normalizedAnswers) {
           setAnswers(normalizedAnswers);
@@ -301,6 +369,7 @@ export default function ReadingMockPage() {
         const nextPassageIdx =
           typeof payload.passageIdx === 'number' ? payload.passageIdx : latestRef.current.passageIdx;
         if (typeof payload.passageIdx === 'number') setPassageIdx(payload.passageIdx);
+
         const nextTimeLeft = (() => {
           if (typeof payload.timeLeft === 'number') {
             return Math.max(0, Math.min(paper.durationSec, Math.round(payload.timeLeft)));
@@ -310,30 +379,36 @@ export default function ReadingMockPage() {
           return Math.max(0, Math.min(paper.durationSec, remaining));
         })();
         setTimeLeft(nextTimeLeft);
+
         const normalizedNotes = Array.isArray(payload.notes)
           ? payload.notes
               .map((note) => mapReadingNote(note))
               .filter((note): note is ReadingNote => Boolean(note))
           : undefined;
         if (normalizedNotes && normalizedNotes.length > 0) setNotes(normalizedNotes);
+
         const nextNotes = normalizedNotes && normalizedNotes.length > 0 ? normalizedNotes : latestRef.current.notes;
+
         const nextQuestionFilter = payload.questionFilter
           ? normalizeQuestionFilter(payload.questionFilter)
           : latestRef.current.questionFilter;
         if (payload.questionFilter) {
           setQuestionFilter(nextQuestionFilter);
         }
+
         const nextLayoutMode = payload.layoutMode
           ? normalizeLayoutMode(payload.layoutMode)
           : latestRef.current.layoutMode;
         if (payload.layoutMode) {
           setLayoutMode(nextLayoutMode);
         }
+
         const nextFocusMode =
           typeof payload.focusMode === 'boolean' ? payload.focusMode : latestRef.current.focusMode;
         if (typeof payload.focusMode === 'boolean') {
           setFocusMode(payload.focusMode);
         }
+
         const hasAnswered = normalizedAnswers ? hasAnyAnswered(normalizedAnswers) : false;
         const hasNotes = Boolean(normalizedNotes && normalizedNotes.length > 0);
         const startedFromPayload =
@@ -341,10 +416,13 @@ export default function ReadingMockPage() {
           (typeof payload.timeLeft === 'number' && payload.timeLeft < paper.durationSec) ||
           hasAnswered ||
           hasNotes;
+
         if (startedFromPayload) {
           setIsStarted(true);
         }
+
         const nextStarted = startedFromPayload ? true : latestRef.current.started;
+
         lastCheckpointMetaRef.current = JSON.stringify({
           passageIdx: nextPassageIdx,
           timeLeft: nextTimeLeft,
@@ -363,6 +441,7 @@ export default function ReadingMockPage() {
     };
   }, [paper, attemptReady]);
 
+  // Timer
   useEffect(() => {
     if (!paper || !isStarted) return;
     const t = setInterval(() => setTimeLeft((x) => (x > 0 ? x - 1 : 0)), 1000);
@@ -371,13 +450,13 @@ export default function ReadingMockPage() {
 
   const debouncedLocalDraft = useDebouncedCallback(
     (payload: DraftState) => {
-      if (!id) return;
+      if (!slug) return;
       const { answers: payloadAnswers, ...rest } = payload;
       const normalized = normalizeForPersist(payloadAnswers);
-      saveMockDraft('reading', id, { ...rest, answers: normalized });
+      saveMockDraft('reading', slug, { ...rest, answers: normalized });
     },
     1000,
-    { maxWait: 3000 }
+    { maxWait: 3000 },
   );
 
   useEffect(() => {
@@ -407,6 +486,7 @@ export default function ReadingMockPage() {
     setStoredFocusMode(focusMode);
   }, [focusMode, layoutHydrated]);
 
+  // Focus-mode body data-attr
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
@@ -440,8 +520,9 @@ export default function ReadingMockPage() {
     };
   }, [focusMode]);
 
+  // Local draft save
   useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
     debouncedLocalDraft({
       answers,
       passageIdx,
@@ -455,7 +536,7 @@ export default function ReadingMockPage() {
     return () => {
       debouncedLocalDraft.flush();
     };
-  }, [id, answers, passageIdx, timeLeft, notes, questionFilter, layoutMode, isStarted, debouncedLocalDraft]);
+  }, [slug, answers, passageIdx, timeLeft, notes, questionFilter, layoutMode, isStarted, debouncedLocalDraft, focusMode]);
 
   const persistCheckpoint = useCallback(
     async (opts?: { completed?: boolean; force?: boolean }) => {
@@ -510,7 +591,7 @@ export default function ReadingMockPage() {
       }
       return ok;
     },
-    [paper, attemptReady, checkpointHydrated]
+    [paper, attemptReady, checkpointHydrated],
   );
 
   const scheduleCheckpoint = useCallback(
@@ -536,9 +617,10 @@ export default function ReadingMockPage() {
         }
       }, delay);
     },
-    [paper, attemptReady, checkpointHydrated, persistCheckpoint]
+    [paper, attemptReady, checkpointHydrated, persistCheckpoint],
   );
 
+  // beforeunload → force checkpoint
   useEffect(() => {
     if (!paper || !attemptReady || !checkpointHydrated) return;
     const handler = () => {
@@ -549,6 +631,7 @@ export default function ReadingMockPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [paper, attemptReady, checkpointHydrated, persistCheckpoint, debouncedLocalDraft]);
 
+  // initial schedule
   useEffect(() => {
     if (!paper || !attemptReady || !checkpointHydrated) return;
     lastActivityRef.current = Date.now();
@@ -561,6 +644,7 @@ export default function ReadingMockPage() {
     };
   }, [paper, attemptReady, checkpointHydrated, scheduleCheckpoint]);
 
+  // reschedule on changes
   useEffect(() => {
     if (!attemptReady || !checkpointHydrated) return;
     lastActivityRef.current = Date.now();
@@ -578,6 +662,7 @@ export default function ReadingMockPage() {
     scheduleCheckpoint,
   ]);
 
+  // Load notes from API
   useEffect(() => {
     if (!attemptReady || !checkpointHydrated) return;
     const attemptId = attemptRef.current;
@@ -602,7 +687,12 @@ export default function ReadingMockPage() {
         }
         const data = (await res.json()) as {
           ok: boolean;
-          notes?: Array<{ id: string; passageId: string; ranges: Array<{ start: number; end: number; color?: string }>; noteText?: string | null }>;
+          notes?: Array<{
+            id: string;
+            passageId: string;
+            ranges: Array<{ start: number; end: number; color?: string }>;
+            noteText?: string | null;
+          }>;
         };
         if (!cancelled && data?.ok && Array.isArray(data.notes)) {
           const mapped = data.notes
@@ -625,6 +715,7 @@ export default function ReadingMockPage() {
     };
   }, [attemptReady, checkpointHydrated]);
 
+  // sendBeacon on tab hide
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!paper) return;
@@ -668,11 +759,14 @@ export default function ReadingMockPage() {
       window.removeEventListener('pagehide', onHide);
     };
   }, [paper, checkpointHydrated]);
+
   const current = useMemo(() => (paper ? paper.passages[passageIdx] : undefined), [paper, passageIdx]);
   const currentPassageId = current?.id;
   const passageNotes = useMemo(() => {
     if (!currentPassageId) return [] as ReadingNote[];
-    return notes.filter((note) => note.passageId === currentPassageId).sort((a, b) => a.start - b.start);
+    return notes
+      .filter((note) => note.passageId === currentPassageId)
+      .sort((a, b) => a.start - b.start);
   }, [notes, currentPassageId]);
 
   const passageHighlights = useMemo(
@@ -685,11 +779,11 @@ export default function ReadingMockPage() {
             end: range.end,
             color: note.color,
             noteText: note.noteText,
-          }))
+          })),
         )
         .filter((item) => item.end > item.start)
         .sort((a, b) => a.start - b.start),
-    [passageNotes]
+    [passageNotes],
   );
 
   useEffect(() => {
@@ -747,12 +841,12 @@ export default function ReadingMockPage() {
 
   const nextUnanswered = useMemo(
     () => questionItems.find((item) => !isAnsweredEntry(answers[item.id])),
-    [questionItems, answers]
+    [questionItems, answers],
   );
 
   const nextFlagged = useMemo(
     () => questionItems.find((item) => isFlaggedEntry(answers[item.id])),
-    [questionItems, answers]
+    [questionItems, answers],
   );
 
   const currentQuestionId = activeQuestionId ?? current?.questions?.[0]?.id ?? null;
@@ -775,7 +869,7 @@ export default function ReadingMockPage() {
 
       const existing = latestRef.current.notes.filter((note) => note.passageId === current.id);
       const overlaps = existing.some((note) =>
-        note.ranges.some((range) => rangesOverlap(range.start, range.end, start, end))
+        note.ranges.some((range) => rangesOverlap(range.start, range.end, start, end)),
       );
       if (overlaps) {
         if (typeof window !== 'undefined') {
@@ -833,7 +927,12 @@ export default function ReadingMockPage() {
 
         const result = (await response.json()) as {
           ok: boolean;
-          note?: { id?: string; passageId?: string; ranges?: Array<{ start?: number; end?: number; color?: string }>; noteText?: string | null };
+          note?: {
+            id: string;
+            passageId: string;
+            ranges: Array<{ start: number; end: number; color?: string }>;
+            noteText?: string | null;
+          };
         };
 
         if (result.ok && result.note) {
@@ -850,25 +949,25 @@ export default function ReadingMockPage() {
           }
         }
       } catch (error) {
-        // eslint-disable-next-line no-console -- surfaced in development for debugging persistence issues
+        // eslint-disable-next-line no-console
         console.error('Failed to persist reading note', error);
       }
     },
-    [current, DEFAULT_NOTE_COLOR]
+    [current, DEFAULT_NOTE_COLOR],
   );
 
   const handleSelectionHighlight = useCallback(
     (payload: SelectionInput) => {
       void createAnnotation({ ...payload, noteText: undefined });
     },
-    [createAnnotation]
+    [createAnnotation],
   );
 
   const handleSelectionNote = useCallback(
     (payload: SelectionInput) => {
       void createAnnotation(payload);
     },
-    [createAnnotation]
+    [createAnnotation],
   );
 
   const handleHighlightFocus = useCallback(
@@ -887,7 +986,7 @@ export default function ReadingMockPage() {
         }
       }
     },
-    [notes]
+    [notes],
   );
 
   const handleNoteSave = useCallback(
@@ -899,7 +998,7 @@ export default function ReadingMockPage() {
       const payloadNote = trimmed.length > 0 ? trimmed : null;
 
       setNotes((prev) =>
-        prev.map((note) => (note.id === noteId ? { ...note, noteText: payloadNote } : note))
+        prev.map((note) => (note.id === noteId ? { ...note, noteText: payloadNote } : note)),
       );
 
       setEditingNoteId(null);
@@ -928,13 +1027,13 @@ export default function ReadingMockPage() {
         if (!response.ok) throw new Error(`Failed with status ${response.status}`);
       } catch (error) {
         setNotes((prev) =>
-          prev.map((note) => (note.id === noteId ? { ...note, noteText: previous } : note))
+          prev.map((note) => (note.id === noteId ? { ...note, noteText: previous } : note)),
         );
-        // eslint-disable-next-line no-console -- assists debugging when persistence fails locally
+        // eslint-disable-next-line no-console
         console.error('Failed to update reading note', error);
       }
     },
-    [noteEditorValue, notes]
+    [noteEditorValue, notes],
   );
 
   const handleRemoveHighlight = useCallback(
@@ -958,11 +1057,11 @@ export default function ReadingMockPage() {
         if (!response.ok) throw new Error(`Failed with status ${response.status}`);
       } catch (error) {
         setNotes(previousNotes);
-        // eslint-disable-next-line no-console -- assists debugging when persistence fails locally
+        // eslint-disable-next-line no-console
         console.error('Failed to delete reading note', error);
       }
     },
-    [notes, editingNoteId]
+    [notes, editingNoteId],
   );
 
   const cancelNoteEditing = useCallback(() => {
@@ -1002,7 +1101,7 @@ export default function ReadingMockPage() {
         return next;
       });
     },
-    []
+    [],
   );
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
@@ -1025,7 +1124,7 @@ export default function ReadingMockPage() {
     if (typeof window !== 'undefined') {
       window.setTimeout(() => {
         const interactive = node.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         interactive?.focus({ preventScroll: true });
       }, 160);
@@ -1045,79 +1144,64 @@ export default function ReadingMockPage() {
   };
 
   const submit = async () => {
-    if (!paper || !id || isSubmitting) return;
+    if (!paper || !slug || isSubmitting) return;
+
     setIsSubmitting(true);
 
     const normalizedAnswers = normalizeForPersist(answers);
     const durationSec = Math.max(0, Math.round(paper.durationSec - timeLeft));
-    const requestAttemptId = makeAttemptId();
-    let attemptId = requestAttemptId;
-    let fallbackAttemptId = '';
+
+    // temporary attempt id – later we’ll use Supabase’s id
+    const attemptId = makeAttemptId();
 
     try {
-      const response = await fetch('/api/mock/reading/mark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          attemptId: requestAttemptId,
-          mockId: paper.id,
-          answers: normalizedAnswers,
-          durationSec,
-        }),
-      });
-      if (!response.ok) {
-        const message = await response.text().catch(() => '');
-        throw new Error(message || `Failed with status ${response.status}`);
-      }
-      const payload = (await response.json()) as { attemptId?: string };
-      if (payload?.attemptId) {
-        attemptId = payload.attemptId;
-      }
-      setLocalOnly(false);
-    } catch (error) {
-      fallbackAttemptId = `local-${Date.now()}`;
-      attemptId = fallbackAttemptId;
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console -- surfaced in development to aid debugging failures
-        console.warn('[reading] Failed to persist attempt remotely, falling back to local storage.', error);
-      }
-      toast.error('Saved locally only. We’ll sync when you’re back online.');
-      setLocalOnly(true);
+      // TODO: later hit /api/mock/reading/submit-final and save to Supabase
+      // For now, just stash basic payload locally so result page can read it if needed.
       try {
-        localStorage.setItem(`read:attempt-res:${attemptId}`, JSON.stringify({ paper, answers: normalizedAnswers }));
+        localStorage.setItem(
+          `read:attempt-res:${attemptId}`,
+          JSON.stringify({
+            slug,
+            paperId: paper.id,
+            answers: normalizedAnswers,
+            durationSec,
+          }),
+        );
       } catch {
-        // ignore local storage failures so the flow can continue
+        // ignore localStorage errors
       }
-    } finally {
-      if (!attemptId) {
-        attemptId = fallbackAttemptId || requestAttemptId;
+
+      // clear local draft/checkpoints for this test
+      clearMockDraft('reading', slug);
+
+      // go to result screen
+      const targetUrl = `/mock/reading/${encodeURIComponent(
+        slug,
+      )}/result?attempt=${encodeURIComponent(attemptId)}`;
+
+      await router.replace(targetUrl);
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[reading] submit failed', error);
       }
-      if (attemptRef.current) {
-        await persistCheckpoint({ completed: true, force: true });
-        if (checkpointTimeoutRef.current) {
-          window.clearTimeout(checkpointTimeoutRef.current);
-          checkpointTimeoutRef.current = null;
-        }
-        clearMockAttemptId('reading', paper.id);
-      }
-      clearMockDraft('reading', id);
-      const targetUrl = `/review/reading/${id}?attempt=${encodeURIComponent(attemptId)}`;
-      try {
-        await router.replace(targetUrl);
-      } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console -- surfaced in development to aid debugging navigation issues
-          console.error('[reading] Failed to navigate to review screen after submission.', error);
-        }
-        setIsSubmitting(false);
-      }
+      toast.error('Something went wrong while submitting.');
+      setIsSubmitting(false);
     }
   };
 
-  if (!paper || !current) return <Shell title="Loading..."><div className="rounded-2xl border border-border p-4">Loading paper…</div></Shell>;
+  if (!paper || !current) {
+    return (
+      <Shell title="Loading...">
+        <div className="rounded-2xl border border-border p-4">Loading paper…</div>
+      </Shell>
+    );
+  }
 
   const percent =
-    questionStats.total > 0 ? Math.round((questionStats.answered / questionStats.total) * 100) : 0;
+    questionStats.total > 0
+      ? Math.round((questionStats.answered / questionStats.total) * 100)
+      : 0;
 
   const quickFilters: Array<{ id: QuestionNavFilter; label: string; count: number }> = [
     { id: 'all', label: 'All', count: questionStats.total },
@@ -1129,12 +1213,13 @@ export default function ReadingMockPage() {
   const layoutContainerClass = layoutIsSplit
     ? 'flex flex-col gap-8 md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'
     : 'flex flex-col gap-8';
+
   const reviewBarClasses = [
     'sticky bottom-0 mt-8 -mx-6 border-t border-border/70 bg-background/95 px-6 py-4 shadow-lg shadow-black/5 backdrop-blur supports-[backdrop-filter]:backdrop-blur',
   ];
   if (layoutIsSplit) {
     reviewBarClasses.push(
-      'md:static md:mx-0 md:mt-auto md:rounded-2xl md:border md:bg-background/90 md:px-6 md:py-5 md:shadow-md md:backdrop-blur-none md:supports-[backdrop-filter]:backdrop-blur-none'
+      'md:static md:mx-0 md:mt-auto md:rounded-2xl md:border md:bg-background/90 md:px-6 md:py-5 md:shadow-md md:backdrop-blur-none md:supports-[backdrop-filter]:backdrop-blur-none',
     );
   }
 
@@ -1147,7 +1232,9 @@ export default function ReadingMockPage() {
         right={
           <>
             <div className="text-small text-foreground/80">Answered {percent}%</div>
-            <div className="rounded-full border border-border px-3 py-1 text-small">⏱ {hhmmss(timeLeft)}</div>
+            <div className="rounded-full border border-border px-3 py-1 text-small">
+              ⏱ {hhmmss(timeLeft)}
+            </div>
             <FocusModeToggle active={focusMode} onToggle={handleFocusModeToggle} />
             <LayoutModeChips value={layoutMode} onChange={handleLayoutModeChange} />
           </>
@@ -1156,7 +1243,7 @@ export default function ReadingMockPage() {
         <div className="min-w-0 rounded-3xl border border-border/80 bg-background/60 p-6 shadow-lg shadow-black/5">
           {focusMode && isStarted ? <FocusModeNotice onExit={exitFocusMode} /> : null}
           <div className={layoutContainerClass}>
-            <section className="min-w-0 space-y-4">
+            <section className="min-w-0 space-y-4" aria-labelledby={passageHeadingId}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-small font-medium">
                   Passage {passageIdx + 1} of {paper.passages.length} — {current.title}
@@ -1175,7 +1262,9 @@ export default function ReadingMockPage() {
                     variant="ghost"
                     size="sm"
                     disabled={passageIdx === paper.passages.length - 1}
-                    onClick={() => setPassageIdx((i) => Math.min(paper.passages.length - 1, i + 1))}
+                    onClick={() =>
+                      setPassageIdx((i) => Math.min(paper.passages.length - 1, i + 1))
+                    }
                     className="border border-border text-small hover:border-primary disabled:opacity-60"
                   >
                     Next
@@ -1192,254 +1281,278 @@ export default function ReadingMockPage() {
                 />
               </div>
               <p className="text-caption text-foreground/70">
-                Select text in the passage to highlight or add a note. Highlights autosave for this attempt.
+                Select text in the passage to highlight or add a note. Highlights autosave for this
+                attempt.
               </p>
             </section>
+
             <section className="min-w-0 flex flex-col gap-4">
               <div className="grid gap-3">
-              {current.questions.map((q, idx) => {
-                const entry = answers[q.id];
-                const value = getAnswerText(entry);
-                const flagged = isFlagged(entry);
-                const answered = isAnsweredEntry(entry);
-                const questionNumber = questionIndexMap.get(q.id) ?? idx + 1;
-                return (
-                  <div
-                    key={q.id}
-                    ref={(node) => {
-                      if (node) {
-                        questionRefs.current[q.id] = node;
-                      } else {
-                        delete questionRefs.current[q.id];
-                      }
-                    }}
-                    className={[
-                      'group rounded-xl border bg-background/90 p-4 transition focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background',
-                      flagged ? 'border-warning/80 bg-warning/5' : answered ? 'border-success/60' : 'border-border',
-                      currentQuestionId === q.id ? 'ring-1 ring-primary/40' : '',
-                    ].join(' ')}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="text-caption font-semibold uppercase tracking-wide text-foreground/60">
-                          Question {questionNumber}
+                {current.questions.map((q, idx) => {
+                  const entry = answers[q.id];
+                  const value = getAnswerText(entry);
+                  const flagged = isFlagged(entry);
+                  const answered = isAnsweredEntry(entry);
+                  const questionNumber = questionIndexMap.get(q.id) ?? idx + 1;
+
+                  return (
+                    <div
+                      key={q.id}
+                      ref={(node) => {
+                        if (node) {
+                          questionRefs.current[q.id] = node;
+                        } else {
+                          delete questionRefs.current[q.id];
+                        }
+                      }}
+                      className={[
+                        'group rounded-xl border bg-background/90 p-4 transition focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background',
+                        flagged
+                          ? 'border-warning/80 bg-warning/5'
+                          : answered
+                          ? 'border-success/60'
+                          : 'border-border',
+                        currentQuestionId === q.id ? 'ring-1 ring-primary/40' : '',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="text-caption font-semibold uppercase tracking-wide text-foreground/60">
+                            Question {questionNumber}
+                          </div>
+                          <div className="mt-1 text-small font-medium text-foreground">
+                            {q.prompt || q.id}
+                          </div>
                         </div>
-                        <div className="mt-1 text-small font-medium text-foreground">{q.prompt || q.id}</div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleFlag(q.id)}
+                          className={[
+                            'rounded-full border px-2 text-caption',
+                            flagged
+                              ? 'border-warning bg-warning/10 text-warning'
+                              : 'border-border text-foreground/70 hover:border-warning hover:text-warning',
+                          ].join(' ')}
+                          leadingIcon={<Flag className="h-3.5 w-3.5" aria-hidden />}
+                          aria-pressed={flagged}
+                        >
+                          {flagged ? 'Flagged' : 'Flag'}
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleFlag(q.id)}
-                        className={[
-                          'rounded-full border px-2 text-caption',
-                          flagged
-                            ? 'border-warning bg-warning/10 text-warning'
-                            : 'border-border text-foreground/70 hover:border-warning hover:text-warning',
-                        ].join(' ')}
-                        leadingIcon={<Flag className="h-3.5 w-3.5" aria-hidden />}
-                        aria-pressed={flagged}
-                      >
-                        {flagged ? 'Flagged' : 'Flag'}
-                      </Button>
+                      <div className="mt-3">
+                        {renderInput(q, value, {
+                          onChange: (val) => updateAnswerValue(q.id, val),
+                          onFocus: () => setActiveQuestionId(q.id),
+                        })}
+                      </div>
                     </div>
-                    <div className="mt-3">
-                      {renderInput(q, value, {
-                        onChange: (val) => updateAnswerValue(q.id, val),
-                        onFocus: () => setActiveQuestionId(q.id),
-                      })}
-                    </div>
+                  );
+                })}
+              </div>
+
+              <div className={reviewBarClasses.join(' ')}>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Question filters">
+                    {quickFilters.map((item) => {
+                      const isActive = questionFilter === item.id;
+                      return (
+                        <Button
+                          key={item.id}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => applyQuestionFilter(item.id, 'toolbar')}
+                          className={[
+                            'rounded-full border px-3 text-small',
+                            isActive
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border text-foreground hover:border-primary',
+                          ].join(' ')}
+                          aria-pressed={isActive}
+                        >
+                          {item.label}
+                          <span className="ml-2 text-foreground/60">{item.count}</span>
+                        </Button>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            <div className={reviewBarClasses.join(' ')}>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Question filters">
-                  {quickFilters.map((item) => {
-                    const isActive = questionFilter === item.id;
-                    return (
-                      <Button
-                        key={item.id}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => applyQuestionFilter(item.id, 'toolbar')}
-                        className={[
-                          'rounded-full border px-3 text-small',
-                          isActive
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border text-foreground hover:border-primary',
-                        ].join(' ')}
-                        aria-pressed={isActive}
-                      >
-                        {item.label}
-                        <span className="ml-2 text-foreground/60">{item.count}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      applyQuestionFilter('unanswered', 'toolbar');
-                      if (nextUnanswered) scrollToQuestion(nextUnanswered.id);
-                    }}
-                    className="rounded-full border border-border text-small text-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isSubmitting || !nextUnanswered}
-                  >
-                    Review unanswered
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      applyQuestionFilter('flagged', 'toolbar');
-                      if (nextFlagged) scrollToQuestion(nextFlagged.id);
-                    }}
-                    className="rounded-full border border-border text-small text-foreground hover:border-warning disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isSubmitting || !nextFlagged}
-                  >
-                    Review flagged
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={submit}
-                    className="rounded-full px-4 text-small font-semibold text-background disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={isSubmitting}
-                    aria-busy={isSubmitting}
-                  >
-                    {isSubmitting ? 'Submitting…' : 'Submit for scoring'}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        applyQuestionFilter('unanswered', 'toolbar');
+                        if (nextUnanswered) scrollToQuestion(nextUnanswered.id);
+                      }}
+                      className="rounded-full border border-border text-small text-foreground hover:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmitting || !nextUnanswered}
+                    >
+                      Review unanswered
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        applyQuestionFilter('flagged', 'toolbar');
+                        if (nextFlagged) scrollToQuestion(nextFlagged.id);
+                      }}
+                      className="rounded-full border border-border text-small text-foreground hover:border-warning disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmitting || !nextFlagged}
+                    >
+                      Review flagged
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={submit}
+                      className="rounded-full px-4 text-small font-semibold text-background disabled:cursor-not-allowed disabled:opacity-70"
+                      disabled={isSubmitting}
+                      aria-busy={isSubmitting}
+                    >
+                      {isSubmitting ? 'Submitting…' : 'Submit for scoring'}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
             </section>
           </div>
-      </div>
-      <aside className="flex h-full min-w-0 flex-col gap-4 md:max-w-sm xl:max-w-md">
-        {localOnly && <OfflineOnlyBanner />}
-        <QuestionNav
-          questions={questionItems}
-          answers={answers}
-          filter={questionFilter}
-          onFilterChange={(next) => applyQuestionFilter(next, 'nav')}
-          onSelect={scrollToQuestion}
-          onToggleFlag={toggleFlag}
-          currentQuestionId={currentQuestionId}
-        />
-        <div className="flex-1 rounded-3xl border border-border/80 bg-background/60 p-5 shadow-lg shadow-black/5">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-small font-medium">Highlights &amp; notes</div>
-            {!notesLoaded && <span className="text-caption text-foreground/60">Syncing…</span>}
-          </div>
-          {passageNotes.length === 0 ? (
-            <p className="text-caption text-foreground/60">
-              Select text in the passage to leave highlights or notes. They&apos;ll appear here for quick access.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {passageNotes.map((note) => {
-                const isEditing = editingNoteId === note.id;
-                const hasNote = Boolean(note.noteText && note.noteText.trim().length > 0);
-                const excerpt = current ? excerptForNote(note, current.text) : '';
-                return (
-                  <div
-                    key={note.id}
-                    ref={(node) => {
-                      if (node) {
-                        noteRefs.current[note.id] = node;
-                      } else {
-                        delete noteRefs.current[note.id];
-                      }
-                    }}
-                    tabIndex={-1}
-                    className={`rounded-xl border p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      isEditing ? 'border-primary shadow-sm' : 'border-border'
-                    }`}
-                  >
-                    <div className="text-caption font-medium uppercase text-foreground/60">Highlight</div>
-                    <p className="mt-1 whitespace-pre-wrap text-small text-foreground/90">{excerpt}</p>
-                    {isEditing ? (
-                      <div className="mt-3 space-y-2">
-                        <label className="block text-caption font-medium text-foreground/70" htmlFor={`note-edit-${note.id}`}>
-                          Note
-                        </label>
-                        <textarea
-                          id={`note-edit-${note.id}`}
-                          value={noteEditorValue}
-                          onChange={(event) => setNoteEditorValue(event.target.value)}
-                          rows={3}
-                          className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-small focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          placeholder="Add your note"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleNoteSave(note.id)}
-                            className="rounded-full px-3 text-small font-medium text-background"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={cancelNoteEditing}
-                            className="rounded-full border border-border text-small text-foreground/70 hover:border-foreground/50"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 space-y-2">
-                        <div className="whitespace-pre-wrap text-small text-foreground/80">
-                          {hasNote ? note.noteText : <span className="text-foreground/60">No note yet.</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleHighlightFocus(note.id)}
-                            className="rounded-full border border-border text-small text-foreground hover:border-primary hover:text-primary"
-                          >
-                            {hasNote ? 'Edit note' : 'Add note'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveHighlight(note.id)}
-                            className="rounded-full border border-border text-small text-danger hover:border-danger hover:bg-danger/10"
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+        </div>
+
+        <aside className="flex h-full min-w-0 flex-col gap-4 md:max-w-sm xl:max-w-md">
+          {localOnly && <OfflineOnlyBanner />}
+          <QuestionNav
+            questions={questionItems}
+            answers={answers}
+            filter={questionFilter}
+            onFilterChange={(next) => applyQuestionFilter(next, 'nav')}
+            onSelect={scrollToQuestion}
+            onToggleFlag={toggleFlag}
+            currentQuestionId={currentQuestionId}
+          />
+          <div className="flex-1 rounded-3xl border border-border/80 bg-background/60 p-5 shadow-lg shadow-black/5">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="text-small font-medium">Highlights &amp; notes</div>
+              {!notesLoaded && <span className="text-caption text-foreground/60">Syncing…</span>}
             </div>
-          )}
-        </div>
-        <div className="mt-auto pt-4">
-          <Link href="/reading" className="text-small underline underline-offset-4">
-            Change test
-          </Link>
-        </div>
-      </aside>
+            {passageNotes.length === 0 ? (
+              <p className="text-caption text-foreground/60">
+                Select text in the passage to leave highlights or notes. They&apos;ll appear here for quick
+                access.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {passageNotes.map((note) => {
+                  const isEditing = editingNoteId === note.id;
+                  const hasNote = Boolean(note.noteText && note.noteText.trim().length > 0);
+                  const excerpt = current ? excerptForNote(note, current.text) : '';
+                  return (
+                    <div
+                      key={note.id}
+                      ref={(node) => {
+                        if (node) {
+                          noteRefs.current[note.id] = node;
+                        } else {
+                          delete noteRefs.current[note.id];
+                        }
+                      }}
+                      tabIndex={-1}
+                      className={`rounded-xl border p-3 outline-none transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                        isEditing ? 'border-primary shadow-sm' : 'border-border'
+                      }`}
+                    >
+                      <div className="text-caption font-medium uppercase text-foreground/60">
+                        Highlight
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap text-small text-foreground/90">
+                        {excerpt}
+                      </p>
+                      {isEditing ? (
+                        <div className="mt-3 space-y-2">
+                          <label
+                            className="block text-caption font-medium text-foreground/70"
+                            htmlFor={`note-edit-${note.id}`}
+                          >
+                            Note
+                          </label>
+                          <textarea
+                            id={`note-edit-${note.id}`}
+                            value={noteEditorValue}
+                            onChange={(event) => setNoteEditorValue(event.target.value)}
+                            rows={3}
+                            className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-small focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                            placeholder="Add your note"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleNoteSave(note.id)}
+                              className="rounded-full px-3 text-small font-medium text-background"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelNoteEditing}
+                              className="rounded-full border border-border text-small text-foreground/70 hover:border-foreground/50"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          <div className="whitespace-pre-wrap text-small text-foreground/80">
+                            {hasNote ? (
+                              note.noteText
+                            ) : (
+                              <span className="text-foreground/60">No note yet.</span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleHighlightFocus(note.id)}
+                              className="rounded-full border border-border text-small text-foreground hover:border-primary hover:text-primary"
+                            >
+                              {hasNote ? 'Edit note' : 'Add note'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveHighlight(note.id)}
+                              className="rounded-full border border-border text-small text-danger hover:border-danger hover:bg-danger/10"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="mt-auto pt-4">
+            <Link href="/mock/reading" className="text-small underline underline-offset-4">
+              Change test
+            </Link>
+          </div>
+        </aside>
       </Shell>
+
       <StartOverlay
         open={!isStarted}
         layoutMode={layoutMode}
@@ -1451,13 +1564,14 @@ export default function ReadingMockPage() {
         durationSec={paper.durationSec}
         resumeAvailable={resumeAvailable}
       />
+
       <style jsx global>{`
-        :root[data-focus-mode="true"] header[data-solid] {
+        :root[data-focus-mode='true'] header[data-solid] {
           display: none !important;
         }
-        :root[data-focus-mode="true"] nav[aria-label="Bottom navigation"],
-        :root[data-focus-mode="true"] [aria-controls="quick-actions-menu"],
-        :root[data-focus-mode="true"] #quick-actions-menu {
+        :root[data-focus-mode='true'] nav[aria-label='Bottom navigation'],
+        :root[data-focus-mode='true'] [aria-controls='quick-actions-menu'],
+        :root[data-focus-mode='true'] #quick-actions-menu {
           display: none !important;
         }
       `}</style>
@@ -1485,7 +1599,9 @@ function FocusModeToggle({ active, onToggle }: FocusModeToggleProps) {
       aria-pressed={active}
       className={[
         'rounded-full border px-3 text-small',
-        active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground/80 hover:border-primary',
+        active
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-border text-foreground/80 hover:border-primary',
       ].join(' ')}
     >
       {active ? 'Focus mode on' : 'Focus mode off'}
@@ -1512,7 +1628,9 @@ function FocusModeNotice({ onExit }: FocusModeNoticeProps) {
           Exit focus mode
         </Button>
       </div>
-      <p className="mt-1 text-caption text-primary/80">You can toggle focus mode anytime from the header controls.</p>
+      <p className="mt-1 text-caption text-primary/80">
+        You can toggle focus mode anytime from the exam header.
+      </p>
     </div>
   );
 }
@@ -1594,7 +1712,8 @@ function StartOverlay({
               Ready to start?
             </h2>
             <p id={`${dialogId}-description`} className="text-small text-foreground/70">
-              Choose how you want to view the passage and questions before you begin. You can change this later from the top bar.
+              Choose how you want to view the passage and questions before you begin. You can change this
+              later from the top bar.
             </p>
           </div>
           <div className="rounded-xl border border-border bg-background/60 p-4">
@@ -1664,7 +1783,9 @@ function StartOverlay({
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-caption text-foreground/60">Layout applies on desktop; mobile stays single column.</p>
+            <p className="text-caption text-foreground/60">
+              Layout applies on desktop; mobile stays single column.
+            </p>
             <Button
               type="button"
               variant="primary"
@@ -1684,15 +1805,19 @@ function StartOverlay({
 function renderInput(
   q: Q,
   value: string,
-  handlers: { onChange: (v: string) => void; onFocus: () => void }
+  handlers: { onChange: (v: string) => void; onFocus: () => void },
 ) {
   if (q.type === 'tfng') {
     const opts = ['True', 'False', 'Not Given'];
-    return <Options options={opts} value={value} onPick={handlers.onChange} onFocus={handlers.onFocus} />;
+    return (
+      <Options options={opts} value={value} onPick={handlers.onChange} onFocus={handlers.onFocus} />
+    );
   }
   if (q.type === 'yynn') {
     const opts = ['Yes', 'No', 'Not Given'];
-    return <Options options={opts} value={value} onPick={handlers.onChange} onFocus={handlers.onFocus} />;
+    return (
+      <Options options={opts} value={value} onPick={handlers.onChange} onFocus={handlers.onFocus} />
+    );
   }
   if (q.type === 'heading' || q.type === 'mcq') {
     return (
@@ -1841,19 +1966,27 @@ function isFlaggedEntry(entry?: ReadingAnswer): boolean {
   return isFlagged(entry);
 }
 
-const hhmmss = (sec: number) => `${Math.floor(sec/60).toString().padStart(2,'0')}:${Math.floor(sec%60).toString().padStart(2,'0')}`;
+const hhmmss = (sec: number) =>
+  `${Math.floor(sec / 60)
+    .toString()
+    .padStart(2, '0')}:${Math.floor(sec % 60)
+    .toString()
+    .padStart(2, '0')}`;
+
 const formatTimeForAnnouncement = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
+  const mins = Math.floor(seconds/60);
   const secs = seconds % 60;
   const parts: string[] = [];
   if (mins > 0) parts.push(`${mins} minute${mins === 1 ? '' : 's'}`);
   if (secs > 0 || mins === 0) parts.push(`${secs} second${secs === 1 ? '' : 's'}`);
   return parts.join(' ');
 };
+
 const toOptionId = (value: string, index: number) => {
   const base = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   return base || `option-${index}`;
 };
+
 const describeQuestionType = (type: QType) => {
   switch (type) {
     case 'tfng':
@@ -1870,6 +2003,7 @@ const describeQuestionType = (type: QType) => {
       return 'Short answer question';
   }
 };
+
 function normalizeLayoutMode(value: unknown): LayoutMode {
   return value === 'scroll' ? 'scroll' : 'split';
 }
@@ -1889,7 +2023,7 @@ function setStoredLayoutMode(mode: LayoutMode) {
   try {
     window.localStorage.setItem(LAYOUT_PREF_KEY, mode);
   } catch {
-    // ignore persistence errors
+    // ignore
   }
 }
 
@@ -1907,7 +2041,7 @@ function setStoredFocusMode(value: boolean) {
   try {
     window.localStorage.setItem(FOCUS_MODE_PREF_KEY, value ? '1' : '0');
   } catch {
-    // ignore persistence errors
+    // ignore
   }
 }
 
@@ -1934,69 +2068,22 @@ function mapReadingNote(row: {
     const legacyStart = typeof row?.start === 'number' ? Number(row.start) : null;
     const legacyEnd = typeof row?.end === 'number' ? Number(row.end) : null;
     if (legacyStart !== null && legacyEnd !== null && legacyEnd > legacyStart) {
-      ranges = [{ start: legacyStart, end: legacyEnd }];
+      ranges = [{ start: legacyStart, end: legacyEnd, color: row?.color ?? DEFAULT_NOTE_COLOR }];
     }
   }
-  const normalizedRanges = ranges
-    .map((range) => ({
-      start: Math.max(0, Math.round(range.start)),
-      end: Math.max(0, Math.round(range.end)),
-    }))
-    .filter((range) => range.end > range.start);
-  if (normalizedRanges.length === 0) return null;
 
-  const [primary] = normalizedRanges;
-  const colorCandidate =
-    (Array.isArray(row?.ranges) && typeof row.ranges[0]?.color === 'string' && row.ranges[0]?.color) ||
-    (typeof row?.color === 'string' && row.color) ||
-    DEFAULT_NOTE_COLOR;
-
-  const textValue =
-    typeof row?.noteText === 'string'
-      ? row.noteText
-      : typeof row?.text === 'string'
-        ? row.text
-        : parsed.text;
+  if (ranges.length === 0) return null;
 
   return {
     id: parsed.id,
     passageId,
-    start: primary.start,
-    end: primary.end,
-    ranges: normalizedRanges,
-    color: colorCandidate,
-    noteText: textValue && textValue.length > 0 ? textValue : null,
+    start: ranges[0].start,
+    end: ranges[ranges.length - 1].end,
+    ranges: ranges.map(r => ({
+      start: r.start ?? 0,
+      end: r.end ?? 0,
+    })),
+    color: parsed.color ?? DEFAULT_NOTE_COLOR,
+    noteText: parsed.noteText ?? null,
   };
-}
-
-function mergeNotes(existing: ReadingNote[], incoming: ReadingNote[]): ReadingNote[] {
-  const map = new Map<string, ReadingNote>();
-  for (const note of existing) {
-    map.set(note.id, note);
-  }
-  for (const note of incoming) {
-    map.set(note.id, note);
-  }
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.passageId === b.passageId) return a.start - b.start;
-    return a.passageId.localeCompare(b.passageId);
-  });
-}
-
-function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number) {
-  return Math.max(aStart, bStart) < Math.min(aEnd, bEnd);
-}
-
-function excerptForNote(note: ReadingNote, text: string): string {
-  if (!text) return '';
-  const length = text.length;
-  const start = Math.max(0, Math.min(note.start, length));
-  const end = Math.max(start, Math.min(note.end, length));
-  const raw = text.slice(start, end).trim();
-  if (!raw) {
-    const fallback = text.slice(start, Math.min(start + 160, length)).trim();
-    return fallback.length > 0 ? fallback : text.slice(0, Math.min(160, length)).trim();
-  }
-  if (raw.length <= 160) return raw;
-  return `${raw.slice(0, 157)}…`;
 }

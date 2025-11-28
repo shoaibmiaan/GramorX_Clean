@@ -1,6 +1,6 @@
 // pages/_app.tsx
 import type { AppProps } from 'next/app';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
@@ -81,153 +81,17 @@ const isAuthPage = (pathname: string) =>
 const isPremiumRoomRoute = (pathname: string) =>
   pathname.startsWith('/premium/') && !pathname.startsWith('/premium-pin');
 
-// Attempts only (used by older code that referenced “flow”)
+// ✅ FIXED: only treat real exam attempt routes as "mock tests flow" (no chrome)
+// e.g. /mock/reading/{slug}/run or /mock/reading/{slug}/review
 const isMockTestsFlowRoute = (pathname: string) => {
-  const isMockAttempt = /^\/mock\/[^/]+$/.test(pathname);
-  const isWritingMockAttempt = /^\/writing\/mock\/[^/]+$/.test(pathname);
+  const isMockAttempt = /^\/mock\/[^/]+\/(run|review)(\/|$)/.test(pathname);
+  const isWritingMockAttempt = /^\/writing\/mock\/[^/]+\/(run|review)(\/|$)/.test(pathname);
   return isMockAttempt || isWritingMockAttempt;
 };
-
-// ---------- Enhanced route loading ----------
-function useRouteLoading() {
-  const router = useRouter();
-  const [isRouteLoading, setIsRouteLoading] = useState(false);
-  const routeLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const routeLoadingFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPathRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const toComparablePath = (value: string) => {
-      if (!value) return '/';
-      const withoutOrigin = value.replace(/^https?:\/\/[^/]+/, '');
-      const withoutHash = withoutOrigin.split('#')[0] ?? '';
-      const withoutQuery = withoutHash.split('?')[0] ?? '';
-      return (withoutQuery || '/').replace(/\/+$/, '') || '/';
-    };
-
-    const hasMeaningfulPathChange = (nextUrl: string) => {
-      const nextPath = toComparablePath(nextUrl);
-      const currentPath = toComparablePath(router.asPath);
-      return nextPath !== currentPath;
-    };
-
-    const clearTimers = () => {
-      if (routeLoadingTimeoutRef.current) {
-        clearTimeout(routeLoadingTimeoutRef.current);
-        routeLoadingTimeoutRef.current = null;
-      }
-      if (routeLoadingFallbackRef.current) {
-        clearTimeout(routeLoadingFallbackRef.current);
-        routeLoadingFallbackRef.current = null;
-      }
-    };
-
-    const startLoading = (url: string, options: { shallow?: boolean } = {}) => {
-      if (options.shallow) return;
-      if (!hasMeaningfulPathChange(url)) {
-        pendingPathRef.current = null;
-        clearTimers();
-        return;
-      }
-      pendingPathRef.current = toComparablePath(url);
-      clearTimers();
-      routeLoadingTimeoutRef.current = setTimeout(() => {
-        setIsRouteLoading(true);
-        routeLoadingFallbackRef.current = setTimeout(() => {
-          pendingPathRef.current = null;
-          setIsRouteLoading(false);
-        }, 12000);
-      }, 160);
-    };
-
-    const stopLoading = (url?: string | null) => {
-      const finalize = () => {
-        pendingPathRef.current = null;
-        clearTimers();
-        setIsRouteLoading(false);
-      };
-
-      if (pendingPathRef.current && url) {
-        const normalizedUrl = toComparablePath(url);
-        if (normalizedUrl !== pendingPathRef.current) {
-          return;
-        }
-      }
-
-      if (typeof window !== 'undefined') {
-        requestAnimationFrame(() => requestAnimationFrame(finalize));
-        return;
-      }
-
-      finalize();
-    };
-
-    const handleRouteError = (_err: unknown, url: string) => stopLoading(url);
-
-    const handleBeforeHistoryChange = (
-      url: string | { pathname?: string | null } = '',
-      opts: { shallow?: boolean } = {}
-    ) => {
-      const rawUrl = typeof url === 'string' ? url : url?.pathname ?? '';
-
-      if (opts.shallow) {
-        if (!pendingPathRef.current) {
-          stopLoading();
-        }
-        return;
-      }
-
-      if (!hasMeaningfulPathChange(rawUrl)) {
-        pendingPathRef.current = null;
-        stopLoading();
-        return;
-      }
-
-      pendingPathRef.current = toComparablePath(rawUrl);
-    };
-
-    router.events.on('routeChangeStart', startLoading as any);
-    router.events.on('beforeHistoryChange', handleBeforeHistoryChange as any);
-    router.events.on('routeChangeComplete', stopLoading as any);
-    router.events.on('routeChangeError', handleRouteError as any);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') stopLoading();
-    };
-    const handlePageHide = () => stopLoading();
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      router.events.off('routeChangeStart', startLoading as any);
-      router.events.off('beforeHistoryChange', handleBeforeHistoryChange as any);
-      router.events.off('routeChangeComplete', stopLoading as any);
-      router.events.off('routeChangeError', handleRouteError);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
-      clearTimers();
-    };
-  }, [router]);
-
-  useEffect(() => {
-    if (routeLoadingFallbackRef.current) {
-      clearTimeout(routeLoadingFallbackRef.current);
-      routeLoadingFallbackRef.current = null;
-    }
-    pendingPathRef.current = null;
-    setIsRouteLoading(false);
-  }, [router.asPath]);
-
-  return isRouteLoading;
-}
 
 // ---------- Auth bridge ----------
 function useAuthBridge() {
   const router = useRouter();
-  const syncingRef = useRef(false);
-  const lastBridgeKeyRef = useRef<string | null>(null);
-  const subscribedRef = useRef(false);
 
   const bridgeSession = useCallback(
     async (event: AuthChangeEvent, sessionNow: Session | null) => {
@@ -237,13 +101,6 @@ function useAuthBridge() {
 
       // For SIGNED_IN / TOKEN_REFRESHED → need a token
       if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
-
-      const token = sessionNow?.access_token ?? '';
-      const dedupeKey = `${event}:${token}`;
-
-      // Avoid spamming the API with repeated events for the same token
-      if (event !== 'SIGNED_OUT' && lastBridgeKeyRef.current === dedupeKey) return;
-      lastBridgeKeyRef.current = event === 'SIGNED_OUT' ? null : dedupeKey;
 
       try {
         await fetch('/api/auth/set-session', {
@@ -269,103 +126,91 @@ function useAuthBridge() {
     }
 
     let cancelled = false;
+    const supa = getSupa();
 
+    // Initial sync
     (async () => {
-      const supa = getSupa();
-
-      // Initial sync: get current session and push it to the server
-      syncingRef.current = true;
       const {
         data: { session },
       } = await supa.auth.getSession();
 
-      if (!cancelled) {
-        if (session) {
-          await bridgeSession('SIGNED_IN', session);
-        } else {
-          await bridgeSession('SIGNED_OUT', null);
-        }
+      if (cancelled) return;
 
-        // Hydrate feature/plan flags once we know who the user is
-        if (!flagsHydratedRef.current) {
-          void refreshClientFlags();
-        }
+      if (session) {
+        await bridgeSession('SIGNED_IN', session);
+      } else {
+        await bridgeSession('SIGNED_OUT', null);
+      }
 
-        // If user hits /login or /signup while already logged in → send them to their area
-        if (session?.user && isAuthPage(router.pathname)) {
+      // Hydrate feature/plan flags once we know who the user is
+      if (!flagsHydratedRef.current) {
+        void refreshClientFlags();
+      }
+
+      // If user hits /login or /signup while already logged in → send them to their area
+      if (session?.user && isAuthPage(router.pathname)) {
+        const pathname = router.pathname;
+        const isSpecialAuthHandler =
+          pathname === '/auth/callback' ||
+          pathname === '/auth/confirm' ||
+          pathname === '/auth/verify';
+
+        if (!isSpecialAuthHandler) {
+          const url = new URL(window.location.href);
+          const next = url.searchParams.get('next');
+          const target =
+            next && next.startsWith('/')
+              ? next
+              : destinationByRole(session.user) ?? '/';
+
+          router.replace(target);
+        }
+      }
+    })();
+
+    // Subscribe to auth state changes
+    const {
+      data: { subscription },
+    } = supa.auth.onAuthStateChange((event, sessionNow) => {
+      (async () => {
+        if (cancelled) return;
+
+        await bridgeSession(event, sessionNow);
+
+        if (event === 'SIGNED_IN' && sessionNow?.user) {
           const pathname = router.pathname;
           const isSpecialAuthHandler =
             pathname === '/auth/callback' ||
             pathname === '/auth/confirm' ||
             pathname === '/auth/verify';
 
-          // Let /auth/callback, /auth/confirm, /auth/verify control their own redirects
           if (!isSpecialAuthHandler) {
             const url = new URL(window.location.href);
             const next = url.searchParams.get('next');
-            const target =
-              next && next.startsWith('/')
-                ? next
-                : destinationByRole(session.user) ?? '/';
 
-            router.replace(target);
+            if (next && next.startsWith('/')) {
+              router.replace(next);
+            } else if (isAuthPage(pathname)) {
+              router.replace(destinationByRole(sessionNow.user));
+            }
           }
         }
+
+        if (event === 'SIGNED_OUT') {
+          if (!['/login', '/signup', '/forgot-password'].includes(router.pathname)) {
+            router.replace('/login');
+          }
+        }
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe?.();
+      if (typeof window !== 'undefined') {
+        (window as any).__GX_AUTH_BRIDGE_ACTIVE = false;
       }
-
-      syncingRef.current = false;
-    })();
-
-    if (!subscribedRef.current) {
-      const supa = getSupa();
-
-      const {
-        data: { subscription },
-      } = supa.auth.onAuthStateChange((event, sessionNow) => {
-        (async () => {
-          if (cancelled) return;
-
-          await bridgeSession(event, sessionNow);
-
-          if (event === 'SIGNED_IN' && sessionNow?.user) {
-            const pathname = router.pathname;
-            const isSpecialAuthHandler =
-              pathname === '/auth/callback' ||
-              pathname === '/auth/confirm' ||
-              pathname === '/auth/verify';
-
-            // ✅ Do NOT override redirects for the auth handler pages themselves
-            if (!isSpecialAuthHandler) {
-              const url = new URL(window.location.href);
-              const next = url.searchParams.get('next');
-
-              if (next && next.startsWith('/')) {
-                router.replace(next);
-              } else if (isAuthPage(pathname)) {
-                router.replace(destinationByRole(sessionNow.user));
-              }
-            }
-          }
-
-          if (event === 'SIGNED_OUT') {
-            if (!['/login', '/signup', '/forgot-password'].includes(router.pathname)) {
-              router.replace('/login');
-            }
-          }
-        })();
-      });
-
-      subscribedRef.current = true;
-
-      return () => {
-        cancelled = true;
-        (subscription as any)?.unsubscribe?.();
-        subscribedRef.current = false;
-        if (typeof window !== 'undefined') {
-          (window as any).__GX_AUTH_BRIDGE_ACTIVE = false;
-        }
-      };
-    }
+    };
   }, [router, bridgeSession]);
 }
 
@@ -442,7 +287,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const pathname = router.pathname;
   const { locale: activeLocale } = useLocale();
 
-  const isRouteLoading = useRouteLoading();
   useAuthBridge();
 
   // i18n
@@ -557,7 +401,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isReportsRoute={routeConfiguration.isReportsRoute}
               isMarketingRoute={routeConfiguration.isMarketingRoute}
               subscriptionTier={subscriptionTier}
-              isRouteLoading={isRouteLoading}
+              // isRouteLoading: route loading flag agar tum future mein add karna chaho
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}

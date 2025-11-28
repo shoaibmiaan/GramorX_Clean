@@ -1,6 +1,8 @@
 // pages/listening/[slug].tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
+
 import { supabase } from '@/lib/supabaseClient';
 import type { AutosaveSession } from '@/lib/autosave';
 import { createAutosaveSession } from '@/lib/autosave';
@@ -15,6 +17,7 @@ import { Timer } from '@/components/design-system/Timer';
 import { SaveItemButton } from '@/components/SaveItemButton';
 import AudioSectionsPlayer from '@/components/listening/AudioSectionsPlayer';
 import Transcript from '@/components/listening/Transcript';
+import Icon from '@/components/design-system/Icon';
 
 type MCQ = {
   id: string;
@@ -24,6 +27,7 @@ type MCQ = {
   options: string[];
   answer: string;
 };
+
 type GAP = {
   id: string;
   qNo: number;
@@ -31,6 +35,7 @@ type GAP = {
   prompt: string;
   answer: string;
 };
+
 type Question = MCQ | GAP;
 
 type Section = {
@@ -68,6 +73,7 @@ export default function ListeningTestPage() {
 
   // --- Test + UI state ---
   const [test, setTest] = useState<ListeningTest | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const [currentIdx, setCurrentIdxState] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [checked, setChecked] = useState(false);
@@ -92,7 +98,8 @@ export default function ListeningTestPage() {
   const setSectionIndex = useCallback(
     (value: number | ((prev: number) => number)) => {
       setCurrentIdxState((prev) => {
-        const resolved = typeof value === 'function' ? (value as (prev: number) => number)(prev) : value;
+        const resolved =
+          typeof value === 'function' ? (value as (prev: number) => number)(prev) : value;
         const clamped = Number.isFinite(resolved) ? Math.max(0, Math.trunc(resolved)) : 0;
         patchAutosave({ currentIdx: clamped });
         return clamped;
@@ -107,20 +114,16 @@ export default function ListeningTestPage() {
   const [attemptFinished, setAttemptFinished] = useState(false);
   const submittedRef = useRef(false);
 
-  // --- Audio & timing handled via AudioSectionsPlayer ---
-
   // --- Load auth user (robust and race-free) ---
   useEffect(() => {
     let mounted = true;
 
-    // 1) Get current user (in case session already present)
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
       setUserId(data.user?.id ?? null);
       setAuthReady(true);
     });
 
-    // 2) Subscribe to future changes (login/logout)
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setUserId(session?.user?.id ?? null);
@@ -128,10 +131,15 @@ export default function ListeningTestPage() {
     });
 
     return () => {
-      sub?.subscription.unsubscribe();
       mounted = false;
+      sub?.subscription.unsubscribe();
     };
   }, []);
+
+  const candidateId = useMemo(() => {
+    if (!userId) return 'Guest';
+    return `GX-${new Date().getFullYear()}-${userId.slice(0, 6).toUpperCase()}`;
+  }, [userId]);
 
   // --- Load test from DB ---
   useEffect(() => {
@@ -139,13 +147,20 @@ export default function ListeningTestPage() {
     let cancelled = false;
 
     (async () => {
+      setTestError(null);
+
       const { data: t, error: tErr } = await supabase
         .from('lm_listening_tests')
         .select('slug,title,master_audio_url')
         .eq('slug', slug)
         .single();
 
-      if (tErr || !t || cancelled) return;
+      if (cancelled) return;
+
+      if (tErr || !t) {
+        setTestError('Could not load this listening test. Please try another one.');
+        return;
+      }
 
       const { data: sections, error: sErr } = await supabase
         .from('lm_listening_sections')
@@ -153,7 +168,11 @@ export default function ListeningTestPage() {
         .eq('test_slug', slug)
         .order('order_no', { ascending: true });
 
-      if (sErr || cancelled) return;
+      if (cancelled) return;
+      if (sErr) {
+        setTestError('Failed to load sections.');
+        return;
+      }
 
       const { data: questions, error: qErr } = await supabase
         .from('lm_listening_questions')
@@ -161,7 +180,11 @@ export default function ListeningTestPage() {
         .eq('test_slug', slug)
         .order('q_no', { ascending: true });
 
-      if (qErr || cancelled) return;
+      if (cancelled) return;
+      if (qErr) {
+        setTestError('Failed to load questions.');
+        return;
+      }
 
       const secMap = new Map<number, Section>();
       (sections ?? []).forEach((s) => {
@@ -199,7 +222,10 @@ export default function ListeningTestPage() {
 
       const ordered = [...secMap.values()]
         .sort((a, b) => a.orderNo - b.orderNo)
-        .map((s) => ({ ...s, questions: [...s.questions].sort((a, b) => a.qNo - b.qNo) }));
+        .map((s) => ({
+          ...s,
+          questions: [...s.questions].sort((a, b) => a.qNo - b.qNo),
+        }));
 
       if (!cancelled) {
         setTest({
@@ -221,21 +247,26 @@ export default function ListeningTestPage() {
     if (!slug) return;
     setAnswers({});
     setCurrentIdxState(0);
+
     const session = createAutosaveSession<ListeningAutosaveDraft>({
       scope: 'listening',
       id: slug,
       version: 1,
       legacyKeys: [LEGACY_LISTEN_KEY(slug)],
     });
+
     autosaveRef.current = session;
+
     const snapshot = session.load();
     const draft = snapshot?.data;
+
     if (draft?.answers && typeof draft.answers === 'object') {
       setAnswers({ ...(draft.answers as AnswersMap) });
     }
     if (typeof draft?.currentIdx === 'number') {
       setCurrentIdxState(Math.max(0, draft.currentIdx));
     }
+
     return () => {
       autosaveRef.current = null;
     };
@@ -249,6 +280,7 @@ export default function ListeningTestPage() {
       return next;
     });
   };
+
   const handleGapChange = (q: GAP, val: string) => {
     setAnswers((prev) => {
       const next = { ...prev, [q.id]: val };
@@ -256,6 +288,7 @@ export default function ListeningTestPage() {
       return next;
     });
   };
+
   const handleGapBlur = (q: GAP) => {
     setAnswers((prev) => {
       const current = prev[q.id];
@@ -267,6 +300,7 @@ export default function ListeningTestPage() {
       return next;
     });
   };
+
   const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
   const isCorrect = (q: Question) => {
     const a = String(answers[q.id] ?? '');
@@ -280,6 +314,7 @@ export default function ListeningTestPage() {
     if (!userId || !test) return;
     setSaving(true);
     setSaveError(null);
+
     try {
       const rows = Object.entries(answers)
         .map(([qid, ans]) => {
@@ -321,6 +356,7 @@ export default function ListeningTestPage() {
   const submitAttempt = async (): Promise<string | null> => {
     if (!test || !userId) return null;
     const flat = test.sections.flatMap((s) => s.questions);
+
     const answersArr = Object.entries(answers)
       .map(([qid, ans]) => {
         const q = flat.find((qq) => qq.id === qid);
@@ -331,6 +367,7 @@ export default function ListeningTestPage() {
       .filter(Boolean) as { qno: number; answer: any }[];
 
     setSaveError(null);
+
     try {
       const resp = await fetch('/api/listening/submit', {
         method: 'POST',
@@ -346,11 +383,13 @@ export default function ListeningTestPage() {
           },
         }),
       });
+
       if (!resp.ok) {
         const body = await resp.json().catch(() => null);
         const message = body?.error ?? 'Failed to submit attempt';
         throw new Error(message);
       }
+
       const body = await resp.json().catch(() => null);
       return (body?.attemptId as string | undefined) ?? null;
     } catch (e) {
@@ -365,8 +404,10 @@ export default function ListeningTestPage() {
     submittedRef.current = true;
     setAttemptFinished(true);
     setChecked(true);
+
     (async () => {
       let attemptId: string | null = null;
+
       if (userId) {
         await persistAnswers();
         attemptId = await submitAttempt();
@@ -375,10 +416,12 @@ export default function ListeningTestPage() {
           return;
         }
       }
+
       try {
         autosaveRef.current?.clear();
         if (slug) localStorage.removeItem(LEGACY_LISTEN_KEY(slug));
       } catch {}
+
       if (test) {
         const target = attemptId
           ? `/listening/${test.slug}/review?attemptId=${attemptId}`
@@ -389,13 +432,18 @@ export default function ListeningTestPage() {
   };
 
   const secCount = test?.sections.length ?? 0;
-  const currentSection = useMemo(() => (test ? test.sections[currentIdx] ?? null : null), [test, currentIdx]);
+  const currentSection = useMemo(
+    () => (test ? test.sections[currentIdx] ?? null : null),
+    [test, currentIdx],
+  );
+
   const sliceSecs = currentSection
     ? Math.max(0, Math.round((currentSection.endMs - currentSection.startMs) / 1000))
     : 0;
 
   useEffect(() => {
     if (!test) return;
+
     setSectionIndex((idx) => {
       const max = Math.max(0, test.sections.length - 1);
       return Math.min(Math.max(0, idx), max);
@@ -407,20 +455,44 @@ export default function ListeningTestPage() {
     setPendingSeekMs(null);
   }, [currentIdx]);
 
-  // --- Loading skeleton ---
-  if (!test) {
+  const focusActive = attemptStarted && !attemptFinished;
+
+  // --- Loading / error states ---
+  if (!slug) {
+    return null;
+  }
+
+  if (testError && !test) {
     return (
-      <section className="py-24">
+      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
         <Container>
           <Card className="p-6">
-            <div className="animate-pulse h-6 w-40 bg-muted dark:bg-white/10 rounded" />
+            <Alert variant="warning" title="Something went wrong">
+              {testError}
+            </Alert>
+            <div className="mt-4">
+              <Button as={Link as any} href="/listening" variant="primary" size="sm">
+                Back to Listening tests
+              </Button>
+            </div>
           </Card>
         </Container>
       </section>
     );
   }
 
-  const focusActive = attemptStarted && !attemptFinished;
+  if (!test) {
+    return (
+      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+        <Container>
+          <Card className="p-6">
+            <div className="animate-pulse h-6 w-40 bg-muted dark:bg-white/10 rounded mb-2" />
+            <div className="animate-pulse h-4 w-64 bg-muted dark:bg-white/10 rounded" />
+          </Card>
+        </Container>
+      </section>
+    );
+  }
 
   return (
     <>
@@ -432,13 +504,40 @@ export default function ListeningTestPage() {
           if (!attemptFinished) setAttemptStarted(false);
         }}
       />
+
       <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
         <Container>
+          {/* Top bar: breadcrumb + candidate */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Link
+                href="/listening"
+                className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+              >
+                <Icon name="ArrowLeft" size={14} />
+                <span>Back to Listening tests</span>
+              </Link>
+              <span className="h-3 w-px bg-border/60" />
+              <span className="inline-flex items-center gap-1">
+                <Icon name="Headphones" size={14} />
+                <span>Listening exam room</span>
+              </span>
+            </div>
+
+            <div className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 text-[11px] text-muted-foreground bg-background/60 backdrop-blur">
+              <Icon name="IdCard" size={14} />
+              <span>Candidate</span>
+              <span className="font-mono font-semibold text-foreground">{candidateId}</span>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="font-slab text-display text-gradient-primary">{test.title}</h1>
-              <p className="text-grayish">Auto-play per section • Answer highlighting</p>
+              <p className="text-grayish">
+                Auto-play per section • Focus guard • Answer review after you finish.
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <SaveItemButton resourceId={slug || ''} type="listening" category="bookmark" />
@@ -454,17 +553,19 @@ export default function ListeningTestPage() {
                 onComplete={handleAutoSubmit}
                 running={!submittedRef.current}
               />
-              <Badge variant={autoPlay ? 'success' : 'warning'}>Auto-play: {autoPlay ? 'On' : 'Off'}</Badge>
-              <Button variant="secondary" onClick={() => setAutoPlay((v) => !v)}>
+              <Badge tone={autoPlay ? 'success' : 'warning'} size="xs">
+                Auto-play: {autoPlay ? 'On' : 'Off'}
+              </Badge>
+              <Button variant="secondary" size="sm" onClick={() => setAutoPlay((v) => !v)}>
                 Toggle Auto-play
               </Button>
             </div>
           </div>
 
-          {/* Not logged-in notice (only when auth is actually known) */}
+          {/* Not logged-in notice (only when auth is known) */}
           {authReady && !userId && (
             <Alert variant="info" className="mt-6" title="Sign in to save progress">
-              You can practice without signing in, but answers won’t be saved. (We only store your own rows; RLS enforced.)
+              You can practice without signing in, but answers and band history won’t be saved.
             </Alert>
           )}
 
@@ -474,8 +575,13 @@ export default function ListeningTestPage() {
               {saveError}
             </Alert>
           )}
-          {saving && <Alert variant="info" className="mt-6">Saving…</Alert>}
+          {saving && (
+            <Alert variant="info" className="mt-6">
+              Saving…
+            </Alert>
+          )}
 
+          {/* Audio player + transcript */}
           <AudioSectionsPlayer
             key={currentIdx}
             masterAudioUrl={test.masterAudioUrl}
@@ -488,6 +594,7 @@ export default function ListeningTestPage() {
             onExternalSeekResolved={() => setPendingSeekMs(null)}
             className="mt-8"
           />
+
           <Transcript
             className="mt-4"
             transcript={currentSection?.transcript}
@@ -500,12 +607,14 @@ export default function ListeningTestPage() {
               setPendingSeekMs(currentSection.startMs + relativeMs);
             }}
           />
+
           <div className="mt-4 text-small opacity-80">
             Section {currentSection?.orderNo} of {secCount} • {sliceSecs}s slice
           </div>
+
           {!!userId && (
             <div className="mt-4">
-              <Button variant="secondary" onClick={persistAnswers} disabled={saving}>
+              <Button variant="secondary" size="sm" onClick={persistAnswers} disabled={saving}>
                 Save progress
               </Button>
             </div>
@@ -520,7 +629,7 @@ export default function ListeningTestPage() {
                     Q{q.qNo}. {q.prompt}
                   </h3>
                   {checked && (
-                    <Badge variant={isCorrect(q) ? 'success' : 'danger'} size="sm">
+                    <Badge tone={isCorrect(q) ? 'success' : 'danger'} size="xs">
                       {isCorrect(q) ? 'Correct' : 'Incorrect'}
                     </Badge>
                   )}
@@ -532,6 +641,7 @@ export default function ListeningTestPage() {
                       const chosen = answers[q.id] === opt;
                       const correct = (q as MCQ).answer === opt;
                       const showState = checked && (chosen || correct);
+
                       const cls = showState
                         ? correct
                           ? 'border-success/50 bg-success/10'
@@ -539,6 +649,7 @@ export default function ListeningTestPage() {
                           ? 'border-sunsetOrange/50 bg-sunsetOrange/10'
                           : 'border-lightBorder'
                         : 'border-lightBorder dark:border-white/10';
+
                       return (
                         <li key={opt}>
                           <button
@@ -547,12 +658,6 @@ export default function ListeningTestPage() {
                             className={`w-full text-left p-3.5 rounded-ds border ${cls}`}
                           >
                             <span className="mr-2">{opt}</span>
-                            {checked && correct && (
-                              <i className="fas fa-check-circle text-success" aria-label="Correct" />
-                            )}
-                            {checked && !correct && chosen && (
-                              <i className="fas fa-times-circle text-sunsetOrange" aria-label="Incorrect" />
-                            )}
                           </button>
                         </li>
                       );
@@ -565,12 +670,14 @@ export default function ListeningTestPage() {
                         label=""
                         placeholder="Type your answer"
                         value={answers[q.id] ?? ''}
-                        onChange={(e) => handleGapChange(q as GAP, (e.target as HTMLInputElement).value)}
+                        onChange={(e) =>
+                          handleGapChange(q as GAP, (e.target as HTMLInputElement).value)
+                        }
                         onBlur={() => handleGapBlur(q as GAP)}
                       />
                     ) : (
                       <Alert variant={isCorrect(q) ? 'success' : 'warning'}>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-sm">
                           <span>
                             <strong>Your answer:</strong> {answers[q.id] || <em>(blank)</em>}
                           </span>
@@ -589,7 +696,7 @@ export default function ListeningTestPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 mt-8">
+          <div className="flex flex-wrap items-center gap-3 mt-8">
             {!checked ? (
               <Button
                 onClick={async () => {
@@ -607,10 +714,12 @@ export default function ListeningTestPage() {
                 <Button
                   onClick={async () => {
                     if (!test) return;
+
                     if (userId) await persistAnswers();
 
                     if (currentIdx >= secCount - 1) {
                       let attemptId: string | null = null;
+
                       if (userId) {
                         attemptId = await submitAttempt();
                         if (!attemptId) {
@@ -618,12 +727,15 @@ export default function ListeningTestPage() {
                           return;
                         }
                       }
+
                       submittedRef.current = true;
                       setAttemptFinished(true);
+
                       try {
                         autosaveRef.current?.clear();
                         if (slug) localStorage.removeItem(LEGACY_LISTEN_KEY(slug));
                       } catch {}
+
                       const target = attemptId
                         ? `/listening/${test.slug}/review?attemptId=${attemptId}`
                         : `/listening/${test.slug}/review`;
@@ -634,7 +746,7 @@ export default function ListeningTestPage() {
                     }
                   }}
                 >
-                  {currentIdx < secCount - 1 ? 'Next section' : 'Finish & Review'}
+                  {currentIdx < secCount - 1 ? 'Next section' : 'Finish & review'}
                 </Button>
               </>
             )}
