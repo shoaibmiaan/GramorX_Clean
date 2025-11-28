@@ -18,6 +18,8 @@ A Next.js (TypeScript) + Tailwind CSS portal with a separate **Premium “Exam E
 
 ## Getting Started
 
+For a step-by-step onboarding checklist, see [Docs/new-developer-guide.md](Docs/new-developer-guide.md).
+
 ### Prerequisites
 
 - **Node.js 20** (LTS)
