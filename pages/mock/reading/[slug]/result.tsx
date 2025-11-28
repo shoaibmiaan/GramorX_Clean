@@ -10,18 +10,17 @@ import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
+import { readingPracticeList } from '@/data/reading';
+import { readingBandFromRaw } from '@/lib/reading/band';
 
 type ReadingAttemptRow = {
   id: string;
-  user_id: string;
-  test_id: string;
-  status: string;
-  started_at: string | null;
+  paper_id: string | null;
   submitted_at: string | null;
-  duration_seconds: number | null;
-  raw_score: number | null;
-  band_score: number | null;
-  section_stats: Record<string, unknown> | null;
+  answers: Record<string, unknown> | null;
+  score: number | null;
+  total: number | null;
+  duration_sec: number | null;
 };
 
 type ReadingTestRow = {
@@ -32,21 +31,6 @@ type ReadingTestRow = {
   difficulty: string;
   total_questions: number;
   duration_seconds: number;
-};
-
-type ReadingAnswerRow = {
-  question_id: string;
-  question_number: number;
-  is_correct: boolean | null;
-  score_awarded: number | null;
-  // joined fields
-  question?: {
-    question_type: string;
-    passage_id: string | null;
-    passage?: {
-      passage_label: string | null;
-    } | null;
-  } | null;
 };
 
 type LeaderboardRow = {
@@ -88,6 +72,15 @@ type ReadingResultPageProps = {
   rawScore: number | null;
   breakdown: ReadingResultBreakdown;
   leaderboard: LeaderboardRow | null;
+  previousAttempt: { id: string; submittedAt: string | null } | null;
+};
+
+type ParsedScore = {
+  band: number | null;
+  correct: number;
+  total: number;
+  durationSec: number;
+  answers: Record<string, { value?: string }>;
 };
 
 const formatMinutes = (seconds: number | null | undefined): string => {
@@ -111,6 +104,7 @@ const ReadingResultPage: NextPage<ReadingResultPageProps> = ({
   rawScore,
   breakdown,
   leaderboard,
+  previousAttempt,
 }) => {
   const router = useRouter();
   const durationLabel = formatMinutes(breakdown.timeTakenSeconds ?? durationSeconds);
@@ -307,6 +301,21 @@ const ReadingResultPage: NextPage<ReadingResultPageProps> = ({
                 >
                   Review questions
                 </Button>
+                {previousAttempt ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full px-4"
+                    onClick={() => {
+                      void router.push(`/mock/reading/review/${encodeURIComponent(previousAttempt.id)}`);
+                    }}
+                  >
+                    Review previous attempt
+                    <span className="ml-2 text-caption text-foreground/60">
+                      {formatPreviousAttemptDate(previousAttempt.submittedAt)}
+                    </span>
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -374,8 +383,8 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
   }
 
   const { data: attempt, error: attemptError } = await supabase
-    .from<ReadingAttemptRow>('reading_attempts')
-    .select('*')
+    .from<ReadingAttemptRow>('attempts_reading')
+    .select('id, paper_id, submitted_at, score_json')
     .eq('id', attemptId)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -384,42 +393,37 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
     return { notFound: true };
   }
 
+  const score = parseScore(attempt);
+  const paperSlug = attempt.paper_id ?? slug;
+
   const { data: test, error: testError } = await supabase
     .from<ReadingTestRow>('reading_tests')
     .select('id, slug, title, description, difficulty, total_questions, duration_seconds')
-    .eq('id', attempt.test_id)
+    .eq('slug', paperSlug)
     .maybeSingle();
 
-  if (testError || !test) {
-    return { notFound: true };
+  if (testError && process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn('[reading result] failed to load test', testError);
   }
 
-  if (test.slug !== slug) {
-    // slug and attempt do not match – don’t leak other attempts
-    return { notFound: true };
-  }
+  const metaFromList = readingPracticeList.find((item) => item.id === paperSlug);
+  const testSlug = test?.slug ?? metaFromList?.slug ?? paperSlug;
+  const testTitle = test?.title ?? metaFromList?.title ?? paperSlug;
+  const totalQuestions = test?.total_questions ?? metaFromList?.totalQuestions ?? score.total;
+  const durationSeconds = test?.duration_seconds ?? metaFromList?.durationSec ?? 60 * 60;
+  const difficulty = test?.difficulty ?? 'Mixed';
 
-  const { data: answersData, error: answersError } = await supabase
-    .from('reading_attempt_answers')
-    .select(
-      `
-      question_id,
-      question_number,
-      is_correct,
-      score_awarded,
-      question:reading_questions (
-        question_type,
-        passage_id,
-        passage:reading_passages (
-          passage_label
-        )
-      )
-    `,
-    )
-    .eq('attempt_id', attemptId)
-    .order('question_number', { ascending: true });
-
-  const answers = (answersData ?? []) as ReadingAnswerRow[];
+  const { data: previousAttemptRow } = await supabase
+    .from<Pick<ReadingAttemptRow, 'id' | 'submitted_at'>>('attempts_reading')
+    .select('id, submitted_at')
+    .eq('user_id', user.id)
+    .eq('paper_id', paperSlug)
+    .neq('id', attemptId)
+    .not('submitted_at', 'is', null)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const { data: leaderboardRow } = await supabase
     .from<LeaderboardRow>('v_leaderboard_reading')
@@ -427,89 +431,71 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
     .eq('user_id', user.id)
     .maybeSingle();
 
-  const breakdown = buildBreakdown(test, attempt, answersError ? [] : answers);
+  const breakdown = buildBreakdownFromScore(score, totalQuestions, durationSeconds);
 
   return {
     props: {
-      slug,
+      slug: testSlug,
       attemptId,
-      testTitle: test.title,
-      difficulty: test.difficulty,
-      durationSeconds: test.duration_seconds,
-      bandScore: attempt.band_score,
-      rawScore: attempt.raw_score,
+      testTitle,
+      difficulty,
+      durationSeconds,
+      bandScore: score.band,
+      rawScore: score.correct,
       breakdown,
       leaderboard: leaderboardRow ?? null,
+      previousAttempt: previousAttemptRow
+        ? { id: previousAttemptRow.id, submittedAt: previousAttemptRow.submitted_at }
+        : null,
     },
   };
 };
 
-function buildBreakdown(
-  test: ReadingTestRow,
-  attempt: ReadingAttemptRow,
-  answers: ReadingAnswerRow[],
-): ReadingResultBreakdown {
-  const totalQuestions = test.total_questions || answers.length;
-  const answeredQuestions = answers.length;
-  const correctQuestions = answers.filter((a) => a.is_correct === true).length;
-
-  const passageMap = new Map<string, PassageBreakdown>();
-  const typeMap = new Map<string, TypeBreakdown>();
-
-  answers.forEach((row) => {
-    const typeKey = row.question?.question_type ?? 'unknown';
-    const passageId = row.question?.passage_id ?? 'unknown';
-    const passageLabel = row.question?.passage?.passage_label ?? 'Passage';
-
-    const existingPassage =
-      passageMap.get(passageId) ??
-      ({
-        passageId,
-        passageLabel,
-        correct: 0,
-        total: 0,
-      } as PassageBreakdown);
-    existingPassage.total += 1;
-    if (row.is_correct) existingPassage.correct += 1;
-    passageMap.set(passageId, existingPassage);
-
-    const existingType =
-      typeMap.get(typeKey) ??
-      ({
-        type: typeKey,
-        correct: 0,
-        total: 0,
-      } as TypeBreakdown);
-    existingType.total += 1;
-    if (row.is_correct) existingType.correct += 1;
-    typeMap.set(typeKey, existingType);
-  });
-
-  const accuracyPercent =
-    totalQuestions > 0 ? (correctQuestions / totalQuestions) * 100 : 0;
-
-  const timeTakenSeconds =
-    typeof attempt.duration_seconds === 'number'
-      ? attempt.duration_seconds
-      : attempt.submitted_at && attempt.started_at
-      ? Math.max(
-          0,
-          Math.round(
-            (new Date(attempt.submitted_at).getTime() -
-              new Date(attempt.started_at).getTime()) /
-              1000,
-          ),
-        )
-      : null;
+function parseScore(payload: any): ParsedScore {
+  const source = payload?.score_json && typeof payload.score_json === 'object' ? payload.score_json : payload ?? {};
+  const correct = Number(source?.correct ?? source?.score ?? payload?.score ?? 0);
+  const total = Number(source?.total ?? source?.questions ?? payload?.total ?? 0);
+  const durationSec = Number(
+    source?.durationSec ?? source?.duration_sec ?? source?.duration ?? payload?.duration_sec ?? 0,
+  );
+  const bandRaw = typeof source?.band === 'number' ? source.band : source?.score_band ?? payload?.band ?? payload?.score_band;
+  const band = typeof bandRaw === 'number' && Number.isFinite(bandRaw) ? bandRaw : readingBandFromRaw(correct, total);
+  const answersSource =
+    source?.answers && typeof source.answers === 'object'
+      ? source.answers
+      : payload?.answers && typeof payload.answers === 'object'
+      ? payload.answers
+      : {};
+  const answers = answersSource as Record<string, { value?: string }>;
 
   return {
-    totalQuestions,
+    band,
+    correct: Number.isFinite(correct) ? correct : 0,
+    total: Number.isFinite(total) ? total : 0,
+    durationSec: Number.isFinite(durationSec) ? durationSec : 0,
+    answers,
+  };
+}
+
+function buildBreakdownFromScore(
+  score: ParsedScore,
+  totalQuestions: number,
+  fallbackDurationSeconds: number,
+): ReadingResultBreakdown {
+  const answeredQuestions = Object.values(score.answers || {}).filter((a) => (a?.value ?? '').trim()).length;
+  const correctQuestions = Number.isFinite(score.correct) ? Math.max(0, score.correct) : 0;
+  const safeTotal = totalQuestions || score.total || 0;
+  const accuracyPercent = safeTotal > 0 ? (correctQuestions / safeTotal) * 100 : 0;
+  const timeTakenSeconds = score.durationSec || fallbackDurationSeconds || null;
+
+  return {
+    totalQuestions: safeTotal || 0,
     answeredQuestions,
     correctQuestions,
     accuracyPercent,
     timeTakenSeconds,
-    passageBreakdown: Array.from(passageMap.values()),
-    typeBreakdown: Array.from(typeMap.values()),
+    passageBreakdown: [],
+    typeBreakdown: [],
   };
 }
 
@@ -522,6 +508,17 @@ function formatQuestionTypeLabel(key: string): string {
   if (normalised.includes('mcq')) return 'Multiple choice';
   if (normalised.includes('gap')) return 'Gap fill';
   return key;
+}
+
+function formatPreviousAttemptDate(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export default ReadingResultPage;

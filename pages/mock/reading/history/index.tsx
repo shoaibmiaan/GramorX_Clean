@@ -11,6 +11,8 @@ import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
 import { getServerClient } from '@/lib/supabaseServer';
 import { track } from '@/lib/analytics/track';
+import { readingPracticeList } from '@/data/reading';
+import { readingBandFromRaw } from '@/lib/reading/band';
 
 type AttemptStatus = 'in_progress' | 'completed' | 'abandoned';
 
@@ -42,56 +44,70 @@ type ReadingHistoryPageProps = {
   stats: ReadingHistoryStats;
 };
 
-const MockAttempts: ReadingAttemptSummary[] = [
-  {
-    id: 'demo-attempt-1',
-    testSlug: 'cambridge-ielts-18-test-1',
-    testTitle: 'Cambridge IELTS 18 – Test 1',
-    startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-    submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 55 * 60 * 1000).toISOString(),
-    mode: 'full',
-    status: 'completed',
-    bandScore: 7.5,
-    rawScore: 34,
-    totalQuestions: 40,
-    correctAnswers: 34,
-    timeTakenSeconds: 55 * 60,
-  },
-  {
-    id: 'demo-attempt-2',
-    testSlug: 'cambridge-ielts-18-test-2',
-    testTitle: 'Cambridge IELTS 18 – Test 2',
-    startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // yesterday
-    submittedAt: null,
-    mode: 'full',
-    status: 'in_progress',
-    bandScore: null,
-    rawScore: null,
-    totalQuestions: 40,
-    correctAnswers: 12,
-    timeTakenSeconds: 22 * 60,
-  },
-  {
-    id: 'demo-attempt-3',
-    testSlug: 'ieltsfever-academic-reading-test-1',
-    testTitle: 'IELTSFever Academic Reading – Test 1',
-    startedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    submittedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
-    mode: 'practice',
-    status: 'completed',
-    bandScore: 6.5,
-    rawScore: 29,
-    totalQuestions: 40,
-    correctAnswers: 29,
-    timeTakenSeconds: 60 * 60,
-  },
-];
+type ReadingAttemptRow = {
+  id: string;
+  paper_id: string | null;
+  submitted_at: string | null;
+  answers: Record<string, unknown> | null;
+  score: number | null;
+  total: number | null;
+  duration_sec: number | null;
+};
 
-const DEFAULT_HISTORY_STATS: ReadingHistoryStats = {
-  totalAttempts: 3,
-  completedAttempts: 2,
-  averageBand: 7.0,
-  lastAttemptAt: MockAttempts[1]?.startedAt ?? null,
+type ReadingTestRow = {
+  id: string;
+  slug: string | null;
+  title: string | null;
+  total_questions: number | null;
+};
+
+const parseScore = (payload: any) => {
+  const source = payload?.score_json && typeof payload.score_json === 'object' ? payload.score_json : payload ?? {};
+  const correct = Number(source?.correct ?? source?.score ?? payload?.score ?? 0);
+  const total = Number(source?.total ?? source?.questions ?? payload?.total ?? 0);
+  const durationSec = Number(
+    source?.durationSec ?? source?.duration_sec ?? source?.duration ?? payload?.duration_sec ?? 0,
+  );
+  const bandRaw =
+    typeof source?.band === 'number' ? source.band : source?.score_band ?? payload?.band ?? payload?.score_band;
+  const band = typeof bandRaw === 'number' && Number.isFinite(bandRaw) ? bandRaw : null;
+
+  return {
+    correct: Number.isFinite(correct) ? correct : 0,
+    total: Number.isFinite(total) ? total : 0,
+    durationSec: Number.isFinite(durationSec) ? durationSec : null,
+    band,
+  };
+};
+
+const buildTestMetaMap = (tests: ReadingTestRow[]) => {
+  const map = new Map<string, { slug: string; title: string; totalQuestions: number }>();
+
+  readingPracticeList.forEach((paper) => {
+    map.set(paper.id, {
+      slug: paper.id,
+      title: paper.title,
+      totalQuestions: paper.totalQuestions,
+    });
+  });
+
+  tests.forEach((row) => {
+    const slug = row.slug ?? row.id;
+    map.set(row.id, {
+      slug,
+      title: row.title ?? slug,
+      totalQuestions: Number(row.total_questions ?? 0) || 0,
+    });
+    if (row.slug) {
+      map.set(row.slug, {
+        slug,
+        title: row.title ?? row.slug,
+        totalQuestions: Number(row.total_questions ?? 0) || 0,
+      });
+    }
+  });
+
+  return map;
 };
 
 const ReadingHistoryPage: NextPage<ReadingHistoryPageProps> = ({ candidateId, attempts, stats }) => {
@@ -575,22 +591,101 @@ export const getServerSideProps: GetServerSideProps<ReadingHistoryPageProps> = a
   const year = new Date().getFullYear();
   const candidateId = `GX-${year}-${rawId.slice(0, 8).toUpperCase()}`;
 
-  // TODO: Replace MockAttempts + DEFAULT_HISTORY_STATS with real data from Supabase.
-  // Example shape (adjust to your actual view/table):
-  //
-  // const { data, error } = await supabase
-  //   .from('v_reading_attempts_summary')
-  //   .select('*')
-  //   .order('started_at', { ascending: false })
-  //   .limit(50);
-  //
-  // Map `data` into ReadingAttemptSummary[] and compute stats.
+  const { data: attemptRows, error: attemptsError } = await supabase
+    .from('attempts_reading')
+    .select('id, paper_id, submitted_at, score_json')
+    .eq('user_id', user.id)
+    .order('submitted_at', { ascending: false })
+    .limit(50);
+
+  if (attemptsError) {
+    console.warn('[mock/reading/history] failed to load attempts', attemptsError);
+  }
+
+  const paperIds = Array.from(
+    new Set((attemptRows ?? []).map((row) => row.paper_id).filter((id): id is string => Boolean(id))),
+  );
+
+  const testRows: ReadingTestRow[] = [];
+
+  if (paperIds.length > 0) {
+    const { data: slugRows, error: slugError } = await supabase
+      .from('reading_tests')
+      .select('id, slug, title, total_questions')
+      .in('slug', paperIds)
+      .limit(200);
+
+    if (slugError) {
+      console.warn('[mock/reading/history] failed to load tests by slug', slugError);
+    }
+
+    if (slugRows) {
+      testRows.push(...(slugRows as ReadingTestRow[]));
+    }
+
+    const { data: idRows, error: idError } = await supabase
+      .from('reading_tests')
+      .select('id, slug, title, total_questions')
+      .in('id', paperIds)
+      .limit(200);
+
+    if (idError) {
+      console.warn('[mock/reading/history] failed to load tests by id', idError);
+    }
+
+    if (idRows) {
+      testRows.push(...(idRows as ReadingTestRow[]));
+    }
+  }
+
+  const metaMap = buildTestMetaMap(testRows);
+
+  const attempts: ReadingAttemptSummary[] = (attemptRows ?? []).map((row: ReadingAttemptRow) => {
+    const score = parseScore(row);
+    const meta = metaMap.get(row.paper_id ?? '') ?? {
+      slug: row.paper_id ?? 'reading-mock',
+      title: row.paper_id ?? 'Reading mock',
+      totalQuestions: score.total || 40,
+    };
+
+    const startedAt = row.submitted_at ?? new Date().toISOString();
+    const status: AttemptStatus = row.submitted_at ? 'completed' : 'in_progress';
+    const bandScore = score.band ?? (score.total > 0 ? readingBandFromRaw(score.correct, score.total) : null);
+
+    return {
+      id: row.id,
+      testSlug: meta.slug,
+      testTitle: meta.title,
+      startedAt,
+      submittedAt: row.submitted_at,
+      mode: 'full',
+      status,
+      bandScore,
+      rawScore: Number.isFinite(score.correct) ? score.correct : null,
+      totalQuestions: meta.totalQuestions || score.total || 40,
+      correctAnswers: Number.isFinite(score.correct) ? score.correct : null,
+      timeTakenSeconds: score.durationSec,
+    };
+  });
+
+  const completedAttempts = attempts.filter((attempt) => attempt.status === 'completed');
+  const bandValues = completedAttempts
+    .map((attempt) => attempt.bandScore)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  const averageBand = bandValues.length > 0 ? bandValues.reduce((sum, value) => sum + value, 0) / bandValues.length : null;
+
+  const stats: ReadingHistoryStats = {
+    totalAttempts: attempts.length,
+    completedAttempts: completedAttempts.length,
+    averageBand,
+    lastAttemptAt: attempts[0]?.startedAt ?? null,
+  };
 
   return {
     props: {
       candidateId,
-      attempts: MockAttempts,
-      stats: DEFAULT_HISTORY_STATS,
+      attempts,
+      stats,
     },
   };
 };

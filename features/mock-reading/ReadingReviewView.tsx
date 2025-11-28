@@ -202,14 +202,18 @@ const ReadingReviewView: React.FC = () => {
           .eq('id', resolvedAttemptId)
           .single();
         if (!cancelled && data) {
-          const record = data as AttemptRecord & { paper_id?: string | null };
-          const answers = normalizeAttemptAnswers(record.answers);
+          const record = data as AttemptRecord & { paper_id?: string | null; score_json?: any };
+          const payload = record.score_json && typeof record.score_json === 'object' ? record.score_json : record;
+          const answers = normalizeAttemptAnswers(payload.answers);
+          const correct = Number(payload?.correct ?? payload?.score ?? record.score ?? 0);
+          const total = Number(payload?.total ?? record.total ?? 0);
+          const percentage = Number(payload?.percentage ?? record.percentage ?? 0);
           setAtt({
             id: String(record.id ?? resolvedAttemptId),
             answers,
-            score: record.score ?? 0,
-            total: record.total ?? 0,
-            percentage: record.percentage ?? 0,
+            score: Number.isFinite(correct) ? correct : 0,
+            total: Number.isFinite(total) ? total : 0,
+            percentage: Number.isFinite(percentage) ? percentage : 0,
             submitted_at: record.submitted_at ?? new Date().toISOString()
           });
           const paperIdFromRecord = record.paper_id ?? undefined;
