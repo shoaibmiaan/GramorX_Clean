@@ -88,6 +88,7 @@ type ReadingResultPageProps = {
   rawScore: number | null;
   breakdown: ReadingResultBreakdown;
   leaderboard: LeaderboardRow | null;
+  previousAttempt: { id: string; submittedAt: string | null } | null;
 };
 
 const formatMinutes = (seconds: number | null | undefined): string => {
@@ -111,6 +112,7 @@ const ReadingResultPage: NextPage<ReadingResultPageProps> = ({
   rawScore,
   breakdown,
   leaderboard,
+  previousAttempt,
 }) => {
   const router = useRouter();
   const durationLabel = formatMinutes(breakdown.timeTakenSeconds ?? durationSeconds);
@@ -307,6 +309,21 @@ const ReadingResultPage: NextPage<ReadingResultPageProps> = ({
                 >
                   Review questions
                 </Button>
+                {previousAttempt ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full px-4"
+                    onClick={() => {
+                      void router.push(`/mock/reading/review/${encodeURIComponent(previousAttempt.id)}`);
+                    }}
+                  >
+                    Review previous attempt
+                    <span className="ml-2 text-caption text-foreground/60">
+                      {formatPreviousAttemptDate(previousAttempt.submittedAt)}
+                    </span>
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -399,6 +416,17 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
     return { notFound: true };
   }
 
+  const { data: previousAttemptRow } = await supabase
+    .from<Pick<ReadingAttemptRow, 'id' | 'submitted_at'>>('reading_attempts')
+    .select('id, submitted_at')
+    .eq('user_id', user.id)
+    .eq('test_id', test.id)
+    .neq('id', attemptId)
+    .not('submitted_at', 'is', null)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: answersData, error: answersError } = await supabase
     .from('reading_attempt_answers')
     .select(
@@ -440,6 +468,9 @@ export const getServerSideProps: GetServerSideProps<ReadingResultPageProps> = as
       rawScore: attempt.raw_score,
       breakdown,
       leaderboard: leaderboardRow ?? null,
+      previousAttempt: previousAttemptRow
+        ? { id: previousAttemptRow.id, submittedAt: previousAttemptRow.submitted_at }
+        : null,
     },
   };
 };
@@ -522,6 +553,17 @@ function formatQuestionTypeLabel(key: string): string {
   if (normalised.includes('mcq')) return 'Multiple choice';
   if (normalised.includes('gap')) return 'Gap fill';
   return key;
+}
+
+function formatPreviousAttemptDate(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export default ReadingResultPage;
