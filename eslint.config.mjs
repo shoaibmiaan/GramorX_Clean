@@ -39,7 +39,7 @@ export default [
       'pages/premium/listening/[slug].tsx',
       'pages/premium/reading/[slug].tsx',
       'pages/writing/mock/[mockId]/workspace.tsx',
-      'pages/mock/reading/[id].tsx',
+      'pages/mock/reading/[slug].tsx',
       'pages/mock/listening/[id].tsx',
       'pages/reading/[slug].tsx',
       'pages/listening/[slug].tsx',
