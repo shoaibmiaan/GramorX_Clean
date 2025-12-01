@@ -42,6 +42,9 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/mock': { layout: 'default', showChrome: true },
   '/mock/index': { layout: 'default', showChrome: true },
   '/mock/[section]': { layout: 'default', showChrome: true },
+  '/mock/reading/[slug]': { layout: 'default', showChrome: false },
+  '/mock/reading/[slug]/result': { layout: 'default', showChrome: false },
+  '/mock/reading/review/[attemptId]': { layout: 'default', showChrome: false },
 
   '/writing/mock': { layout: 'default', showChrome: true },
   '/writing/mock/[id]': { layout: 'default', showChrome: false },
