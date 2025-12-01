@@ -11,6 +11,8 @@ type ReadingQuestionItemProps = {
   question: ReadingQuestion;
   value: AnswerValue;
   onChange: (val: AnswerValue) => void;
+  isFlagged?: boolean;
+  onToggleFlag?: () => void;
 };
 
 const TFNG_OPTIONS = ['True', 'False', 'Not Given'];
@@ -56,6 +58,8 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
   question,
   value,
   onChange,
+  isFlagged = false,
+  onToggleFlag,
 }) => {
   const kind = getQuestionKind(question);
 
@@ -172,16 +176,37 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
   else control = renderGeneric();
 
   return (
-    <Card className="space-y-2 rounded-xl border border-border/70 bg-background/95 p-4 text-sm">
-      <div>
-        <span className="mr-2 font-semibold text-foreground">
-          {question.questionOrder}.
-        </span>
-        <span className="text-foreground">{question.prompt}</span>
+    <Card className="space-y-3 rounded-xl border border-slate-200 bg-white/95 p-4 text-sm shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+            {question.questionOrder}
+          </span>
+          <div>
+            <div className="font-semibold text-slate-800 leading-tight">
+              {question.prompt}
+            </div>
+            {question.instruction && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {question.instruction}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {onToggleFlag && (
+          <Button
+            size="xs"
+            variant={isFlagged ? 'soft' : 'outline'}
+            tone={isFlagged ? 'warning' : 'default'}
+            onClick={onToggleFlag}
+            aria-pressed={isFlagged}
+          >
+            {isFlagged ? 'Marked for review' : 'Mark for review'}
+          </Button>
+        )}
       </div>
-      {question.instruction && (
-        <p className="text-xs text-muted-foreground">{question.instruction}</p>
-      )}
+
       <div>{control}</div>
     </Card>
   );
