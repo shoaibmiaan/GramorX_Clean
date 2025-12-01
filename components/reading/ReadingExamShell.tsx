@@ -123,12 +123,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   };
 
-  const handleStart = () => {
-    startTimeRef.current = Date.now();
-    setStarted(true);
-    setTimeExpired(false);
-  };
-
   const handleTimeExpire = () => {
     if (timeExpired) return;
     setTimeExpired(true);
@@ -419,12 +413,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
   return (
     <div
       className={cn(
-        'min-h-[80vh] w-full overflow-hidden rounded-2xl border border-slate-200 bg-[#f0f2f5] shadow-lg',
+        'min-h-[80vh] w-full overflow-hidden rounded-2xl border border-slate-200 bg-lightBg shadow-lg',
         focusMode && 'bg-background',
       )}
     >
       {/* Header */}
-      <header className="bg-[#0a2e5c] text-white shadow-md px-5 py-4 flex items-center justify-between gap-4">
+      <header className="bg-primaryDark text-white shadow-md px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">{test.title}</h1>
           {/* @ts-expect-error reading type */}
@@ -565,7 +559,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
                       }}
                       className={
                         isCurrent
-                          ? 'rounded-lg ring-1 ring-[#0a2e5c] p-1 bg-slate-50'
+                          ? 'rounded-lg ring-1 ring-primaryDark p-1 bg-slate-50'
                           : 'p-1'
                       }
                     >
