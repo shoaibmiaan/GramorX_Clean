@@ -78,6 +78,8 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [focusMode, setFocusMode] = React.useState(false);
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
 
+  const [timeExpired, setTimeExpired] = React.useState(false);
+
   // per-passage highlights
   const [highlightsByPassage, setHighlightsByPassage] = React.useState<
     Record<string, string[]>
@@ -119,6 +121,29 @@ const ReadingExamShellInner: React.FC<Props> = ({
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(ZOOM_KEY, level);
     }
+  };
+
+  const handleStart = () => {
+    startTimeRef.current = Date.now();
+    setStarted(true);
+    setTimeExpired(false);
+  };
+
+  const handleTimeExpire = () => {
+    if (timeExpired) return;
+    setTimeExpired(true);
+    toast({
+      variant: 'warning',
+      title: 'Time is up',
+      description:
+        'The 60-minute window for this IELTS Reading mock has ended.',
+    });
+  };
+
+  const handleStart = () => {
+    startTimeRef.current = Date.now();
+    setStarted(true);
+    setTimeExpired(false);
   };
 
   // ===== PASSAGE / QUESTION MAPS =====
@@ -369,6 +394,15 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const currentIndex =
     questions.findIndex((q) => q.id === currentQuestionId) ?? 0;
 
+  const currentQuestion =
+    currentQuestionId && questionsById[currentQuestionId]
+      ? questionsById[currentQuestionId]
+      : null;
+
+  const currentFlagged = currentQuestionId
+    ? !!flags[currentQuestionId]
+    : false;
+
   const goPrevQuestion = () => {
     if (currentIndex <= 0) return;
     handleJump(questions[currentIndex - 1].id);
@@ -383,19 +417,24 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const showOverlay = !started && !readOnly;
 
   return (
-    <div className={cn('w-full', focusMode && 'bg-background')}>
+    <div
+      className={cn(
+        'min-h-[80vh] w-full overflow-hidden rounded-2xl border border-slate-200 bg-[#f0f2f5] shadow-lg',
+        focusMode && 'bg-background',
+      )}
+    >
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-primary-900 text-primary-foreground shadow px-6 py-3 flex items-center justify-between">
+      <header className="bg-[#0a2e5c] text-white shadow-md px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold">{test.title}</h1>
           {/* @ts-expect-error reading type */}
           {test.description && (
-            <p className="mt-0.5 text-[11px] opacity-80">
+            <p className="mt-0.5 text-[11px] text-white/80">
               {/* @ts-expect-error reading type */}
               {test.description}
             </p>
           )}
-          <p className="text-[11px] opacity-75">
+          <p className="text-[11px] text-white/75">
             {total} questions ·{' '}
             {/* @ts-expect-error reading type */}
             {test.examType.toUpperCase()} · 60 minutes
@@ -403,8 +442,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-primary-800/60 rounded-md px-2 py-1 text-[11px]">
+          <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px]">
             <span className="opacity-80 mr-1">Zoom</span>
             <Button
               size="xs"
@@ -429,176 +467,151 @@ const ReadingExamShellInner: React.FC<Props> = ({
             </Button>
           </div>
 
-          {/* Focus toggle */}
           <Button
             size="xs"
             variant={focusMode ? 'secondary' : 'outline'}
             onClick={toggleFocus}
           >
-            {focusMode ? 'Focus on' : 'Focus off'}
+            {focusMode ? 'Focus view' : 'Standard view'}
           </Button>
 
-          <div className="bg-primary-800/70 rounded-md px-4 py-2 text-center">
-            <div className="text-[11px] opacity-75">TIME REMAINING</div>
-            <TimerProgress total={total} />
+          <div className="bg-white/10 rounded-lg px-3 py-2 text-center">
+            <TimerProgress
+              total={total}
+              answered={answeredCount}
+              durationSeconds={test.durationSeconds ?? 3600}
+              isActive={started && !timeExpired}
+              onExpire={handleTimeExpire}
+            />
           </div>
         </div>
       </header>
 
-      {/* DESKTOP SPLIT: lg+ */}
-      <div className="hidden lg:flex gap-4 h-[calc(100vh-140px)] px-4 py-3 overflow-hidden">
-        {/* LEFT PASSAGE */}
-        <ReadingPassagePane
-          passage={currentPassage}
-          totalPassages={passages.length}
-          currentPassageIndex={currentPassageIdx}
-          onPrev={goPrevPassage}
-          onNext={goNextPassage}
-          highlights={currentHighlights}
-          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
-          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
-          zoom={zoom}
-        />
+      {/* Main content */}
+      <div className="flex-1 flex flex-col gap-4 p-4 lg:p-6 overflow-hidden">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] flex-1 overflow-hidden">
+          {/* LEFT: Passage */}
+          <div className="min-h-0 flex flex-col">
+            <ReadingPassagePane
+              passage={currentPassage}
+              totalPassages={passages.length}
+              currentPassageIndex={currentPassageIdx}
+              onPrev={goPrevPassage}
+              onNext={goNextPassage}
+              highlights={currentHighlights}
+              onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
+              onClearHighlights={() => handleClearHighlights(currentPassage.id)}
+              zoom={zoom}
+            />
+          </div>
 
-        {/* RIGHT QUESTIONS */}
-        <div className="w-[42%] bg-card shadow-sm rounded-lg flex flex-col overflow-hidden">
-          <QuestionNav
-            questions={questions}
-            answers={answers}
-            flags={flags}
-            currentQuestionId={currentQuestionId}
-            onJump={handleJump}
-            statusFilter={statusFilter}
-            typeFilter={typeFilter}
-            setStatusFilter={setStatusFilter}
-            setTypeFilter={setTypeFilter}
-          />
+          {/* RIGHT: Questions */}
+          <div className="min-h-0 flex flex-col bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 text-slate-800">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Questions {currentPassageIdx + 1}
+                </p>
+                <p className="text-sm font-semibold">Answer the items for this passage</p>
+              </div>
 
-          <div
-            className={cn(
-              'flex-1 overflow-y-auto px-4 py-4 space-y-4',
-              zoom === 'sm' && 'text-xs',
-              zoom === 'md' && 'text-sm',
-              zoom === 'lg' && 'text-base',
-            )}
-          >
-            {visibleQuestions.length === 0 ? (
-              <Card className="p-4 text-sm text-muted-foreground">
-                No questions match the current filters for this passage.
-              </Card>
-            ) : (
-              visibleQuestions.map((q) => {
-                const isCurrent = q.id === currentQuestionId;
-                const isFlagged = !!flags[q.id];
-                const val = answers[q.id] ?? null;
+              {currentQuestion && (
+                <Button
+                  size="sm"
+                  variant={currentFlagged ? 'soft' : 'outline'}
+                  tone={currentFlagged ? 'warning' : 'default'}
+                  onClick={() => toggleFlag(currentQuestion.id)}
+                >
+                  {currentFlagged ? 'Unmark review' : 'Mark for review'}
+                </Button>
+              )}
+            </div>
 
-                return (
-                  <div
-                    key={q.id}
-                    ref={(el) => {
-                      questionRefs.current[q.id] = el;
-                    }}
-                    className={
-                      isCurrent
-                        ? 'rounded-lg ring-1 ring-primary p-1'
-                        : 'p-1'
-                    }
-                  >
-                    <ReadingQuestionItem
-                      question={q}
-                      value={val}
-                      onChange={(v) => handleAnswerChange(q.id, v)}
-                      isFlagged={isFlagged}
-                      onToggleFlag={() => toggleFlag(q.id)}
-                    />
-                  </div>
-                );
-              })
-            )}
+            <QuestionNav
+              questions={questions}
+              answers={answers}
+              flags={flags}
+              currentQuestionId={currentQuestionId}
+              onJump={handleJump}
+              statusFilter={statusFilter}
+              typeFilter={typeFilter}
+              setStatusFilter={setStatusFilter}
+              setTypeFilter={setTypeFilter}
+            />
+
+            <div
+              className={cn(
+                'flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white',
+                zoom === 'sm' && 'text-xs',
+                zoom === 'md' && 'text-sm',
+                zoom === 'lg' && 'text-base',
+              )}
+            >
+              {visibleQuestions.length === 0 ? (
+                <Card className="p-4 text-sm text-muted-foreground">
+                  No questions match the current filters for this passage.
+                </Card>
+              ) : (
+                visibleQuestions.map((q) => {
+                  const isCurrent = q.id === currentQuestionId;
+                  const isFlagged = !!flags[q.id];
+                  const val = answers[q.id] ?? null;
+
+                  return (
+                    <div
+                      key={q.id}
+                      ref={(el) => {
+                        questionRefs.current[q.id] = el;
+                      }}
+                      className={
+                        isCurrent
+                          ? 'rounded-lg ring-1 ring-[#0a2e5c] p-1 bg-slate-50'
+                          : 'p-1'
+                      }
+                    >
+                      <ReadingQuestionItem
+                        question={q}
+                        value={val}
+                        onChange={(v) => handleAnswerChange(q.id, v)}
+                        isFlagged={isFlagged}
+                        onToggleFlag={() => toggleFlag(q.id)}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* MOBILE / TABLET STACKED: < lg */}
-      <div className="flex flex-col gap-4 px-4 py-3 lg:hidden">
-        <ReadingPassagePane
-          passage={currentPassage}
-          totalPassages={passages.length}
-          currentPassageIndex={currentPassageIdx}
-          onPrev={goPrevPassage}
-          onNext={goNextPassage}
-          highlights={currentHighlights}
-          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
-          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
-          zoom={zoom}
-        />
-
-        <Card className="p-3">
-          <QuestionNav
-            questions={questions}
-            answers={answers}
-            flags={flags}
-            currentQuestionId={currentQuestionId}
-            onJump={handleJump}
-            statusFilter={statusFilter}
-            typeFilter={typeFilter}
-            setStatusFilter={setStatusFilter}
-            setTypeFilter={setTypeFilter}
-          />
-        </Card>
-
-        <div
-          className={cn(
-            'space-y-3',
-            zoom === 'sm' && 'text-xs',
-            zoom === 'md' && 'text-sm',
-            zoom === 'lg' && 'text-base',
-          )}
-        >
-          {visibleQuestions.length === 0 ? (
-            <Card className="p-4 text-sm text-muted-foreground">
-              No questions match the current filters for this passage.
-            </Card>
-          ) : (
-            visibleQuestions.map((q) => {
-              const isCurrent = q.id === currentQuestionId;
-              const isFlagged = !!flags[q.id];
-              const val = answers[q.id] ?? null;
-
-              return (
-                <div
-                  key={q.id}
-                  ref={(el) => {
-                    questionRefs.current[q.id] = el;
-                  }}
-                  className={
-                    isCurrent
-                      ? 'rounded-lg ring-1 ring-primary p-1'
-                      : 'p-1'
-                  }
-                >
-                  <ReadingQuestionItem
-                    question={q}
-                    value={val}
-                    onChange={(v) => handleAnswerChange(q.id, v)}
-                    isFlagged={isFlagged}
-                    onToggleFlag={() => toggleFlag(q.id)}
-                  />
-                </div>
-              );
-            })
-          )}
+      {/* Footer */}
+      <footer className="bg-white border-t px-5 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={goPrevQuestion}
+            disabled={currentIndex <= 0}
+          >
+            Previous
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={goNextQuestion}
+            disabled={currentIndex + 1 >= total}
+          >
+            Next
+          </Button>
         </div>
-      </div>
 
-      {/* FOOTER */}
-      <footer className="bg-card border-t px-6 py-3 flex items-center justify-between">
-        <Button size="sm" variant="outline" onClick={goPrevQuestion}>
-          Previous
-        </Button>
-
-        <div className="text-sm text-muted-foreground">
-          Question {currentIndex + 1} of {total} · Flagged {flaggedCount}
+        <div className="hidden md:flex items-center gap-3 text-sm text-slate-600">
+          <span>
+            Question {currentIndex + 1} of {total}
+          </span>
+          <span>Answered {answeredCount}</span>
+          <span>Marked {flaggedCount}</span>
         </div>
 
         <Button
@@ -611,33 +624,35 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </Button>
       </footer>
 
-      {/* INSTRUCTIONS OVERLAY */}
+      {/* Instructions Overlay */}
       {showOverlay && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-          <Card className="w-full max-w-lg p-6 space-y-4 shadow-xl">
-            <h2 className="text-lg font-semibold text-foreground">
-              IELTS Reading – Computer Based
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              You have <strong>60 minutes</strong> to answer{' '}
-              <strong>{total}</strong> questions based on{' '}
-              <strong>{passages.length}</strong> passages.
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>You can highlight text in the passage.</li>
-              <li>You can flag questions for review.</li>
-              <li>
-                Use the dots at the top of the question panel to jump quickly.
-              </li>
-              <li>Your time will continue even if you switch tabs.</li>
-            </ul>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl p-8 space-y-5 shadow-2xl">
+            <div className="border-b pb-3">
+              <h2 className="text-xl font-semibold text-slate-900">
+                IELTS Computer-Based Reading Test
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                You have 60 minutes to complete {total} questions across{' '}
+                {passages.length} passages.
+              </p>
+            </div>
+            <div className="space-y-3 text-sm text-slate-700">
+              <p className="font-semibold">Instructions:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Use the Highlight button to mark important text.</li>
+                <li>Click Mark for review to flag a question for later.</li>
+                <li>Navigate via the colored dots or the Previous/Next buttons.</li>
+                <li>The timer mirrors the official IELTS computer-based layout.</li>
+              </ul>
+              <p>
+                When you are ready, start the clock and begin answering. You can
+                change answers anytime before submitting.
+              </p>
+            </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setStarted(true)}
-              >
-                Start test
+              <Button variant="primary" size="sm" onClick={handleStart}>
+                Start Reading Test
               </Button>
             </div>
           </Card>
