@@ -60,7 +60,7 @@ const ReadingMockRunPage: NextPage<PageProps> = ({ test, passages, questions }) 
       <Head>
         <title>{test.title} · Reading Mock · GramorX</title>
       </Head>
-      <Container className="py-6 lg:py-10">
+      <Container fluid className="p-0">
         <ReadingExamShell test={test} passages={passages} questions={questions} />
       </Container>
     </>
