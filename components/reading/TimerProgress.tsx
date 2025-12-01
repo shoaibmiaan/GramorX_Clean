@@ -14,6 +14,11 @@ type TimerProgressProps = {
   isActive?: boolean;
   /** Callback fired once when the timer reaches zero */
   onExpire?: () => void;
+  /**
+   * Optional: invoked every second with the updated elapsed + remaining seconds.
+   * Enables shells to persist timer state (for resume) without duplicating logic.
+   */
+  onTick?: (elapsed: number, remaining: number) => void;
 };
 
 const TimerProgress: React.FC<TimerProgressProps> = ({
@@ -23,6 +28,7 @@ const TimerProgress: React.FC<TimerProgressProps> = ({
   initialElapsedSec = 0,
   isActive = true,
   onExpire,
+  onTick,
 }) => {
   const [sec, setSec] = React.useState(initialElapsedSec);
 
@@ -31,20 +37,28 @@ const TimerProgress: React.FC<TimerProgressProps> = ({
 
     const id = window.setInterval(() => {
       setSec((s) => {
-        if (s + 1 >= durationSeconds) {
+        const next = Math.min(s + 1, durationSeconds);
+        const remaining = Math.max(durationSeconds - next, 0);
+
+        if (onTick) onTick(next, remaining);
+        if (next >= durationSeconds) {
           window.clearInterval(id);
-          return durationSeconds;
         }
-        return s + 1;
+
+        return next;
       });
     }, 1000);
 
     return () => window.clearInterval(id);
-  }, [isActive, durationSeconds]);
+  }, [isActive, durationSeconds, onTick]);
 
   React.useEffect(() => {
     setSec(initialElapsedSec);
-  }, [initialElapsedSec]);
+    if (onTick) {
+      const remaining = Math.max(durationSeconds - initialElapsedSec, 0);
+      onTick(initialElapsedSec, remaining);
+    }
+  }, [initialElapsedSec, durationSeconds, onTick]);
 
   const clampedDuration = durationSeconds > 0 ? durationSeconds : 3600;
   const remaining = Math.max(clampedDuration - sec, 0);

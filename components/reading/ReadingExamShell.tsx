@@ -39,6 +39,7 @@ type ZoomLevel = 'sm' | 'md' | 'lg';
 
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
+const STORAGE_PREFIX = 'reading-mock:';
 
 const isAnswered = (value: AnswerValue) => {
   if (!value) return false;
@@ -57,6 +58,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
   readOnly = false,
 }) => {
   const { toast } = useToast();
+
+  const storageKey = React.useMemo(
+    () => `${STORAGE_PREFIX}${test.slug}`,
+    [test.slug],
+  );
+
+  const durationSeconds = test.durationSeconds ?? 3600;
 
   if (!questions.length || !passages.length) {
     return (
@@ -83,6 +91,9 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
 
   const [timeExpired, setTimeExpired] = React.useState(false);
+
+  const [elapsedSec, setElapsedSec] = React.useState(0);
+  const [hydrated, setHydrated] = React.useState(false);
 
   // per-passage highlights
   const [highlightsByPassage, setHighlightsByPassage] = React.useState<
@@ -127,9 +138,77 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   };
 
+  // Hydrate saved progress (answers, flags, highlights, elapsed time)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      setHydrated(true);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        answers?: Record<string, AnswerValue>;
+        flags?: Record<string, boolean>;
+        highlightsByPassage?: Record<string, string[]>;
+        elapsedSec?: number;
+        started?: boolean;
+      };
+
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (parsed.flags) setFlags(parsed.flags);
+      if (parsed.highlightsByPassage) {
+        setHighlightsByPassage(parsed.highlightsByPassage);
+      }
+      if (typeof parsed.elapsedSec === 'number' && parsed.elapsedSec >= 0) {
+        setElapsedSec(parsed.elapsedSec);
+        startTimeRef.current = Date.now() - parsed.elapsedSec * 1000;
+        if (parsed.elapsedSec >= durationSeconds) setTimeExpired(true);
+      }
+      if (parsed.started) setStarted(true);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to load saved reading attempt', error);
+    } finally {
+      setHydrated(true);
+    }
+  }, [storageKey, durationSeconds]);
+
+  // Persist progress for resume/reload
+  React.useEffect(() => {
+    if (!hydrated) return;
+    if (typeof window === 'undefined') return;
+
+    const payload = {
+      answers,
+      flags,
+      highlightsByPassage,
+      elapsedSec,
+      started,
+    };
+
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to persist reading attempt', error);
+    }
+  }, [
+    answers,
+    flags,
+    highlightsByPassage,
+    elapsedSec,
+    started,
+    storageKey,
+    hydrated,
+  ]);
+
   const handleTimeExpire = () => {
     if (timeExpired) return;
     setTimeExpired(true);
+    setElapsedSec(durationSeconds);
     toast({
       variant: 'warning',
       title: 'Time is up',
@@ -141,7 +220,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   const handleStart = () => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = Date.now() - elapsedSec * 1000;
     setStarted(true);
     setTimeExpired(false);
   };
@@ -391,6 +470,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
       });
 
       if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(storageKey);
         window.location.href = `/mock/reading/${test.slug}/result`;
       }
     } catch (err: any) {
@@ -433,7 +513,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   // ===== INSTRUCTIONS MODAL =====
-  const showOverlay = !started && !readOnly;
+  const showOverlay = hydrated && !started && !readOnly;
 
   return (
     <div
@@ -498,8 +578,10 @@ const ReadingExamShellInner: React.FC<Props> = ({
             <TimerProgress
               total={total}
               answered={answeredCount}
-              durationSeconds={test.durationSeconds ?? 3600}
+              durationSeconds={durationSeconds}
+              initialElapsedSec={elapsedSec}
               isActive={started && !timeExpired}
+              onTick={(elapsed) => setElapsedSec(elapsed)}
               onExpire={handleTimeExpire}
             />
           </div>
@@ -659,14 +741,18 @@ const ReadingExamShellInner: React.FC<Props> = ({
             <div className="space-y-3 text-sm text-slate-700">
               <p className="font-semibold">Instructions:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Use the Highlight button to mark important text.</li>
-                <li>Click Mark for review to flag a question for later.</li>
-                <li>Navigate via the colored dots or the Previous/Next buttons.</li>
-                <li>The timer mirrors the official IELTS computer-based layout.</li>
+                <li>You have 60 minutes to finish all 40 IELTS Reading questions.</li>
+                <li>Three passages are presented; only questions for the visible passage are shown.</li>
+                <li>Each question is worth one mark, and you can change answers anytime.</li>
+                <li>Use <strong>Highlight</strong> and <strong>Clear</strong> to mirror the real test tools.</li>
+                <li>Select <strong>Mark for review</strong> to tag items just like the computer-based exam.</li>
+                <li>Navigate with the Previous/Next buttons or the colored question dots.</li>
+                <li>The timer turns amber/red as time runs low and auto-submits when it expires.</li>
+                <li>Your answers, highlights, and time are auto-saved so you can resume if the tab reloads.</li>
               </ul>
               <p>
                 When you are ready, start the clock and begin answering. You can
-                change answers anytime before submitting.
+                still adjust responses until you submit or the timer ends.
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
