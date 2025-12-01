@@ -92,10 +92,10 @@ export const ReadingPassagePane: React.FC<PassagePaneProps> = ({
   );
 
   return (
-    <div className="flex-1 bg-white shadow-md rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+    <div className="flex-1 bg-white shadow-sm rounded-lg flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-50 px-4 py-3 border-b flex items-center justify-between text-slate-800">
-        <span className="font-semibold tracking-wide text-sm">
+      <div className="bg-muted px-4 py-2 border-b flex items-center justify-between">
+        <span className="font-medium">
           READING PASSAGE {currentPassageIndex + 1}
         </span>
 
@@ -116,11 +116,11 @@ export const ReadingPassagePane: React.FC<PassagePaneProps> = ({
       {/* Content (click to apply highlight selection) */}
       <div
         className={cn(
-          'flex-1 overflow-y-auto px-6 py-5 whitespace-pre-wrap bg-white text-slate-800',
-          zoom === 'sm' && 'text-xs leading-6',
-          zoom === 'md' && 'text-sm leading-7',
-          zoom === 'lg' && 'text-base leading-8',
-          highlightMode && 'cursor-text selection:bg-yellow-200/60',
+          'flex-1 overflow-y-auto px-5 py-4 whitespace-pre-wrap',
+          zoom === 'sm' && 'text-xs',
+          zoom === 'md' && 'text-sm',
+          zoom === 'lg' && 'text-base',
+          highlightMode && 'cursor-text',
         )}
         onMouseUp={handleHighlightClick}
         // eslint-disable-next-line react/no-danger
@@ -129,7 +129,7 @@ export const ReadingPassagePane: React.FC<PassagePaneProps> = ({
 
       {/* Passage navigation */}
       {totalPassages > 1 && (
-        <div className="px-4 py-3 border-t bg-slate-50 flex items-center justify-between text-xs text-slate-600">
+        <div className="px-4 py-2 border-t flex items-center justify-between text-xs">
           <Button
             size="xs"
             variant="outline"
