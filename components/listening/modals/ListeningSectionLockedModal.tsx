@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from '@/components/design-system/Dialog';
 import { Button } from '@/components/design-system/Button';
 
 type ListeningSectionLockedModalProps = {
