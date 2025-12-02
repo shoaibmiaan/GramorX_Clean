@@ -9,12 +9,15 @@ import { StreakChip } from '@/components/user/StreakChip';
 import { getServerClient } from '@/lib/supabaseServer';
 import { buildCompletionHistory } from '@/utils/streak';
 
-const Heatmap = dynamic(() => import('@/components/user/StreakHeatmap').then((mod) => mod.StreakHeatmap), {
-  ssr: false,
-  loading: () => (
-    <div className="h-64 w-full animate-pulse rounded-ds-2xl border border-dashed border-border bg-muted" />
-  ),
-});
+const Heatmap = dynamic(
+  () => import('@/components/user/StreakHeatmap').then((mod) => mod.StreakHeatmap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 w-full animate-pulse rounded-ds-2xl border border-dashed border-border bg-muted" />
+    ),
+  },
+);
 
 type HistoryEntry = { date: string; completed: number; total: number };
 
@@ -42,7 +45,7 @@ const formatDisplayDate = (iso: string | null) => {
 
 const StreakPage: NextPage<Props> = ({ streak, history }) => {
   return (
-    <section className="bg-lightBg py-16 dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+    <section className="bg-background text-foreground py-16">
       <Container>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -73,20 +76,20 @@ const StreakPage: NextPage<Props> = ({ streak, history }) => {
           <Card className="rounded-ds-2xl p-6 space-y-4">
             <h2 className="font-slab text-h4">Summary</h2>
             <dl className="space-y-3 text-small">
-              <div className="flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
                 <dt className="text-muted-foreground">Current streak</dt>
                 <dd className="font-semibold">{streak.current} days</dd>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-muted/40 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
                 <dt className="text-muted-foreground">Longest streak</dt>
                 <dd className="font-semibold">{streak.longest} days</dd>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-muted/40 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
                 <dt className="text-muted-foreground">Last activity</dt>
                 <dd className="font-semibold">{formatDisplayDate(streak.lastActive)}</dd>
               </div>
             </dl>
-            <div className="rounded-xl bg-muted/30 px-4 py-3 text-small text-muted-foreground">
+            <div className="rounded-xl bg-muted/60 px-4 py-3 text-small text-muted-foreground">
               <h3 className="font-semibold text-foreground">How your streak works</h3>
               <ul className="mt-2 list-disc space-y-2 pl-4">
                 <li>Complete at least one scheduled study task before midnight Pakistan time (PKT) each day.</li>

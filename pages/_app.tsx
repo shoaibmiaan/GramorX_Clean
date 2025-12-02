@@ -38,6 +38,9 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
+// ⭐ NEW BreadcrumbBar V2
+import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
+
 const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }
@@ -64,6 +67,7 @@ const slab = Roboto_Slab({
 
 const IS_CI = process.env.NEXT_PUBLIC_CI === 'true';
 
+// ---------- Skeleton loader ----------
 function GuardSkeleton() {
   return (
     <div className="grid min-h-[100dvh] place-items-center">
@@ -81,12 +85,11 @@ const isAuthPage = (pathname: string) =>
 const isPremiumRoomRoute = (pathname: string) =>
   pathname.startsWith('/premium/') && !pathname.startsWith('/premium-pin');
 
-// ✅ FIXED: only treat real exam attempt routes as "mock tests flow" (no chrome)
-// e.g. /mock/reading/{slug}/run or /mock/reading/{slug}/review
+// Strict mock/exam attempt runner
 const isMockTestsFlowRoute = (pathname: string) => {
   const isMockAttempt = /^\/mock\/[^/]+\/(run|review)(\/|$)/.test(pathname);
-  const isWritingMockAttempt = /^\/writing\/mock\/[^/]+\/(run|review)(\/|$)/.test(pathname);
-  return isMockAttempt || isWritingMockAttempt;
+  const isWritingAttempt = /^\/writing\/mock\/[^/]+\/(run|review)(\/|$)/.test(pathname);
+  return isMockAttempt || isWritingAttempt;
 };
 
 // ---------- Auth bridge ----------
@@ -99,7 +102,6 @@ function useAuthBridge() {
         event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED';
       if (!shouldPost) return;
 
-      // For SIGNED_IN / TOKEN_REFRESHED → need a token
       if (event !== 'SIGNED_OUT' && !sessionNow?.access_token) return;
 
       try {
@@ -120,7 +122,6 @@ function useAuthBridge() {
     if (IS_CI) return;
 
     if (typeof window !== 'undefined') {
-      // Prevent multiple bridges in multi-mount scenarios
       if ((window as any).__GX_AUTH_BRIDGE_ACTIVE) return;
       (window as any).__GX_AUTH_BRIDGE_ACTIVE = true;
     }
@@ -133,7 +134,6 @@ function useAuthBridge() {
       const {
         data: { session },
       } = await supa.auth.getSession();
-
       if (cancelled) return;
 
       if (session) {
@@ -142,57 +142,37 @@ function useAuthBridge() {
         await bridgeSession('SIGNED_OUT', null);
       }
 
-      // Hydrate feature/plan flags once we know who the user is
       if (!flagsHydratedRef.current) {
         void refreshClientFlags();
       }
 
-      // If user hits /login or /signup while already logged in → send them to their area
+      // Prevent logged-in user from seeing dashboard login/signup
       if (session?.user && isAuthPage(router.pathname)) {
-        const pathname = router.pathname;
-        const isSpecialAuthHandler =
-          pathname === '/auth/callback' ||
-          pathname === '/auth/confirm' ||
-          pathname === '/auth/verify';
-
-        if (!isSpecialAuthHandler) {
-          const url = new URL(window.location.href);
-          const next = url.searchParams.get('next');
-          const target =
-            next && next.startsWith('/')
-              ? next
-              : destinationByRole(session.user) ?? '/';
-
-          router.replace(target);
-        }
+        const url = new URL(window.location.href);
+        const next = url.searchParams.get('next');
+        const target =
+          next && next.startsWith('/')
+            ? next
+            : destinationByRole(session.user) ?? '/';
+        router.replace(target);
       }
     })();
 
-    // Subscribe to auth state changes
+    // Subscribe to auth changes
     const {
       data: { subscription },
     } = supa.auth.onAuthStateChange((event, sessionNow) => {
       (async () => {
         if (cancelled) return;
-
         await bridgeSession(event, sessionNow);
 
         if (event === 'SIGNED_IN' && sessionNow?.user) {
-          const pathname = router.pathname;
-          const isSpecialAuthHandler =
-            pathname === '/auth/callback' ||
-            pathname === '/auth/confirm' ||
-            pathname === '/auth/verify';
-
-          if (!isSpecialAuthHandler) {
-            const url = new URL(window.location.href);
-            const next = url.searchParams.get('next');
-
-            if (next && next.startsWith('/')) {
-              router.replace(next);
-            } else if (isAuthPage(pathname)) {
-              router.replace(destinationByRole(sessionNow.user));
-            }
+          const url = new URL(window.location.href);
+          const next = url.searchParams.get('next');
+          if (next && next.startsWith('/')) {
+            router.replace(next);
+          } else if (isAuthPage(router.pathname)) {
+            router.replace(destinationByRole(sessionNow.user));
           }
         }
 
@@ -214,19 +194,16 @@ function useAuthBridge() {
   }, [router, bridgeSession]);
 }
 
-// ---------- Route configuration ----------
+// ---------- Route config ----------
 function useRouteConfiguration(pathname: string) {
   const { user } = useUserContext();
 
   return useMemo(() => {
     const routeConfig = getRouteConfig(pathname);
 
-    // ✅ Robust auth detection: trust routeConfig, but fall back to regex
     const derivedIsAuth = routeConfig.layout === 'auth' || isAuthPage(pathname);
-
     const isAttempt = isAttemptPath(pathname);
 
-    // Hide chrome where it must be hidden
     const isNoChromeRoute =
       derivedIsAuth ||
       routeConfig.layout === 'proctoring' ||
@@ -256,10 +233,12 @@ function useRouteConfiguration(pathname: string) {
       isCommunityRoute:
         routeConfig.layout === 'community' || routeConfig.layout === 'communication',
       isReportsRoute: routeConfig.layout === 'reports',
-      isMarketingRoute: routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
+      isMarketingRoute:
+        routeConfig.layout === 'marketing' || routeConfig.layout === 'support',
       needPremium: pathname.startsWith('/premium'),
       isPremiumRoute: isPremiumRoomRoute(pathname),
       routeConfig,
+      isNoChromeRoute,
     };
   }, [pathname, user]);
 }
@@ -271,17 +250,17 @@ function useRouteAccessCheck(pathname: string, role?: string | null) {
   useEffect(() => {
     const config = getRouteConfig(pathname);
     if (!config.requiresAuth) return;
-
     if (!role) {
       router.replace('/login');
       return;
     }
-    if (config.allowedRoles && role && !config.allowedRoles.includes(role)) {
+    if (config.allowedRoles && !config.allowedRoles.includes(role)) {
       router.replace('/restricted');
     }
   }, [pathname, role, router]);
 }
 
+// ---------- Inner app ----------
 function InnerApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const pathname = router.pathname;
@@ -296,50 +275,49 @@ function InnerApp({ Component, pageProps }: AppProps) {
 
   // route analytics (stub)
   useEffect(() => {
-    const logRoute = (url: string) => { if (!url) return; };
-    logRoute(router.asPath);
-    const handleRouteChange = (url: string) => logRoute(url);
-    router.events.on('routeChangeComplete', handleRouteChange);
-    return () => router.events.off('routeChangeComplete', handleRouteChange);
+    const log = (url: string) => {};
+    log(router.asPath);
+    router.events.on('routeChangeComplete', log);
+    return () => router.events.off('routeChangeComplete', log);
   }, [router]);
 
-  // user / tier
   const { user, role, isTeacherApproved } = useUserContext() as {
     user: SupabaseUser | null;
     role?: string | null;
     isTeacherApproved?: boolean | null;
   };
+
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('free');
 
+  // tier detect
   useEffect(() => {
     const metadata = (user?.user_metadata ?? {}) as { tier?: SubscriptionTier | null };
     const appMeta = (user?.app_metadata ?? {}) as { tier?: SubscriptionTier | null };
-    const nextTier = metadata.tier ?? appMeta.tier ?? 'free';
-    setSubscriptionTier(nextTier);
+    setSubscriptionTier(metadata.tier ?? appMeta.tier ?? 'free');
   }, [user]);
 
   useEffect(() => {
-    const handleTierUpdated = (event: Event) => {
+    const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ tier?: SubscriptionTier }>).detail;
       if (detail?.tier) setSubscriptionTier(detail.tier);
     };
-    window.addEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
-    return () =>
-      window.removeEventListener('subscription:tier-updated', handleTierUpdated as EventListener);
+    window.addEventListener('subscription:tier-updated', handler);
+    return () => window.removeEventListener('subscription:tier-updated', handler);
   }, []);
 
-  // route configuration
+  // route config
   const routeConfiguration = useRouteConfiguration(pathname);
   const forceLayoutOnAuthPage = routeConfiguration.isAuthPage && !!user;
 
-  // access checks
+  // access guard
   useRouteAccessCheck(pathname, role);
 
   // teacher redirect
   useEffect(() => {
     if (!role) return;
     if (role === 'teacher') {
-      const onTeacherArea = pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
+      const onTeacherArea =
+        pathname.startsWith('/teacher') || routeConfiguration.isAuthPage;
       if (!onTeacherArea) router.replace('/teacher');
     }
   }, [role, pathname, routeConfiguration.isAuthPage, router]);
@@ -347,11 +325,11 @@ function InnerApp({ Component, pageProps }: AppProps) {
   // idle timeout
   const idleMinutes = useMemo(() => {
     try {
-      const minutes =
+      const val =
         env?.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
         process.env.NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES ??
         '30';
-      return Number(minutes) || 30;
+      return Number(val) || 30;
     } catch {
       return 30;
     }
@@ -359,18 +337,14 @@ function InnerApp({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     if (IS_CI) return;
-    if (typeof initIdleTimeout !== 'function') return;
-    try {
-      const cleanup = initIdleTimeout(idleMinutes);
-      return cleanup;
-    } catch {
-      // noop
-    }
+    const cleanup = initIdleTimeout(idleMinutes);
+    return cleanup;
   }, [idleMinutes]);
 
   const { isChecking } = useRouteGuard();
   if (isChecking) return <GuardSkeleton />;
 
+  // base page
   const basePage =
     routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
       <PremiumThemeProvider>
@@ -380,11 +354,22 @@ function InnerApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} key={router.asPath} />
     );
 
+  // ⭐ Decide when to show breadcrumb bar
+  const showBreadcrumbs =
+    !routeConfiguration.isAuthPage &&
+    !routeConfiguration.isProctoringRoute &&
+    !routeConfiguration.isPremiumRoute &&
+    !isMockTestsFlowRoute(pathname) &&
+    !pathname.includes('/run') &&
+    !pathname.includes('/review') &&
+    !routeConfiguration.isNoChromeRoute;
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
         <div
-          className={`${poppins.className} ${slab.className} min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}
+          className={`${poppins.className} ${slab.className}
+          min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}
         >
           <AnimationProvider>
             <AppLayoutManager
@@ -401,14 +386,18 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isReportsRoute={routeConfiguration.isReportsRoute}
               isMarketingRoute={routeConfiguration.isMarketingRoute}
               subscriptionTier={subscriptionTier}
-              // isRouteLoading: route loading flag agar tum future mein add karna chaho
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
+
+              // ⭐ SEND TO LAYOUT MANAGER
+              showBreadcrumbs={showBreadcrumbs}
             >
-              {router.pathname === '/pricing' || router.pathname === '/pricing/overview' ? (
+              {(router.pathname === '/pricing' ||
+                router.pathname === '/pricing/overview') && (
                 <PricingReasonBanner />
-              ) : null}
+              )}
+
               {basePage}
             </AppLayoutManager>
           </AnimationProvider>
@@ -418,6 +407,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
   );
 }
 
+// ---------- outer wrapper ----------
 export default function App(props: AppProps) {
   return (
     <LocaleProvider initialLocale="en">

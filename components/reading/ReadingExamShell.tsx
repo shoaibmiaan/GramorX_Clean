@@ -27,6 +27,12 @@ import {
 import { ExamFooter } from '@/components/exam/ExamFooter';
 import { Icon } from '@/components/design-system/Icon';
 
+// NEW STRICT CBE MODALS
+import { ExamConfirmPopup } from '@/components/exam/ExamConfirmPopup';
+import { ExamStrictModePopup } from '@/components/exam/ExamStrictModePopup';
+import { ExamExitPopup } from '@/components/exam/ExamExitPopup';
+import { ExamTimeWarningPopup } from '@/components/exam/ExamTimeWarningPopup';
+
 type Props = {
   test: ReadingTest;
   passages: ReadingPassage[];
@@ -46,6 +52,30 @@ type Theme = 'light' | 'dark' | 'system';
 const THEME_KEY = 'rx-reading-theme';
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
+
+// Split layout support (draggable)
+const SPLIT_KEY = 'rx-reading-split-step';
+
+// 7 steps from "passage wide" to "questions wide"
+const SPLIT_LAYOUT_CLASSES = [
+  'lg:grid-cols-[minmax(0,1.7fr)_10px_minmax(0,1fr)]',
+  'lg:grid-cols-[minmax(0,1.5fr)_10px_minmax(0,1fr)]',
+  'lg:grid-cols-[minmax(0,1.3fr)_10px_minmax(0,1fr)]',
+  'lg:grid-cols-[minmax(0,1.15fr)_10px_minmax(0,1.15fr)]',
+  'lg:grid-cols-[minmax(0,1.1fr)_10px_minmax(0,1.3fr)]',
+  'lg:grid-cols-[minmax(0,1.0fr)_10px_minmax(0,1.5fr)]',
+  'lg:grid-cols-[minmax(0,1.0fr)_10px_minmax(0,1.7fr)]',
+] as const;
+
+const splitStepFromRatio = (ratio: number): number => {
+  const steps = SPLIT_LAYOUT_CLASSES.length;
+  const min = 0.3;
+  const max = 0.7;
+  const clamped = Math.min(max, Math.max(min, ratio));
+  const t = (clamped - min) / (max - min);
+  const raw = Math.round(t * (steps - 1));
+  return Math.min(steps - 1, Math.max(0, raw));
+};
 
 const isAnswered = (value: AnswerValue) => {
   if (!value) return false;
@@ -71,7 +101,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [theme, setTheme] = React.useState<Theme>('system');
   const [systemPrefersDark, setSystemPrefersDark] = React.useState(false);
 
-  // Load saved theme
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
@@ -80,35 +109,23 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   }, []);
 
-  // Track system preference for "system" mode
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (event: MediaQueryListEvent) => {
       setSystemPrefersDark(event.matches);
     };
-
     setSystemPrefersDark(mq.matches);
     mq.addEventListener('change', handler);
-
-    return () => {
-      mq.removeEventListener('change', handler);
-    };
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Apply theme class on <html>
   React.useEffect(() => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return;
-    }
-
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
-
     const effectiveDark =
       theme === 'dark' || (theme === 'system' && systemPrefersDark);
-
     root.classList.add(effectiveDark ? 'dark' : 'light');
     window.localStorage.setItem(THEME_KEY, theme);
   }, [theme, systemPrefersDark]);
@@ -131,9 +148,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   }
 
   // ===== CORE STATE =====
-  const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>(
-    {},
-  );
+  const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>({});
   const [flags, setFlags] = React.useState<Record<string, boolean>>({});
 
   const [statusFilter, setStatusFilter] =
@@ -148,7 +163,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [focusMode, setFocusMode] = React.useState(false);
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
 
-  // per-passage highlights
   const [highlightsByPassage, setHighlightsByPassage] = React.useState<
     Record<string, string[]>
   >({});
@@ -158,8 +172,95 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const questionRefs =
     React.useRef<Record<string, HTMLDivElement | null>>({});
 
-  const startTimeRef = React.useRef<number>(Date.now());
+  const startTimeRef = React.useRef<number | null>(null);
   const submitting = React.useRef(false);
+
+  // strict CBE modals
+  const [showSubmitConfirm, setShowSubmitConfirm] = React.useState(false);
+  const [showExitPopup, setShowExitPopup] = React.useState(false);
+  const [showTimeWarning, setShowTimeWarning] = React.useState(false);
+  const [timeWarningShown, setTimeWarningShown] = React.useState(false);
+
+  // timer tracking for warning popup (does NOT control TimerProgress)
+  // @ts-expect-error reading type shape
+  const durationSeconds = (test.durationSeconds ?? 3600) as number;
+  const [remainingSeconds, setRemainingSeconds] =
+    React.useState<number>(durationSeconds);
+
+  // ===== SPLIT LAYOUT STATE (DRAGGABLE) =====
+  const [splitStep, setSplitStep] = React.useState<number>(3); // 0..6, 3 ≈ balanced
+  const layoutContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const splitDragActiveRef = React.useRef(false);
+  const splitBoundsRef = React.useRef<{ left: number; width: number } | null>(
+    null,
+  );
+
+  // hydrate saved split step
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(SPLIT_KEY);
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed)) return;
+    if (parsed >= 0 && parsed < SPLIT_LAYOUT_CLASSES.length) {
+      setSplitStep(parsed);
+    }
+  }, []);
+
+  const handleSplitMouseMove = (event: MouseEvent) => {
+    if (!splitDragActiveRef.current) return;
+    const bounds = splitBoundsRef.current;
+    if (!bounds) return;
+
+    const relativeX = event.clientX - bounds.left;
+    if (relativeX <= 0 || relativeX >= bounds.width) return;
+
+    const ratio = relativeX / bounds.width; // 0..1
+    const step = splitStepFromRatio(ratio);
+
+    setSplitStep((prev) => {
+      if (prev === step) return prev;
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SPLIT_KEY, String(step));
+      }
+      return step;
+    });
+  };
+
+  const handleSplitMouseUp = () => {
+    if (!splitDragActiveRef.current) return;
+    splitDragActiveRef.current = false;
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', handleSplitMouseMove);
+      window.removeEventListener('mouseup', handleSplitMouseUp);
+    }
+  };
+
+  const handleSplitMouseDown = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    if (typeof window === 'undefined') return;
+    if (!layoutContainerRef.current) return;
+
+    const rect = layoutContainerRef.current.getBoundingClientRect();
+    splitBoundsRef.current = { left: rect.left, width: rect.width };
+    splitDragActiveRef.current = true;
+
+    window.addEventListener('mousemove', handleSplitMouseMove);
+    window.addEventListener('mouseup', handleSplitMouseUp);
+
+    event.preventDefault();
+  };
+
+  React.useEffect(() => {
+    // safety cleanup on unmount
+    return () => {
+      if (typeof window === 'undefined') return;
+      window.removeEventListener('mousemove', handleSplitMouseMove);
+      window.removeEventListener('mouseup', handleSplitMouseUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ===== HYDRATE PREFS =====
   React.useEffect(() => {
@@ -192,6 +293,27 @@ const ReadingExamShellInner: React.FC<Props> = ({
       window.localStorage.setItem(ZOOM_KEY, level);
     }
   };
+
+  // internal countdown for time warning popup
+  React.useEffect(() => {
+    if (readOnly || !started) return;
+    if (typeof window === 'undefined') return;
+
+    const interval = window.setInterval(() => {
+      setRemainingSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [started, readOnly]);
+
+  React.useEffect(() => {
+    if (readOnly || !started || timeWarningShown) return;
+    const minutesLeft = Math.floor(remainingSeconds / 60);
+    if (minutesLeft <= 5) {
+      setShowTimeWarning(true);
+      setTimeWarningShown(true);
+    }
+  }, [remainingSeconds, readOnly, started, timeWarningShown]);
 
   // ===== PASSAGE / QUESTION MAPS =====
   const passageIndexById = React.useMemo(() => {
@@ -226,7 +348,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
     [flags],
   );
 
-  // ===== FILTERED QUESTIONS (current passage + filters) =====
+  // ===== FILTERED QUESTIONS =====
   const visibleQuestions = React.useMemo(() => {
     return questions.filter((q) => {
       // only show current passage
@@ -238,7 +360,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
       const type = (q.questionTypeId ?? 'all') as FilterType;
       if (typeFilter !== 'all' && type !== typeFilter) return false;
 
-      // status filter
       const val = answers[q.id];
       const isA = isAnswered(val);
       const isF = flags[q.id] ?? false;
@@ -257,7 +378,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
     typeFilter,
   ]);
 
-  // ===== JUMP QUESTION =====
+  // ===== JUMP / NAV =====
   const handleJump = (id: string) => {
     setCurrentQuestionId(id);
     const q = questionsById[id];
@@ -276,17 +397,16 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   };
 
-  // ===== PASSAGE NAV =====
   const goNextPassage = () => {
     setCurrentPassageIdx((idx) =>
       idx + 1 < passages.length ? idx + 1 : idx,
     );
   };
+
   const goPrevPassage = () => {
     setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
   };
 
-  // ===== ANSWERS / FLAGS =====
   const handleAnswerChange = (questionId: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
@@ -295,7 +415,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
     setFlags((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
-  // ===== HIGHLIGHTS (per passage) =====
+  // ===== HIGHLIGHTS =====
   const currentHighlights =
     highlightsByPassage[currentPassage.id] ?? [];
 
@@ -318,41 +438,20 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }));
   };
 
-  // ===== SUBMIT =====
-  const handleSubmit = async () => {
+  // ===== SUBMIT (CORE) =====
+  const submitToServer = async () => {
     if (readOnly) return;
     if (submitting.current) return;
     submitting.current = true;
 
     try {
-      if (answeredCount === 0) {
-        toast({
-          variant: 'destructive',
-          title: 'Cannot submit yet',
-          description: 'Answer at least one question before submitting.',
-        });
-        submitting.current = false;
-        return;
-      }
-
-      if (unansweredCount > 0 && typeof window !== 'undefined') {
-        const ok = window.confirm(
-          `You still have ${unansweredCount} unanswered question${
-            unansweredCount > 1 ? 's' : ''
-          }. Submit anyway?`,
-        );
-        if (!ok) {
-          submitting.current = false;
-          return;
-        }
-      }
-
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
       if (userError) {
+        // eslint-disable-next-line no-console
         console.error('Failed to fetch user', userError);
       }
       if (!user) {
@@ -365,7 +464,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
         return;
       }
 
-      // basic correctness calc (you can swap with smarter marking later)
       let correct = 0;
       for (const q of questions) {
         const userA = answers[q.id];
@@ -384,19 +482,16 @@ const ReadingExamShellInner: React.FC<Props> = ({
       }
 
       const band = readingBandFromRaw(correct, total);
-      const durationSec = Math.floor(
-        (Date.now() - startTimeRef.current) / 1000,
-      );
+      const startedAt = startTimeRef.current ?? Date.now();
+      const durationSec = Math.floor((Date.now() - startedAt) / 1000);
 
-      // 🔥 Key fix: mark attempt as "completed" so it doesn't violate
-      // uq_reading_attempt_in_progress (which usually enforces only ONE in-progress row)
       const { data: attemptRow, error: attemptError } = await supabase
         .from('reading_attempts')
         .insert({
           user_id: user.id,
           // @ts-expect-error reading type
           test_id: test.id,
-          status: 'submitted', // <— important
+          status: 'submitted',
           duration_seconds: durationSec,
           raw_score: correct,
           band_score: band,
@@ -411,11 +506,10 @@ const ReadingExamShellInner: React.FC<Props> = ({
         .maybeSingle();
 
       if (attemptError || !attemptRow) {
+        // eslint-disable-next-line no-console
         console.error('Failed to insert reading_attempt', attemptError);
-
         const message = attemptError?.message ?? '';
 
-        // nicer message for the unique-constraint error
         if (message.includes('uq_reading_attempt_in_progress')) {
           toast({
             variant: 'destructive',
@@ -442,8 +536,8 @@ const ReadingExamShellInner: React.FC<Props> = ({
         window.location.href = `/mock/reading/result/${attemptId}`;
       }
     } catch (err: any) {
+      // eslint-disable-next-line no-console
       console.error('Unexpected error during reading submit', err);
-
       toast({
         variant: 'destructive',
         title: 'Unexpected error',
@@ -454,6 +548,27 @@ const ReadingExamShellInner: React.FC<Props> = ({
     } finally {
       submitting.current = false;
     }
+  };
+
+  // ===== SUBMIT BUTTON HANDLER =====
+  const handleSubmitClick = () => {
+    if (readOnly) return;
+
+    if (answeredCount === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot submit yet',
+        description: 'Answer at least one question before submitting.',
+      });
+      return;
+    }
+
+    if (unansweredCount > 0) {
+      setShowSubmitConfirm(true);
+      return;
+    }
+
+    void submitToServer();
   };
 
   // ===== NAV helpers =====
@@ -470,9 +585,18 @@ const ReadingExamShellInner: React.FC<Props> = ({
     handleJump(questions[currentIndex + 1].id);
   };
 
-  // ===== INSTRUCTIONS MODAL =====
-  const showOverlay = !started && !readOnly;
+  const handleStartTest = () => {
+    startTimeRef.current = Date.now();
+    setStarted(true);
+  };
 
+  const handleExit = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/mock/reading';
+    }
+  };
+
+  // ===== LABELS =====
   const examTypeLabel =
     // @ts-expect-error reading type
     test.examType === 'gt'
@@ -486,9 +610,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
     { label: test.title, active: true },
   ];
 
-  const durationMinutes =
-    // @ts-expect-error reading type
-    Math.round((test.durationSeconds ?? 3600) / 60);
+  const durationMinutes = Math.round(durationSeconds / 60);
 
   return (
     <div
@@ -543,7 +665,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
               <div className="flex flex-col items-end gap-2">
                 {/* Theme Toggle + Zoom + Focus */}
                 <div className="flex items-center gap-1">
-                  {/* Theme Toggle Button */}
                   <Button
                     size="xs"
                     variant="ghost"
@@ -556,7 +677,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
                     />
                   </Button>
 
-                  {/* Zoom + Focus */}
                   <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
                     <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Zoom
@@ -613,12 +733,20 @@ const ReadingExamShellInner: React.FC<Props> = ({
               </div>
             }
             onExitHref="/mock/reading"
+            onExitClick={() => setShowExitPopup(true)}
           />
         </div>
       </div>
 
-      {/* DESKTOP LAYOUT */}
-      <div className="hidden lg:flex gap-4 h-[calc(100vh-190px)] px-4 py-3 overflow-hidden">
+      {/* DESKTOP LAYOUT WITH DRAGGABLE SPLIT */}
+      <div
+        ref={layoutContainerRef}
+        className={cn(
+          'hidden lg:grid gap-4 h-[calc(100vh-190px)] px-4 py-3 overflow-hidden',
+          SPLIT_LAYOUT_CLASSES[splitStep],
+        )}
+      >
+        {/* Passage side */}
         <ReadingPassagePane
           passage={currentPassage}
           totalPassages={passages.length}
@@ -635,18 +763,37 @@ const ReadingExamShellInner: React.FC<Props> = ({
           zoom={zoom}
         />
 
-        <div className="w-[52%] bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
-          <QuestionNav
-            questions={questions}
-            answers={answers}
-            flags={flags}
-            currentQuestionId={currentQuestionId}
-            onJump={handleJump}
-            statusFilter={statusFilter}
-            typeFilter={typeFilter}
-            setStatusFilter={setStatusFilter}
-            setTypeFilter={setTypeFilter}
-          />
+        {/* Drag handle */}
+        <div
+          className="hidden lg:flex items-center justify-center cursor-col-resize select-none"
+          onMouseDown={handleSplitMouseDown}
+          aria-hidden="true"
+        >
+          <div className="relative h-[80%] w-px bg-border/60">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/70 bg-background/90 px-1.5 py-2 shadow-sm flex items-center justify-center">
+              <Icon
+                name="grip-vertical"
+                className="h-3 w-3 text-muted-foreground"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Questions side */}
+        <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
+          <div id="reading-question-nav">
+            <QuestionNav
+              questions={questions}
+              answers={answers}
+              flags={flags}
+              currentQuestionId={currentQuestionId}
+              onJump={handleJump}
+              statusFilter={statusFilter}
+              typeFilter={typeFilter}
+              setStatusFilter={setStatusFilter}
+              setTypeFilter={setTypeFilter}
+            />
+          </div>
 
           <div
             className={cn(
@@ -715,7 +862,10 @@ const ReadingExamShellInner: React.FC<Props> = ({
           zoom={zoom}
         />
 
-        <Card className="p-3 border-border/70 bg-card/95 shadow-sm">
+        <Card
+          className="p-3 border-border/70 bg-card/95 shadow-sm"
+          id="reading-question-nav"
+        >
           <QuestionNav
             questions={questions}
             answers={answers}
@@ -781,80 +931,56 @@ const ReadingExamShellInner: React.FC<Props> = ({
         currentQuestion={currentIndex + 1}
         totalQuestions={total}
         primaryLabel={readOnly ? 'Review only' : 'Submit attempt'}
-        onPrimaryClick={readOnly ? undefined : handleSubmit}
+        onPrimaryClick={readOnly ? undefined : handleSubmitClick}
         primaryDisabled={readOnly}
         secondaryLabel={currentIndex > 0 ? 'Previous question' : undefined}
         onSecondaryClick={currentIndex > 0 ? goPrevQuestion : undefined}
       />
 
-      {/* INSTRUCTIONS OVERLAY */}
-      {showOverlay && (
-        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center px-4">
-          <Card
-            className={cn(
-              'w-full max-w-lg p-6 space-y-4 shadow-2xl border border-border/70',
-              isDark
-                ? 'bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50'
-                : 'bg-white text-gray-900',
-            )}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                  <Icon
-                    name="file-text"
-                    className="h-5 w-5 text-primary"
-                  />
-                  IELTS Reading – Computer Based
-                </h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Treat this like a real exam. No random pausing, no casual
-                  scrolling.
-                </p>
-              </div>
-            </div>
-
-            <p
-              className={cn(
-                'text-sm',
-                isDark ? 'text-slate-200' : 'text-gray-700',
-              )}
-            >
-              You have <strong>60 minutes</strong> to answer{' '}
-              <strong>{total}</strong> questions based on{' '}
-              <strong>{passages.length}</strong> passages.
-            </p>
-
-            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-              <li>• Use the flags to mark questions you want to revisit.</li>
-              <li>• Use the passage nav to move between the 3 passages.</li>
-              <li>
-                • You can change answers any time before you submit the test.
-              </li>
-            </ul>
-
-            <div className="flex justify-between items-center pt-2 text-[11px] text-slate-500 dark:text-gray-400">
-              <span className="flex items-center gap-1">
-                <Icon name="target" className="h-3.5 w-3.5" />
-                Aim to <strong className="ml-1">reach the last question</strong>
-                , then refine.
-              </span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={toggleFocus}>
-                  {focusMode ? 'Keep focus mode' : 'Turn on focus mode'}
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setStarted(true)}
-                >
-                  Start test
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
+      {/* STRICT MODE POPUP */}
+      {!readOnly && (
+        <ExamStrictModePopup
+          open={!started}
+          onAcknowledge={handleStartTest}
+        />
       )}
+
+      {/* SUBMIT CONFIRM POPUP */}
+      <ExamConfirmPopup
+        open={showSubmitConfirm}
+        unanswered={unansweredCount}
+        onCancel={() => setShowSubmitConfirm(false)}
+        onConfirm={() => {
+          setShowSubmitConfirm(false);
+          void submitToServer();
+        }}
+      />
+
+      {/* EXIT TEST POPUP */}
+      <ExamExitPopup
+        open={showExitPopup}
+        unanswered={unansweredCount}
+        onCancel={() => setShowExitPopup(false)}
+        onExit={handleExit}
+      />
+
+      {/* TIME WARNING POPUP */}
+      <ExamTimeWarningPopup
+        open={showTimeWarning}
+        remainingMinutes={Math.max(
+          0,
+          Math.floor(remainingSeconds / 60),
+        )}
+        onClose={() => setShowTimeWarning(false)}
+        onJumpToNav={() => {
+          if (typeof document !== 'undefined') {
+            const el = document.getElementById('reading-question-nav');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }}
+      />
     </div>
   );
 };

@@ -45,7 +45,7 @@ export function ProfileLayout({ children }: ProfileLayoutProps) {
           </div>
           <nav className="space-y-1">
             <NavItem href="/profile" label="Overview" active={isActive('/profile')} />
-            <NavItem href="/profile/account" label="Account" active={isActive('/profile/account')} />
+            <NavItem href="/account" label="Account" active={isActive('/profile/account')} />
             <NavItem href="/profile/security" label="Security" active={isActive('/profile/security')} />
             <NavItem href="/profile/notifications" label="Notifications" active={isActive('/profile/notifications')} />
             <NavItem href="/profile/preferences" label="Preferences" active={isActive('/profile/preferences')} />

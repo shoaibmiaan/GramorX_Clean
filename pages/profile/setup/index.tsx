@@ -1,15 +1,15 @@
-'use client';
+// pages/profile/account/referrals.tsx
+import type { GetServerSideProps, NextPage } from 'next';
 
-import React from 'react';
+const ProfileAccountReferralsPage: NextPage = () => null;
 
-import { ProfileSetupLayout } from '@/features/profile/setup/ProfileSetupLayout';
-import { ProfileSetupProvider } from '@/features/profile/setup/useProfileSetup';
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    redirect: {
+      destination: '/profile/account/referrals',
+      permanent: false,
+    },
+  };
+};
 
-export default function ProfileSetupPage() {
-  return (
-    <ProfileSetupProvider>
-      <ProfileSetupLayout />
-    </ProfileSetupProvider>
-  );
-}
-
+export default ProfileAccountReferralsPage;
