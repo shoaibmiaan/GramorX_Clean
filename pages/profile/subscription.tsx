@@ -1,7 +1,8 @@
-// pages/profile/subscription.tsx
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
@@ -13,20 +14,46 @@ import { GlobalPlanGuard } from '@/components/GlobalPlanGuard';
 import { useLocale } from '@/lib/locale';
 import type { PlanId } from '@/types/pricing';
 
-type FieldStatus = 'active' | 'inactive' | 'expired' | 'canceled';
+type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'canceled'
+  | 'incomplete'
+  | 'past_due'
+  | 'unpaid'
+  | 'paused'
+  | 'inactive'
+  | 'expired';
 
-const PLAN_DISPLAY: Record<string, { name: string; features: string[]; price?: string }> = {
+type SubscriptionPlanKey = 'free' | 'starter' | 'booster' | 'master';
+
+type PlanDisplay = {
+  name: string;
+  features: string[];
+  price?: string;
+};
+
+const PLAN_DISPLAY: Record<SubscriptionPlanKey, PlanDisplay> = {
   free: {
     name: 'Free',
-    features: ['Basic access', 'Limited daily quota', 'Community support'],
-    price: '$0/month',
+    features: ['Basic access', 'Limited mocks', 'Community support'],
+    price: '$0',
   },
-  premium: { // Assuming 'premium' as a tier; adjust based on your enum
-    name: 'Premium',
-    features: ['Unlimited access', 'Advanced analytics', 'Priority support', 'Offline mode'],
+  starter: {
+    name: 'Starter',
+    features: ['More mocks', 'Basic analytics', 'Email reminders'],
+    price: '$5.99/month',
+  },
+  booster: {
+    name: 'Booster',
+    features: ['Full mocks', 'Band analytics', 'AI feedback'],
     price: '$9.99/month',
   },
-  // Add more tiers as needed, e.g., pro: {...}
+  master: {
+    name: 'Master',
+    features: ['Everything in Booster', 'Teacher tools', 'Priority support'],
+    price: '$14.99/month',
+  },
 };
 
 export default function SubscriptionPage() {
@@ -56,8 +83,12 @@ export default function SubscriptionPage() {
           return;
         }
         console.error('Failed to load subscription info', err);
-        setError(t('subscription.load.error', 'Unable to load subscription details.'));
-        toastError(t('subscription.load.error', 'Unable to load subscription details.'));
+        const message = t(
+          'subscription.load.error',
+          'Unable to load subscription details.',
+        );
+        setError(message);
+        toastError(message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -68,15 +99,29 @@ export default function SubscriptionPage() {
   }, [router, t, toastError]);
 
   const currentPlan: PlanId = profile?.tier ?? 'free';
-  const status: FieldStatus = profile?.subscription_status ?? 'inactive';
-  const expiresAt = profile?.subscription_expires_at ?? profile?.premium_until;
+  const planKey: SubscriptionPlanKey =
+    (currentPlan as SubscriptionPlanKey) ?? 'free';
+
+  const status: SubscriptionStatus =
+    (profile?.subscription_status as SubscriptionStatus) ?? 'inactive';
+
+  const expiresAt =
+    profile?.subscription_expires_at ?? profile?.premium_until ?? null;
+  const expiresAtLabel =
+    expiresAt && !Number.isNaN(new Date(expiresAt).getTime())
+      ? new Date(expiresAt).toLocaleDateString()
+      : null;
+
   const isPremium = currentPlan !== 'free' && status === 'active';
-  const isTrial = !!profile?.premium_until && new Date(profile.premium_until) > new Date();
-  const displayPlan = PLAN_DISPLAY[currentPlan] ?? PLAN_DISPLAY.free;
+  const isTrial =
+    !!profile?.premium_until &&
+    new Date(profile.premium_until) > new Date();
+
+  const displayPlan = PLAN_DISPLAY[planKey];
 
   if (loading) {
     return (
-      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <section className="py-24 bg-background text-foreground">
         <Container>
           <Card className="mx-auto max-w-xl rounded-ds-2xl p-6">
             {t('subscription.loading', 'Loading subscription…')}
@@ -88,7 +133,7 @@ export default function SubscriptionPage() {
 
   return (
     <GlobalPlanGuard min="free" userPlan={currentPlan}>
-      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <section className="py-24 bg-background text-foreground">
         <Container>
           <div className="mx-auto max-w-2xl space-y-6">
             {error && (
@@ -98,12 +143,16 @@ export default function SubscriptionPage() {
             )}
             <Card className="rounded-ds-2xl p-6">
               <div className="mb-6 flex items-center justify-between">
-                <h1 className="font-slab text-display">{t('subscription.title', 'Subscription')}</h1>
+                <h1 className="font-slab text-display">
+                  {t('subscription.title', 'Subscription')}
+                </h1>
               </div>
               <div className="space-y-6">
                 <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                  <div className="rounded-full bg-electricBlue/10 px-4 py-2 text-electricBlue">
-                    <span className="font-semibold">{displayPlan.name} Plan</span>
+                  <div className="rounded-full bg-primary/10 px-4 py-2 text-primary">
+                    <span className="font-semibold">
+                      {displayPlan.name} Plan
+                    </span>
                   </div>
                   {isTrial && (
                     <Alert variant="warning" className="w-full">
@@ -112,24 +161,37 @@ export default function SubscriptionPage() {
                       })}
                     </Alert>
                   )}
-                  <div className="text-2xl font-bold">{displayPlan.price}</div>
-                  <p className="text-small text-mutedText max-w-md">
+                  <div className="text-2xl font-bold">
+                    {displayPlan.price ?? t('subscription.price.free', 'Free')}
+                  </div>
+                  {expiresAtLabel && (
+                    <p className="text-caption text-muted-foreground">
+                      {t(
+                        'subscription.expires',
+                        'Access valid until {{date}}.',
+                        { date: expiresAtLabel },
+                      )}
+                    </p>
+                  )}
+                  <p className="text-small text-muted-foreground max-w-md">
                     {t(
                       'subscription.subtitle',
                       'Manage your plan, view billing, and upgrade for more features.',
                     )}
                   </p>
                 </div>
+
                 <ul className="space-y-2 text-small">
-                  {displayPlan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-electricBlue" />
+                  {displayPlan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-primary" />
                       {feature}
                     </li>
                   ))}
                 </ul>
+
                 <div className="flex flex-col gap-3">
-                  {status === 'active' ? (
+                  {isPremium ? (
                     <Button
                       variant="outline"
                       className="rounded-ds-xl"
@@ -146,14 +208,12 @@ export default function SubscriptionPage() {
                       {t('subscription.upgrade', 'Upgrade to Premium')}
                     </Button>
                   )}
+
                   {profile?.stripe_customer_id && status === 'active' && (
                     <Button
                       variant="ghost"
                       className="rounded-ds-xl"
-                      onClick={() => {
-                        // TODO: Create Stripe portal session via API route
-                        toastError(t('subscription.portal.coming', 'Portal link coming soon.'));
-                      }}
+                      onClick={() => router.push('/profile/profile/account/billing')}
                     >
                       {t('subscription.billing', 'View billing history')}
                     </Button>

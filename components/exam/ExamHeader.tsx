@@ -1,26 +1,19 @@
 // components/exam/ExamHeader.tsx
-import * as React from 'react';
-import Link from 'next/link';
+import * as React from "react";
+import Link from "next/link";
 
-import { Button } from '@/components/design-system/Button';
-import { Icon } from '@/components/design-system/Icon';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/design-system/Button";
+import { Icon } from "@/components/design-system/Icon";
+import { cn } from "@/lib/utils";
 
 export type ExamHeaderProps = {
-  /** e.g. "IELTS Reading Test" */
-  examLabel: string;
-  /** Main title – usually the test title */
-  title: string;
-  /** Optional smaller line under the title */
-  subtitle?: string;
-  /** Optional breadcrumbs strip above label (kept generic) */
-  breadcrumbs?: React.ReactNode;
-  /** Left meta block – e.g. "40 questions • 3 passages • 60 minutes" */
-  metaLeft?: React.ReactNode;
-  /** Right meta block – usually timer + band / mode chips */
-  metaRight?: React.ReactNode;
-  /** If provided, shows a small "Exit test" button on the right */
-  onExitHref?: string;
+  examLabel?: string; // e.g. "IELTS READING · ACADEMIC"
+  title: string;      // test name
+  subtitle?: string;  // short description
+  metaLeft?: React.ReactNode;   // stats row (questions, passages, minutes, flagged)
+  metaRight?: React.ReactNode;  // zoom / timer block
+  onExitHref?: string;          // where "Exit test" should go
+  onExitClick?: () => void;     // optional extra handler
   className?: string;
 };
 
@@ -28,68 +21,91 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
   examLabel,
   title,
   subtitle,
-  breadcrumbs,
   metaLeft,
   metaRight,
   onExitHref,
+  onExitClick,
   className,
 }) => {
+  const hasExit = onExitHref || onExitClick;
+
+  const exitButton = hasExit ? (
+    <Button
+      size="sm"
+      variant="outline"
+      className={cn(
+        "h-8 px-3 text-[11px] font-semibold rounded-full",
+        "border-destructive/40 text-destructive",
+        "hover:bg-destructive/5 hover:text-destructive"
+      )}
+      onClick={onExitClick}
+    >
+      <Icon name="log-out" className="mr-1.5 h-3.5 w-3.5" />
+      Exit test
+    </Button>
+  ) : null;
+
+  const exitWrapped =
+    onExitHref && onExitClick
+      ? (
+        <Link href={onExitHref} onClick={onExitClick}>
+          {exitButton}
+        </Link>
+      )
+      : onExitHref
+      ? (
+        <Link href={onExitHref}>
+          {exitButton}
+        </Link>
+      )
+      : exitButton;
+
   return (
     <header
       className={cn(
-        'w-full border-b border-border/60 bg-background/95',
-        'backdrop-blur supports-[backdrop-filter]:bg-background/80',
-        'shadow-sm',
-        className,
+        "px-3 py-3 sm:px-4 sm:py-3",
+        className
       )}
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3">
-        {breadcrumbs ? (
-          <div className="text-[11px] text-muted-foreground">{breadcrumbs}</div>
-        ) : null}
-
-        <div className="flex items-start justify-between gap-4">
-          {/* LEFT: exam label + title + subtitle + meta */}
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        {/* LEFT: label, title, subtitle, stats */}
+        <div className="flex-1 min-w-0">
+          {examLabel && (
+            <div className="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">
               {examLabel}
             </div>
+          )}
+          <h1 className="mt-0.5 text-xl sm:text-2xl font-semibold text-foreground truncate">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
 
-            <h1 className="mt-0.5 line-clamp-1 text-base font-semibold text-foreground">
-              {title}
-            </h1>
+          {metaLeft && (
+            <div className="mt-2">
+              {metaLeft}
+            </div>
+          )}
+        </div>
 
-            {subtitle ? (
-              <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                {subtitle}
-              </p>
-            ) : null}
+        {/* RIGHT: controls + timer + exit */}
+        <div className="mt-1 flex flex-col items-end gap-2 sm:mt-0 sm:ml-4">
+          {/* zoom / theme / timer etc. */}
+          {metaRight && (
+            <div className="flex flex-col items-end gap-2">
+              {metaRight}
+            </div>
+          )}
 
-            {metaLeft ? (
-              <div className="mt-2 text-[11px] text-muted-foreground">
-                {metaLeft}
-              </div>
-            ) : null}
-          </div>
-
-          {/* RIGHT: timer + actions */}
-          <div className="flex flex-col items-end gap-2">
-            {metaRight ? <div className="text-xs">{metaRight}</div> : null}
-
-            {onExitHref ? (
-              <Link href={onExitHref} className="inline-flex">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-3 text-[11px] font-medium"
-                >
-                  <Icon name="log-out" className="mr-1.5 h-3.5 w-3.5" />
-                  Exit test
-                </Button>
-              </Link>
-            ) : null}
-          </div>
+          {/* Exit test button pinned to top-right like IELTS CBE */}
+          {exitWrapped && (
+            <div className="flex items-center justify-end">
+              {exitWrapped}
+            </div>
+          )}
         </div>
       </div>
     </header>

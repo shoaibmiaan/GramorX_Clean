@@ -13,14 +13,17 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 
-import { ReadingFilterBar } from '@/components/reading/ReadingFilterBar';
 import { ReadingForecastPanel } from '@/components/reading/ReadingForecastPanel';
 import { AISummaryCard } from '@/components/reading/AISummaryCard';
 import { DailyChallengeBanner } from '@/components/reading/daily/DailyChallengeBanner';
 import { BandPredictorCard } from '@/components/reading/analytics/BandPredictorCard';
+
 import type { ReadingAttemptSummary } from '@/lib/reading/bandPredictor';
 import { computeDailyStreak } from '@/lib/reading/streak';
 
+// ------------------------------------------------------------------------------------
+// TYPES
+// ------------------------------------------------------------------------------------
 type ReadingMockListItem = {
   id: string;
   slug: string;
@@ -34,17 +37,36 @@ type ReadingMockListItem = {
   tags: string[];
 };
 
+type TestAttemptInfo = {
+  latestBandScore: number | null;
+  latestCreatedAt: string | null;
+};
+
+type ReadingStats = {
+  totalAttempts: number;
+  totalTestsAttempted: number;
+  bestBand: number | null;
+  avgBand: number | null;
+  lastAttemptAt: string | null;
+};
+
 type PageProps = {
   tests: ReadingMockListItem[];
   attemptSummaries: ReadingAttemptSummary[];
   streakCurrent: number;
+  stats: ReadingStats;
+  attemptMap: Record<string, TestAttemptInfo>;
   error?: string;
 };
+
+// ------------------------------------------------------------------------------------
 
 const ReadingMockIndexPage: NextPage<PageProps> = ({
   tests,
   attemptSummaries,
   streakCurrent,
+  stats,
+  attemptMap,
   error,
 }) => {
   if (error) {
@@ -53,301 +75,401 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
         <Head>
           <title>Error · Reading Mocks · GramorX</title>
         </Head>
-        <section className="py-10 bg-background">
-          <Container className="max-w-5xl space-y-6">
-            <Card className="p-6 text-center space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <Icon name="alert-triangle" className="h-6 w-6 text-destructive" />
-              </div>
-              <h2 className="text-lg font-semibold">Unable to load Reading mocks</h2>
-              <p className="text-sm text-muted-foreground">{error}</p>
-              <Button asChild>
-                <Link href="/">
-                  <Icon name="home" className="h-4 w-4 mr-2" />
-                  Go Home
-                </Link>
-              </Button>
-            </Card>
-          </Container>
-        </section>
+        <Container className="py-10 max-w-4xl">
+          <Card className="p-6 text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
+            </div>
+            <h2 className="text-lg font-semibold">Unable to load Reading mocks</h2>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button asChild>
+              <Link href="/">
+                <Icon name="Home" className="h-4 w-4 mr-2" />
+                Go Home
+              </Link>
+            </Button>
+          </Card>
+        </Container>
       </>
     );
   }
 
+  const hasAttempts = stats.totalAttempts > 0;
+
+  const helperText = hasAttempts
+    ? `You attempted ${stats.totalTestsAttempted} mock${
+        stats.totalTestsAttempted === 1 ? '' : 's'
+      }. Best band ${stats.bestBand ?? '--'}.`
+    : `Start your first Reading Mock to unlock analytics.`;
+
   return (
     <>
       <Head>
-        <title>Reading Mocks · GramorX</title>
+        <title>IELTS Reading Mock Command Center</title>
       </Head>
-      <Container className="py-8 space-y-8">
-        {/* Hero + right rail (design from file 2) */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Badge size="xs" variant="outline">
-                Reading Module
-              </Badge>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Strict IELTS Reading Mock Room
-              </h1>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Full-length, exam-style reading tests with proper band scoring, timing
-                and analytics. Three full passages, 40 questions, exam-room strict –
-                plus AI explanations, daily drills and analytics that actually move your band.
-              </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <Button asChild size="sm">
-                <Link href="/mock/reading/daily">
-                  <Icon name="play-circle" className="h-4 w-4 mr-1" />
-                  Start daily challenge
-                </Link>
-              </Button>
-              <Badge variant="subtle" className="rounded-ds-xl">
-                <Icon name="Sparkles" className="mr-1 h-3 w-3" />
-                AI feedback ready
-              </Badge>
-              <Badge variant="outline" className="rounded-ds-xl">
-                Tracks band from each attempt
-              </Badge>
-              <Badge variant="outline" className="rounded-ds-xl">
-                DB-backed · enterprise-safe
-              </Badge>
-            </div>
-          </div>
+      <main className="bg-lightBg dark:bg-dark/90">
+        {/* ------------------------------------------------------------- */}
+        {/* TOP HERO COMMAND BAR */}
+        {/* ------------------------------------------------------------- */}
+        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
+          <Container>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Left side */}
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <Icon name="BookOpen" size={14} />
+                  <span>Reading Mock Suite</span>
+                </div>
 
-          <div className="space-y-4">
-            <ReadingForecastPanel />
-            <AISummaryCard />
-          </div>
-        </div>
+                <h1 className="font-slab text-h2 leading-tight">
+                  Your Reading Mock Command Center.
+                </h1>
 
-        {/* Daily challenge strip (from file 1) */}
-        <DailyChallengeBanner streakCurrent={streakCurrent} />
+                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                  Three passages. Forty questions. Strict timing. Cambridge-style academic
+                  design with AI summaries, speed metrics, band prediction & attempt analytics.
+                </p>
 
-        {/* Filter bar (from file 2) */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold">Available Reading Mocks</h2>
-            <p className="text-xs text-muted-foreground">
-              Each card maps directly to a row in <code>reading_tests</code>.
-            </p>
-          </div>
-          <ReadingFilterBar className="justify-end" />
-        </div>
+                <div className="text-xs text-muted-foreground">{helperText}</div>
 
-        {/* Main grid: test cards + right-side power tools / band predictor */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1.4fr)]">
-          {/* Tests grid – design from file 2 */}
-          <div className="space-y-3">
-            {tests.length === 0 ? (
-              <Card className="p-6 text-center text-sm text-muted-foreground">
-                No reading mocks are active yet. Seed some rows into{' '}
-                <code>public.reading_tests</code> and refresh.
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
+                    <Link href="#tests-list">Start a Reading Mock</Link>
+                  </Button>
+                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
+                    <Link href="/mock/reading/daily">Daily Reading Challenge</Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right side quick stats */}
+              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
+                  Quick Stats
+                </p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Best</p>
+                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Avg</p>
+                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Attempts</p>
+                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
+                  </div>
+                </div>
               </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {tests.map((t) => (
-                  <Card key={t.id} className="flex flex-col p-4 justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="soft" className="uppercase rounded-ds text-[10px]">
-                          {t.examType === 'gt' ? 'General Training' : 'Academic'}
-                        </Badge>
-                        {t.difficulty && (
-                          <Badge variant="subtle" className="rounded-ds text-[10px]">
-                            {t.difficulty}
-                          </Badge>
-                        )}
-                      </div>
-                      <h3 className="text-sm font-semibold line-clamp-2">{t.title}</h3>
-                      {t.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-3">
-                          {t.description}
-                        </p>
-                      )}
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {t.totalQuestions} questions · {t.totalPassages} passages ·{' '}
-                        {Math.round(t.durationSeconds / 60)} minutes
-                      </p>
-                      {t.tags?.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {t.tags.slice(0, 4).map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="outline"
-                              className="rounded-ds text-[10px] px-1.5 py-0.5"
-                            >
-                              #{tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+            </div>
+          </Container>
+        </section>
 
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <Link href={`/mock/reading/${t.slug}`} className="flex-1">
-                        <Button
-                          variant="primary"
-                          className="w-full rounded-ds-xl text-xs font-semibold"
-                        >
-                          Enter full mock
-                        </Button>
-                      </Link>
-                      <Button
-                        asChild
-                        variant="secondary"
-                        size="icon"
-                        className="rounded-ds"
-                        aria-label="View attempts for this test"
+        {/* ------------------------------------------------------------- */}
+        {/* DAILY CHALLENGE */}
+        {/* ------------------------------------------------------------- */}
+        <section className="py-8">
+          <Container>
+            <DailyChallengeBanner streakCurrent={streakCurrent} />
+          </Container>
+        </section>
+
+        {/* ------------------------------------------------------------- */}
+        {/* GRID LAYOUT */}
+        {/* ------------------------------------------------------------- */}
+        <section className="pb-20">
+          <Container>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
+              {/* ------------------ LEFT: MOCK LIST ------------------ */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-slab text-xl">Reading Mock Library</h2>
+                    <p className="text-xs text-muted-foreground">
+                      All full-length Reading tests available.
+                    </p>
+                  </div>
+                  {/* filter intentionally removed */}
+                </div>
+
+                <div id="tests-list" className="grid gap-5 md:grid-cols-2">
+                  {tests.map((t) => {
+                    const attempt = attemptMap[t.slug];
+
+                    return (
+                      <Card
+                        key={t.id}
+                        className="p-4 rounded-ds-2xl bg-card/70 border border-border/60 shadow-sm transition hover:shadow-lg hover:-translate-y-1"
                       >
-                        <Link
-                          href={`/mock/reading/history?test=${encodeURIComponent(t.slug)}`}
-                        >
-                          <Icon name="History" className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="neutral" size="xs">
+                              {t.examType === 'gt' ? 'General Training' : 'Academic'}
+                            </Badge>
 
-          {/* Right side: Band predictor + Power tools (from file 1) */}
-          <div className="space-y-3">
-            <BandPredictorCard attempts={attemptSummaries} />
+                            {t.difficulty && (
+                              <Badge variant="soft" size="xs">
+                                {t.difficulty}
+                              </Badge>
+                            )}
+                          </div>
 
-            <Card className="p-3 space-y-2 text-xs">
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                Power tools
-              </p>
-              <div className="space-y-1.5">
-                <Link
-                  href="/mock/reading/drill/question-type?type=TFNG"
-                  className="flex items-center justify-between rounded-md border px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                >
-                  <span>Question-type drills</span>
-                  <Icon name="target" className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href="/mock/reading/drill/passage?test=any&p=1"
-                  className="flex items-center justify-between rounded-md border px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                >
-                  <span>Single-passage practice</span>
-                  <Icon name="file-text" className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href="/mock/reading/drill/speed"
-                  className="flex items-center justify-between rounded-md border px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                >
-                  <span>Speed training modes</span>
-                  <Icon name="zap" className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href="/mock/reading/techniques"
-                  className="flex items-center justify-between rounded-md border px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                >
-                  <span>Techniques trainer</span>
-                  <Icon name="book-open" className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href="/mock/reading/analytics"
-                  className="flex items-center justify-between rounded-md border px-2 py-1.5 hover:bg-muted/60 transition-colors"
-                >
-                  <span>Analytics & weaknesses</span>
-                  <Icon name="activity" className="h-3.5 w-3.5" />
-                </Link>
+                          <h3 className="text-sm font-semibold leading-snug line-clamp-2">
+                            {t.title}
+                          </h3>
+
+                          {/* no description, no repeated timing line */}
+
+                          {!attempt ? (
+                            <Badge variant="outline" size="xs" className="rounded-ds-xl">
+                              <Icon name="EyeOff" className="h-3.5 w-3.5 mr-1" />
+                              Not attempted
+                            </Badge>
+                          ) : (
+                            <Badge variant="accent" size="xs" className="rounded-ds-xl">
+                              <Icon name="CheckCircle" className="h-3.5 w-3.5 mr-1" />
+                              Band {attempt.latestBandScore ?? '--'}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                          {!attempt ? (
+                            <Button
+                              asChild
+                              className="rounded-ds-xl text-xs font-semibold flex-1"
+                              variant="primary"
+                            >
+                              <Link href={`/mock/reading/${t.slug}`}>Start Mock</Link>
+                            </Button>
+                          ) : (
+                            <Button
+                              asChild
+                              className="rounded-ds-xl text-xs font-semibold flex-1"
+                              variant="primary"
+                            >
+                              <Link href={`/mock/reading/history?test=${t.slug}`}>
+                                View Attempts
+                              </Link>
+                            </Button>
+                          )}
+
+                          <Button
+                            asChild
+                            variant="secondary"
+                            size="icon"
+                            className="rounded-ds ml-2"
+                          >
+                            <Link href={`/mock/reading/history?test=${t.slug}`}>
+                              <Icon name="History" className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            </Card>
-          </div>
-        </div>
-      </Container>
+
+              {/* ------------------ RIGHT RAIL ------------------ */}
+              <div className="space-y-6">
+                <BandPredictorCard attempts={attemptSummaries} />
+
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
+                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
+                    Reading Metrics
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Info label="Mocks available" value={tests.length} />
+                    <Info label="Mocks attempted" value={stats.totalTestsAttempted} />
+                    <Info label="Best band" value={stats.bestBand ?? '--'} />
+                    <Info label="Avg band" value={stats.avgBand ?? '--'} />
+                  </div>
+
+                  {stats.lastAttemptAt && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Last attempt:{' '}
+                      {new Date(stats.lastAttemptAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </Card>
+
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
+                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
+                    Power Tools
+                  </p>
+
+                  <Tool href="/mock/reading/drill/question-type?type=TFNG" icon="Target">
+                    Question-type drills
+                  </Tool>
+                  <Tool href="/mock/reading/drill/passage?test=any&p=1" icon="FileText">
+                    Single-passage practice
+                  </Tool>
+                  <Tool href="/mock/reading/drill/speed" icon="Zap">
+                    Speed training
+                  </Tool>
+                  <Tool href="/mock/reading/techniques" icon="BookOpen">
+                    Techniques trainer
+                  </Tool>
+                  <Tool href="/mock/reading/analytics" icon="Activity">
+                    Analytics & Weaknesses
+                  </Tool>
+                </Card>
+
+                <ReadingForecastPanel />
+                <AISummaryCard />
+              </div>
+            </div>
+          </Container>
+        </section>
+      </main>
     </>
   );
 };
 
+/* Helper Components */
+const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex justify-between text-xs">
+    <span className="text-muted-foreground">{label}</span>
+    <span className="font-semibold">{value}</span>
+  </div>
+);
+
+const Tool = ({
+  href,
+  icon,
+  children,
+}: {
+  href: string;
+  icon: string;
+  children: React.ReactNode;
+}) => (
+  <Link
+    href={href}
+    className="flex justify-between items-center px-3 py-2 rounded-md border hover:bg-muted/70 transition-colors"
+  >
+    <span>{children}</span>
+    <Icon name={icon} className="h-4 w-4" />
+  </Link>
+);
+
+// ------------------------------------------------------------------------------------
+// SSR
+// ------------------------------------------------------------------------------------
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   try {
-    const supabase = getServerClient<Database>(ctx);
+    const supabase = getServerClient<Database>(ctx.req, ctx.res);
 
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError) {
-      // eslint-disable-next-line no-console
-      console.error('reading index auth error', authError);
+    if (!user) {
+      return {
+        redirect: {
+          destination: '/login?next=/mock/reading',
+          permanent: false,
+        },
+      };
     }
 
-    // Tests from reading_tests (schema from your latest dump)
-    const { data: testsRows, error: testsError } = await supabase
+    // Load tests
+    const { data: testsRows, error: testsErr } = await supabase
       .from('reading_tests')
       .select(
-        'id, slug, title, description, exam_type, difficulty, total_questions, total_passages, duration_seconds, tags, created_at',
+        'id, slug, title, description, exam_type, difficulty, total_questions, total_passages, duration_seconds, tags',
       )
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
-    if (testsError) {
-      throw new Error(`Failed to load tests: ${testsError.message}`);
-    }
+    if (testsErr) throw testsErr;
 
-    // Attempts for current user from reading_attempts
     let attemptSummaries: ReadingAttemptSummary[] = [];
+    let attemptMap: Record<string, TestAttemptInfo> = {};
     let streakCurrent = 0;
 
-    if (user) {
-      const { data: attemptsRows, error: attemptsError } = await supabase
-        .from('reading_attempts')
-        .select(
-          'id, test_id, raw_score, band_score, created_at, reading_tests(total_questions)',
-        )
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+    const stats: ReadingStats = {
+      totalAttempts: 0,
+      totalTestsAttempted: 0,
+      bestBand: null,
+      avgBand: null,
+      lastAttemptAt: null,
+    };
 
-      if (attemptsError) {
-        throw new Error(`Failed to load attempts: ${attemptsError.message}`);
-      }
+    // 🔑 Correct table: reading_attempts
+    const { data: attempts, error: attemptsErr } = await supabase
+      .from('reading_attempts')
+      .select('id, test_id, raw_score, band_score, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
 
-      const attempts =
-        (attemptsRows ?? []) as {
-          id: string;
-          test_id: string;
-          raw_score: number | null;
-          band_score: number | null;
-          created_at: string;
-          reading_tests: { total_questions: number | null } | null;
-        }[];
+    if (attemptsErr) throw attemptsErr;
 
-      attemptSummaries = attempts.map((a) => ({
-        rawScore: a.raw_score ?? 0,
-        totalQuestions: a.reading_tests?.total_questions ?? 40,
-        bandScore: a.band_score ?? null,
-        createdAt: a.created_at,
-      }));
+    stats.totalAttempts = attempts.length;
+    if (attempts.length > 0) stats.lastAttemptAt = attempts[0].created_at;
 
-      const { currentStreak } = computeDailyStreak(
-        attempts.map((a) => ({ date: a.created_at })),
-      );
-      streakCurrent = currentStreak;
+    attemptSummaries = attempts.map((a) => ({
+      rawScore: Number(a.raw_score ?? 0),
+      totalQuestions: 40,
+      bandScore: a.band_score != null ? Number(a.band_score) : null,
+      createdAt: a.created_at,
+    }));
+
+    const { currentStreak } = computeDailyStreak(
+      attempts.map((a) => ({ date: a.created_at })),
+    );
+    streakCurrent = currentStreak;
+
+    const bands = attempts
+      .map((a) => (a.band_score != null ? Number(a.band_score) : null))
+      .filter((v): v is number => typeof v === 'number');
+
+    if (bands.length > 0) {
+      stats.bestBand = Math.max(...bands);
+      const avg = bands.reduce((acc, v) => acc + v, 0) / bands.length;
+      stats.avgBand = Math.round((avg + Number.EPSILON) * 10) / 10;
     }
 
+    const mapByTestId: Record<string, TestAttemptInfo> = {};
+    for (const a of attempts) {
+      if (!mapByTestId[a.test_id]) {
+        mapByTestId[a.test_id] = {
+          latestBandScore: a.band_score != null ? Number(a.band_score) : null,
+          latestCreatedAt: a.created_at,
+        };
+      }
+    }
+
+    stats.totalTestsAttempted = Object.keys(mapByTestId).length;
+
+    const testSlugMap = Object.fromEntries(
+      (testsRows ?? []).map((t) => [t.id, t.slug]),
+    );
+
+    const finalMap: Record<string, TestAttemptInfo> = {};
+    Object.entries(mapByTestId).forEach(([testId, info]) => {
+      const slug = testSlugMap[testId];
+      if (slug) finalMap[slug] = info;
+    });
+
+    attemptMap = finalMap;
+
     const tests: ReadingMockListItem[] =
-      testsRows?.map((row) => ({
-        id: row.id,
-        slug: row.slug,
-        title: row.title,
-        description: row.description ?? null,
-        examType: row.exam_type,
-        difficulty: row.difficulty ?? null,
-        totalQuestions: row.total_questions ?? 40,
-        totalPassages: row.total_passages ?? 3,
-        durationSeconds: row.duration_seconds ?? 3600,
-        tags: row.tags ?? [],
+      testsRows?.map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        title: t.title,
+        description: t.description ?? null,
+        examType: t.exam_type,
+        difficulty: t.difficulty,
+        totalQuestions: t.total_questions ?? 40,
+        totalPassages: t.total_passages ?? 3,
+        durationSeconds: t.duration_seconds ?? 3600,
+        tags: t.tags ?? [],
       })) ?? [];
 
     return {
@@ -355,18 +477,25 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         tests,
         attemptSummaries,
         streakCurrent,
+        stats,
+        attemptMap,
       },
     };
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[reading index] error:', err);
+  } catch (err: any) {
     return {
       props: {
         tests: [],
         attemptSummaries: [],
         streakCurrent: 0,
-        error:
-          err instanceof Error ? err.message : 'Failed to load Reading mocks',
+        stats: {
+          totalAttempts: 0,
+          totalTestsAttempted: 0,
+          bestBand: null,
+          avgBand: null,
+          lastAttemptAt: null,
+        },
+        attemptMap: {},
+        error: err?.message ?? 'Failed to load Reading mocks.',
       },
     };
   }

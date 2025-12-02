@@ -1,151 +1,323 @@
-import { Badge } from '@/components/design-system/Badge';
-import { Button } from '@/components/design-system/Button';
+// pages/mock/speaking/index.tsx
+import * as React from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
+
+import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
-import { ModuleMockShell, ModuleMockShellSection } from '@/components/mock-tests/ModuleMockShell';
-import { speakingPracticeList } from '@/data/speaking';
+import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
+import { Icon } from '@/components/design-system/Icon';
+
+import { speakingPracticeList } from '@/data/speaking'; // :contentReference[oaicite:3]{index=3}
+
+type IconName = React.ComponentProps<typeof Icon>['name'];
 
 const speakingHighlights = [
   {
     title: 'Studio-grade recordings',
     description:
-      'Record within the browser, auto-save responses, and export audio to share with tutors or peers for additional feedback.',
+      'Record inside the browser. Auto-saves. Export audio for deeper review.',
+    icon: 'Mic',
   },
   {
-    title: 'Instant transcripts & analysis',
+    title: 'Instant transcript + analysis',
     description:
-      'AI transcription highlights fillers, pacing, and pronunciation so you can focus practice on what matters.',
+      'AI finds fillers, pauses, grammar slips, and pronunciation weaknesses.',
+    icon: 'Sparkles',
   },
   {
-    title: 'Follow-up coaching prompts',
+    title: 'Follow-up coaching',
     description:
-      'Guided reflections after each part help you write better answers for your next attempt.',
+      'AI-generated follow-ups + vocabulary for the next attempt.',
+    icon: 'Lightbulb',
   },
 ];
 
 const speakingFlow = [
   {
-    title: 'Part 1 · Interview warm-up',
-    description: 'Rapid-fire personal questions with tips to extend answers naturally.',
+    title: 'Part 1 · Warm-up',
+    description: 'Short personal questions. Improve answer length and fluency.',
+    icon: 'User',
   },
   {
-    title: 'Part 2 · Cue card',
-    description: 'Timed prep + speaking timer to mirror the real exam pressure.',
+    title: 'Part 2 · Cue Card',
+    description: '1-minute prep + 2-minute performance. Real exam pressure.',
+    icon: 'Clock',
   },
   {
     title: 'Part 3 · Discussion',
-    description: 'Higher-level follow-ups with AI-generated sample ideas and vocabulary.',
+    description:
+      'Higher-level questions with sample ideas, structures, and vocabulary.',
+    icon: 'MessageSquare',
   },
 ];
 
-const formatRange = (values: number[], unit: string) => {
-  if (!values.length) return '—';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  if (min === max) {
-    return `${min} ${unit}`;
-  }
-  return `${min}–${max} ${unit}`;
-};
-
-const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0);
-
-export default function SpeakingMockTestsPage() {
+const SpeakingMockIndexPage: React.FC = () => {
   const primaryScript = speakingPracticeList[0];
-  const durations = speakingPracticeList.map((item) => item.durationMinutes);
-  const prompts = speakingPracticeList.map((item) => item.totalPrompts);
-
   const totalScripts = speakingPracticeList.length;
-  const durationRange = formatRange(durations, 'mins');
-  const promptRange = formatRange(prompts, 'prompts');
-  const totalPrompts = prompts.length ? sum(prompts) : 0;
+  const totalPrompts = speakingPracticeList.reduce(
+    (sum, s) => sum + (s.totalPrompts ?? 0),
+    0,
+  );
 
   return (
-    <ModuleMockShell
-      title="Speaking Mock Tests"
-      description="Simulate the face-to-face interview with recording, timing, and feedback flows that mirror the IELTS speaking test."
-      actions={
-        primaryScript ? (
-          <>
-            <Button href={`/mock/speaking/${primaryScript.id}`} variant="primary" className="rounded-ds">
-              Start {primaryScript.title}
-            </Button>
-            <Button href="#speaking-scripts" variant="ghost" className="rounded-ds">
-              Compare scripts
-            </Button>
-          </>
-        ) : null
-      }
-      stats={[
-        {
-          label: 'Scripts ready',
-          value: `${totalScripts} full mocks`,
-          helper: `${totalPrompts.toLocaleString()} prompts across Parts 1–3`,
-        },
-        {
-          label: 'Duration range',
-          value: durationRange,
-          helper: 'Includes prep + speaking time',
-        },
-        {
-          label: 'Prompts per set',
-          value: promptRange,
-          helper: 'Warm-up, cue card, and follow-ups',
-        },
-      ]}
-    >
-      <ModuleMockShellSection className="grid gap-6 md:grid-cols-3">
-        {speakingHighlights.map((feature) => (
-          <Card key={feature.title} className="card-surface rounded-ds-2xl p-6 h-full">
-            <h2 className="text-h5 font-semibold text-foreground">{feature.title}</h2>
-            <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
-          </Card>
-        ))}
-      </ModuleMockShellSection>
+    <>
+      <Head>
+        <title>Speaking Mock Tests · GramorX</title>
+        <meta
+          name="description"
+          content="IELTS Speaking mocks with recording, transcripts, AI feedback, and realistic Part 1–3 flow."
+        />
+      </Head>
 
-      <ModuleMockShellSection id="speaking-scripts">
-        <h2 className="text-h3 font-semibold text-foreground">Select a speaking script</h2>
-        <p className="mt-2 text-muted-foreground max-w-2xl">
-          Each script includes complete timing, prompts, and follow-up questions. Add reflections after every part to accelerate improvement.
-        </p>
+      <main className="bg-lightBg dark:bg-dark/90">
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {speakingPracticeList.map((script) => (
-            <Card key={script.id} className="card-surface rounded-ds-2xl p-6 h-full">
-              <div className="flex h-full flex-col gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-h4 font-semibold text-foreground">{script.title}</h2>
-                    <Badge variant="info" size="sm">{script.totalPrompts} prompts</Badge>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{script.description}</p>
+        {/* ------------------------------------------------------------- */}
+        {/* HERO / COMMAND CENTER */}
+        {/* ------------------------------------------------------------- */}
+        <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
+          <Container>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+
+              {/* LEFT */}
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <Icon name="Mic" size={14} />
+                  <span>Speaking Mock Suite</span>
                 </div>
 
-                <div className="mt-auto">
-                  <Button href={`/mock/speaking/${script.id}`} variant="primary" className="rounded-ds w-full">
-                    Start speaking mock
+                <h1 className="font-slab text-h2 leading-tight">
+                  Full Speaking mocks with transcripts + AI feedback.
+                </h1>
+
+                <p className="text-sm text-muted-foreground max-w-xl">
+                  Simulate the real interview: Part 1 warm-up, Part 2 cue card,
+                  Part 3 follow-ups. AI gives instant transcripts, filler
+                  detection, pacing metrics, and personalised improvement steps.
+                </p>
+
+                <div className="flex gap-3 pt-2">
+                  {primaryScript && (
+                    <Button
+                      asChild
+                      size="md"
+                      variant="primary"
+                      className="rounded-ds-xl"
+                    >
+                      <Link href={`/mock/speaking/${primaryScript.id}`}>
+                        Start {primaryScript.title}
+                      </Link>
+                    </Button>
+                  )}
+
+                  <Button
+                    asChild
+                    size="md"
+                    variant="secondary"
+                    className="rounded-ds-xl"
+                  >
+                    <Link href="#speaking-library">Browse scripts</Link>
                   </Button>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      </ModuleMockShellSection>
 
-      <ModuleMockShellSection>
-        <h2 className="text-h3 font-semibold text-foreground">Build interview stamina</h2>
-        <p className="mt-2 text-muted-foreground max-w-3xl">
-          Practise the full flow or drill a specific part. Our simulator keeps the pressure realistic without needing a human partner every time.
-        </p>
+              {/* RIGHT QUICK STATS */}
+              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 w-full max-w-xs shadow-sm">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
+                  Quick Stats
+                </p>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {speakingFlow.map((step) => (
-            <Card key={step.title} className="card-surface rounded-ds-2xl p-6 h-full">
-              <h3 className="text-h5 font-semibold text-foreground">{step.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Scripts</p>
+                    <p className="text-lg font-semibold">{totalScripts}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total prompts</p>
+                    <p className="text-lg font-semibold">
+                      {totalPrompts.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Parts</p>
+                    <p className="text-lg font-semibold">1–3</p>
+                  </div>
+                </div>
+              </Card>
+
+            </div>
+          </Container>
+        </section>
+
+        {/* ------------------------------------------------------------- */}
+        {/* SPEAKING FEATURES / HIGHLIGHTS */}
+        {/* ------------------------------------------------------------- */}
+        <section className="py-10">
+          <Container>
+            <div className="mb-6">
+              <h2 className="font-slab text-h3">Why practise Speaking here?</h2>
+              <p className="text-sm text-muted-foreground">
+                Designed for solo learners — no partner required.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {speakingHighlights.map((item) => (
+                <Card
+                  key={item.title}
+                  className="card-surface rounded-ds-2xl p-6 h-full"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon name={item.icon as IconName} size={20} />
+                    </span>
+                    <h3 className="text-h5 font-semibold">{item.title}</h3>
+                  </div>
+
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* ------------------------------------------------------------- */}
+        {/* SPEAKING SCRIPTS LIBRARY */}
+        {/* ------------------------------------------------------------- */}
+        <section id="speaking-library" className="py-10 bg-muted/40">
+          <Container>
+            <div className="mb-6">
+              <h2 className="font-slab text-h3">Speaking Scripts Library</h2>
+              <p className="text-sm text-muted-foreground max-w-xl">
+                Each script contains complete timing, cues, Part 2 prep,
+                discussion follow-ups, and transcript-ready recording flow.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {speakingPracticeList.map((script) => (
+                <Card
+                  key={script.id}
+                  className="card-surface rounded-ds-2xl p-6 h-full transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="flex flex-col h-full gap-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-h4">{script.title}</h3>
+
+                        <Badge variant="info" size="sm">
+                          {script.totalPrompts} prompts
+                        </Badge>
+                      </div>
+
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {script.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-auto">
+                      <Button
+                        asChild
+                        variant="primary"
+                        className="rounded-ds-xl w-full"
+                      >
+                        <Link href={`/mock/speaking/${script.id}`}>
+                          Start speaking mock
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* ------------------------------------------------------------- */}
+        {/* SPEAKING FLOW — PART 1 / 2 / 3 */}
+        {/* ------------------------------------------------------------- */}
+        <section className="py-14">
+          <Container>
+            <h2 className="font-slab text-h3">Master the full interview flow</h2>
+            <p className="text-sm text-muted-foreground max-w-xl mt-1">
+              Train your stamina and fluency. Repeat each part until responses become natural.
+            </p>
+
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              {speakingFlow.map((item) => (
+                <Card
+                  key={item.title}
+                  className="card-surface rounded-ds-2xl p-6 h-full"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon name={item.icon as IconName} size={20} />
+                    </span>
+                    <h3 className="text-h5 font-semibold">{item.title}</h3>
+                  </div>
+
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* ------------------------------------------------------------- */}
+        {/* AI IMPROVEMENT CTA */}
+        {/* ------------------------------------------------------------- */}
+        <section className="bg-muted/40 pb-16 pt-10">
+          <Container>
+            <Card className="mx-auto max-w-4xl rounded-ds-2xl bg-card/90 p-6 border border-border/60">
+              <div className="grid md:grid-cols-2 gap-6">
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Next smart move
+                  </p>
+                  <h3 className="font-slab text-h3">Fix your Speaking fillers and pacing.</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use AI Lab to analyse your transcript, highlight weak grammar,
+                    catch hesitations, and practise smoother delivery.
+                  </p>
+                </div>
+
+                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-sm">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Icon name="Sparkles" size={14} />
+                    <span>Suggested flow</span>
+                  </div>
+
+                  <ol className="space-y-2 text-xs text-muted-foreground">
+                    <li>1. Attempt a Speaking mock from the list.</li>
+                    <li>2. Review your transcript + audio.</li>
+                    <li>3. Send to AI Lab for detailed feedback.</li>
+                    <li>4. Redo the same script and compare progress.</li>
+                  </ol>
+
+                  <div className="flex gap-2">
+                    <Button asChild variant="secondary" size="sm" className="w-full rounded-ds-xl">
+                      <Link href="/ai">Open AI Lab</Link>
+                    </Button>
+                    <Button asChild variant="ghost" size="sm" className="w-full rounded-ds-xl">
+                      <Link href="/mock/speaking/history">View attempts</Link>
+                    </Button>
+                  </div>
+                </div>
+
+              </div>
             </Card>
-          ))}
-        </div>
-      </ModuleMockShellSection>
-    </ModuleMockShell>
+          </Container>
+        </section>
+
+      </main>
+    </>
   );
-}
+};
+
+export default SpeakingMockIndexPage;

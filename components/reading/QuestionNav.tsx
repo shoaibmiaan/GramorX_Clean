@@ -1,4 +1,3 @@
-// components/reading/QuestionNav.tsx
 import * as React from 'react';
 
 import { Card } from '@/components/design-system/Card';
@@ -40,24 +39,28 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
   filterStatus,
   onFilterStatusChange,
 }) => {
-  const currentQuestionNumber = currentIndex + 1;
+  // Guard: clamp index into range and avoid NaN / negative
+  const safeTotal = Math.max(0, totalQuestions);
+  const clampedIndex =
+    safeTotal > 0 ? Math.min(Math.max(0, currentIndex), safeTotal - 1) : 0;
+  const currentQuestionNumber = safeTotal > 0 ? clampedIndex + 1 : 0;
 
   const answeredCount = React.useMemo(
     () =>
-      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+      Array.from({ length: safeTotal }).reduce((acc, _, i) => {
         const qNum = i + 1;
         return answeredMap[qNum] ? acc + 1 : acc;
       }, 0),
-    [answeredMap, totalQuestions],
+    [answeredMap, safeTotal],
   );
 
   const flaggedCount = React.useMemo(
     () =>
-      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+      Array.from({ length: safeTotal }).reduce((acc, _, i) => {
         const qNum = i + 1;
         return flaggedMap[qNum] ? acc + 1 : acc;
       }, 0),
-    [flaggedMap, totalQuestions],
+    [flaggedMap, safeTotal],
   );
 
   const isVisibleUnderFilter = (qNum: number): boolean => {
@@ -71,6 +74,11 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
     return true;
   };
 
+  const handleClickQuestion = (idx: number) => {
+    if (idx < 0 || idx >= safeTotal) return;
+    onChangeQuestion(idx);
+  };
+
   return (
     <Card
       className={cn(
@@ -81,19 +89,25 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
       {/* Top row: Question X of Y + filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-[12px] text-muted-foreground">
-          Question{' '}
-          <span className="font-semibold text-foreground">
-            {currentQuestionNumber}
-          </span>{' '}
-          of {totalQuestions}
-          <span className="ml-2 text-[11px]">
-            • Answered {answeredCount}/{totalQuestions}
-          </span>
-          {flaggedCount > 0 ? (
-            <span className="ml-2 text-[11px] text-amber-600 dark:text-amber-400">
-              • Flagged {flaggedCount}
-            </span>
-          ) : null}
+          {safeTotal > 0 ? (
+            <>
+              Question{' '}
+              <span className="font-semibold text-foreground">
+                {currentQuestionNumber}
+              </span>{' '}
+              of {safeTotal}
+              <span className="ml-2 text-[11px]">
+                • Answered {answeredCount}/{safeTotal}
+              </span>
+              {flaggedCount > 0 ? (
+                <span className="ml-2 text-[11px] text-amber-600 dark:text-amber-400">
+                  • Flagged {flaggedCount}
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span>No questions loaded</span>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -104,7 +118,7 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
               size="xs"
               variant={filterStatus === f.id ? 'secondary' : 'ghost'}
               className={cn(
-                'h-7 px-3 text-[11px] font-medium',
+                'h-7 px-3 text-[11px] font-medium rounded-full',
                 filterStatus === f.id &&
                   'bg-primary/10 text-primary dark:text-primary-foreground',
               )}
@@ -119,7 +133,7 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
       {/* Bottom row: IELTS-style dots */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-1 flex-wrap gap-1.5">
-          {Array.from({ length: totalQuestions }).map((_, idx) => {
+          {Array.from({ length: safeTotal }).map((_, idx) => {
             const qNum = idx + 1;
             if (!isVisibleUnderFilter(qNum)) return null;
 
@@ -134,13 +148,15 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
                 title={`Question ${qNum}${
                   isFlagged ? ' (flagged)' : isAnswered ? ' (answered)' : ''
                 }`}
-                onClick={() => onChangeQuestion(idx)}
+                onClick={() => handleClickQuestion(idx)}
                 className={cn(
                   'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium',
                   'transition-colors focus:outline-none focus:ring-1 focus:ring-primary',
                   'border border-border/60 bg-muted text-muted-foreground',
-                  isAnswered && 'bg-emerald-500/20 border-emerald-500 text-emerald-700',
-                  isFlagged && 'bg-amber-500/20 border-amber-500 text-amber-700',
+                  isAnswered &&
+                    'bg-emerald-500/20 border-emerald-500 text-emerald-700',
+                  isFlagged &&
+                    'bg-amber-500/20 border-amber-500 text-amber-700',
                   isCurrent &&
                     'bg-primary text-primary-foreground border-primary shadow-sm',
                 )}
@@ -152,7 +168,7 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
         </div>
 
         {/* Legend (IELTS-style) */}
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div className="flex flex-col gap-1 text-[10px] text-muted-foreground md:flex-row md:items-center md:gap-3">
           <div className="flex items-center gap-1">
             <span className="h-3 w-3 rounded-full border border-border/70 bg-muted" />
             <span>Not answered</span>

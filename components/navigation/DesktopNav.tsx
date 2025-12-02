@@ -76,7 +76,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
   // Profile menu entries for user dropdown
   const profileMenu = React.useMemo(() => {
     if (isTeacher) {
-      return [{ id: 'account', label: 'Profile', href: '/account' }];
+      return [{ id: 'account', label: 'Profile', href: '/profile/account' }];
     }
     return filterNavItems(navigationSchema.header.profile, navCtx);
   }, [isTeacher, navCtx]);

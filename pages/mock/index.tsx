@@ -2,275 +2,498 @@
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import type { GetServerSideProps, NextPage } from 'next';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
-import Icon from '@/components/design-system/Icon';
-import { track } from '@/lib/analytics/track';
-import { getServerClient } from '@/lib/supabaseServer';
+import { Icon } from '@/components/design-system/Icon';
 
-const MODULES = [
+type IconName = React.ComponentProps<typeof Icon>['name'];
+
+type QuickAction = {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  icon: IconName;
+};
+
+type ModuleShortcut = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  icon: IconName;
+  status: 'Live' | 'Beta' | 'Coming soon';
+  statusTone: 'success' | 'info' | 'neutral';
+};
+
+type StatHighlight = {
+  id: string;
+  label: string;
+  value: string;
+  helper?: string;
+  icon: IconName;
+};
+
+type TodayTask = {
+  id: string;
+  label: string;
+  estimate: string;
+  href: string;
+  type: 'reading' | 'listening' | 'writing' | 'speaking';
+};
+
+const quickActions: QuickAction[] = [
   {
-    key: 'full',
-    title: 'Full IELTS Mock',
-    description: 'All 4 modules in one strict CBE-style exam.',
-    icon: 'Target',
+    id: 'full-mock',
+    label: 'Start full IELTS mock',
+    description: 'All four modules, strict timer, one continuous flow.',
     href: '/mock/full',
-    badge: 'All modules',
+    icon: 'Timer',
   },
   {
-    key: 'listening',
-    title: 'Listening Mocks',
-    description: 'Timed audio, section-wise questions, auto scoring.',
-    icon: 'Headphones',
-    href: '/mock/listening',
-    badge: 'Module',
+    id: 'resume-latest',
+    label: 'Resume latest mock',
+    description: 'Jump back into your last unfinished attempt.',
+    href: '/mock/history',
+    icon: 'PlayCircle',
   },
   {
-    key: 'reading',
-    title: 'Reading Mocks',
-    description: '40-question passages with instant band estimate.',
-    icon: 'BookOpen',
-    href: '/mock/reading',
-    badge: 'Module',
-  },
-  {
-    key: 'writing',
-    title: 'Writing Mocks',
-    description: 'Task 1 + Task 2 with AI structure & band feedback.',
-    icon: 'PenSquare',
-    href: '/mock/writing',
-    badge: 'Module',
-  },
-  {
-    key: 'speaking',
-    title: 'Speaking Mocks',
-    description: 'NRQ-style interview flow with follow-ups.',
-    icon: 'Mic',
-    href: '/mock/speaking',
-    badge: 'Module',
+    id: 'view-results',
+    label: 'View my mock results',
+    description: 'See bands, mistakes, and progress over time.',
+    href: '/mock/history',
+    icon: 'BarChart3',
   },
 ];
 
-type MockHomeStats = {
-  lastBandScore: number | null;
-  bestBandScore: number | null;
-  attemptsCount: number;
-};
+const moduleShortcuts: ModuleShortcut[] = [
+  {
+    id: 'reading',
+    title: 'Reading mocks',
+    description: 'Three passages, 40 questions, strict IELTS layout.',
+    href: '/mock/reading',
+    icon: 'BookOpenCheck',
+    status: 'Live',
+    statusTone: 'success',
+  },
+  {
+    id: 'listening',
+    title: 'Listening mocks',
+    description: 'Four sections with single-play audio and answer sheet.',
+    href: '/mock/listening',
+    icon: 'Headphones',
+    status: 'Live',
+    statusTone: 'success',
+  },
+  {
+    id: 'writing',
+    title: 'Writing mocks',
+    description: 'Task 1 + Task 2 with AI-first band feedback.',
+    href: '/mock/writing',
+    icon: 'PenSquare',
+    status: 'Beta',
+    statusTone: 'info',
+  },
+  {
+    id: 'speaking',
+    title: 'Speaking mocks',
+    description: 'Parts 1–3 simulated with recording and transcripts.',
+    href: '/mock/speaking',
+    icon: 'Mic',
+    status: 'Beta',
+    statusTone: 'info',
+  },
+];
 
-type Props = {
-  candidateId: string;
-  stats: MockHomeStats | null; // allow null just in case
-};
+const statHighlights: StatHighlight[] = [
+  {
+    id: 'best-band',
+    label: 'Best mock band',
+    value: '—',
+    helper: 'Updated after your first full mock.',
+    icon: 'Medal',
+  },
+  {
+    id: 'attempts-count',
+    label: 'Total mocks taken',
+    value: '—',
+    helper: 'Full tests across all modules.',
+    icon: 'Activity',
+  },
+  {
+    id: 'last-activity',
+    label: 'Last mock activity',
+    value: '—',
+    helper: 'Shows when you last entered an exam room.',
+    icon: 'Clock',
+  },
+];
 
-const MockHomePage: NextPage<Props> = ({ candidateId, stats }) => {
-  // ✅ hard fallback so UI never explodes if stats is missing
-  const safeStats: MockHomeStats = stats ?? {
-    lastBandScore: null,
-    bestBandScore: null,
-    attemptsCount: 0,
-  };
+const todayTasks: TodayTask[] = [
+  {
+    id: 'reading-mini',
+    label: 'Finish one Reading mock section',
+    estimate: '~20 mins',
+    href: '/mock/reading',
+    type: 'reading',
+  },
+  {
+    id: 'listening-mini',
+    label: 'Do a Listening mock with strict timer',
+    estimate: '~35 mins',
+    href: '/mock/listening',
+    type: 'listening',
+  },
+  {
+    id: 'writing-mini',
+    label: 'Attempt one Writing Task 2 under exam conditions',
+    estimate: '~40 mins',
+    href: '/mock/writing',
+    type: 'writing',
+  },
+];
 
-  const handleOpen = (slug: string, skill: string) => {
-    track('mock_test_open', { slug, skill });
-  };
-
+const MockHomePage: React.FC = () => {
   return (
     <>
       <Head>
-        <title>Mock Tests • IELTS (Full + Modules)</title>
+        <title>Mock Tests · GramorX</title>
         <meta
           name="description"
-          content="Serious IELTS mock tests in strict exam mode – full + module-wise with band analytics."
+          content="Exam-style IELTS mocks for Listening, Reading, Writing, and Speaking with strict timers, analytics, and AI-first feedback."
         />
       </Head>
 
       <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        <section className="py-8 lg:py-10 min-h-[calc(100vh-4rem)] flex items-stretch">
-          <Container className="flex-1">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-stretch">
-              {/* LEFT: Hero + candidate + quick snapshot */}
-              <div className="flex flex-col gap-4">
-                {/* Hero */}
-                <Card className="flex-1 flex flex-col justify-between gap-4 bg-white/80 dark:bg-dark/80 backdrop-blur">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <Badge tone="info" size="sm">
-                        IELTS Mock Control Center
-                      </Badge>
-                      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                        Full &amp; Module-Wise IELTS Mock Tests
-                      </h1>
-                      <p className="text-sm md:text-base text-muted-foreground max-w-xl">
-                        Strict exam-style mocks with autosave, band estimates, and post-test analytics.
-                        No fluff – just real exam rehearsal.
-                      </p>
-                    </div>
-                    <Icon name="AlarmClock" className="h-10 w-10 text-primary hidden sm:block" />
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 pt-2">
-                    <Link href="/mock/full" legacyBehavior>
-                      <Button
-                        as="a"
-                        size="md"
-                        onClick={() => handleOpen('full-ielts-mock', 'full')}
-                      >
-                        <Icon name="Target" className="mr-2 h-4 w-4" />
-                        Start Full Mock
-                      </Button>
-                    </Link>
-
-                    <a
-                      href="#mock-modules"
-                      className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Icon name="Grid3X3" className="mr-1.5 h-4 w-4" />
-                      Browse module-wise mocks
-                    </a>
-                  </div>
-                </Card>
-
-                {/* Candidate + Snapshot */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Candidate identity */}
-                  <Card className="flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Candidate ID
-                      </span>
-                      <Badge tone="neutral" size="xs">
-                        Stable ID
-                      </Badge>
-                    </div>
-
-                    <button
-                      type="button"
-                      // TODO: router.push('/account/profile')
-                      className="text-left group"
-                    >
-                      <p className="text-lg font-semibold tracking-[0.08em] group-hover:text-primary transition-colors">
-                        {candidateId}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        This is your main identity reference in all mock reports and analytics.
-                      </p>
-                      <span className="mt-2 inline-flex items-center text-xs text-primary group-hover:underline">
-                        View profile &amp; mock history
-                        <Icon name="ArrowRight" className="ml-1 h-3 w-3" />
-                      </span>
-                    </button>
-                  </Card>
-
-                  {/* Quick stats */}
-                  <Card className="grid grid-cols-3 gap-3 items-center">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Last band
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {safeStats.lastBandScore != null
-                          ? safeStats.lastBandScore.toFixed(1)
-                          : '–'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Best band
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {safeStats.bestBandScore != null
-                          ? safeStats.bestBandScore.toFixed(1)
-                          : '–'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Attempts
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {safeStats.attemptsCount > 0 ? safeStats.attemptsCount : 0}
-                      </p>
-                    </div>
-                  </Card>
+        {/* HERO / CONTROL STRIP */}
+        <section className="pb-10 pt-10 md:pt-14">
+          <Container>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="Timer" size={14} />
+                  </span>
+                  <span>Mock Mission Control · Strict IELTS-style exams</span>
                 </div>
+                <h1 className="font-slab text-display text-gradient-primary">
+                  Full IELTS mocks, one control room.
+                </h1>
+                <p className="max-w-2xl text-small text-grayish">
+                  Start or resume serious, timed mocks for all four modules. No fluff —
+                  just exam rooms, timers, and post-test analytics.
+                </p>
               </div>
 
-              {/* RIGHT: Modules + navigation */}
-              <div className="flex flex-col gap-4">
-                <Card id="mock-modules" className="flex-1 flex flex-col gap-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <div>
-                      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                        Mock modules
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Pick a module or run a full exam.
-                      </p>
-                    </div>
-                    <Badge tone="success" size="xs">
-                      Exam-ready
-                    </Badge>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {MODULES.map((mod) => (
-                      <Link key={mod.key} href={mod.href} legacyBehavior>
-                        <a
-                          onClick={() => handleOpen(mod.key, mod.key)}
-                          className="group rounded-lg border border-border/70 bg-white/80 dark:bg-dark/80 px-3 py-3 flex items-start gap-3 hover:border-primary/70 hover:shadow-sm transition-colors"
-                        >
-                          <div className="mt-0.5">
-                            <Icon
-                              name={mod.icon}
-                              className="h-5 w-5 text-muted-foreground group-hover:text-primary"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <h3 className="text-sm font-semibold truncate">{mod.title}</h3>
-                              <Badge tone="neutral" size="xs">
-                                {mod.badge}
-                              </Badge>
-                            </div>
-                            <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                              {mod.description}
-                            </p>
-                          </div>
-                        </a>
-                      </Link>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Icon name="History" className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Attempts &amp; analytics</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Review past mocks, breakdowns, and weak areas.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link href="/mock/attempts" legacyBehavior>
-                      <Button as="a" size="xs" variant="ghost">
-                        Attempts
-                      </Button>
-                    </Link>
-                    <Link href="/mock/analytics" legacyBehavior>
-                      <Button as="a" size="xs">
-                        Analytics
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
+              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
+                <Badge variant="neutral" size="sm">
+                  Recommended: 1 full mock / week
+                </Badge>
+                <p>Use mocks to measure. Fix mistakes in AI Lab, not inside the exam.</p>
               </div>
             </div>
+
+            {/* PRIMARY STRIP: CONTINUE + SNAPSHOT */}
+            <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
+              <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Continue where you left off
+                    </p>
+                    <p className="text-sm text-foreground">
+                      Once you attempt a mock, your latest attempt will show here so you
+                      can jump straight back into the exam room.
+                    </p>
+                  </div>
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="PlayCircle" size={18} />
+                  </span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    variant="primary"
+                    size="md"
+                    className="rounded-ds-xl px-5"
+                  >
+                    <Link href="/mock/full">Start full IELTS mock</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="secondary"
+                    size="md"
+                    className="rounded-ds-xl px-5"
+                  >
+                    <Link href="/mock/history">Resume / view attempts</Link>
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="card-surface rounded-ds-2xl p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Quick snapshot
+                    </p>
+                    <p className="text-xs text-grayish">
+                      Later this will show real mock stats: band trajectory, attempts, last
+                      activity.
+                    </p>
+                  </div>
+                  <Icon name="PieChart" size={18} className="text-muted-foreground" />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {statHighlights.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Icon name={item.icon} size={14} />
+                        <span>{item.label}</span>
+                      </div>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        {item.value}
+                      </p>
+                      {item.helper ? (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {item.helper}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </Container>
+        </section>
+
+        {/* START / RESUME ACTIONS */}
+        <section className="pb-12">
+          <Container>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-slab text-h2">Start or resume mocks</h2>
+                <p className="text-small text-grayish">
+                  Pick how hard you want to go today — full exam, single-module mock, or
+                  just reviewing your last attempt.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {quickActions.map((action) => (
+                <Card
+                  key={action.id}
+                  className="group flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4 transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
+                >
+                  <Link href={action.href} className="flex h-full flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon name={action.icon} size={18} />
+                      </span>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          {action.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {action.description}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="mt-auto inline-flex items-center text-xs font-medium text-primary group-hover:underline">
+                      Open
+                      <Icon name="ArrowRight" size={14} className="ml-1" />
+                    </span>
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* MODULE MOCK SHORTCUTS */}
+        <section className="bg-muted/40 py-12">
+          <Container>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  Module mocks
+                </p>
+                <h2 className="mt-1 font-slab text-h2">
+                  Jump into a specific IELTS module.
+                </h2>
+                <p className="mt-1 max-w-2xl text-small text-grayish">
+                  Each module uses strict computer-based layouts and timing so your brain
+                  gets used to the real exam flow.
+                </p>
+              </div>
+              <Badge variant="neutral" size="sm">
+                Best for weekly “check-in” mocks
+              </Badge>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {moduleShortcuts.map((mod) => (
+                <Card
+                  key={mod.id}
+                  className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary/60 hover:bg-card/90 hover:shadow-lg"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                          <Icon name={mod.icon} size={20} />
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">
+                            {mod.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            {mod.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        size="xs"
+                        variant={
+                          mod.statusTone === 'success'
+                            ? 'success'
+                            : mod.statusTone === 'info'
+                            ? 'info'
+                            : 'neutral'
+                        }
+                      >
+                        {mod.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="secondary"
+                      className="w-full rounded-ds-xl"
+                    >
+                      <Link href={mod.href}>Open {mod.title}</Link>
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* TODAY'S MOCK TASKS */}
+        <section className="py-12">
+          <Container>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  Today’s mock plan
+                </p>
+                <h2 className="mt-1 font-slab text-h2">Do at least one serious attempt.</h2>
+                <p className="mt-1 max-w-2xl text-small text-grayish">
+                  If you can’t do a full exam today, at least complete one focused mock. No
+                  zero days.
+                </p>
+              </div>
+              <Badge variant="neutral" size="sm">
+                Will be AI-generated later
+              </Badge>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {todayTasks.map((task) => (
+                <Card
+                  key={task.id}
+                  className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                        <Icon
+                          name={
+                            task.type === 'reading'
+                              ? 'BookOpenCheck'
+                              : task.type === 'listening'
+                              ? 'Headphones'
+                              : task.type === 'writing'
+                              ? 'PenSquare'
+                              : 'Mic'
+                          }
+                          size={14}
+                        />
+                        <span className="capitalize">{task.type}</span>
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {task.estimate}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{task.label}</p>
+                  </div>
+                  <div className="pt-3">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="primary"
+                      className="w-full rounded-ds-xl"
+                    >
+                      <Link href={task.href}>Start now</Link>
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        {/* RECOMMENDATION / AI HOOK */}
+        <section className="bg-muted/40 pb-14 pt-10">
+          <Container>
+            <Card className="mx-auto max-w-4xl rounded-ds-2xl border border-border/60 bg-card/90 p-6 md:p-7">
+              <div className="grid gap-5 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.3fr)] md:items-center">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    Next smart move
+                  </p>
+                  <h2 className="font-slab text-h3">
+                    Review mocks in AI Lab before taking the next one.
+                  </h2>
+                  <p className="text-small text-grayish">
+                    After every serious mock, send it to AI Lab. It will break down band
+                    scores, errors, and give you a concrete plan — so the next mock isn’t
+                    just “vibes”.
+                  </p>
+                </div>
+                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-sm">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Icon name="Sparkles" size={14} />
+                    <span>Recommended flow</span>
+                  </div>
+                  <ol className="space-y-2 text-xs text-muted-foreground">
+                    <li>1. Take one full or module mock from this page.</li>
+                    <li>2. Submit and view your result.</li>
+                    <li>3. Open AI Lab → send your attempt for deep feedback.</li>
+                    <li>4. Fix weaknesses → come back here for the next mock.</li>
+                  </ol>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="secondary"
+                    className="mt-2 w-full rounded-ds-xl"
+                  >
+                    <Link href="/ai">Open AI Lab</Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </Container>
         </section>
       </main>
@@ -279,64 +502,3 @@ const MockHomePage: NextPage<Props> = ({ candidateId, stats }) => {
 };
 
 export default MockHomePage;
-
-export const getServerSideProps: GetServerSideProps<Props> = async ({ req, res }) => {
-  const supabase = getServerClient(req, res);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return {
-      redirect: {
-        destination: '/login?next=/mock',
-        permanent: false,
-      },
-    };
-  }
-
-  // base defaults
-  let stats: MockHomeStats = {
-    lastBandScore: null,
-    bestBandScore: null,
-    attemptsCount: 0,
-  };
-
-  // 🔧 change this to your real table / columns
-  const { data: attempts, error } = await supabase
-    .from('attempts_listening')
-    .select('band_score, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (!error && attempts && attempts.length > 0) {
-    type Row = { band_score: number | null; created_at: string };
-    const rows = attempts as Row[];
-
-    const lastBandScore = rows[0]?.band_score ?? null;
-
-    const bestBandScore =
-      rows.reduce<number | null>((max, row) => {
-        if (row.band_score == null) return max;
-        if (max == null) return row.band_score;
-        return row.band_score > max ? row.band_score : max;
-      }, null) ?? null;
-
-    stats = {
-      lastBandScore,
-      bestBandScore,
-      attemptsCount: rows.length,
-    };
-  }
-
-  const candidateId = `GX-2025-${String(user.id).slice(0, 8).toUpperCase()}`;
-
-  return {
-    props: {
-      candidateId,
-      stats,
-    },
-  };
-};

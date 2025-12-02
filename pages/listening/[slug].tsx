@@ -1,22 +1,22 @@
 // pages/listening/[slug].tsx
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import { supabase } from '@/lib/supabaseClient';
-import type { AutosaveSession } from '@/lib/autosave';
-import { createAutosaveSession } from '@/lib/autosave';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
-import { Alert } from '@/components/design-system/Alert';
 import { Input } from '@/components/design-system/Input';
 import FocusGuard from '@/components/exam/FocusGuard';
 import { Timer } from '@/components/design-system/Timer';
-import { SaveItemButton } from '@/components/SaveItemButton';
-import AudioSectionsPlayer from '@/components/listening/AudioSectionsPlayer';
-import Transcript from '@/components/listening/Transcript';
 import Icon from '@/components/design-system/Icon';
 
 type MCQ = {
@@ -42,11 +42,13 @@ type Section = {
   orderNo: number;
   startMs: number;
   endMs: number;
+  audioUrl: string;
   transcript?: string;
   questions: Question[];
 };
 
 type ListeningTest = {
+  id: string;
   slug: string;
   title: string;
   masterAudioUrl: string;
@@ -55,93 +57,31 @@ type ListeningTest = {
 
 type AnswersMap = Record<string, string>;
 
-type ListeningAutosaveDraft = {
-  answers?: AnswersMap;
-  currentIdx?: number;
-};
-
-const LEGACY_LISTEN_KEY = (slug: string) => `listen:${slug}`;
 const TOTAL_TIME_SEC = 30 * 60; // 30 minutes
 
 export default function ListeningTestPage() {
   const router = useRouter();
   const { slug } = router.query as { slug?: string };
 
-  // --- Auth state ---
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(false); // gate UI until auth resolved
-
-  // --- Test + UI state ---
+  // test + UI state
   const [test, setTest] = useState<ListeningTest | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
-  const [currentIdx, setCurrentIdxState] = useState(0);
+  const [currentIdx, setCurrentIdx] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [checked, setChecked] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
-  const [sectionProgressMs, setSectionProgressMs] = useState(0);
   const [pendingSeekMs, setPendingSeekMs] = useState<number | null>(null);
 
-  // --- Save state ---
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // answers: questionId -> value
+  // answers
   const [answers, setAnswers] = useState<AnswersMap>({});
-  const autosaveRef = useRef<AutosaveSession<ListeningAutosaveDraft> | null>(null);
 
-  const patchAutosave = useCallback((partial: Partial<ListeningAutosaveDraft>) => {
-    const session = autosaveRef.current;
-    if (!session) return;
-    session.patch(partial);
-  }, []);
-
-  const setSectionIndex = useCallback(
-    (value: number | ((prev: number) => number)) => {
-      setCurrentIdxState((prev) => {
-        const resolved =
-          typeof value === 'function' ? (value as (prev: number) => number)(prev) : value;
-        const clamped = Number.isFinite(resolved) ? Math.max(0, Math.trunc(resolved)) : 0;
-        patchAutosave({ currentIdx: clamped });
-        return clamped;
-      });
-    },
-    [patchAutosave],
-  );
-
-  // --- Timer ---
+  // timer
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_SEC);
   const [attemptStarted, setAttemptStarted] = useState(false);
   const [attemptFinished, setAttemptFinished] = useState(false);
   const submittedRef = useRef(false);
 
-  // --- Load auth user (robust and race-free) ---
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!mounted) return;
-      setUserId(data.user?.id ?? null);
-      setAuthReady(true);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      setUserId(session?.user?.id ?? null);
-      setAuthReady(true);
-    });
-
-    return () => {
-      mounted = false;
-      sub?.subscription.unsubscribe();
-    };
-  }, []);
-
-  const candidateId = useMemo(() => {
-    if (!userId) return 'Guest';
-    return `GX-${new Date().getFullYear()}-${userId.slice(0, 6).toUpperCase()}`;
-  }, [userId]);
-
-  // --- Load test from DB ---
+  // --- load test from new schema ---
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -149,10 +89,12 @@ export default function ListeningTestPage() {
     (async () => {
       setTestError(null);
 
+      // 1) test by slug
       const { data: t, error: tErr } = await supabase
-        .from('lm_listening_tests')
-        .select('slug,title,master_audio_url')
+        .from('listening_tests')
+        .select('id,slug,title,audio_url')
         .eq('slug', slug)
+        .eq('is_published', true)
         .single();
 
       if (cancelled) return;
@@ -162,10 +104,11 @@ export default function ListeningTestPage() {
         return;
       }
 
+      // 2) sections by test_id
       const { data: sections, error: sErr } = await supabase
-        .from('lm_listening_sections')
-        .select('order_no,start_ms,end_ms,transcript')
-        .eq('test_slug', slug)
+        .from('listening_sections')
+        .select('order_no,start_ms,end_ms,audio_url,transcript')
+        .eq('test_id', t.id)
         .order('order_no', { ascending: true });
 
       if (cancelled) return;
@@ -174,11 +117,14 @@ export default function ListeningTestPage() {
         return;
       }
 
+      // 3) questions by test_id
       const { data: questions, error: qErr } = await supabase
-        .from('lm_listening_questions')
-        .select('id,q_no,type,prompt,options,answer,section_order')
-        .eq('test_slug', slug)
-        .order('q_no', { ascending: true });
+        .from('listening_questions')
+        .select(
+          'id,question_number,question_type,prompt,options,correct_answer,section_no',
+        )
+        .eq('test_id', t.id)
+        .order('question_number', { ascending: true });
 
       if (cancelled) return;
       if (qErr) {
@@ -186,55 +132,74 @@ export default function ListeningTestPage() {
         return;
       }
 
+      // Build section map
       const secMap = new Map<number, Section>();
       (sections ?? []).forEach((s) => {
         secMap.set(s.order_no, {
           orderNo: s.order_no,
-          startMs: s.start_ms,
-          endMs: s.end_ms,
+          startMs: s.start_ms ?? 0,
+          endMs: s.end_ms ?? (s.start_ms ?? 0) + 60_000, // crude fallback 60s
+          audioUrl: s.audio_url,
           transcript: s.transcript ?? undefined,
           questions: [],
         });
       });
 
+      // Attach questions
       (questions ?? []).forEach((q) => {
-        const sec = secMap.get(q.section_order);
+        const sec = secMap.get(q.section_no);
         if (!sec) return;
-        if (q.type === 'mcq') {
+
+        const rawCorrect = q.correct_answer as unknown;
+        let correct = '';
+
+        if (typeof rawCorrect === 'string') {
+          correct = rawCorrect;
+        } else if (Array.isArray(rawCorrect)) {
+          correct = rawCorrect[0] ?? '';
+        } else if (rawCorrect && typeof rawCorrect === 'object') {
+          // @ts-expect-error loose JSON shape
+          correct = (rawCorrect.value as string) ?? '';
+        }
+
+        if (q.question_type === 'mcq') {
           sec.questions.push({
             id: q.id,
-            qNo: q.q_no,
+            qNo: q.question_number,
             type: 'mcq',
-            prompt: q.prompt,
+            prompt: q.prompt ?? '',
             options: (q.options ?? []) as string[],
-            answer: q.answer,
+            answer: correct,
           });
         } else {
           sec.questions.push({
             id: q.id,
-            qNo: q.q_no,
+            qNo: q.question_number,
             type: 'gap',
-            prompt: q.prompt,
-            answer: q.answer,
+            prompt: q.prompt ?? '',
+            answer: correct,
           });
         }
       });
 
-      const ordered = [...secMap.values()]
+      const orderedSections = [...secMap.values()]
         .sort((a, b) => a.orderNo - b.orderNo)
         .map((s) => ({
           ...s,
           questions: [...s.questions].sort((a, b) => a.qNo - b.qNo),
         }));
 
-      if (!cancelled) {
-        setTest({
-          slug: t.slug,
-          title: t.title,
-          masterAudioUrl: t.master_audio_url,
-          sections: ordered,
-        });
-      }
+      const firstSectionAudio = orderedSections[0]?.audioUrl ?? '';
+      const masterAudio =
+        t.audio_url && t.audio_url.length > 0 ? t.audio_url : firstSectionAudio;
+
+      setTest({
+        id: t.id,
+        slug: t.slug,
+        title: t.title,
+        masterAudioUrl: masterAudio,
+        sections: orderedSections,
+      });
     })();
 
     return () => {
@@ -242,517 +207,348 @@ export default function ListeningTestPage() {
     };
   }, [slug]);
 
-  // --- Rehydrate WIP (answers + section) from autosave ---
-  useEffect(() => {
-    if (!slug) return;
-    setAnswers({});
-    setCurrentIdxState(0);
+  const currentSection = useMemo(
+    () => (test ? test.sections[currentIdx] ?? test.sections[0] : null),
+    [test, currentIdx],
+  );
 
-    const session = createAutosaveSession<ListeningAutosaveDraft>({
-      scope: 'listening',
-      id: slug,
-      version: 1,
-      legacyKeys: [LEGACY_LISTEN_KEY(slug)],
-    });
+  const handleSetAnswer = useCallback((qId: string, value: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [qId]: value,
+    }));
+  }, []);
 
-    autosaveRef.current = session;
-
-    const snapshot = session.load();
-    const draft = snapshot?.data;
-
-    if (draft?.answers && typeof draft.answers === 'object') {
-      setAnswers({ ...(draft.answers as AnswersMap) });
-    }
-    if (typeof draft?.currentIdx === 'number') {
-      setCurrentIdxState(Math.max(0, draft.currentIdx));
-    }
-
-    return () => {
-      autosaveRef.current = null;
-    };
-  }, [slug]);
-
-  // --- Answer helpers ---
-  const handleMCQ = (q: MCQ, val: string) => {
-    setAnswers((prev) => {
-      const next = { ...prev, [q.id]: val };
-      patchAutosave({ answers: next });
-      return next;
-    });
-  };
-
-  const handleGapChange = (q: GAP, val: string) => {
-    setAnswers((prev) => {
-      const next = { ...prev, [q.id]: val };
-      patchAutosave({ answers: next });
-      return next;
-    });
-  };
-
-  const handleGapBlur = (q: GAP) => {
-    setAnswers((prev) => {
-      const current = prev[q.id];
-      if (typeof current !== 'string') return prev;
-      const trimmed = current.trim();
-      if (trimmed === current) return prev;
-      const next = { ...prev, [q.id]: trimmed };
-      patchAutosave({ answers: next });
-      return next;
-    });
-  };
-
-  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
-  const isCorrect = (q: Question) => {
-    const a = String(answers[q.id] ?? '');
-    return q.type === 'mcq'
-      ? a === (q as MCQ).answer
-      : normalize(a) === normalize((q as GAP).answer);
-  };
-
-  // --- Persist answers to DB (user-scoped rows) ---
-  const persistAnswers = async () => {
-    if (!userId || !test) return;
-    setSaving(true);
-    setSaveError(null);
+  const handleSubmit = useCallback(async () => {
+    if (!test || !slug || submittedRef.current) return;
+    submittedRef.current = true;
+    setAttemptFinished(true);
 
     try {
-      const rows = Object.entries(answers)
-        .map(([qid, ans]) => {
-          const q = test.sections.flatMap((s) => s.questions).find((qq) => qq.id === qid);
-          if (!q) return null;
-          const cleaned = typeof ans === 'string' ? ans.trim() : String(ans ?? '');
-          return { user_id: userId, test_slug: test.slug, q_no: q.qNo, answer: cleaned };
-        })
-        .filter(Boolean) as Array<{ user_id: string; test_slug: string; q_no: number; answer: string }>;
-
-      if (rows.length === 0) return;
-
-      const nowIso = new Date().toISOString();
-      const rowsWithTimestamp = rows.map((row) => ({ ...row, updated_at: nowIso }));
-
-      const { error } = await supabase
-        .from('lm_listening_user_answers')
-        .upsert(rowsWithTimestamp, { onConflict: 'user_id,test_slug,q_no' });
-
-      if (error) {
-        const needsFallback = /column .*updated_at/i.test(error.message ?? '');
-        if (!needsFallback) throw error;
-
-        const { error: legacyError } = await supabase
-          .from('lm_listening_user_answers')
-          .upsert(rows, { onConflict: 'user_id,test_slug,q_no' });
-
-        if (legacyError) throw legacyError;
-      }
-    } catch (e) {
-      const msg = (e as { message?: string })?.message ?? 'Failed to save';
-      setSaveError(msg);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // --- Submit attempt via RPC (score + band) ---
-  const submitAttempt = async (): Promise<string | null> => {
-    if (!test || !userId) return null;
-    const flat = test.sections.flatMap((s) => s.questions);
-
-    const answersArr = Object.entries(answers)
-      .map(([qid, ans]) => {
-        const q = flat.find((qq) => qq.id === qid);
-        if (!q) return null;
-        const cleaned = typeof ans === 'string' ? ans.trim() : String(ans ?? '');
-        return { qno: q.qNo, answer: cleaned };
-      })
-      .filter(Boolean) as { qno: number; answer: any }[];
-
-    setSaveError(null);
-
-    try {
-      const resp = await fetch('/api/listening/submit', {
+      await fetch('/api/listening/submit', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          test_slug: test.slug,
-          answers: answersArr,
+          test_slug: slug,
+          answers: Object.entries(answers).map(([qid, answer]) => ({
+            qid,
+            answer,
+          })),
           meta: {
-            duration_sec: TOTAL_TIME_SEC - Math.ceil(timeLeft),
-            auto_play: autoPlay,
-            section_index: currentIdx,
+            duration_sec: TOTAL_TIME_SEC - timeLeft,
           },
         }),
       });
-
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => null);
-        const message = body?.error ?? 'Failed to submit attempt';
-        throw new Error(message);
-      }
-
-      const body = await resp.json().catch(() => null);
-      return (body?.attemptId as string | undefined) ?? null;
-    } catch (e) {
-      const msg = (e as { message?: string })?.message ?? 'Failed to submit attempt';
-      setSaveError(msg);
-      return null;
+    } catch {
+      // ignore
     }
-  };
 
-  const handleAutoSubmit = () => {
-    if (submittedRef.current) return;
-    submittedRef.current = true;
-    setAttemptFinished(true);
-    setChecked(true);
+    router.push(`/listening/${slug}/review`);
+  }, [answers, router, slug, test, timeLeft]);
 
-    (async () => {
-      let attemptId: string | null = null;
+  if (!slug) return null;
 
-      if (userId) {
-        await persistAnswers();
-        attemptId = await submitAttempt();
-        if (!attemptId) {
-          submittedRef.current = false;
-          return;
-        }
-      }
-
-      try {
-        autosaveRef.current?.clear();
-        if (slug) localStorage.removeItem(LEGACY_LISTEN_KEY(slug));
-      } catch {}
-
-      if (test) {
-        const target = attemptId
-          ? `/listening/${test.slug}/review?attemptId=${attemptId}`
-          : `/listening/${test.slug}/review`;
-        router.push(target);
-      }
-    })();
-  };
-
-  const secCount = test?.sections.length ?? 0;
-  const currentSection = useMemo(
-    () => (test ? test.sections[currentIdx] ?? null : null),
-    [test, currentIdx],
-  );
-
-  const sliceSecs = currentSection
-    ? Math.max(0, Math.round((currentSection.endMs - currentSection.startMs) / 1000))
-    : 0;
-
-  useEffect(() => {
-    if (!test) return;
-
-    setSectionIndex((idx) => {
-      const max = Math.max(0, test.sections.length - 1);
-      return Math.min(Math.max(0, idx), max);
-    });
-  }, [test, setSectionIndex]);
-
-  useEffect(() => {
-    setSectionProgressMs(0);
-    setPendingSeekMs(null);
-  }, [currentIdx]);
-
-  const focusActive = attemptStarted && !attemptFinished;
-
-  // --- Loading / error states ---
-  if (!slug) {
-    return null;
-  }
-
-  if (testError && !test) {
+  // error UI
+  if (testError) {
     return (
-      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <main className="py-10">
         <Container>
-          <Card className="p-6">
-            <Alert variant="warning" title="Something went wrong">
-              {testError}
-            </Alert>
+          <Card className="rounded-ds-2xl bg-amber-50 border border-amber-200 p-6">
+            <h1 className="font-slab text-h3 text-amber-900 mb-2">Something went wrong</h1>
+            <p className="text-sm text-amber-800">{testError}</p>
             <div className="mt-4">
-              <Button as={Link as any} href="/listening" variant="primary" size="sm">
-                Back to Listening tests
+              <Button asChild size="sm" variant="primary" className="rounded-ds-xl">
+                <Link href="/listening">Back to Listening tests</Link>
               </Button>
             </div>
           </Card>
         </Container>
-      </section>
+      </main>
     );
   }
 
-  if (!test) {
+  if (!test || !currentSection) {
     return (
-      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <main className="py-10">
         <Container>
-          <Card className="p-6">
-            <div className="animate-pulse h-6 w-40 bg-muted dark:bg-white/10 rounded mb-2" />
-            <div className="animate-pulse h-4 w-64 bg-muted dark:bg-white/10 rounded" />
+          <Card className="p-6 rounded-ds-2xl">
+            <div className="animate-pulse h-5 w-40 bg-muted rounded mb-2" />
+            <div className="animate-pulse h-4 w-64 bg-muted rounded" />
+            <div className="mt-4 space-y-2">
+              <div className="animate-pulse h-4 w-full bg-muted rounded" />
+              <div className="animate-pulse h-4 w-full bg-muted rounded" />
+              <div className="animate-pulse h-4 w-3/4 bg-muted rounded" />
+            </div>
           </Card>
         </Container>
-      </section>
+      </main>
     );
   }
+
+  const totalSections = test.sections.length;
+  const isLastSection = currentIdx === totalSections - 1;
+  const audioSrc = test.masterAudioUrl || currentSection.audioUrl;
 
   return (
     <>
       <FocusGuard
         exam="listening"
         slug={slug}
-        active={focusActive}
-        onFullscreenExit={() => {
-          if (!attemptFinished) setAttemptStarted(false);
-        }}
+        active={!attemptFinished}
+        onFullscreenExit={() => setAttemptStarted(false)}
       />
 
-      <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        <Container>
-          {/* Top bar: breadcrumb + candidate */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Link
-                href="/listening"
-                className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                <Icon name="ArrowLeft" size={14} />
-                <span>Back to Listening tests</span>
-              </Link>
-              <span className="h-3 w-px bg-border/60" />
-              <span className="inline-flex items-center gap-1">
-                <Icon name="Headphones" size={14} />
-                <span>Listening exam room</span>
-              </span>
-            </div>
-
-            <div className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 text-[11px] text-muted-foreground bg-background/60 backdrop-blur">
-              <Icon name="IdCard" size={14} />
-              <span>Candidate</span>
-              <span className="font-mono font-semibold text-foreground">{candidateId}</span>
-            </div>
-          </div>
-
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="font-slab text-display text-gradient-primary">{test.title}</h1>
-              <p className="text-grayish">
-                Auto-play per section • Focus guard • Answer review after you finish.
-              </p>
-            </div>
+      <main className="py-6">
+        <Container className="space-y-4">
+          {/* Top bar */}
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <SaveItemButton resourceId={slug || ''} type="listening" category="bookmark" />
+              <Button
+                asChild
+                size="sm"
+                variant="ghost"
+                className="rounded-ds-full px-3 text-xs text-muted-foreground"
+              >
+                <Link href="/listening">
+                  <Icon name="ArrowLeft" size={14} />
+                  Exit Listening test
+                </Link>
+              </Button>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-primary">
+                  IELTS Listening
+                </p>
+                <h1 className="font-slab text-h4">{test.title}</h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
               <Timer
                 initialSeconds={TOTAL_TIME_SEC}
-                onTick={(s) => {
-                  const remaining = Math.ceil(s);
-                  setTimeLeft(remaining);
-                  if (!attemptStarted && !attemptFinished && remaining < TOTAL_TIME_SEC) {
+                onTick={(secLeft) => {
+                  setTimeLeft(secLeft);
+                  if (!attemptStarted && secLeft < TOTAL_TIME_SEC) {
                     setAttemptStarted(true);
                   }
                 }}
-                onComplete={handleAutoSubmit}
-                running={!submittedRef.current}
+                onComplete={handleSubmit}
               />
-              <Badge tone={autoPlay ? 'success' : 'warning'} size="xs">
-                Auto-play: {autoPlay ? 'On' : 'Off'}
+              <Badge variant="neutral" size="sm">
+                Section {currentSection.orderNo} of {totalSections}
               </Badge>
-              <Button variant="secondary" size="sm" onClick={() => setAutoPlay((v) => !v)}>
-                Toggle Auto-play
-              </Button>
             </div>
           </div>
 
-          {/* Not logged-in notice (only when auth is known) */}
-          {authReady && !userId && (
-            <Alert variant="info" className="mt-6" title="Sign in to save progress">
-              You can practice without signing in, but answers and band history won’t be saved.
-            </Alert>
-          )}
-
-          {/* Save status */}
-          {saveError && (
-            <Alert variant="warning" className="mt-6" title="Couldn’t save">
-              {saveError}
-            </Alert>
-          )}
-          {saving && (
-            <Alert variant="info" className="mt-6">
-              Saving…
-            </Alert>
-          )}
-
-          {/* Audio player + transcript */}
-          <AudioSectionsPlayer
-            key={currentIdx}
-            masterAudioUrl={test.masterAudioUrl}
-            sections={test.sections}
-            initialSectionIndex={currentIdx}
-            autoAdvance={autoPlay}
-            onSectionChange={setSectionIndex}
-            onTimeUpdate={({ sectionMs }) => setSectionProgressMs(sectionMs)}
-            seekToMs={pendingSeekMs}
-            onExternalSeekResolved={() => setPendingSeekMs(null)}
-            className="mt-8"
-          />
-
-          <Transcript
-            className="mt-4"
-            transcript={currentSection?.transcript}
-            locked={!checked}
-            currentTimeMs={sectionProgressMs}
-            expanded={checked ? transcriptOpen : false}
-            onExpandedChange={(next) => setTranscriptOpen(next)}
-            onSeek={(relativeMs) => {
-              if (!currentSection) return;
-              setPendingSeekMs(currentSection.startMs + relativeMs);
-            }}
-          />
-
-          <div className="mt-4 text-small opacity-80">
-            Section {currentSection?.orderNo} of {secCount} • {sliceSecs}s slice
-          </div>
-
-          {!!userId && (
-            <div className="mt-4">
-              <Button variant="secondary" size="sm" onClick={persistAnswers} disabled={saving}>
-                Save progress
-              </Button>
+          {/* Audio + transcript */}
+          <Card className="p-4 rounded-ds-2xl flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon name="Headphones" size={16} className="text-primary" />
+                <p className="text-xs font-medium text-muted-foreground">
+                  Audio (single play per section · IELTS-style)
+                </p>
+              </div>
             </div>
-          )}
 
-          {/* Questions */}
-          <div className="grid gap-6 mt-8 md:grid-cols-2">
-            {currentSection?.questions.map((q) => (
-              <Card key={q.id} className="p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold">
-                    Q{q.qNo}. {q.prompt}
-                  </h3>
-                  {checked && (
-                    <Badge tone={isCorrect(q) ? 'success' : 'danger'} size="xs">
-                      {isCorrect(q) ? 'Correct' : 'Incorrect'}
-                    </Badge>
-                  )}
-                </div>
+            <audio
+              controls
+              src={audioSrc}
+              onTimeUpdate={(e) => {
+                const audio = e.currentTarget;
+                const ms = audio.currentTime * 1000;
 
-                {q.type === 'mcq' ? (
-                  <ul className="mt-4 grid gap-2">
-                    {(q as MCQ).options.map((opt) => {
-                      const chosen = answers[q.id] === opt;
-                      const correct = (q as MCQ).answer === opt;
-                      const showState = checked && (chosen || correct);
+                if (ms > currentSection.endMs && autoPlay) {
+                  audio.pause();
+                }
+              }}
+              onLoadedMetadata={(e) => {
+                if (pendingSeekMs != null) {
+                  e.currentTarget.currentTime = pendingSeekMs / 1000;
+                  setPendingSeekMs(null);
+                } else {
+                  e.currentTarget.currentTime = currentSection.startMs / 1000;
+                }
+              }}
+            />
 
-                      const cls = showState
-                        ? correct
-                          ? 'border-success/50 bg-success/10'
-                          : chosen
-                          ? 'border-sunsetOrange/50 bg-sunsetOrange/10'
-                          : 'border-lightBorder'
-                        : 'border-lightBorder dark:border-white/10';
-
-                      return (
-                        <li key={opt}>
-                          <button
-                            type="button"
-                            onClick={() => handleMCQ(q as MCQ, opt)}
-                            className={`w-full text-left p-3.5 rounded-ds border ${cls}`}
-                          >
-                            <span className="mr-2">{opt}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <div className="mt-4">
-                    {!checked ? (
-                      <Input
-                        label=""
-                        placeholder="Type your answer"
-                        value={answers[q.id] ?? ''}
-                        onChange={(e) =>
-                          handleGapChange(q as GAP, (e.target as HTMLInputElement).value)
-                        }
-                        onBlur={() => handleGapBlur(q as GAP)}
-                      />
-                    ) : (
-                      <Alert variant={isCorrect(q) ? 'success' : 'warning'}>
-                        <div className="flex flex-col text-sm">
-                          <span>
-                            <strong>Your answer:</strong> {answers[q.id] || <em>(blank)</em>}
-                          </span>
-                          {!isCorrect(q) && (
-                            <span>
-                              <strong>Correct:</strong> {(q as GAP).answer}
-                            </span>
-                          )}
-                        </div>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3 mt-8">
-            {!checked ? (
-              <Button
-                onClick={async () => {
-                  setChecked(true);
-                  if (userId) await persistAnswers();
-                }}
-              >
-                Check answers
-              </Button>
-            ) : (
-              <>
-                <Button variant="secondary" onClick={() => setChecked(false)}>
-                  Edit answers
-                </Button>
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
                 <Button
-                  onClick={async () => {
-                    if (!test) return;
-
-                    if (userId) await persistAnswers();
-
-                    if (currentIdx >= secCount - 1) {
-                      let attemptId: string | null = null;
-
-                      if (userId) {
-                        attemptId = await submitAttempt();
-                        if (!attemptId) {
-                          submittedRef.current = false;
-                          return;
-                        }
-                      }
-
-                      submittedRef.current = true;
-                      setAttemptFinished(true);
-
-                      try {
-                        autosaveRef.current?.clear();
-                        if (slug) localStorage.removeItem(LEGACY_LISTEN_KEY(slug));
-                      } catch {}
-
-                      const target = attemptId
-                        ? `/listening/${test.slug}/review?attemptId=${attemptId}`
-                        : `/listening/${test.slug}/review`;
-                      router.push(target);
-                    } else {
-                      setSectionIndex((i) => i + 1);
-                      setChecked(false);
-                    }
+                  size="xs"
+                  variant="secondary"
+                  className="rounded-ds-full"
+                  onClick={() => {
+                    setPendingSeekMs(currentSection.startMs);
                   }}
                 >
-                  {currentIdx < secCount - 1 ? 'Next section' : 'Finish & review'}
+                  <Icon name="RotateCcw" size={14} />
+                  Restart section audio
                 </Button>
-              </>
+
+                <label className="inline-flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={autoPlay}
+                    onChange={(e) => setAutoPlay(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  <span>Auto-pause at end of section</span>
+                </label>
+              </div>
+
+              <Button
+                size="xs"
+                variant="ghost"
+                className="rounded-ds-full"
+                onClick={() => setTranscriptOpen((v) => !v)}
+              >
+                <Icon name="FileText" size={14} />
+                {transcriptOpen ? 'Hide transcript' : 'Show transcript'}
+              </Button>
+            </div>
+
+            {transcriptOpen && currentSection.transcript && (
+              <div className="mt-2 rounded-ds-xl bg-muted px-3 py-2 text-xs text-muted-foreground max-h-56 overflow-y-auto">
+                {currentSection.transcript.split('\n').map((line, idx) => (
+                  <p key={idx} className="mb-1">
+                    {line}
+                  </p>
+                ))}
+              </div>
             )}
+          </Card>
+
+          {/* Questions */}
+          <Card className="p-5 rounded-ds-2xl space-y-4">
+            {currentSection.questions.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No questions found for this section. Check your seeding for{' '}
+                <code className="font-mono text-[11px]">
+                  listening_questions.test_id = {test.id}
+                </code>
+                .
+              </p>
+            )}
+
+            {currentSection.questions.map((q) => {
+              const userAnswer = answers[q.id] ?? '';
+              const isMCQ = q.type === 'mcq';
+
+              const isCorrect =
+                userAnswer &&
+                userAnswer.trim().toLowerCase() === q.answer.trim().toLowerCase();
+
+              return (
+                <div
+                  key={q.id}
+                  className="border-b border-border/60 pb-4 last:border-b-0 last:pb-0"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-sm font-medium text-foreground">
+                      Q{q.qNo}. {q.prompt}
+                    </p>
+                    {checked && (
+                      <Badge
+                        size="xs"
+                        variant={isCorrect ? 'success' : 'danger'}
+                      >
+                        {isCorrect ? 'Correct' : 'Incorrect'}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {isMCQ ? (
+                    <div className="grid gap-2">
+                      {(q as MCQ).options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleSetAnswer(q.id, opt)}
+                          className={`w-full text-left text-xs rounded-ds-xl border px-3 py-2 transition ${
+                            userAnswer === opt
+                              ? 'border-primary bg-primary/10 text-foreground'
+                              : 'border-border bg-card hover:border-primary/60'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        value={userAnswer}
+                        onChange={(e) => handleSetAnswer(q.id, e.target.value)}
+                        placeholder="Write your answer"
+                      />
+                      {checked && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Correct answer:{' '}
+                          <span className="font-semibold text-foreground">
+                            {q.answer}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </Card>
+
+          {/* Bottom controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-ds-full"
+                disabled={currentIdx === 0}
+                onClick={() =>
+                  setCurrentIdx((prev) => Math.max(0, prev - 1))
+                }
+              >
+                <Icon name="ArrowLeft" size={14} />
+                Previous section
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-ds-full"
+                disabled={isLastSection}
+                onClick={() =>
+                  setCurrentIdx((prev) => prev + 1)
+                }
+              >
+                Next section
+                <Icon name="ArrowRight" size={14} />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-ds-full text-xs"
+                onClick={() => setChecked((v) => !v)}
+              >
+                {checked ? 'Hide check' : 'Quick check (local only)'}
+              </Button>
+
+              <Button
+                size="sm"
+                variant="primary"
+                className="rounded-ds-full text-xs"
+                onClick={handleSubmit}
+                disabled={attemptFinished}
+              >
+                Submit and view band
+              </Button>
+            </div>
           </div>
         </Container>
-      </section>
+      </main>
     </>
   );
 }
