@@ -1,136 +1,178 @@
+// components/reading/QuestionNav.tsx
 import * as React from 'react';
+
+import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { cn } from '@/lib/utils';
 
-export const QuestionNav = ({
-  questions,
-  answers,
-  flags,
-  currentQuestionId,
-  onJump,
-  statusFilter,
-  typeFilter,
-  setStatusFilter,
-  setTypeFilter,
+export type FilterStatus = 'all' | 'unanswered' | 'flagged';
+
+type QuestionNavProps = {
+  /** Total questions in this test (1..N) */
+  totalQuestions: number;
+  /** 0-based index of the current question */
+  currentIndex: number;
+  /** Jump to a different question (0-based) */
+  onChangeQuestion: (index: number) => void;
+
+  /** Map: questionNumber (1..N) -> isAnswered */
+  answeredMap: Record<number, boolean>;
+  /** Map: questionNumber (1..N) -> isFlagged */
+  flaggedMap?: Record<number, boolean>;
+
+  /** Current filter mode for the nav (All / Unanswered / Flagged) */
+  filterStatus: FilterStatus;
+  onFilterStatusChange: (status: FilterStatus) => void;
+};
+
+const FILTERS: { id: FilterStatus; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'unanswered', label: 'Unanswered' },
+  { id: 'flagged', label: 'Flagged' },
+];
+
+export const QuestionNav: React.FC<QuestionNavProps> = ({
+  totalQuestions,
+  currentIndex,
+  onChangeQuestion,
+  answeredMap,
+  flaggedMap = {},
+  filterStatus,
+  onFilterStatusChange,
 }) => {
-  const total = questions.length;
-  const currentIndex = questions.findIndex((q) => q.id === currentQuestionId);
+  const currentQuestionNumber = currentIndex + 1;
+
+  const answeredCount = React.useMemo(
+    () =>
+      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+        const qNum = i + 1;
+        return answeredMap[qNum] ? acc + 1 : acc;
+      }, 0),
+    [answeredMap, totalQuestions],
+  );
+
+  const flaggedCount = React.useMemo(
+    () =>
+      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+        const qNum = i + 1;
+        return flaggedMap[qNum] ? acc + 1 : acc;
+      }, 0),
+    [flaggedMap, totalQuestions],
+  );
+
+  const isVisibleUnderFilter = (qNum: number): boolean => {
+    if (filterStatus === 'all') return true;
+    const isAnswered = !!answeredMap[qNum];
+    const isFlagged = !!flaggedMap[qNum];
+
+    if (filterStatus === 'unanswered') return !isAnswered;
+    if (filterStatus === 'flagged') return isFlagged;
+
+    return true;
+  };
 
   return (
-    <div className="bg-slate-50 border-b px-4 py-3 space-y-3">
-      <div className="flex items-center justify-between text-[11px] text-slate-600">
-        <span className="font-semibold text-slate-800">
-          Question {currentIndex + 1} of {total}
-        </span>
-
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-full bg-emerald-500" />
-            <span>Answered</span>
+    <Card
+      className={cn(
+        'w-full border border-border/70 bg-card/95',
+        'flex flex-col gap-2 px-4 py-3',
+      )}
+    >
+      {/* Top row: Question X of Y + filters */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-[12px] text-muted-foreground">
+          Question{' '}
+          <span className="font-semibold text-foreground">
+            {currentQuestionNumber}
+          </span>{' '}
+          of {totalQuestions}
+          <span className="ml-2 text-[11px]">
+            • Answered {answeredCount}/{totalQuestions}
           </span>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-full bg-amber-500" />
-            <span>Review</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-full bg-blue-500" />
-            <span>Current</span>
-          </span>
+          {flaggedCount > 0 ? (
+            <span className="ml-2 text-[11px] text-amber-600 dark:text-amber-400">
+              • Flagged {flaggedCount}
+            </span>
+          ) : null}
         </div>
-      </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {questions.map((q) => {
-          const isCurrent = q.id === currentQuestionId;
-          const isFlagged = flags[q.id];
-          const isAns = !!answers[q.id] && answers[q.id] !== null;
-
-          return (
-            <button
+        <div className="flex items-center gap-1">
+          {FILTERS.map((f) => (
+            <Button
+              key={f.id}
               type="button"
-              key={q.id}
-              onClick={() => onJump(q.id)}
+              size="xs"
+              variant={filterStatus === f.id ? 'secondary' : 'ghost'}
               className={cn(
-                'h-4 w-4 rounded-full border border-slate-200 transition focus:outline-none focus:ring-2 focus:ring-primary/50',
-                isCurrent && 'bg-blue-500 border-blue-500 scale-110',
-                !isCurrent && isFlagged && 'bg-amber-500 border-amber-500',
-                !isCurrent && !isFlagged && isAns && 'bg-emerald-500 border-emerald-500',
-                !isCurrent && !isFlagged && !isAns && 'bg-slate-200',
+                'h-7 px-3 text-[11px] font-medium',
+                filterStatus === f.id &&
+                  'bg-primary/10 text-primary dark:text-primary-foreground',
               )}
-              aria-label={`Jump to question ${q.questionOrder}`}
-            />
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-2 text-[11px] text-slate-600">
-        <Button
-          size="xs"
-          variant={statusFilter === 'all' ? 'soft' : 'outline'}
-          onClick={() => setStatusFilter('all')}
-        >
-          All
-        </Button>
-        <Button
-          size="xs"
-          variant={statusFilter === 'unanswered' ? 'soft' : 'outline'}
-          onClick={() => setStatusFilter('unanswered')}
-        >
-          Unanswered
-        </Button>
-        <Button
-          size="xs"
-          variant={statusFilter === 'flagged' ? 'soft' : 'outline'}
-          onClick={() => setStatusFilter('flagged')}
-        >
-          Marked
-        </Button>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wide">Type</span>
-          <Button
-            size="xs"
-            variant={typeFilter === 'all' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('all')}
-          >
-            All
-          </Button>
-          <Button
-            size="xs"
-            variant={typeFilter === 'mcq' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('mcq')}
-          >
-            MCQ
-          </Button>
-          <Button
-            size="xs"
-            variant={typeFilter === 'tfng' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('tfng')}
-          >
-            TFNG
-          </Button>
-          <Button
-            size="xs"
-            variant={typeFilter === 'yynn' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('yynn')}
-          >
-            Y/NG
-          </Button>
-          <Button
-            size="xs"
-            variant={typeFilter === 'gap' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('gap')}
-          >
-            Gap
-          </Button>
-          <Button
-            size="xs"
-            variant={typeFilter === 'match' ? 'soft' : 'outline'}
-            onClick={() => setTypeFilter('match')}
-          >
-            Match
-          </Button>
+              onClick={() => onFilterStatusChange(f.id)}
+            >
+              {f.label}
+            </Button>
+          ))}
         </div>
       </div>
-    </div>
+
+      {/* Bottom row: IELTS-style dots */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-1 flex-wrap gap-1.5">
+          {Array.from({ length: totalQuestions }).map((_, idx) => {
+            const qNum = idx + 1;
+            if (!isVisibleUnderFilter(qNum)) return null;
+
+            const isCurrent = qNum === currentQuestionNumber;
+            const isAnswered = !!answeredMap[qNum];
+            const isFlagged = !!flaggedMap[qNum];
+
+            return (
+              <button
+                key={qNum}
+                type="button"
+                title={`Question ${qNum}${
+                  isFlagged ? ' (flagged)' : isAnswered ? ' (answered)' : ''
+                }`}
+                onClick={() => onChangeQuestion(idx)}
+                className={cn(
+                  'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium',
+                  'transition-colors focus:outline-none focus:ring-1 focus:ring-primary',
+                  'border border-border/60 bg-muted text-muted-foreground',
+                  isAnswered && 'bg-emerald-500/20 border-emerald-500 text-emerald-700',
+                  isFlagged && 'bg-amber-500/20 border-amber-500 text-amber-700',
+                  isCurrent &&
+                    'bg-primary text-primary-foreground border-primary shadow-sm',
+                )}
+              >
+                {qNum}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend (IELTS-style) */}
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full border border-border/70 bg-muted" />
+            <span>Not answered</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+            <span>Answered</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full bg-amber-500/80" />
+            <span>Flagged</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full bg-primary" />
+            <span>Current</span>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 };
+
+export default QuestionNav;

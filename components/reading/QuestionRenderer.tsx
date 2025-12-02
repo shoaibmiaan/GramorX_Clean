@@ -1,238 +1,177 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Input } from '@/components/design-system/Input';
-import { Button } from '@/components/design-system/Button';
-import type { AnswerValue, ReadingAnswersStore } from '@/components/reading/useReadingAnswers';
+// components/reading/QuestionRenderer.tsx
 
-export type TFNGQuestion = {
-  kind: 'tfng';
-  id: string;
-  prompt: string;
+import * as React from 'react';
+import { Card } from '@/components/design-system/Card';
+import { cn } from '@/lib/utils';
+
+type BaseProps = {
+  value: any;
+  onChange: (v: any) => void;
+  isFlagged?: boolean;
+  onToggleFlag?: () => void;
 };
 
-export type MCQQuestion = {
-  kind: 'mcq';
-  id: string;
-  prompt: string;
-  options: string[];
-};
-
-export type MatchingQuestion = {
-  kind: 'matching';
-  id: string;
-  prompt: string;
-  pairs: { left: string; right: string[] }[];
-};
-
-export type ShortQuestion = {
-  kind: 'short';
-  id: string;
-  prompt: string;
-};
-
-export type Question =
-  | TFNGQuestion
-  | MCQQuestion
-  | MatchingQuestion
-  | ShortQuestion;
-
-type Props = {
-  index?: number;
-  question: Question;
-  store: ReadingAnswersStore;
-  /** optional: external change handler if you ever need it */
-  onChange?: (id: string, value: AnswerValue) => void;
-};
-
-/**
- * DS-compliant question renderer:
- * - TF/NG & MCQ use button groups (toggle, aria-pressed)
- * - Matching uses one <select> per left-item
- * - Short uses a text input
- * - Persists answer via useReadingAnswers(slug)
- * - Keyboard accessible (Enter/Space toggles; Tab order natural)
- */
-export const QuestionRenderer: React.FC<Props> = ({
-  index,
-  question,
-  store,
-  onChange,
-}) => {
-  const [value, setValue] = useState<AnswerValue | undefined>(
-    store.answers?.[question.id],
-  );
-
-  useEffect(() => {
-    setValue(store.answers?.[question.id]);
-  }, [store.answers, question.id]);
-
-  const commit = (v: AnswerValue) => {
-    setValue(v);
-    store.setAnswer(question.id, v);
-    onChange?.(question.id, v);
-  };
-
-  // ---------- Renderers ----------
-  function renderTFNG(_q: TFNGQuestion) {
-    // ^ rename param to _q to satisfy unused-args lint
-    const choices = ['True', 'False', 'Not Given'] as const;
-    const active = value ?? null;
-
-    return (
-      <div
-        className="flex flex-wrap gap-2"
-        role="group"
-        aria-label="True False Not Given"
-      >
-        {choices.map((c) => {
-          const pressed = active === c;
-          return (
-            <Button
-              key={c}
-              type="button"
-              variant={pressed ? 'primary' : 'secondary'}
-              className="rounded-ds-xl"
-              aria-pressed={pressed}
-              onClick={() => commit(c)}
-              onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  commit(c);
-                }
-              }}
-            >
-              {c}
-            </Button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderMCQ(q: MCQQuestion) {
-    const active = value ?? null;
-    const opts = Array.isArray(q.options) ? q.options : [];
-
-    return (
-      <div
-        className="flex flex-wrap gap-2"
-        role="radiogroup"
-        aria-label="Multiple choice options"
-      >
-        {opts.map((opt, i) => {
-          const pressed = active === opt;
-          return (
-            <Button
-              key={`${q.id}:${i}`}
-              type="button"
-              variant={pressed ? 'primary' : 'secondary'}
-              className="rounded-ds-xl"
-              aria-pressed={pressed}
-              onClick={() => commit(opt)}
-              onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  commit(opt);
-                }
-              }}
-            >
-              {opt}
-            </Button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  const RenderMatching: React.FC<{
-    q: MatchingQuestion;
-    value: AnswerValue | undefined;
-    commit: (v: AnswerValue) => void;
-  }> = ({ q, value, commit }) => {
-    const pairsLength = q.pairs.length;
-    const current: string[] = useMemo(() => {
-      if (Array.isArray(value)) return value as string[];
-      if (value == null) return Array(pairsLength).fill('');
-      return Array(pairsLength).fill('');
-    }, [value, pairsLength]);
-
-    const setAt = (idx: number, v: string) => {
-      const arr = [...current];
-      arr[idx] = v;
-      commit(arr);
-    };
-
-    return (
-      <div className="grid gap-3">
-        {q.pairs.map((p, idx) => {
-          const options = Array.isArray(p.right) ? p.right : [];
-          const selected = current[idx] ?? '';
-          const selectId = `${q.id}-match-${idx}`;
-
-          return (
-            <div
-              key={idx}
-              className="grid items-center gap-2 sm:grid-cols-[1fr_minmax(180px,_240px)]"
-            >
-              <label htmlFor={selectId} className="text-small opacity-80">
-                {p.left}
-              </label>
-              <select
-                id={selectId}
-                className="rounded-ds border border-lightBorder dark:border-white/10 p-2 bg-white dark:bg-dark"
-                value={selected}
-                onChange={(e) => setAt(idx, e.target.value)}
-                aria-label={`Select match for ${p.left}`}
-              >
-                <option value="" disabled>
-                  Select…
-                </option>
-                {options.map((opt, i) => (
-                  <option key={`${q.id}:${idx}:${i}`} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  function renderShort(_q: ShortQuestion) {
-    // ^ rename param to _q to satisfy unused-args lint
-    return (
-      <div className="max-w-md">
-        <Input
-          aria-label="Answer"
-          placeholder="Type your answer…"
-          value={typeof value === 'boolean' ? (value ? 'true' : 'false') : value ?? ''}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            commit(e.target.value)
-          }
-        />
-        <p className="text-small opacity-70 mt-2">
-          Tip: one word only unless specified.
-        </p>
-      </div>
-    );
-  }
+// -----------------------------
+// TRUE / FALSE / NOT GIVEN
+// -----------------------------
+export const TFNGQuestion: React.FC<
+  BaseProps & { prompt: string }
+> = ({ prompt, value, onChange }) => {
+  const opts = [
+    { key: 'true', label: 'TRUE', letter: 'T' },
+    { key: 'false', label: 'FALSE', letter: 'F' },
+    { key: 'not-given', label: 'NOT GIVEN', letter: 'NG' },
+  ];
 
   return (
-    <div>
-      {index != null && (
-        <div className="text-small text-muted-foreground mb-1">Question {index}</div>
-      )}
-      <div className="tight-block mb-4">{question.prompt}</div>
+    <div className="space-y-3">
+      <p className="font-medium">{prompt}</p>
 
-      {question.kind === 'tfng' && renderTFNG(question)}
-      {question.kind === 'mcq' && renderMCQ(question)}
-      {question.kind === 'matching' && (
-        <RenderMatching q={question as MatchingQuestion} value={value} commit={commit} />
-      )}
-      {question.kind === 'short' && renderShort(question)}
+      <div className="flex flex-col gap-2 ml-1">
+        {opts.map((o) => (
+          <div
+            key={o.key}
+            className={cn(
+              'flex items-center border rounded-md px-3 py-2 cursor-pointer select-none transition',
+              'border-border bg-card hover:bg-muted/40',
+              value === o.key &&
+                'border-primary bg-primary/10 ring-1 ring-primary'
+            )}
+            onClick={() => onChange(o.key)}
+          >
+            <div
+              className={cn(
+                'w-7 h-7 rounded-full flex items-center justify-center font-semibold mr-3',
+                value === o.key
+                  ? 'bg-primary text-white'
+                  : 'bg-muted text-foreground'
+              )}
+            >
+              {o.letter}
+            </div>
+            <span className="text-sm">{o.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default QuestionRenderer;
+// -----------------------------
+// MULTIPLE CHOICE (A/B/C/D…)
+// -----------------------------
+export const MCQQuestion: React.FC<
+  BaseProps & { prompt: string; options: string[] }
+> = ({ prompt, options, value, onChange }) => {
+  return (
+    <div className="space-y-3">
+      <p className="font-medium">{prompt}</p>
+
+      <div className="flex flex-col gap-2 ml-1">
+        {options.map((opt, idx) => {
+          const letter = String.fromCharCode(65 + idx); // A, B, C…
+          return (
+            <div
+              key={opt}
+              className={cn(
+                'flex items-center border rounded-md px-3 py-2 cursor-pointer transition',
+                'border-border bg-card hover:bg-muted/40',
+                value === opt &&
+                  'border-primary bg-primary/10 ring-1 ring-primary'
+              )}
+              onClick={() => onChange(opt)}
+            >
+              <div
+                className={cn(
+                  'w-7 h-7 rounded-full flex items-center justify-center font-semibold mr-3',
+                  value === opt
+                    ? 'bg-primary text-white'
+                    : 'bg-muted text-foreground'
+                )}
+              >
+                {letter}
+              </div>
+
+              <span className="text-sm">{opt}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// -----------------------------
+// SHORT ANSWER / FILL BLANK
+// -----------------------------
+export const ShortQuestion: React.FC<
+  BaseProps & { prompt: string }
+> = ({ prompt, value, onChange }) => {
+  return (
+    <div className="space-y-3">
+      <p className="font-medium">{prompt}</p>
+      <input
+        type="text"
+        className={cn(
+          'w-full max-w-xs px-3 py-2 border rounded-md bg-background text-sm',
+          'border-border focus:ring-1 focus:ring-primary'
+        )}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value.trim())}
+      />
+    </div>
+  );
+};
+
+// -----------------------------
+// MASTER WRAPPER
+// -----------------------------
+export const QuestionRenderer = ({
+  question,
+  value,
+  onChange,
+  isFlagged,
+  onToggleFlag,
+}: any) => {
+  const type = question.questionTypeId;
+
+  return (
+    <div className="space-y-3 p-3">
+      {/* FLAG */}
+      <div className="flex justify-between items-center mb-1">
+        <div className="text-[13px] text-muted-foreground"></div>
+        {onToggleFlag ? (
+          <button
+            onClick={onToggleFlag}
+            className={cn(
+              'text-xs font-medium px-2 py-1 rounded-md border transition',
+              isFlagged
+                ? 'bg-amber-300/20 border-amber-400 text-amber-700'
+                : 'border-border text-muted-foreground hover:bg-muted/40'
+            )}
+          >
+            {isFlagged ? 'Flagged' : 'Flag'}
+          </button>
+        ) : null}
+      </div>
+
+      {/* QUESTION TYPES */}
+      {type === 'tfng' || type === 'yynn' ? (
+        <TFNGQuestion
+          prompt={question.prompt}
+          value={value}
+          onChange={onChange}
+        />
+      ) : type === 'mcq' ? (
+        <MCQQuestion
+          prompt={question.prompt}
+          options={question.options || []}
+          value={value}
+          onChange={onChange}
+        />
+      ) : (
+        <ShortQuestion prompt={question.prompt} value={value} onChange={onChange} />
+      )}
+    </div>
+  );
+};

@@ -1,3 +1,5 @@
+"use client";
+
 import React, {
   createContext,
   useCallback,
@@ -5,12 +7,23 @@ import React, {
   useEffect,
   useMemo,
   useState,
-} from 'react';
+} from "react";
 
-export type ToastIntent = 'success' | 'error' | 'warning' | 'info';
+// ===================
+// TYPES
+// ===================
+export type ToastIntent =
+  | "default"
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  | "destructive";
 
 export type ToastOptions = {
+  title?: string;
   description?: string;
+  intent?: ToastIntent;
   duration?: number;
 };
 
@@ -22,10 +35,32 @@ export type ToastInput = {
 };
 
 type ToastItem = ToastInput & { id: string };
+type ToastDetail = string | { description?: string; duration?: number };
 
-type ToastDetail = string | ToastOptions;
+const DEFAULT_DURATION = 3500;
 
+// ===================
+// UTIL
+// ===================
+const randomId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+const normalizeDetail = (title: string, detail?: ToastDetail): ToastInput => {
+  if (!detail) return { title };
+  if (typeof detail === "string") return { title, description: detail };
+  return { title, description: detail.description, duration: detail.duration };
+};
+
+// ===================
+// API TYPE
+// ===================
 type ToastApi = {
+  // FULL ShadCN-style call
+  (opts: ToastOptions): void;
+
+  // DS legacy API
   push: (input: ToastInput) => void;
   success: (title: string, detail?: ToastDetail) => void;
   error: (title: string, detail?: ToastDetail) => void;
@@ -33,74 +68,77 @@ type ToastApi = {
   info: (title: string, detail?: ToastDetail) => void;
 };
 
-const DEFAULT_DURATION = 3500;
+const logMissing = (input: ToastInput | ToastOptions) =>
+  console.warn("[toast] Missing <ToastProvider>", input);
 
-const randomId = () => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
+// ===================
+// API CREATOR
+// ===================
+const createApi = (dispatch: (input: ToastInput) => void): ToastApi => {
+  const api = ((opts: ToastOptions) => {
+    const mapped: ToastInput = {
+      title: opts.title ?? "",
+      description: opts.description ?? "",
+      intent: opts.intent ?? "default",
+      duration: opts.duration,
+    };
+    dispatch(mapped);
+  }) as ToastApi;
+
+  // DS functions
+  api.push = (input) => dispatch(input);
+
+  api.success = (title, detail) =>
+    dispatch({ ...normalizeDetail(title, detail), intent: "success" });
+
+  api.error = (title, detail) =>
+    dispatch({ ...normalizeDetail(title, detail), intent: "error" });
+
+  api.warn = (title, detail) =>
+    dispatch({ ...normalizeDetail(title, detail), intent: "warning" });
+
+  api.info = (title, detail) =>
+    dispatch({ ...normalizeDetail(title, detail), intent: "info" });
+
+  return api;
 };
 
-const normalizeDetail = (title: string, detail?: ToastDetail): ToastInput => {
-  if (!detail) return { title };
-  if (typeof detail === 'string') {
-    return { title, description: detail };
-  }
-  return {
-    title,
-    description: detail.description,
-    duration: detail.duration,
-  };
-};
-
-const logMissingProvider = (input: ToastInput) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[toast] Missing <ToastProvider>', input);
-  }
-};
-
-const createToastApi = (dispatch: (toast: ToastInput) => void): ToastApi => ({
-  push: (input) => dispatch(input),
-  success: (title, detail) => dispatch({ ...normalizeDetail(title, detail), intent: 'success' }),
-  error: (title, detail) => dispatch({ ...normalizeDetail(title, detail), intent: 'error' }),
-  warn: (title, detail) => dispatch({ ...normalizeDetail(title, detail), intent: 'warning' }),
-  info: (title, detail) => dispatch({ ...normalizeDetail(title, detail), intent: 'info' }),
-});
-
-const fallbackApi = createToastApi(logMissingProvider);
+const fallbackApi = createApi(logMissing);
 let activeApi: ToastApi = fallbackApi;
 
-export const toast: ToastApi = {
-  push: (input) => activeApi.push(input),
-  success: (title, detail) => activeApi.success(title, detail),
-  error: (title, detail) => activeApi.error(title, detail),
-  warn: (title, detail) => activeApi.warn(title, detail),
-  info: (title, detail) => activeApi.info(title, detail),
-};
-
+// ===================
+// CONTEXT
+// ===================
 const ToastCtx = createContext<ToastApi>(fallbackApi);
 
+// ===================
+// PROVIDER
+// ===================
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const remove = useCallback((id: string) => {
-    setItems((list) => list.filter((t) => t.id !== id));
+    setToasts((list) => list.filter((t) => t.id !== id));
   }, []);
 
   const push = useCallback(
     (input: ToastInput) => {
       const id = randomId();
-      const duration = typeof input.duration === 'number' ? input.duration : DEFAULT_DURATION;
-      setItems((list) => [...list, { ...input, id, duration }]);
+      const duration =
+        typeof input.duration === "number"
+          ? input.duration
+          : DEFAULT_DURATION;
+
+      setToasts((list) => [...list, { ...input, id }]);
+
       if (duration > 0) {
         setTimeout(() => remove(id), duration);
       }
     },
-    [remove],
+    [remove]
   );
 
-  const api = useMemo(() => createToastApi(push), [push]);
+  const api = useMemo(() => createApi(push), [push]);
 
   useEffect(() => {
     activeApi = api;
@@ -112,24 +150,32 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastCtx.Provider value={api}>
       {children}
-      <div className="fixed z-[1000] bottom-5 right-5 flex flex-col gap-2 w-[min(92vw,360px)]">
-        {items.map((toastItem) => (
+
+      {/* Toast Renderer */}
+      <div className="fixed z-[2000] bottom-5 right-5 flex flex-col gap-2 w-[min(90vw,360px)]">
+        {toasts.map((t) => (
           <div
-            key={toastItem.id}
-            className={`rounded-ds-2xl p-4 shadow-lg border transition-colors duration-200
-              ${toastItem.intent === 'success'
-                ? 'bg-success/10 border-success/20 text-success'
-                : toastItem.intent === 'error'
-                  ? 'bg-sunsetRed/10 border-sunsetRed/20 text-sunsetRed'
-                  : toastItem.intent === 'warning'
-                    ? 'bg-goldenYellow/10 border-goldenYellow/20 text-goldenYellow'
-                    : 'bg-dark/80 border-border text-foreground'
-              }`}
+            key={t.id}
+            className={`
+              rounded-xl px-4 py-3 shadow-lg border
+              animate-in fade-in slide-in-from-bottom-4 duration-200
+              ${
+                t.intent === "success"
+                  ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
+                  : t.intent === "error" || t.intent === "destructive"
+                  ? "bg-red-500/10 border-red-500 text-red-400"
+                  : t.intent === "warning"
+                  ? "bg-yellow-500/10 border-yellow-500 text-yellow-400"
+                  : t.intent === "info"
+                  ? "bg-sky-500/10 border-sky-500 text-sky-400"
+                  : "bg-neutral-800/80 border-neutral-700 text-neutral-200"
+              }
+            `}
           >
-            <div className="font-semibold">{toastItem.title}</div>
-            {toastItem.description ? (
-              <div className="text-small opacity-90 mt-1">{toastItem.description}</div>
-            ) : null}
+            <div className="font-semibold">{t.title}</div>
+            {t.description && (
+              <div className="text-sm opacity-90 mt-0.5">{t.description}</div>
+            )}
           </div>
         ))}
       </div>
@@ -137,6 +183,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ===================
+// EXPORTS
+// ===================
 export function Toaster({ children }: { children?: React.ReactNode }) {
   return <ToastProvider>{children}</ToastProvider>;
 }
@@ -144,5 +193,3 @@ export function Toaster({ children }: { children?: React.ReactNode }) {
 export function useToast() {
   return useContext(ToastCtx);
 }
-
-export type ToastHandle = ToastApi;

@@ -66,9 +66,9 @@ const TimerProgress: React.FC<TimerProgressProps> = ({
   }, [remaining, isActive, onExpire]);
 
   return (
-    <div className="min-w-[170px]">
+    <div className="min-w-[170px] text-xs text-muted-foreground">
       <div className="text-[11px] uppercase tracking-wide opacity-80 text-center">
-        Time Remaining
+        Time remaining
       </div>
       <div
         className={[
@@ -77,15 +77,15 @@ const TimerProgress: React.FC<TimerProgressProps> = ({
             ? 'text-amber-300 animate-pulse'
             : warning
             ? 'text-amber-200'
-            : 'text-white',
+            : 'text-foreground',
         ].join(' ')}
       >
         {String(mins).padStart(2, '0')}:{String(rem).padStart(2, '0')}
       </div>
-      <div className="mt-2 flex items-center gap-3 text-[11px] text-white/80">
+      <div className="mt-2 flex items-center gap-3 text-[11px]">
         <ProgressBar value={pct} />
         {answered != null && (
-          <span className="whitespace-nowrap">
+          <span className="whitespace-nowrap text-muted-foreground">
             {answered}/{total} answered
           </span>
         )}

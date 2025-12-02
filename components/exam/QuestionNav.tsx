@@ -1,165 +1,308 @@
-import * as React from 'react';
-import { Flag } from 'lucide-react';
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import type { ReadingQuestion } from "@/lib/reading/types";
 
-export type QuestionNavFilter = 'all' | 'flagged' | 'unanswered';
+type AnswerValue = string | string[] | Record<string, any> | null;
+type FilterStatus = "all" | "flagged" | "unanswered";
+type FilterType = "all" | "tfng" | "ynng" | "mcq" | "gap" | "match";
 
-export type QuestionNavAnswers = Record<string, { value?: string | null; flagged?: boolean | null }>;
-
-export type QuestionNavQuestion = {
-  id: string;
-  index: number;
-  label?: string;
+type QuestionNavProps = {
+  questions: ReadingQuestion[];
+  answers: Record<string, AnswerValue>;
+  flags: Record<string, boolean>;
+  currentQuestionId: string;
+  onJump: (id: string) => void;
+  statusFilter: FilterStatus;
+  typeFilter: FilterType;
+  setStatusFilter: (value: FilterStatus) => void;
+  setTypeFilter: (value: FilterType) => void;
 };
 
-export type QuestionNavProps = {
-  questions: QuestionNavQuestion[];
-  answers: QuestionNavAnswers;
-  filter: QuestionNavFilter;
-  onFilterChange: (filter: QuestionNavFilter) => void;
-  onSelect: (id: string) => void;
-  onToggleFlag: (id: string) => void;
-  currentQuestionId?: string | null;
-  className?: string;
+const isAnswered = (value: AnswerValue) => {
+  if (!value) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") {
+    return Object.values(value).some(
+      (v) => (v ?? "").toString().trim() !== ""
+    );
+  }
+  return false;
 };
 
-const FILTERS: Array<{ id: QuestionNavFilter; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'unanswered', label: 'Unanswered' },
-  { id: 'flagged', label: 'Flagged' },
-];
-
-const isAnswered = (value?: string | null) => Boolean(value && value.trim().length > 0);
-
-const isFlagged = (flagged?: boolean | null) => Boolean(flagged);
-
-export function QuestionNav({
+export const QuestionNav: React.FC<QuestionNavProps> = ({
   questions,
   answers,
-  filter,
-  onFilterChange,
-  onSelect,
-  onToggleFlag,
+  flags,
   currentQuestionId,
-  className,
-}: QuestionNavProps) {
-  const total = questions.length;
-  const answeredCount = questions.reduce((acc, q) => (isAnswered(answers[q.id]?.value) ? acc + 1 : acc), 0);
-  const flaggedCount = questions.reduce((acc, q) => (isFlagged(answers[q.id]?.flagged) ? acc + 1 : acc), 0);
-  const unansweredCount = total - answeredCount;
+  onJump,
+  statusFilter,
+  typeFilter,
+  setStatusFilter,
+  setTypeFilter,
+}) => {
+  // We *don’t* hide questions with filters in nav; we only DIM them (CBE-style).
+  const isStatusVisible = (
+    qId: string,
+    statusFilter: FilterStatus
+  ): boolean => {
+    const answered = isAnswered(answers[qId]);
+    const flagged = !!flags[qId];
 
-  const filtered = questions.filter((question) => {
-    const entry = answers[question.id];
-    if (filter === 'flagged') {
-      return isFlagged(entry?.flagged);
-    }
-    if (filter === 'unanswered') {
-      return !isAnswered(entry?.value);
-    }
+    if (statusFilter === "all") return true;
+    if (statusFilter === "flagged") return flagged;
+    if (statusFilter === "unanswered") return !answered;
     return true;
-  });
+  };
 
-  const emptyMessage = filter === 'flagged' ? 'No questions are flagged.' : 'All questions have an answer.';
+  const isTypeVisible = (
+    q: ReadingQuestion,
+    typeFilter: FilterType
+  ): boolean => {
+    // @ts-ignore reading type
+    const t = (q.questionTypeId ?? "all") as FilterType;
+    if (typeFilter === "all") return true;
+    return t === typeFilter;
+  };
 
   return (
-    <aside
-      className={[
-        'rounded-3xl border border-border/80 bg-background/70 p-5 text-foreground shadow-lg shadow-black/10 backdrop-blur supports-[backdrop-filter]:backdrop-blur',
-        className || '',
-      ].join(' ')}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-small font-semibold">Review questions</div>
-          <div className="text-caption text-foreground/70">
-            {answeredCount}/{total} answered
+    <div className="w-full border-b border-[#2B2B2B] bg-[#1F1F1F] text-white font-[Arial,'Segoe UI',system-ui,sans-serif]">
+      {/* TOP BAR: FILTERS + COUNTS */}
+      <div className="flex items-center justify-between px-3 py-1.5 text-[11px] leading-none">
+        {/* LEFT: FILTERS */}
+        <div className="flex items-center gap-2">
+          {/* Status filter */}
+          <div className="flex items-center gap-[2px] bg-[#262626] border border-[#333] rounded-[2px] px-[4px] py-[2px]">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                statusFilter === "all"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("flagged")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                statusFilter === "flagged"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              Flagged
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("unanswered")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                statusFilter === "unanswered"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              Unanswered
+            </button>
+          </div>
+
+          {/* Type filter */}
+          <div className="flex items-center gap-[2px] bg-[#262626] border border-[#333] rounded-[2px] px-[4px] py-[2px]">
+            <span className="text-[10px] uppercase tracking-[0.04em] text-[#A0A0A0] mr-1">
+              Type
+            </span>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("all")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                typeFilter === "all"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("tfng")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                typeFilter === "tfng"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              TFNG
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("mcq")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                typeFilter === "mcq"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              MCQ
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("gap")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                typeFilter === "gap"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              Gap
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("match")}
+              className={cn(
+                "px-1.5 py-[1px] text-[10px] uppercase tracking-[0.04em]",
+                typeFilter === "match"
+                  ? "bg-[#3A3A3A] text-[#F2F2F2]"
+                  : "text-[#C5C5C5]"
+              )}
+            >
+              Match
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-caption text-foreground/70">
-          <Flag className="h-3.5 w-3.5 text-warning" aria-hidden />
-          Flagged
+
+        {/* RIGHT: META TEXT */}
+        <div className="flex items-center gap-3 text-[10px] text-[#C5C5C5]">
+          <span>
+            Total questions:{" "}
+            <span className="text-[#F2F2F2] font-semibold">
+              {questions.length}
+            </span>
+          </span>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Question filters">
-        {FILTERS.map((item) => {
-          const isActive = filter === item.id;
-          const count =
-            item.id === 'flagged'
-              ? flaggedCount
-              : item.id === 'unanswered'
-              ? unansweredCount
-              : total;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onFilterChange(item.id)}
-              className={[
-                'rounded-full border px-3 py-1 text-small transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                isActive ? 'border-primary bg-primary/10 text-primary' : 'border-border text-foreground hover:border-primary',
-              ].join(' ')}
-              aria-pressed={isActive}
-            >
-              {item.label}
-              <span className="ml-2 text-foreground/60">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* QUESTION MAP GRID */}
+      <div className="px-3 pb-2 pt-1 bg-[#202020] border-t border-[#2B2B2B]">
+        <div className="grid grid-cols-10 gap-[4px] text-[11px] leading-none">
+          {questions.map((q, idx) => {
+            const qNum = idx + 1;
+            const answered = isAnswered(answers[q.id]);
+            const flagged = !!flags[q.id];
+            const isCurrent = q.id === currentQuestionId;
 
-      <div
-        className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6"
-        role="list"
-        aria-label="Question navigator"
-      >
-        {filtered.map((question) => {
-          const entry = answers[question.id];
-          const answered = isAnswered(entry?.value);
-          const flagged = isFlagged(entry?.flagged);
-          const isCurrent = currentQuestionId ? question.id === currentQuestionId : false;
-          return (
-            <div key={question.id} className="relative" role="listitem">
-              <button
-                type="button"
-                onClick={() => onSelect(question.id)}
-                className={[
-                  'flex h-12 w-full flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-caption font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                  flagged
-                    ? 'border-warning bg-warning/10 text-warning'
-                    : answered
-                    ? 'border-success bg-success/10 text-success'
-                    : 'border-border bg-background text-foreground hover:border-primary',
-                  isCurrent ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : '',
-                ].join(' ')}
-                aria-pressed={isCurrent}
-                aria-label={`Jump to question ${question.index}${flagged ? ' (flagged)' : ''}${
-                  answered ? ' (answered)' : ' (unanswered)'
-                }`}
-              >
-                <span>{question.index}</span>
-                {question.label ? (
-                  <span className="text-[10px] uppercase tracking-wide text-foreground/60">{question.label}</span>
-                ) : null}
-              </button>
-              <button
-                type="button"
-                onClick={() => onToggleFlag(question.id)}
-                className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-transparent text-caption text-foreground/70 transition hover:text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label={flagged ? `Unflag question ${question.index}` : `Flag question ${question.index}`}
-              >
-                <Flag className={['h-3.5 w-3.5', flagged ? 'text-warning' : ''].join(' ')} aria-hidden />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+            const passesStatus = isStatusVisible(q.id, statusFilter);
+            const passesType = isTypeVisible(q, typeFilter);
 
-      {filtered.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed border-border px-3 py-2 text-caption text-foreground/70">
-          {emptyMessage}
-        </p>
-      ) : null}
-    </aside>
+            // Dim if filter doesn't match
+            const dimmed = !(passesStatus && passesType);
+
+            let bg = "#2A2A2A";
+            let border = "#3A3A3A";
+            let text = "#EAEAEA";
+
+            if (!answered && !flagged) {
+              bg = "#1F1F1F";
+              border = "#3A3A3A";
+              text = "#BFBFBF";
+            }
+
+            if (answered && !flagged) {
+              bg = "#F2F2F2";
+              border = "#C3C3C3";
+              text = "#1A1A1A";
+            }
+
+            if (flagged) {
+              bg = "#3B2F14";
+              border = "#F2C94C";
+              text = "#F2D174";
+            }
+
+            if (isCurrent) {
+              bg = "#2D4D8F";
+              border = "#4C7EDB";
+              text = "#FFFFFF";
+            }
+
+            return (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => onJump(q.id)}
+                className={cn(
+                  "h-[24px] w-full rounded-[2px] border text-center",
+                  "flex items-center justify-center",
+                  "focus:outline-none",
+                  dimmed && "opacity-45"
+                )}
+                style={{
+                  backgroundColor: bg,
+                  borderColor: border,
+                  color: text,
+                }}
+              >
+                {qNum}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* LEGEND */}
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-[#BFBFBF]">
+          <LegendSwatch
+            label="Current"
+            bg="#2D4D8F"
+            border="#4C7EDB"
+          />
+          <LegendSwatch
+            label="Answered"
+            bg="#F2F2F2"
+            border="#C3C3C3"
+            fg="#1A1A1A"
+          />
+          <LegendSwatch
+            label="Unanswered"
+            bg="#1F1F1F"
+            border="#3A3A3A"
+          />
+          <LegendSwatch
+            label="Flagged"
+            bg="#3B2F14"
+            border="#F2C94C"
+            fg="#F2D174"
+          />
+        </div>
+      </div>
+    </div>
   );
-}
+};
 
+const LegendSwatch: React.FC<{
+  label: string;
+  bg: string;
+  border: string;
+  fg?: string;
+}> = ({ label, bg, border, fg = "#EAEAEA" }) => {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className="inline-block h-[14px] w-[18px] rounded-[2px] border"
+        style={{ backgroundColor: bg, borderColor: border }}
+      />
+      <span style={{ color: "#C5C5C5" }} className="text-[10px]">
+        {label}
+      </span>
+    </div>
+  );
+};
+
+export default QuestionNav;

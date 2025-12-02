@@ -33,7 +33,8 @@ export function getQuestionKind(q: ReadingQuestion): QuestionKind {
   if (id === 'tfng' || id === 'true_false_not_given') return 'tfng';
   if (id === 'yynn' || id === 'yes_no_not_given') return 'yynn';
   if (id.startsWith('mcq') || id.includes('choice')) return 'mcq';
-  if (id.includes('gap') || id.includes('blank') || id.includes('summary')) return 'gap';
+  if (id.includes('gap') || id.includes('blank') || id.includes('summary'))
+    return 'gap';
   if (id.includes('match')) return 'match';
   if (
     id === 'short_answer' ||
@@ -47,7 +48,6 @@ export function getQuestionKind(q: ReadingQuestion): QuestionKind {
 }
 
 function getMcqOptions(q: ReadingQuestion): string[] {
-  // Try constraintsJson.options (most likely)
   const rawConstraints = (q as any).constraintsJson as
     | { options?: string[]; labels?: string[] }
     | undefined;
@@ -61,7 +61,6 @@ function getMcqOptions(q: ReadingQuestion): string[] {
     }
   }
 
-  // Fallback – no options in DB yet
   return [];
 }
 
@@ -116,13 +115,12 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
     const current = typeof value === 'string' ? value : '';
 
     if (!opts.length) {
-      // No structured options available – fall back to short-answer
       return (
         <input
           type="text"
           value={currentTextValue}
           onChange={handleTextChange}
-          className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
           placeholder="Type your answer"
         />
       );
@@ -131,7 +129,6 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
     return (
       <div className="space-y-2">
         {opts.map((opt, idx) => {
-          // If options are just text, prefix with A/B/C/…
           const letter = String.fromCharCode('A'.charCodeAt(0) + idx);
           const picked = current === letter || current === opt;
 
@@ -141,17 +138,17 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
               type="button"
               onClick={() => onChange(picked ? '' : letter)}
               className={[
-                'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition',
+                'flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs transition',
                 picked
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-background hover:border-primary/60',
+                  : 'border-lightBorder bg-background hover:border-primary/60 dark:bg-dark dark:border-white/10',
               ].join(' ')}
             >
               <span className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-[11px] font-semibold">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-lightBorder text-[11px] font-semibold dark:border-white/10">
                   {letter}
                 </span>
-                <span>{opt}</span>
+                <span className="text-foreground">{opt}</span>
               </span>
             </button>
           );
@@ -165,7 +162,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
       type="text"
       value={currentTextValue}
       onChange={handleTextChange}
-      className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
       placeholder="Write your answer"
     />
   );
@@ -187,11 +184,9 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
         {Array.from({ length: blanks }).map((_, idx) => (
           <label
             key={idx}
-            className="flex items-center gap-2 text-xs text-slate-700"
+            className="flex items-center gap-2 text-xs text-muted-foreground"
           >
-            <span className="w-6 text-right text-muted-foreground">
-              {idx + 1}.
-            </span>
+            <span className="w-6 text-right">{idx + 1}.</span>
             <input
               type="text"
               value={currentObj[idx] ?? ''}
@@ -201,7 +196,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
                   [idx]: e.target.value,
                 })
               }
-              className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex-1 rounded-md border border-lightBorder bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
               placeholder={labels[idx] ?? 'Type your answer'}
             />
           </label>
@@ -238,13 +233,13 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
         {prompts.map((prompt, idx) => (
           <div
             key={`${prompt}-${idx}`}
-            className="flex flex-col gap-1 rounded-md border border-border bg-background/60 p-2 sm:flex-row sm:items-center sm:gap-3"
+            className="flex flex-col gap-1 rounded-md border border-lightBorder bg-background/60 p-2 dark:bg-dark/70 dark:border-white/10 sm:flex-row sm:items-center sm:gap-3"
           >
-            <span className="font-medium text-slate-800 sm:min-w-[140px]">
+            <span className="font-medium text-foreground sm:min-w-[140px]">
               {prompt}
             </span>
             <select
-              className="w-full rounded-md border border-border bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-lightBorder bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
               value={currentObj[idx] ?? ''}
               onChange={(e) =>
                 onChange({
@@ -270,7 +265,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
     <textarea
       value={currentTextValue}
       onChange={handleTextChange}
-      className="w-full min-h-[60px] rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      className="w-full min-h-[60px] rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
       placeholder="Answer"
     />
   );
@@ -285,14 +280,14 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
   else control = renderGeneric();
 
   return (
-    <Card className="space-y-3 rounded-xl border border-slate-200 bg-white/95 p-4 text-sm shadow-sm">
+    <Card className="space-y-3 rounded-ds-xl border border-lightBorder bg-background/95 p-4 text-sm shadow-sm dark:bg-dark/90 dark:border-white/10">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
             {question.questionOrder}
           </span>
           <div>
-            <div className="font-semibold text-slate-800 leading-tight">
+            <div className="font-semibold text-foreground leading-tight">
               {question.prompt}
             </div>
             {question.instruction && (
@@ -310,6 +305,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
             tone={isFlagged ? 'warning' : 'default'}
             onClick={onToggleFlag}
             aria-pressed={isFlagged}
+            className="rounded-ds"
           >
             {isFlagged ? 'Marked for review' : 'Mark for review'}
           </Button>
