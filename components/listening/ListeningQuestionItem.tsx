@@ -1,8 +1,7 @@
-// components/listening/ListeningQuestionItem.tsx
 import * as React from 'react';
-import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
+import { Card } from '@/components/design-system/Card';
 import { Icon } from '@/components/design-system/Icon';
 
 import type { ListeningQuestion } from '@/pages/mock/listening/exam/[slug]';
@@ -24,12 +23,9 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
     const raw = question.options;
     if (!raw) return [] as { label: string; value: string }[];
 
-    // If Supabase already gives JSON
     if (Array.isArray(raw)) {
       return (raw as any[]).map((opt, idx) => {
-        if (typeof opt === 'string') {
-          return { label: opt, value: opt };
-        }
+        if (typeof opt === 'string') return { label: opt, value: opt };
         if (typeof opt === 'object' && opt !== null) {
           return {
             label: (opt as any).label ?? (opt as any).text ?? `Option ${idx + 1}`,
@@ -40,7 +36,6 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
       });
     }
 
-    // If stringified JSON (your case)
     if (typeof raw === 'string') {
       try {
         const parsed = JSON.parse(raw);
@@ -50,18 +45,13 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
               ? { label: opt, value: opt }
               : {
                   label:
-                    (opt as any).label ??
-                    (opt as any).text ??
-                    `Option ${idx + 1}`,
-                  value:
-                    (opt as any).value ??
-                    (opt as any).key ??
-                    String(idx),
+                    (opt as any).label ?? (opt as any).text ?? `Option ${idx + 1}`,
+                  value: (opt as any).value ?? (opt as any).key ?? String(idx),
                 }
           );
         }
-      } catch (e) {
-        console.error('Failed to parse listening options JSON:', e, raw);
+      } catch (err) {
+        console.error('Failed to parse listening options JSON', err, raw);
       }
     }
 
@@ -69,19 +59,21 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
   }, [question.options]);
 
   const type = (question.type ?? 'mcq').toLowerCase();
+  const isMcq =
+    type === 'mcq' ||
+    type === 'multiple_choice' ||
+    type === 'matching' ||
+    (parsedOptions.length > 0 && type.includes('choice'));
 
   const handleMcqChange = (val: string) => {
     onChange(val);
   };
 
   const handleShortTextChange: React.ChangeEventHandler<HTMLInputElement> = (
-    e
+    event
   ) => {
-    onChange(e.target.value);
+    onChange(event.target.value);
   };
-
-  const isMcq =
-    type === 'mcq' || type === 'multiple_choice' || (parsedOptions.length > 0 && type === 'matching');
 
   const typeLabel = React.useMemo(() => {
     if (isMcq) return 'Multiple choice';
@@ -103,9 +95,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
               {typeLabel}
             </Badge>
           </div>
-          <p className="text-sm font-medium leading-relaxed">
-            {question.text}
-          </p>
+          <p className="text-sm font-medium leading-relaxed">{question.text}</p>
         </div>
       </div>
 
@@ -113,7 +103,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
         <div className="mt-3 space-y-2">
           {parsedOptions.map((opt, idx) => {
             const selected = value === opt.value;
-            const optionLabel = String.fromCharCode(65 + idx); // A/B/C/D...
+            const optionLabel = String.fromCharCode(65 + idx);
 
             return (
               <button

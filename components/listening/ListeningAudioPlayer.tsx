@@ -1,4 +1,3 @@
-// components/listening/ListeningAudioPlayer.tsx
 import * as React from 'react';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
@@ -12,48 +11,60 @@ export const ListeningAudioPlayer: React.FC<ListeningAudioPlayerProps> = ({
 }) => {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
-  const [volume, setVolume] = React.useState(1);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [volume, setVolume] = React.useState(0.9);
+
+  React.useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = volume;
+  }, [volume]);
 
   React.useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onLoaded = () => {
-      setDuration(audio.duration || 0);
+    const handleLoaded = () => {
+      if (Number.isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
-    const onTime = () => {
+
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime || 0);
     };
-    const onEnded = () => {
+
+    const handleEnded = () => {
       setIsPlaying(false);
+      setCurrentTime(audio.duration || 0);
     };
 
-    audio.addEventListener('loadedmetadata', onLoaded);
-    audio.addEventListener('timeupdate', onTime);
-    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('loadedmetadata', handleLoaded);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', onLoaded);
-      audio.removeEventListener('timeupdate', onTime);
-      audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('loadedmetadata', handleLoaded);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
     };
   }, []);
 
-  // If source changes, reset state
   React.useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;
-    setCurrentTime(0);
     setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
   }, [src]);
 
   const togglePlay = async () => {
     const audio = audioRef.current;
     if (!audio || !src) return;
+
     try {
       if (isPlaying) {
         audio.pause();
@@ -62,47 +73,52 @@ export const ListeningAudioPlayer: React.FC<ListeningAudioPlayerProps> = ({
         await audio.play();
         setIsPlaying(true);
       }
-    } catch (e) {
-      console.error('Audio play failed (probably browser blocked):', e);
+    } catch (err) {
+      console.error('Audio playback blocked or failed', err);
     }
   };
 
-  const handleSeek: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+  const handleSeek: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const audio = audioRef.current;
     if (!audio) return;
-    const newTime = Number(e.target.value);
+    const newTime = Number(event.target.value);
     audio.currentTime = newTime;
     setCurrentTime(newTime);
   };
 
-  const handleVolume: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const vol = Number(e.target.value);
-    audio.volume = vol;
-    setVolume(vol);
+  const handleVolume: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const newVolume = Number(event.target.value);
+    setVolume(newVolume);
   };
 
-  const fmt = (sec: number) => {
-    if (!Number.isFinite(sec)) return '00:00';
-    const m = Math.floor(sec / 60)
+  const formatTime = (value: number) => {
+    if (!Number.isFinite(value)) return '00:00';
+    const mins = Math.floor(value / 60)
       .toString()
       .padStart(2, '0');
-    const s = Math.floor(sec % 60)
+    const secs = Math.floor(value % 60)
       .toString()
       .padStart(2, '0');
-    return `${m}:${s}`;
+    return `${mins}:${secs}`;
   };
+
+  const disableControls = !src;
+  const safeDuration = Number.isFinite(duration) ? duration : 0;
+  const progressMax = safeDuration > 0 ? safeDuration : 0;
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Hidden native audio element – no fullscreen bullshit */}
-      <audio ref={audioRef} src={src ?? undefined} preload="metadata" />
+    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-background/90 px-3 py-2 shadow-sm">
+      <audio
+        ref={audioRef}
+        src={src ?? undefined}
+        preload="metadata"
+        className="hidden"
+      />
 
       {!src ? (
-        <div className="w-full rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
-          Audio not configured for this section. Add <span className="font-mono text-[11px]">audio_url</span> in{' '}
-          <span className="font-mono text-[11px]">listening_sections</span> or <span className="font-mono text-[11px]">listening_tests</span>.
+        <div className="text-xs text-muted-foreground">
+          Audio not configured for this test. Please upload a listening audio
+          file to Supabase and set <span className="font-mono">audio_url</span>.
         </div>
       ) : (
         <>
@@ -112,27 +128,31 @@ export const ListeningAudioPlayer: React.FC<ListeningAudioPlayerProps> = ({
               size="icon-sm"
               type="button"
               onClick={togglePlay}
+              disabled={disableControls}
             >
               <Icon
                 name={isPlaying ? 'pause' : 'play'}
                 className="h-4 w-4"
               />
             </Button>
+
             <div className="flex flex-1 flex-col gap-1">
               <input
                 type="range"
                 min={0}
-                max={duration || 0}
+                max={progressMax || 0}
+                step={0.1}
                 value={currentTime}
                 onChange={handleSeek}
-                className="w-full"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted"
               />
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>{fmt(currentTime)}</span>
-                <span>{fmt(duration)}</span>
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(safeDuration)}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="hidden items-center gap-2 md:flex">
               <Icon
                 name="volume-2"
                 className="h-4 w-4 text-muted-foreground"
@@ -144,6 +164,7 @@ export const ListeningAudioPlayer: React.FC<ListeningAudioPlayerProps> = ({
                 step={0.05}
                 value={volume}
                 onChange={handleVolume}
+                className="h-2 w-24 cursor-pointer appearance-none rounded-full bg-muted"
               />
             </div>
           </div>
