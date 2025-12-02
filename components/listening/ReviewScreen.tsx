@@ -149,6 +149,7 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
 
         if (!id) {
           if (active) {
+            setError('No submitted attempt found for this test yet.');
             setAttempt(null);
             setTest(null);
             setQuestions([]);

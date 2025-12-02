@@ -9,33 +9,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('listening_attempts')
     .select('*')
     .eq('id', attemptId)
-    .single();
+    .maybeSingle();
 
   if (e1 || !attempt) return res.status(404).json({ error: e1?.message || 'Attempt not found' });
 
-  const [{ data: answers, error: e2 }, { data: questions, error: e3 }, { data: sections, error: e4 }, { data: test, error: e5 }] =
-    await Promise.all([
-      supabaseAdmin
-        .from('listening_user_answers')
-        .select('qno,answer,is_correct')
-        .eq('attempt_id', attemptId)
-        .order('qno'),
-      supabaseAdmin
-        .from('listening_questions')
-        .select('qno,type,prompt,options,match_left,match_right,answer_key,section_order')
-        .eq('test_slug', attempt.test_slug)
-        .order('qno'),
-      supabaseAdmin
-        .from('listening_sections')
-        .select('order_no,title,transcript,start_ms,end_ms')
-        .eq('test_slug', attempt.test_slug)
-        .order('order_no'),
-      supabaseAdmin
-        .from('listening_tests')
-        .select('slug,title')
-        .eq('slug', attempt.test_slug)
-        .maybeSingle(),
-    ]);
+  const testSlug = (attempt as any).test_slug ?? null;
+  const testId = (attempt as any).test_id ?? null;
+
+  if (!testSlug && !testId) {
+    return res.status(400).json({ error: 'Attempt is missing test reference' });
+  }
+
+  const questionQuery = supabaseAdmin
+    .from('listening_questions')
+    .select('qno,type,prompt,options,match_left,match_right,answer_key,section_order');
+
+  const sectionQuery = supabaseAdmin
+    .from('listening_sections')
+    .select('order_no,title,transcript,start_ms,end_ms');
+
+  const testQuery = supabaseAdmin.from('listening_tests').select('id,slug,title');
+
+  if (testId) {
+    questionQuery.eq('test_id', testId).order('qno');
+    sectionQuery.eq('test_id', testId).order('order_no');
+    testQuery.or(`id.eq.${testId}${testSlug ? `,slug.eq.${testSlug}` : ''}`).limit(1);
+  } else if (testSlug) {
+    questionQuery.eq('test_slug', testSlug).order('qno');
+    sectionQuery.eq('test_slug', testSlug).order('order_no');
+    testQuery.eq('slug', testSlug).maybeSingle();
+  }
+
+  const [
+    { data: answers, error: e2 },
+    { data: questions, error: e3 },
+    { data: sections, error: e4 },
+    { data: test, error: e5 },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('listening_user_answers')
+      .select('qno,answer,is_correct')
+      .eq('attempt_id', attemptId)
+      .order('qno'),
+    questionQuery,
+    sectionQuery,
+    testQuery.maybeSingle(),
+  ]);
 
   if (e2 || e3 || e4 || e5)
     return res.status(500).json({ error: e2?.message || e3?.message || e4?.message || e5?.message });
@@ -43,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.json({
     attempt: {
       id: attempt.id,
-      test_slug: attempt.test_slug,
+      test_slug: testSlug ?? test?.slug ?? null,
       score: attempt.score,
       band: attempt.band,
       section_scores: attempt.section_scores,
