@@ -16,7 +16,7 @@ type ForecastPayload = {
 };
 
 const ForecastSkeleton: React.FC = () => (
-  <Card className="p-4 space-y-3">
+  <Card className="p-4 space-y-3 bg-background/95 dark:bg-dark/90">
     <div className="flex items-center justify-between">
       <Skeleton className="h-4 w-28" />
       <Skeleton className="h-5 w-16 rounded-full" />
@@ -52,7 +52,6 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
 
         const j = (await r.json()) as Partial<ForecastPayload> | null;
 
-        // Basic sanity check so we don’t blow up on weird payloads
         if (
           j &&
           typeof j.bandNow === 'number' &&
@@ -65,11 +64,12 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
               targetBand: j.targetBand,
               etaDays: j.etaDays ?? null,
               confidence: (j.confidence as ForecastPayload['confidence']) ?? 'low',
-              rationale: j.rationale ?? 'We need more attempts to generate a solid forecast.',
+              rationale:
+                j.rationale ??
+                'We need a few more completed mocks before the forecast becomes sharp.',
             });
           }
         } else {
-          // no usable data (e.g. no attempts yet) – just leave data = null
           if (!cancelled) {
             setData(null);
           }
@@ -91,16 +91,15 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
     };
   }, [targetBand]);
 
-  // If we’re still loading OR we don’t have a valid forecast → skeleton / neutral card
   if (loading) {
     return <ForecastSkeleton />;
   }
 
   if (!data) {
     return (
-      <Card className="p-4 space-y-3">
+      <Card className="p-4 space-y-3 bg-background/95 dark:bg-dark/90">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.16em]">
             Reading forecast
           </span>
           <Badge variant="outline" className="rounded-ds-xl text-[10px]">
@@ -108,12 +107,13 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
             Warming up
           </Badge>
         </div>
-        <p className="text-sm">
+        <p className="text-sm text-muted-foreground">
           We don&apos;t have enough completed reading attempts to forecast your band yet.
         </p>
         {hasError && (
           <p className="text-xs text-destructive">
-            Couldn&apos;t reach forecast service right now. Try again after another attempt.
+            Couldn&apos;t reach the forecast service right now. Try again after another
+            attempt.
           </p>
         )}
         <div className="pt-2">
@@ -130,7 +130,6 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
     );
   }
 
-  // Safe to use .toFixed now – we already validated bandNow/targetBand as numbers
   const bandNow = data.bandNow;
   const target = data.targetBand;
 
@@ -142,9 +141,9 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
       : 'Early estimate';
 
   return (
-    <Card className="p-4 space-y-3">
+    <Card className="p-4 space-y-3 bg-background/95 dark:bg-dark/90">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.16em]">
           Reading forecast
         </span>
         <Badge
@@ -156,7 +155,7 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
         </Badge>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-semibold">
+        <span className="text-2xl font-semibold text-foreground">
           {bandNow.toFixed(1)}
         </span>
         <span className="text-xs text-muted-foreground">
@@ -164,25 +163,28 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
         </span>
       </div>
       <div className="text-xs text-muted-foreground">
-        Current: <span className="font-semibold">Band {bandNow.toFixed(1)}</span>{' '}
+        Current:{' '}
+        <span className="font-semibold text-foreground">
+          Band {bandNow.toFixed(1)}
+        </span>{' '}
         ({Math.round(data.currentPct)}% of target)
       </div>
       <div className="text-xs">
         {data.etaDays === null ? (
           <span className="text-muted-foreground">
-            • improve slope to reach target
+            • Keep improving your slope to reach target.
           </span>
         ) : (
-          <span className="font-semibold">in ~{data.etaDays} days</span>
+          <span className="font-semibold text-foreground">
+            In ~{data.etaDays} days (based on your current pace)
+          </span>
         )}
       </div>
       <div className="mt-1 text-xs text-muted-foreground">{data.rationale}</div>
       <div className="mt-3">
-        <a href="/reading?type=tfng" className="inline-flex">
-          <Button variant="surface" size="sm" className="rounded-ds-xl">
-            Boost slope: weakest type drill
-          </Button>
-        </a>
+        <Button variant="surface" size="sm" className="rounded-ds-xl" asChild>
+          <a href="/reading?type=tfng">Boost slope: weakest type drill</a>
+        </Button>
       </div>
     </Card>
   );

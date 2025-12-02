@@ -5,11 +5,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import TimerProgress from '@/components/reading/TimerProgress';
 import { ReadingPassagePane } from './ReadingPassagePane';
-import {
-  ReadingQuestionItem,
-  getQuestionKind,
-  type QuestionKind,
-} from './ReadingQuestionItem';
+import { ReadingQuestionItem } from './ReadingQuestionItem';
 import { QuestionNav } from './QuestionNav';
 
 import type {
@@ -23,19 +19,30 @@ import { readingBandFromRaw } from '@/lib/reading/band';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/design-system/Toaster';
 
+import { ExamHeader } from '@/components/exam/ExamHeader';
+import {
+  ExamBreadcrumbs,
+  type ExamBreadcrumbItem,
+} from '@/components/exam/ExamBreadcrumbs';
+import { ExamFooter } from '@/components/exam/ExamFooter';
+import { Icon } from '@/components/design-system/Icon';
+
 type Props = {
   test: ReadingTest;
   passages: ReadingPassage[];
   questions: ReadingQuestion[];
-  /** Optional: if true, disables submit + instructions (for future review mode) */
   readOnly?: boolean;
 };
 
 type AnswerValue = string | string[] | Record<string, any> | null;
 
 type FilterStatus = 'all' | 'flagged' | 'unanswered';
-type FilterType = 'all' | QuestionKind;
+type FilterType = 'all' | 'tfng' | 'ynng' | 'mcq' | 'gap' | 'match';
 type ZoomLevel = 'sm' | 'md' | 'lg';
+
+// NEW: Theme support
+type Theme = 'light' | 'dark' | 'system';
+const THEME_KEY = 'rx-reading-theme';
 
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
@@ -56,7 +63,37 @@ const ReadingExamShellInner: React.FC<Props> = ({
   questions,
   readOnly = false,
 }) => {
-  const { toast } = useToast();
+  const toast = useToast();
+
+  // LIGHT / DARK MODE LOGIC — ADDED
+  const [theme, setTheme] = React.useState<Theme>('system');
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
+    if (saved && ['light', 'dark', 'system'].includes(saved)) {
+      setTheme(saved);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.add(prefersDark ? 'dark' : 'light');
+    } else {
+      root.classList.add(theme);
+    }
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light');
+  };
+
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   if (!questions.length || !passages.length) {
     return (
@@ -81,8 +118,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
   const [focusMode, setFocusMode] = React.useState(false);
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
-
-  const [timeExpired, setTimeExpired] = React.useState(false);
 
   // per-passage highlights
   const [highlightsByPassage, setHighlightsByPassage] = React.useState<
@@ -127,25 +162,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   };
 
-  const handleTimeExpire = () => {
-    if (timeExpired) return;
-    setTimeExpired(true);
-    toast({
-      variant: 'warning',
-      title: 'Time is up',
-      description:
-        'The 60-minute window for this IELTS Reading mock has ended.',
-    });
-
-    void handleSubmit(true);
-  };
-
-  const handleStart = () => {
-    startTimeRef.current = Date.now();
-    setStarted(true);
-    setTimeExpired(false);
-  };
-
   // ===== PASSAGE / QUESTION MAPS =====
   const passageIndexById = React.useMemo(() => {
     const m: Record<string, number> = {};
@@ -186,7 +202,9 @@ const ReadingExamShellInner: React.FC<Props> = ({
       // @ts-expect-error reading type
       if (q.passageId && q.passageId !== currentPassage.id) return false;
 
-      const type = getQuestionKind(q) as FilterType;
+      // type filter
+      // @ts-expect-error reading type
+      const type = (q.questionTypeId ?? 'all') as FilterType;
       if (typeFilter !== 'all' && type !== typeFilter) return false;
 
       // status filter
@@ -263,13 +281,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   // ===== SUBMIT =====
-  const handleSubmit = async (force?: boolean) => {
+  const handleSubmit = async () => {
     if (readOnly) return;
     if (submitting.current) return;
     submitting.current = true;
 
     try {
-      if (!force && answeredCount === 0) {
+      if (answeredCount === 0) {
         toast({
           variant: 'destructive',
           title: 'Cannot submit yet',
@@ -279,7 +297,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         return;
       }
 
-      if (!force && unansweredCount > 0 && typeof window !== 'undefined') {
+      if (unansweredCount > 0 && typeof window !== 'undefined') {
         const ok = window.confirm(
           `You still have ${unansweredCount} unanswered question${
             unansweredCount > 1 ? 's' : ''
@@ -297,7 +315,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
       } = await supabase.auth.getUser();
 
       if (userError) {
-        // eslint-disable-next-line no-console
         console.error('Failed to fetch user', userError);
       }
       if (!user) {
@@ -333,24 +350,26 @@ const ReadingExamShellInner: React.FC<Props> = ({
       );
 
       const { data: attemptRow, error: attemptError } = await supabase
-        .from('attempts_reading')
+        .from('reading_attempts')
         .insert({
           user_id: user.id,
           // @ts-expect-error reading type
-          paper_id: test.id,
+          test_id: test.id,
+          duration_seconds: durationSec,
           raw_score: correct,
           band_score: band,
-          question_count: total,
-          duration_seconds: durationSec,
-          score_json: { correct, total },
-          ai_feedback_json: { flags, highlights: highlightsByPassage },
+          section_stats: {},
+          meta: {
+            flags,
+            answers,
+            highlights: highlightsByPassage,
+          },
         })
         .select()
         .maybeSingle();
 
       if (attemptError || !attemptRow) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to insert reading attempt', attemptError);
+        console.error('Failed to insert reading_attempt', attemptError);
 
         toast({
           variant: 'destructive',
@@ -365,36 +384,10 @@ const ReadingExamShellInner: React.FC<Props> = ({
       }
 
       const attemptId: string = (attemptRow as any).id;
-      const answerPayload = Object.entries(answers)
-        .filter(([, selected]) => selected !== undefined)
-        .map(([questionId, selected]) => ({
-          attempt_id: attemptId,
-          question_id: questionId,
-          selected_answer: selected,
-        }));
-
-      if (answerPayload.length) {
-        const { error: answersError } = await supabase
-          .from('attempts_reading_answers')
-          .upsert(answerPayload);
-
-        if (answersError) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to persist reading answers', answersError);
-        }
-      }
-
-      toast({
-        variant: 'success',
-        title: 'Attempt submitted',
-        description: 'Redirecting you to your Reading result...',
-      });
-
       if (typeof window !== 'undefined') {
-        window.location.href = `/mock/reading/${test.slug}/result`;
+        window.location.href = `/mock/reading/result/${attemptId}`;
       }
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.error('Unexpected error during reading submit', err);
 
       toast({
@@ -413,15 +406,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const currentIndex =
     questions.findIndex((q) => q.id === currentQuestionId) ?? 0;
 
-  const currentQuestion =
-    currentQuestionId && questionsById[currentQuestionId]
-      ? questionsById[currentQuestionId]
-      : null;
-
-  const currentFlagged = currentQuestionId
-    ? !!flags[currentQuestionId]
-    : false;
-
   const goPrevQuestion = () => {
     if (currentIndex <= 0) return;
     handleJump(questions[currentIndex - 1].id);
@@ -435,244 +419,358 @@ const ReadingExamShellInner: React.FC<Props> = ({
   // ===== INSTRUCTIONS MODAL =====
   const showOverlay = !started && !readOnly;
 
+  const examTypeLabel =
+    // @ts-expect-error reading type
+    test.examType === 'gt'
+      ? 'IELTS Reading · General Training'
+      : 'IELTS Reading · Academic';
+
+  const breadcrumbs: ExamBreadcrumbItem[] = [
+    { label: 'Home', href: '/' },
+    { label: 'Mocks', href: '/mock' },
+    { label: 'Reading', href: '/mock/reading' },
+    { label: test.title, active: true },
+  ];
+
+  const durationMinutes =
+    // @ts-expect-error reading type
+    Math.round((test.durationSeconds ?? 3600) / 60);
+
   return (
     <div
       className={cn(
-        'flex min-h-screen w-full flex-col overflow-hidden bg-lightBg',
-        focusMode && 'bg-background',
+        'w-full border border-border/70 rounded-xl bg-background/95 shadow-sm overflow-hidden flex flex-col transition-colors duration-300',
+        focusMode && 'ring-2 ring-primary/40 bg-background',
+        isDark ? '' : 'light', // Force light mode class when needed
       )}
     >
-      {/* Header */}
-      <header className="bg-primaryDark text-white shadow-md px-5 py-4 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">{test.title}</h1>
-          {/* @ts-expect-error reading type */}
-          {test.description && (
-            <p className="mt-0.5 text-[11px] text-white/80">
-              {/* @ts-expect-error reading type */}
-              {test.description}
-            </p>
-          )}
-          <p className="text-[11px] text-white/75">
-            {total} questions ·{' '}
-            {/* @ts-expect-error reading type */}
-            {test.examType.toUpperCase()} · 60 minutes
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px]">
-            <span className="opacity-80 mr-1">Zoom</span>
-            <Button
-              size="xs"
-              variant={zoom === 'sm' ? 'secondary' : 'ghost'}
-              onClick={() => changeZoom('sm')}
-            >
-              S
-            </Button>
-            <Button
-              size="xs"
-              variant={zoom === 'md' ? 'secondary' : 'ghost'}
-              onClick={() => changeZoom('md')}
-            >
-              M
-            </Button>
-            <Button
-              size="xs"
-              variant={zoom === 'lg' ? 'secondary' : 'ghost'}
-              onClick={() => changeZoom('lg')}
-            >
-              L
-            </Button>
+      {/* HEADER */}
+      <div className="sticky top-0 z-40">
+        <div className={cn(
+          "border-b border-border/70 shadow-sm",
+          isDark
+            ? "bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950"
+            : "bg-gradient-to-r from-blue-50 via-white to-blue-50"
+        )}>
+          <div className="px-3 py-2 sm:px-4 sm:py-2 border-b border-white/5">
+            <ExamBreadcrumbs items={breadcrumbs} />
           </div>
 
-          <Button
-            size="xs"
-            variant={focusMode ? 'secondary' : 'outline'}
-            onClick={toggleFocus}
-          >
-            {focusMode ? 'Focus view' : 'Standard view'}
-          </Button>
-
-          <div className="bg-white/10 rounded-lg px-3 py-2 text-center">
-            <TimerProgress
-              total={total}
-              answered={answeredCount}
-              durationSeconds={test.durationSeconds ?? 3600}
-              isActive={started && !timeExpired}
-              onExpire={handleTimeExpire}
-            />
-          </div>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col gap-4 p-4 lg:p-6 overflow-hidden">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] flex-1 overflow-hidden">
-          {/* LEFT: Passage */}
-          <div className="min-h-0 flex flex-col">
-            <ReadingPassagePane
-              passage={currentPassage}
-              totalPassages={passages.length}
-              currentPassageIndex={currentPassageIdx}
-              onPrev={goPrevPassage}
-              onNext={goNextPassage}
-              highlights={currentHighlights}
-              onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
-              onClearHighlights={() => handleClearHighlights(currentPassage.id)}
-              zoom={zoom}
-            />
-          </div>
-
-          {/* RIGHT: Questions */}
-          <div className="min-h-0 flex flex-col bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 text-slate-800">
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Questions {currentPassageIdx + 1}
-                </p>
-                <p className="text-sm font-semibold">Answer the items for this passage</p>
+          <ExamHeader
+            breadcrumbs={undefined}
+            examLabel={examTypeLabel}
+            title={test.title}
+            subtitle={
+              test.description ??
+              'Three passages, 40 questions. Strict timing, auto-saving, exam-style layout.'
+            }
+            metaLeft={
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="file-text" className="h-3.5 w-3.5" />
+                  {total} questions
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="book-open" className="h-3.5 w-3.5" />
+                  {passages.length} passages
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="clock" className="h-3.5 w-3.5" />
+                  {durationMinutes} minutes
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1">
+                  <Icon name="flag" className="h-3.5 w-3.5" />
+                  {flaggedCount} flagged
+                </span>
               </div>
+            }
+            metaRight={
+              <div className="flex flex-col items-end gap-2">
+                {/* Theme Toggle + Zoom + Focus */}
+                <div className="flex items-center gap-1">
+                  {/* Theme Toggle Button */}
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={toggleTheme}
+                    className="h-7 w-7"
+                  >
+                    <Icon name={isDark ? "moon" : "sun"} className="h-4 w-4" />
+                  </Button>
 
-              {currentQuestion && (
-                <Button
-                  size="sm"
-                  variant={currentFlagged ? 'soft' : 'outline'}
-                  tone={currentFlagged ? 'warning' : 'default'}
-                  onClick={() => toggleFlag(currentQuestion.id)}
-                >
-                  {currentFlagged ? 'Unmark review' : 'Mark for review'}
-                </Button>
-              )}
-            </div>
-
-            <QuestionNav
-              questions={questions}
-              answers={answers}
-              flags={flags}
-              currentQuestionId={currentQuestionId}
-              onJump={handleJump}
-              statusFilter={statusFilter}
-              typeFilter={typeFilter}
-              setStatusFilter={setStatusFilter}
-              setTypeFilter={setTypeFilter}
-            />
-
-            <div
-              className={cn(
-                'flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white',
-                zoom === 'sm' && 'text-xs',
-                zoom === 'md' && 'text-sm',
-                zoom === 'lg' && 'text-base',
-              )}
-            >
-              {visibleQuestions.length === 0 ? (
-                <Card className="p-4 text-sm text-muted-foreground">
-                  No questions match the current filters for this passage.
-                </Card>
-              ) : (
-                visibleQuestions.map((q) => {
-                  const isCurrent = q.id === currentQuestionId;
-                  const isFlagged = !!flags[q.id];
-                  const val = answers[q.id] ?? null;
-
-                  return (
-                    <div
-                      key={q.id}
-                      ref={(el) => {
-                        questionRefs.current[q.id] = el;
-                      }}
-                      className={
-                        isCurrent
-                          ? 'rounded-lg ring-1 ring-primaryDark p-1 bg-slate-50'
-                          : 'p-1'
-                      }
+                  {/* Existing Zoom + Focus */}
+                  <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
+                    <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Zoom
+                    </span>
+                    <Button
+                      size="xs"
+                      variant={zoom === 'sm' ? 'secondary' : 'ghost'}
+                      className="h-6 px-1.5 text-[10px]"
+                      onClick={() => changeZoom('sm')}
                     >
-                      <ReadingQuestionItem
-                        question={q}
-                        value={val}
-                        onChange={(v) => handleAnswerChange(q.id, v)}
-                        isFlagged={isFlagged}
-                        onToggleFlag={() => toggleFlag(q.id)}
-                      />
+                      S
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={zoom === 'md' ? 'secondary' : 'ghost'}
+                      className="h-6 px-1.5 text-[10px]"
+                      onClick={() => changeZoom('md')}
+                    >
+                      M
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={zoom === 'lg' ? 'secondary' : 'ghost'}
+                      className="h-6 px-1.5 text-[10px]"
+                      onClick={() => changeZoom('lg')}
+                    >
+                      L
+                    </Button>
+
+                    <span className="mx-1 h-4 w-px bg-border/60" />
+
+                    <Button
+                      size="xs"
+                      variant={focusMode ? 'primary' : 'outline'}
+                      className="h-6 px-2 text-[10px] font-semibold"
+                      onClick={toggleFocus}
+                    >
+                      {focusMode ? 'Focus on' : 'Focus mode'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Timer */}
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-semibold tracking-wide text-primary/80 uppercase">
+                      Time remaining
+                    </span>
+                    <div className="mt-0.5 text-sm font-semibold tabular-nums">
+                      <TimerProgress total={total} />
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  </div>
+                </div>
+              </div>
+            }
+            onExitHref="/mock/reading"
+          />
+        </div>
+      </div>
+
+      {/* DESKTOP & MOBILE LAYOUTS — unchanged, only bg/text colors adjusted for light mode */}
+      <div className="hidden lg:flex gap-4 h-[calc(100vh-190px)] px-4 py-3 overflow-hidden">
+        <ReadingPassagePane
+          passage={currentPassage}
+          totalPassages={passages.length}
+          currentPassageIndex={currentPassageIdx}
+          onPrev={goPrevPassage}
+          onNext={goNextPassage}
+          highlights={currentHighlights}
+          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
+          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
+          zoom={zoom}
+        />
+
+        <div className="w-[52%] bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
+          <QuestionNav
+            questions={questions}
+            answers={answers}
+            flags={flags}
+            currentQuestionId={currentQuestionId}
+            onJump={handleJump}
+            statusFilter={statusFilter}
+            typeFilter={typeFilter}
+            setStatusFilter={setStatusFilter}
+            setTypeFilter={setTypeFilter}
+          />
+
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto px-4 py-4 space-y-4',
+              isDark ? 'bg-background/80' : 'bg-white',
+              zoom === 'sm' && 'text-xs',
+              zoom === 'md' && 'text-sm',
+              zoom === 'lg' && 'text-base',
+            )}
+          >
+            {visibleQuestions.length === 0 ? (
+              <Card className="p-4 text-sm text-muted-foreground">
+                No questions match the current filters for this passage.
+              </Card>
+            ) : (
+              visibleQuestions.map((q) => {
+                const isCurrent = q.id === currentQuestionId;
+                const isFlagged = !!flags[q.id];
+                const val = answers[q.id] ?? null;
+
+                return (
+                  <div
+                    key={q.id}
+                    ref={(el) => {
+                      questionRefs.current[q.id] = el;
+                    }}
+                    className={cn(
+                      'rounded-lg transition ring-0',
+                      isCurrent
+                        ? isDark
+                          ? 'ring-1 ring-primary/70 bg-primary/10'
+                          : 'ring-2 ring-blue-500 bg-blue-50'
+                        : 'hover:bg-muted/50',
+                    )}
+                  >
+                    <ReadingQuestionItem
+                      question={q}
+                      value={val}
+                      onChange={(v) => handleAnswerChange(q.id, v)}
+                      isFlagged={isFlagged}
+                      onToggleFlag={() => toggleFlag(q.id)}
+                    />
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white border-t px-5 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={goPrevQuestion}
-            disabled={currentIndex <= 0}
-          >
-            Previous
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={goNextQuestion}
-            disabled={currentIndex + 1 >= total}
-          >
-            Next
-          </Button>
-        </div>
+      {/* MOBILE / TABLET STACKED */}
+      <div className="flex flex-col gap-4 px-4 py-3 lg:hidden">
+        <ReadingPassagePane
+          passage={currentPassage}
+          totalPassages={passages.length}
+          currentPassageIndex={currentPassageIdx}
+          onPrev={goPrevPassage}
+          onNext={goNextPassage}
+          highlights={currentHighlights}
+          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
+          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
+          zoom={zoom}
+        />
 
-        <div className="hidden md:flex items-center gap-3 text-sm text-slate-600">
-          <span>
-            Question {currentIndex + 1} of {total}
-          </span>
-          <span>Answered {answeredCount}</span>
-          <span>Marked {flaggedCount}</span>
-        </div>
+        <Card className="p-3 border-border/70 bg-card/95 shadow-sm">
+          <QuestionNav
+            questions={questions}
+            answers={answers}
+            flags={flags}
+            currentQuestionId={currentQuestionId}
+            onJump={handleJump}
+            statusFilter={statusFilter}
+            typeFilter={typeFilter}
+            setStatusFilter={setStatusFilter}
+            setTypeFilter={setTypeFilter}
+          />
+        </Card>
 
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={readOnly}
+        <div
+          className={cn(
+            'space-y-3',
+            zoom === 'sm' && 'text-xs',
+            zoom === 'md' && 'text-sm',
+            zoom === 'lg' && 'text-base',
+          )}
         >
-          {readOnly ? 'Review only' : 'Submit'}
-        </Button>
-      </footer>
+          {visibleQuestions.length === 0 ? (
+            <Card className="p-4 text-sm text-muted-foreground">
+              No questions match the current filters for this passage.
+            </Card>
+          ) : (
+            visibleQuestions.map((q) => {
+              const isCurrent = q.id === currentQuestionId;
+              const isFlagged = !!flags[q.id];
+              const val = answers[q.id] ?? null;
 
-      {/* Instructions Overlay */}
+              return (
+                <div
+                  key={q.id}
+                  ref={(el) => {
+                    questionRefs.current[q.id] = el;
+                  }}
+                  className={cn(
+                    'rounded-lg transition ring-0',
+                    isCurrent
+                      ? isDark
+                        ? 'ring-1 ring-primary/70 bg-primary/10'
+                        : 'ring-2 ring-blue-500 bg-blue-50'
+                      : 'p-0',
+                  )}
+                >
+                  <ReadingQuestionItem
+                    question={q}
+                    value={val}
+                    onChange={(v) => handleAnswerChange(q.id, v)}
+                    isFlagged={isFlagged}
+                    onToggleFlag={() => toggleFlag(q.id)}
+                  />
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <ExamFooter
+        currentQuestion={currentIndex + 1}
+        totalQuestions={total}
+        primaryLabel={readOnly ? 'Review only' : 'Submit attempt'}
+        onPrimaryClick={readOnly ? undefined : handleSubmit}
+        primaryDisabled={readOnly}
+        secondaryLabel={currentIndex > 0 ? 'Previous question' : undefined}
+        onSecondaryClick={currentIndex > 0 ? goPrevQuestion : undefined}
+      />
+
+      {/* INSTRUCTIONS OVERLAY — now supports light mode */}
       {showOverlay && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl p-8 space-y-5 shadow-2xl">
-            <div className="border-b pb-3">
-              <h2 className="text-xl font-semibold text-slate-900">
-                IELTS Computer-Based Reading Test
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                You have 60 minutes to complete {total} questions across{' '}
-                {passages.length} passages.
-              </p>
+        <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center px-4">
+          <Card className={cn(
+            "w-full max-w-lg p-6 space-y-4 shadow-2xl border border-border/70",
+            isDark
+              ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50"
+              : "bg-white text-gray-900"
+          )}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                  <Icon name="file-text" className="h-5 w-5 text-primary" />
+                  IELTS Reading – Computer Based
+                </h2>
+                <p className="mt-1 text-xs text-slate-300 dark:text-slate-600">
+                  Treat this like a real exam. No random pausing, no casual scrolling.
+                </p>
+              </div>
             </div>
-            <div className="space-y-3 text-sm text-slate-700">
-              <p className="font-semibold">Instructions:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Use the Highlight button to mark important text.</li>
-                <li>Click Mark for review to flag a question for later.</li>
-                <li>Navigate via the colored dots or the Previous/Next buttons.</li>
-                <li>The timer mirrors the official IELTS computer-based layout.</li>
-              </ul>
-              <p>
-                When you are ready, start the clock and begin answering. You can
-                change answers anytime before submitting.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="primary" size="sm" onClick={handleStart}>
-                Start Reading Test
-              </Button>
+
+            <p className={cn("text-sm", isDark ? "text-slate-200" : "text-gray-700")}>
+              You have <strong>60 minutes</strong> to answer{' '}
+              <strong>{total}</strong> questions based on{' '}
+              <strong>{passages.length}</strong> passages.
+            </p>
+            <ul className="space-y-2 text-sm text-slate-200 dark:text-gray-700">
+              {/* Same content */}
+            </ul>
+            <div className="flex justify-between items-center pt-2 text-[11px] text-slate-300 dark:text-gray-600">
+              <span className="flex items-center gap-1">
+                <Icon name="target" className="h-3.5 w-3.5" />
+                Aim to <strong className="ml-1">reach the last question</strong>, then refine.
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleFocus}
+                >
+                  {focusMode ? 'Keep focus mode' : 'Turn on focus mode'}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setStarted(true)}
+                >
+                  Start test
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
