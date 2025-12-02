@@ -17,9 +17,12 @@ import { isCorrect } from '@/lib/answers';
 type ApiAttempt = {
   id: string;
   test_slug: string;
-  score: number;
-  band: number | null;
+  score?: number | null;
+  raw_score?: number | null;
+  band?: number | null;
+  band_score?: number | null;
   section_scores?: Record<string, unknown> | null;
+  section_stats?: Record<string, unknown> | null;
   submitted_at: string | null;
   meta?: Record<string, unknown> | null;
 };
@@ -307,8 +310,9 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
     const total = questionResults.length;
     const correct = questionResults.filter((result) => result.ok).length;
     const accuracy = total ? (correct / total) * 100 : 0;
-    const rawScore = attempt?.score ?? correct;
-    const band = attempt?.band ?? Number(((accuracy / 100) * 9).toFixed(1));
+    const rawScore =
+      (attempt as any)?.raw_score ?? (attempt as any)?.score ?? correct;
+    const band = (attempt as any)?.band_score ?? attempt?.band ?? Number(((accuracy / 100) * 9).toFixed(1));
     return { total, correct, accuracy, band, rawScore };
   }, [questionResults, attempt]);
 

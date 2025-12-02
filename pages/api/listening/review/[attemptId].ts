@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { data: attempt, error: e1 } = await supabaseAdmin
     .from('listening_attempts')
-    .select('id,test_id,score,band,section_scores,submitted_at,meta')
+    .select('id,test_id,raw_score,band_score,section_stats,submitted_at,meta')
     .eq('id', attemptId)
     .maybeSingle();
 
@@ -56,9 +56,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     attempt: {
       id: attempt.id,
       test_slug: test?.slug ?? (attempt.meta as any)?.test_slug ?? null,
-      score: attempt.score,
-      band: attempt.band,
-      section_scores: attempt.section_scores,
+      score: (attempt as any).raw_score ?? null,
+      raw_score: (attempt as any).raw_score ?? null,
+      band: (attempt as any).band_score ?? null,
+      band_score: (attempt as any).band_score ?? null,
+      section_scores: (attempt as any).section_stats ?? null,
+      section_stats: (attempt as any).section_stats ?? null,
       submitted_at: attempt.submitted_at,
       meta: attempt.meta,
     },

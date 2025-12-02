@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     (questions ?? []).map(q => ({ qno:q.qno, type:q.type as any, answer_key:q.answer_key as any })),
     answers
   );
-  const band = rawToBand(total);
+  const bandScore = rawToBand(total);
 
   const submittedAt = new Date().toISOString();
 
@@ -84,9 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user_id: userId,
       test_id: testId,
       submitted_at: submittedAt,
-      score: total,
-      band,
-      section_scores: perSection,
+      raw_score: total,
+      band_score: bandScore,
+      section_stats: perSection,
+      questions: questions.length,
       meta: meta ?? { ...(testSlug ? { test_slug: testSlug } : {}) },
     })
     .select('id')
@@ -127,13 +128,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     user_id: userId,
     test_id: testId,
     test_slug: testSlug ?? undefined,
-    score: total,
-    band,
-    section_scores: perSection,
+    raw_score: total,
+    band_score: bandScore,
+    section_stats: perSection,
     question_count: questions.length,
     submitted_at: submittedAt,
     meta: meta ?? {},
   });
-
-  res.status(200).json({ attemptId: attemptRow.id, score: total, band, sectionScores: perSection });
+  res.status(200).json({
+    attemptId: attemptRow.id,
+    rawScore: total,
+    band: bandScore,
+    sectionStats: perSection,
+  });
 }
