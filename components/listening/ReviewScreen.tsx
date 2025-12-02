@@ -136,15 +136,28 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
         let id = attemptId ?? undefined;
 
         if (!id) {
-          const { data: latest, error: latestErr } = await supabase
-            .from('listening_attempts')
+          const { data: testRow, error: testErr } = await supabase
+            .from('listening_tests')
             .select('id')
-            .eq('test_slug', slug)
-            .order('submitted_at', { ascending: false })
-            .limit(1)
+            .eq('slug', slug)
             .maybeSingle();
-          if (latestErr) throw latestErr;
-          id = latest?.id ?? undefined;
+
+          if (testErr) throw testErr;
+
+          const testId = testRow?.id;
+
+          if (testId) {
+            const { data: latest, error: latestErr } = await supabase
+              .from('listening_attempts')
+              .select('id')
+              .eq('test_id', testId)
+              .order('submitted_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (latestErr) throw latestErr;
+            id = latest?.id ?? undefined;
+          }
         }
 
         if (!id) {

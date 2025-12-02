@@ -7,16 +7,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { data: attempt, error: e1 } = await supabaseAdmin
     .from('listening_attempts')
-    .select('*')
+    .select('id,test_id,score,band,section_scores,submitted_at,meta')
     .eq('id', attemptId)
     .maybeSingle();
 
   if (e1 || !attempt) return res.status(404).json({ error: e1?.message || 'Attempt not found' });
 
-  const testSlug = (attempt as any).test_slug ?? null;
   const testId = (attempt as any).test_id ?? null;
 
-  if (!testSlug && !testId) {
+  if (!testId) {
     return res.status(400).json({ error: 'Attempt is missing test reference' });
   }
 
@@ -30,15 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const testQuery = supabaseAdmin.from('listening_tests').select('id,slug,title');
 
-  if (testId) {
-    questionQuery.eq('test_id', testId).order('qno');
-    sectionQuery.eq('test_id', testId).order('order_no');
-    testQuery.or(`id.eq.${testId}${testSlug ? `,slug.eq.${testSlug}` : ''}`).limit(1);
-  } else if (testSlug) {
-    questionQuery.eq('test_slug', testSlug).order('qno');
-    sectionQuery.eq('test_slug', testSlug).order('order_no');
-    testQuery.eq('slug', testSlug).maybeSingle();
-  }
+  questionQuery.eq('test_id', testId).order('qno');
+  sectionQuery.eq('test_id', testId).order('order_no');
+  testQuery.eq('id', testId).limit(1);
 
   const [
     { data: answers, error: e2 },
@@ -62,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.json({
     attempt: {
       id: attempt.id,
-      test_slug: testSlug ?? test?.slug ?? null,
+      test_slug: test?.slug ?? (attempt.meta as any)?.test_slug ?? null,
       score: attempt.score,
       band: attempt.band,
       section_scores: attempt.section_scores,

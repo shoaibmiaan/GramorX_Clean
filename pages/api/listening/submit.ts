@@ -7,7 +7,12 @@ import { scoreAll } from '@/lib/listening/score';
 import { trackor } from '@/lib/analytics/trackor.server';
 import { normLetter, normText, sortPairs } from '@/lib/listening/normalize';
 
-type Body = { test_slug: string; answers: { qno:number; answer:any }[]; meta?: any };
+type Body = {
+  testId?: string;
+  test_slug?: string;
+  answers: { qno: number; answer: any }[];
+  meta?: any;
+};
 
 async function getUserId(req: NextApiRequest, res: NextApiResponse) {
   // Parse and verify the Supabase auth session from cookies
@@ -30,14 +35,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthenticated' });
   }
 
-  const { test_slug, answers, meta }: Body = req.body || {};
-  if (!test_slug || !Array.isArray(answers)) return res.status(400).json({ error: 'Invalid payload' });
+  const { testId: testIdRaw, test_slug: testSlugRaw, answers, meta }: Body = req.body || {};
+
+  if (!Array.isArray(answers)) return res.status(400).json({ error: 'Invalid payload' });
+
+  const testSlug = testSlugRaw || null;
+
+  let testId = testIdRaw || null;
+
+  if (!testId) {
+    if (!testSlug) return res.status(400).json({ error: 'Missing test identifier' });
+    const { data: testRow, error: testLookupErr } = await supabaseAdmin
+      .from('listening_tests')
+      .select('id,slug')
+      .eq('slug', testSlug)
+      .maybeSingle();
+
+    if (testLookupErr || !testRow) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    testId = testRow.id;
+  }
 
   // Pull questions for deterministic scoring on server
   const { data: questions, error: qErr } = await supabaseAdmin
     .from('listening_questions')
     .select('qno,type,answer_key')
-    .eq('test_slug', test_slug)
+    .eq('test_id', testId)
     .order('qno');
 
   if (qErr) return res.status(500).json({ error: qErr.message });
@@ -57,12 +82,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('listening_attempts')
     .insert({
       user_id: userId,
-      test_slug,
+      test_id: testId,
       submitted_at: submittedAt,
       score: total,
       band,
       section_scores: perSection,
-      meta: meta ?? {},
+      meta: meta ?? { ...(testSlug ? { test_slug: testSlug } : {}) },
     })
     .select('id')
     .single();
@@ -100,7 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await trackor.log('listening_attempt_submitted', {
     attempt_id: attemptRow.id,
     user_id: userId,
-    test_slug,
+    test_id: testId,
+    test_slug: testSlug ?? undefined,
     score: total,
     band,
     section_scores: perSection,
