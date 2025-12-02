@@ -31,6 +31,7 @@ type Props = {
   test: ReadingTest;
   passages: ReadingPassage[];
   questions: ReadingQuestion[];
+  /** Optional: if true, disables submit + instructions (for future review mode) */
   readOnly?: boolean;
 };
 
@@ -40,10 +41,9 @@ type FilterStatus = 'all' | 'flagged' | 'unanswered';
 type FilterType = 'all' | 'tfng' | 'ynng' | 'mcq' | 'gap' | 'match';
 type ZoomLevel = 'sm' | 'md' | 'lg';
 
-// NEW: Theme support
+// Theme support
 type Theme = 'light' | 'dark' | 'system';
 const THEME_KEY = 'rx-reading-theme';
-
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
 
@@ -52,7 +52,9 @@ const isAnswered = (value: AnswerValue) => {
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'object') {
-    return Object.values(value).some((v) => (v ?? '').toString().trim() !== '');
+    return Object.values(value).some(
+      (v) => (v ?? '').toString().trim() !== '',
+    );
   }
   return false;
 };
@@ -65,35 +67,60 @@ const ReadingExamShellInner: React.FC<Props> = ({
 }) => {
   const toast = useToast();
 
-  // LIGHT / DARK MODE LOGIC — ADDED
+  // ===== THEME / SYSTEM DARK =====
   const [theme, setTheme] = React.useState<Theme>('system');
+  const [systemPrefersDark, setSystemPrefersDark] = React.useState(false);
 
+  // Load saved theme
   React.useEffect(() => {
-    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
       setTheme(saved);
     }
   }, []);
 
+  // Track system preference for "system" mode
   React.useEffect(() => {
-    if (typeof document === 'undefined') return;
+    if (typeof window === 'undefined') return;
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (event: MediaQueryListEvent) => {
+      setSystemPrefersDark(event.matches);
+    };
+
+    setSystemPrefersDark(mq.matches);
+    mq.addEventListener('change', handler);
+
+    return () => {
+      mq.removeEventListener('change', handler);
+    };
+  }, []);
+
+  // Apply theme class on <html>
+  React.useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
 
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.add(prefersDark ? 'dark' : 'light');
-    } else {
-      root.classList.add(theme);
-    }
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
+    const effectiveDark =
+      theme === 'dark' || (theme === 'system' && systemPrefersDark);
+
+    root.classList.add(effectiveDark ? 'dark' : 'light');
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme, systemPrefersDark]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light');
+    setTheme((prev) =>
+      prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light',
+    );
   };
 
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark =
+    theme === 'dark' || (theme === 'system' && systemPrefersDark);
 
   if (!questions.length || !passages.length) {
     return (
@@ -104,7 +131,9 @@ const ReadingExamShellInner: React.FC<Props> = ({
   }
 
   // ===== CORE STATE =====
-  const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>({});
+  const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>(
+    {},
+  );
   const [flags, setFlags] = React.useState<Record<string, boolean>>({});
 
   const [statusFilter, setStatusFilter] =
@@ -139,7 +168,9 @@ const ReadingExamShellInner: React.FC<Props> = ({
     const focusRaw = window.localStorage.getItem(FOCUS_KEY);
     if (focusRaw === '1') setFocusMode(true);
 
-    const zoomRaw = window.localStorage.getItem(ZOOM_KEY) as ZoomLevel | null;
+    const zoomRaw = window.localStorage.getItem(ZOOM_KEY) as
+      | ZoomLevel
+      | null;
     if (zoomRaw === 'sm' || zoomRaw === 'md' || zoomRaw === 'lg') {
       setZoom(zoomRaw);
     }
@@ -217,7 +248,14 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
       return true;
     });
-  }, [questions, currentPassage, answers, flags, statusFilter, typeFilter]);
+  }, [
+    questions,
+    currentPassage,
+    answers,
+    flags,
+    statusFilter,
+    typeFilter,
+  ]);
 
   // ===== JUMP QUESTION =====
   const handleJump = (id: string) => {
@@ -327,6 +365,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         return;
       }
 
+      // basic correctness calc (you can swap with smarter marking later)
       let correct = 0;
       for (const q of questions) {
         const userA = answers[q.id];
@@ -339,7 +378,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         } else if (Array.isArray(correctA)) {
           ok =
             Array.isArray(userA) &&
-            correctA.every((x) => userA.includes(x));
+            correctA.every((x) => (userA as string[]).includes(x));
         }
         if (ok) correct++;
       }
@@ -349,12 +388,15 @@ const ReadingExamShellInner: React.FC<Props> = ({
         (Date.now() - startTimeRef.current) / 1000,
       );
 
+      // 🔥 Key fix: mark attempt as "completed" so it doesn't violate
+      // uq_reading_attempt_in_progress (which usually enforces only ONE in-progress row)
       const { data: attemptRow, error: attemptError } = await supabase
         .from('reading_attempts')
         .insert({
           user_id: user.id,
           // @ts-expect-error reading type
           test_id: test.id,
+          status: 'submitted', // <— important
           duration_seconds: durationSec,
           raw_score: correct,
           band_score: band,
@@ -371,13 +413,25 @@ const ReadingExamShellInner: React.FC<Props> = ({
       if (attemptError || !attemptRow) {
         console.error('Failed to insert reading_attempt', attemptError);
 
-        toast({
-          variant: 'destructive',
-          title: 'Failed to submit attempt',
-          description:
-            attemptError?.message ??
-            'Something went wrong while saving your attempt. Please try again.',
-        });
+        const message = attemptError?.message ?? '';
+
+        // nicer message for the unique-constraint error
+        if (message.includes('uq_reading_attempt_in_progress')) {
+          toast({
+            variant: 'destructive',
+            title: 'Attempt already in progress',
+            description:
+              'You already have an active attempt for this test. Refresh the page or open it from your attempts history.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Failed to submit attempt',
+            description:
+              message ||
+              'Something went wrong while saving your attempt. Please try again.',
+          });
+        }
 
         submitting.current = false;
         return;
@@ -441,17 +495,18 @@ const ReadingExamShellInner: React.FC<Props> = ({
       className={cn(
         'w-full border border-border/70 rounded-xl bg-background/95 shadow-sm overflow-hidden flex flex-col transition-colors duration-300',
         focusMode && 'ring-2 ring-primary/40 bg-background',
-        isDark ? '' : 'light', // Force light mode class when needed
       )}
     >
       {/* HEADER */}
       <div className="sticky top-0 z-40">
-        <div className={cn(
-          "border-b border-border/70 shadow-sm",
-          isDark
-            ? "bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950"
-            : "bg-gradient-to-r from-blue-50 via-white to-blue-50"
-        )}>
+        <div
+          className={cn(
+            'border-b border-border/70 shadow-sm',
+            isDark
+              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950'
+              : 'bg-gradient-to-r from-blue-50 via-white to-blue-50',
+          )}
+        >
           <div className="px-3 py-2 sm:px-4 sm:py-2 border-b border-white/5">
             <ExamBreadcrumbs items={breadcrumbs} />
           </div>
@@ -495,10 +550,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
                     onClick={toggleTheme}
                     className="h-7 w-7"
                   >
-                    <Icon name={isDark ? "moon" : "sun"} className="h-4 w-4" />
+                    <Icon
+                      name={isDark ? 'moon' : 'sun'}
+                      className="h-4 w-4"
+                    />
                   </Button>
 
-                  {/* Existing Zoom + Focus */}
+                  {/* Zoom + Focus */}
                   <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
                     <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Zoom
@@ -559,7 +617,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DESKTOP & MOBILE LAYOUTS — unchanged, only bg/text colors adjusted for light mode */}
+      {/* DESKTOP LAYOUT */}
       <div className="hidden lg:flex gap-4 h-[calc(100vh-190px)] px-4 py-3 overflow-hidden">
         <ReadingPassagePane
           passage={currentPassage}
@@ -568,8 +626,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
           onPrev={goPrevPassage}
           onNext={goNextPassage}
           highlights={currentHighlights}
-          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
-          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
+          onAddHighlight={(text) =>
+            handleAddHighlight(currentPassage.id, text)
+          }
+          onClearHighlights={() =>
+            handleClearHighlights(currentPassage.id)
+          }
           zoom={zoom}
         />
 
@@ -644,8 +706,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
           onPrev={goPrevPassage}
           onNext={goNextPassage}
           highlights={currentHighlights}
-          onAddHighlight={(text) => handleAddHighlight(currentPassage.id, text)}
-          onClearHighlights={() => handleClearHighlights(currentPassage.id)}
+          onAddHighlight={(text) =>
+            handleAddHighlight(currentPassage.id, text)
+          }
+          onClearHighlights={() =>
+            handleClearHighlights(currentPassage.id)
+          }
           zoom={zoom}
         />
 
@@ -721,46 +787,60 @@ const ReadingExamShellInner: React.FC<Props> = ({
         onSecondaryClick={currentIndex > 0 ? goPrevQuestion : undefined}
       />
 
-      {/* INSTRUCTIONS OVERLAY — now supports light mode */}
+      {/* INSTRUCTIONS OVERLAY */}
       {showOverlay && (
         <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center px-4">
-          <Card className={cn(
-            "w-full max-w-lg p-6 space-y-4 shadow-2xl border border-border/70",
-            isDark
-              ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50"
-              : "bg-white text-gray-900"
-          )}>
+          <Card
+            className={cn(
+              'w-full max-w-lg p-6 space-y-4 shadow-2xl border border-border/70',
+              isDark
+                ? 'bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-50'
+                : 'bg-white text-gray-900',
+            )}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                  <Icon name="file-text" className="h-5 w-5 text-primary" />
+                  <Icon
+                    name="file-text"
+                    className="h-5 w-5 text-primary"
+                  />
                   IELTS Reading – Computer Based
                 </h2>
-                <p className="mt-1 text-xs text-slate-300 dark:text-slate-600">
-                  Treat this like a real exam. No random pausing, no casual scrolling.
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Treat this like a real exam. No random pausing, no casual
+                  scrolling.
                 </p>
               </div>
             </div>
 
-            <p className={cn("text-sm", isDark ? "text-slate-200" : "text-gray-700")}>
+            <p
+              className={cn(
+                'text-sm',
+                isDark ? 'text-slate-200' : 'text-gray-700',
+              )}
+            >
               You have <strong>60 minutes</strong> to answer{' '}
               <strong>{total}</strong> questions based on{' '}
               <strong>{passages.length}</strong> passages.
             </p>
-            <ul className="space-y-2 text-sm text-slate-200 dark:text-gray-700">
-              {/* Same content */}
+
+            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <li>• Use the flags to mark questions you want to revisit.</li>
+              <li>• Use the passage nav to move between the 3 passages.</li>
+              <li>
+                • You can change answers any time before you submit the test.
+              </li>
             </ul>
-            <div className="flex justify-between items-center pt-2 text-[11px] text-slate-300 dark:text-gray-600">
+
+            <div className="flex justify-between items-center pt-2 text-[11px] text-slate-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
                 <Icon name="target" className="h-3.5 w-3.5" />
-                Aim to <strong className="ml-1">reach the last question</strong>, then refine.
+                Aim to <strong className="ml-1">reach the last question</strong>
+                , then refine.
               </span>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleFocus}
-                >
+                <Button variant="outline" size="sm" onClick={toggleFocus}>
                   {focusMode ? 'Keep focus mode' : 'Turn on focus mode'}
                 </Button>
                 <Button
