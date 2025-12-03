@@ -16,6 +16,9 @@ import { getServerClient } from '@/lib/supabaseServer';
 // -----------------------------------------------------------------------------
 type PageProps = {
   startMockHref: string;
+  lastBand: number | null;
+  attemptCount: number;
+  lastAttemptId: string | null;
 };
 
 // You can wire this later from listening_attempts
@@ -116,7 +119,12 @@ const listeningTasks = [
 // -----------------------------------------------------------------------------
 // Page Component
 // -----------------------------------------------------------------------------
-const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
+const ListeningMockHomePage: NextPage<PageProps> = ({
+  startMockHref,
+  lastBand,
+  attemptCount,
+  lastAttemptId,
+}) => {
   return (
     <>
       <Head>
@@ -197,6 +205,18 @@ const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
                       <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
                         <Link href="/mock/listening/history">View Listening history</Link>
                       </Button>
+                      {lastAttemptId && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="md"
+                          className="rounded-ds-xl px-5"
+                        >
+                          <Link href={`/mock/listening/result/${lastAttemptId}`}>
+                            View last result
+                          </Link>
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
@@ -210,7 +230,7 @@ const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
                       Listening snapshot
                     </p>
                     <p className="text-xs text-grayish">
-                      This will show your band history later.
+                      Quick stats from your recent Listening mocks.
                     </p>
                   </div>
                   <Icon name="PieChart" size={18} className="text-muted-foreground" />
@@ -220,25 +240,33 @@ const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
                   <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Icon name="Medal" size={14} />
-                      <span>Best band</span>
+                      <span>Last band</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">—</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {lastBand ?? '—'}
+                    </p>
                   </div>
 
                   <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Icon name="Target" size={14} />
-                      <span>Weakest section</span>
+                      <span>Attempts completed</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">—</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {attemptCount}
+                    </p>
                   </div>
 
                   <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Icon name="Clock" size={14} />
-                      <span>Avg time / Q</span>
+                      <span>Next action</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">—</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {lastAttemptId
+                        ? 'Review your last mock'
+                        : 'Start your first mock'}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -471,16 +499,39 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .eq('is_published', true);
 
   let startMockHref = '/mock/listening/history';
+  let attemptCount = 0;
+  let lastBand: number | null = null;
+  let lastAttemptId: string | null = null;
 
   if (!error && data && data.length > 0) {
     const randomIndex = Math.floor(Math.random() * data.length);
     const slug = data[randomIndex].slug;
-    // 👉 now sends user to the TEST DETAIL PAGE, not straight to exam
-    startMockHref = `/mock/listening/${encodeURIComponent(slug ?? '')}`;
+    // 👉 now sends user straight into the strict exam room for that slug
+    startMockHref = `/mock/listening/exam/${encodeURIComponent(slug ?? '')}`;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: attempts } = await supabase
+      .from('listening_attempts')
+      .select('id, band_score, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    attemptCount = attempts?.length ?? 0;
+    if (attempts && attempts.length > 0) {
+      const bandValue = (attempts[0] as any).band_score;
+      lastBand = bandValue != null ? Number(bandValue) : null;
+      lastAttemptId = attempts[0].id as string;
+    }
   }
 
   return {
-    props: { startMockHref },
+    props: { startMockHref, lastBand, attemptCount, lastAttemptId },
   };
 };
 

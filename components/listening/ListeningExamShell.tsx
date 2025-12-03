@@ -106,15 +106,15 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
   const handleTimeUp = React.useCallback(async () => {
     await submitAttempt(true);
     setShowAutoSubmitModal(true);
-  }, []);
+  }, [submitAttempt]);
 
   const handleExitClick = () => setShowExitModal(true);
 
   const handleExitConfirm = async () => {
     setShowExitModal(false);
-    await submitAttempt(true);
-    if (attemptId) {
-      router.push(`/mock/listening/result/${attemptId}`);
+    const id = await submitAttempt(true);
+    if (id || attemptId) {
+      router.push(`/mock/listening/result/${id ?? attemptId}`);
     } else {
       router.push('/mock/listening');
     }
@@ -279,7 +279,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
 
   const submitAttempt = React.useCallback(
     async (auto: boolean) => {
-      if (isSubmitting) return;
+      if (isSubmitting) return null;
       try {
         setIsSubmitting(true);
 
@@ -288,29 +288,48 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             testId: test.id,
+            testSlug: test.slug,
             autoSubmit: auto,
-            answers,
+            durationSeconds: test.durationMinutes * 60 - remainingSeconds,
+            answers: Object.entries(answers).map(([questionId, value]) => {
+              const q = questions.find((item) => item.id === questionId);
+              return {
+                questionId,
+                questionNumber: q?.questionNo ?? null,
+                section: q?.sectionNo ?? null,
+                answer: value,
+              };
+            }),
           }),
         });
 
         if (!res.ok) {
           console.error('Failed to submit listening attempt');
-          return;
+          return null;
         }
 
         const json = (await res.json()) as { attemptId?: string };
 
         if (json.attemptId) {
           setAttemptId(json.attemptId);
+          return json.attemptId;
         }
+        return null;
       } catch (err) {
         console.error('Submit attempt error', err);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [answers, isSubmitting, test.id]
+    [answers, isSubmitting, questions, remainingSeconds, test.id, test.slug]
   );
+
+  const handleManualSubmit = async () => {
+    const id = await submitAttempt(false);
+    if (id) {
+      router.push(`/mock/listening/result/${id}`);
+    }
+  };
 
   const handleViewResults = () => {
     if (attemptId) {
@@ -374,6 +393,18 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
               <Icon name="clock" className="mr-1.5 h-3.5 w-3.5" />
               {formatTime(remainingSeconds)}
             </Badge>
+
+            <Button
+              tone="primary"
+              size="sm"
+              type="button"
+              onClick={handleManualSubmit}
+              disabled={isSubmitting}
+              className="text-xs"
+            >
+              <Icon name="send" className="mr-1.5 h-3.5 w-3.5" />
+              Submit
+            </Button>
 
             <Button
               tone="neutral"
