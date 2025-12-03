@@ -31,10 +31,10 @@ export const routes = {
   pricing: () => '/pricing',
   checkout: (plan?: string) =>
     plan ? `/checkout?plan=${encodeURIComponent(plan)}` : '/checkout',
-  billing: () => '/settings/billing',
+  billing: () => '/account/billing',
 
   /** @deprecated Use routes.billing() instead */
-  settingsBilling: () => '/settings/billing',
+  settingsBilling: () => '/account/billing',
 
   // Platform
   studyPlan: () => '/study-plan',

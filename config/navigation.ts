@@ -52,7 +52,12 @@ const aiTools: NavItemConfig[] = [
 ];
 
 const profileMenu: NavItemConfig[] = [
-  { id: 'profile', label: 'My Profile', href: '/profile', featureGate: authenticatedGate },
+  {
+    id: 'profile',
+    label: 'My Profile',
+    href: '/account/profile',
+    featureGate: authenticatedGate,
+  },
   { id: 'notifications', label: 'Notifications', href: '/notifications', featureGate: authenticatedGate },
   {
     id: 'mistakes',
@@ -61,7 +66,12 @@ const profileMenu: NavItemConfig[] = [
     featureGate: { featureToggle: 'mistakesBook', requiresAuth: true },
   },
   { id: 'stats', label: 'My Stats', href: '/progress', featureGate: authenticatedGate },
-  { id: 'settings', label: 'Settings', href: '/settings', featureGate: authenticatedGate },
+  {
+    id: 'settings',
+    label: 'Settings',
+    href: '/account/preferences',
+    featureGate: authenticatedGate,
+  },
 ];
 
 export const navigationSchema: AppNavigationSchema = {
@@ -160,9 +170,9 @@ export const navigationSchema: AppNavigationSchema = {
       label: 'Account',
       icon: 'User',
       items: [
-        { id: 'profile', label: 'Profile', href: '/profile', featureGate: authenticatedGate },
+        { id: 'profile', label: 'Profile', href: '/account/profile', featureGate: authenticatedGate },
         { id: 'subscription', label: 'Subscription', href: '/account/billing', featureGate: authenticatedGate },
-        { id: 'settings', label: 'Settings', href: '/settings', featureGate: authenticatedGate },
+        { id: 'settings', label: 'Settings', href: '/account/preferences', featureGate: authenticatedGate },
       ],
     },
   ],

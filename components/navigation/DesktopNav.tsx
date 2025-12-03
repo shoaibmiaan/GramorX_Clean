@@ -76,7 +76,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
   // Profile menu entries for user dropdown
   const profileMenu = React.useMemo(() => {
     if (isTeacher) {
-      return [{ id: 'account', label: 'Profile', href: '/profile/account' }];
+      return [{ id: 'account', label: 'Profile', href: '/account' }];
     }
     return filterNavItems(navigationSchema.header.profile, navCtx);
   }, [isTeacher, navCtx]);
@@ -331,7 +331,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
         {ready && uid && (
           <StreakChip
             value={streak ?? 0}
-            href="/profile/streak"
+            href="/account/progress/streak"
             className="shrink-0"
           />
         )}

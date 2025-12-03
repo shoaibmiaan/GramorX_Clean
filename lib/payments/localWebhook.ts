@@ -74,7 +74,7 @@ export async function finalizeLocalPayment(
         plan: intent.plan_id,
         cycle: intent.cycle,
         provider,
-        deep_link: `${baseUrl}/settings/billing`,
+        deep_link: `${baseUrl}/account/billing`,
         user_email: contact.email,
       };
       if (contact.phone) {

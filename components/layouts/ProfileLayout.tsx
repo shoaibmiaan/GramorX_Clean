@@ -41,14 +41,30 @@ export function ProfileLayout({ children }: ProfileLayoutProps) {
       <aside className="w-64 border-r bg-card">
         <div className="p-4">
           <div className="px-2 pb-3 text-sm font-medium text-muted-foreground">
-            Profile
+            Account
           </div>
           <nav className="space-y-1">
-            <NavItem href="/profile" label="Overview" active={isActive('/profile')} />
-            <NavItem href="/account" label="Account" active={isActive('/profile/account')} />
-            <NavItem href="/profile/security" label="Security" active={isActive('/profile/security')} />
-            <NavItem href="/profile/notifications" label="Notifications" active={isActive('/profile/notifications')} />
-            <NavItem href="/profile/preferences" label="Preferences" active={isActive('/profile/preferences')} />
+            <NavItem href="/account" label="Overview" active={isActive('/account')} />
+            <NavItem
+              href="/account/profile"
+              label="Profile"
+              active={isActive('/account/profile')}
+            />
+            <NavItem
+              href="/account/security"
+              label="Security"
+              active={isActive('/account/security')}
+            />
+            <NavItem
+              href="/account/preferences/notifications"
+              label="Notifications"
+              active={isActive('/account/preferences/notifications')}
+            />
+            <NavItem
+              href="/account/preferences"
+              label="Preferences"
+              active={isActive('/account/preferences')}
+            />
           </nav>
         </div>
       </aside>

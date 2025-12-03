@@ -52,12 +52,12 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   ACCOUNT_REMINDER: {
     event_key: 'account_reminder',
     message: '🔔 Complete your account verification to unlock all features.',
-    url: '/settings/account'
+    url: '/account/profile'
   },
   LANGUAGE_PREFERENCE: {
     event_key: 'language_preference',
     message: '🌐 Choose your preferred language for a better experience.',
-    url: '/settings/language'
+    url: '/account/preferences/language'
   },
   LEARNING_PATH: {
     event_key: 'learning_path',
@@ -72,12 +72,12 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   PREFERENCES: {
     event_key: 'preferences',
     message: '⚙️ Customize your learning preferences for better experience.',
-    url: '/settings/preferences'
+    url: '/account/preferences'
   },
   NOTIFICATION_SETUP: {
     event_key: 'notification_setup',
     message: '🔔 Set up notifications to never miss important updates.',
-    url: '/settings/notifications'
+    url: '/account/preferences/notifications'
   },
 
   // 📚 Course & Learning (31)
@@ -470,22 +470,22 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   PASSWORD_CHANGED: {
     event_key: 'password_changed',
     message: '🔑 Password changed successfully.',
-    url: '/security'
+    url: '/account/security'
   },
   EMAIL_VERIFIED: {
     event_key: 'email_verified',
     message: '✅ Email verified successfully!',
-    url: '/profile'
+    url: '/account/profile'
   },
   TWO_FACTOR_ENABLED: {
     event_key: 'two_factor_enabled',
     message: '🛡️ Two-factor authentication enabled for extra security.',
-    url: '/security'
+    url: '/account/security'
   },
   DATA_EXPORT_READY: {
     event_key: 'data_export_ready',
     message: '📤 Your data export is ready for download.',
-    url: '/settings/privacy'
+    url: '/account/security'
   },
   PRIVACY_POLICY_UPDATE: {
     event_key: 'privacy_policy_update',

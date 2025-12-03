@@ -6,7 +6,7 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 
 /**
  * Compact locale toggle (EN / UR). Uses DS token classes.
- * Drop this in header or /settings/language.
+ * Drop this in header or /account/preferences/language.
  */
 export function LocaleSwitcher({
   label = "Language",

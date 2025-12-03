@@ -10,7 +10,7 @@ import React from 'react';
 vi.mock('next/router', () => ({
   useRouter: () => ({
     query: {},
-    asPath: '/settings/notifications',
+    asPath: '/account/preferences/notifications',
     push: () => undefined,
     replace: () => undefined,
   }),
@@ -22,7 +22,7 @@ vi.mock('@/lib/analytics/track', () => ({
 
 describe('A11y: Notifications settings page', () => {
   it('renders without major Axe violations on initial markup', async () => {
-    const { default: NotificationsSettingsPage } = await import('@/pages/settings/notifications');
+    const { default: NotificationsSettingsPage } = await import('@/pages/account/preferences/notifications');
     const markup = renderToStaticMarkup(<NotificationsSettingsPage />);
     const dom = new JSDOM(
       `<!DOCTYPE html><html lang="en"><head><title>Notifications</title></head><body>${markup}</body></html>`,

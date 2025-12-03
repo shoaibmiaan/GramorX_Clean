@@ -38,7 +38,7 @@ export const NAV: ReadonlyArray<{ href: string; label: string }> = [
 const baseUserMenuLinks: { id: string; href: string; label: string }[] = [
   { id: 'account',   href: '/account',           label: 'Account' },
   { id: 'saved',     href: '/saved',             label: 'Saved items' },
-  { id: 'settings',  href: '/settings',          label: 'Settings' },
+  { id: 'settings',  href: '/account/preferences',          label: 'Settings' },
   { id: 'billing',   href: '/account/billing',   label: 'Billing' },
   { id: 'referrals', href: '/account/referrals', label: 'Referrals' },
 ];

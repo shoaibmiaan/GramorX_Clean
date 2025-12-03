@@ -42,7 +42,7 @@ export function WhatsAppOptIn() {
             You&apos;re subscribed to WhatsApp reminders.
           </p>
           <div className="flex gap-2">
-            <Link href="/profile#whatsapp">
+            <Link href="/account/profile#whatsapp">
               <Button variant="primary" className="rounded-ds-xl">
                 Update number
               </Button>

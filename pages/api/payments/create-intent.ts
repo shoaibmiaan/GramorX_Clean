@@ -122,7 +122,7 @@ const handler: NextApiHandler<ResBody> = async (req, res) => {
       plan,
       cycle,
       provider,
-      deep_link: `${baseUrl}/settings/billing`,
+      deep_link: `${baseUrl}/account/billing`,
       user_email: contact.email,
     };
     if (contact.phone) payload.user_phone = contact.phone;

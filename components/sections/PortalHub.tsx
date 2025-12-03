@@ -26,7 +26,7 @@ const quickLinks: QuickLink[] = [
   {
     label: 'Finish onboarding',
     description: 'Lock in goal band, exam date, and study rhythm.',
-    href: '/profile/setup',
+    href: '/account/setup',
     icon: 'ClipboardCheck',
   },
   {

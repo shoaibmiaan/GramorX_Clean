@@ -12,7 +12,7 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: IconName; ex
   { href: '/', label: 'Home', icon: 'Home', exact: true },
   { href: '/learning', label: 'Courses', icon: 'BookOpen' },
   { href: '/mock', label: 'Tests', icon: 'PencilLine' },
-  { href: '/profile', label: 'Profile', icon: 'User' },
+  { href: '/account/profile', label: 'Profile', icon: 'User' },
 ];
 
 export const BottomNav: React.FC = () => {

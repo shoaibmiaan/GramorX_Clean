@@ -283,7 +283,7 @@ function mergePayload(
     (context.fullName ? context.fullName.split(' ')[0] : null);
 
   const baseUrl = getBaseUrl();
-  const manageUrl = `${baseUrl}/settings/notifications`;
+  const manageUrl = `${baseUrl}/account/preferences/notifications`;
   const unsubscribeUrl = `${manageUrl}?unsubscribe=1`;
 
   const defaults: Record<string, unknown> = {
