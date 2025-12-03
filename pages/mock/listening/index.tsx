@@ -14,8 +14,15 @@ import { getServerClient } from '@/lib/supabaseServer';
 // -----------------------------------------------------------------------------
 // Page Props
 // -----------------------------------------------------------------------------
+type ListeningSnapshot = {
+  attemptCount: number;
+  lastBand: number | null;
+  bestBand: number | null;
+};
+
 type PageProps = {
   startMockHref: string;
+  snapshot: ListeningSnapshot;
 };
 
 // You can wire this later from listening_attempts
@@ -116,7 +123,10 @@ const listeningTasks = [
 // -----------------------------------------------------------------------------
 // Page Component
 // -----------------------------------------------------------------------------
-const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
+const ListeningMockHomePage: NextPage<PageProps> = ({
+  startMockHref,
+  snapshot,
+}) => {
   return (
     <>
       <Head>
@@ -222,7 +232,9 @@ const ListeningMockHomePage: NextPage<PageProps> = ({ startMockHref }) => {
                       <Icon name="Medal" size={14} />
                       <span>Best band</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">—</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {snapshot.bestBand != null ? snapshot.bestBand.toFixed(1) : '—'}
+                    </p>
                   </div>
 
                   <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
@@ -479,8 +491,35 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     startMockHref = `/mock/listening/${encodeURIComponent(slug ?? '')}`;
   }
 
+  const { data: userResult } = await supabase.auth.getUser();
+  let snapshot: ListeningSnapshot = { attemptCount: 0, lastBand: null, bestBand: null };
+
+  if (userResult?.user) {
+    const { data: attempts, error: attemptsError } = await supabase
+      .from('attempts_listening')
+      .select('band_score, created_at')
+      .eq('user_id', userResult.user.id)
+      .eq('status', 'submitted')
+      .order('created_at', { ascending: false });
+
+    if (!attemptsError && attempts) {
+      const bands = attempts
+        .map((row) =>
+          typeof row.band_score === 'number' ? row.band_score : Number(row.band_score ?? NaN)
+        )
+        .filter((value) => Number.isFinite(value));
+
+      snapshot = {
+        attemptCount: attempts.length,
+        lastBand: bands[0] ?? null,
+        bestBand:
+          bands.length > 0 ? bands.reduce((best, current) => Math.max(best, current), bands[0]) : null,
+      };
+    }
+  }
+
   return {
-    props: { startMockHref },
+    props: { startMockHref, snapshot },
   };
 };
 

@@ -79,16 +79,18 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     };
   }
 
-  const supabase = getServerClient(ctx);
+  const supabase = getServerClient(ctx.req, ctx.res);
 
   // 1) Test by slug
   const { data: testRow, error: testError } = await supabase
     .from('listening_tests')
-    .select('*')
+    .select(
+      `id, slug, title, audio_url, duration_seconds, total_questions, is_published`
+    )
     .eq('slug', slug)
     .maybeSingle();
 
-  if (testError || !testRow) {
+  if (testError || !testRow || testRow.is_published === false) {
     console.error('Listening test fetch error', testError);
     return {
       redirect: {
@@ -101,7 +103,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
   // 2) Sections
   const { data: sectionRows, error: sectionError } = await supabase
     .from('listening_sections')
-    .select('*')
+    .select(
+      'id, test_id, order_no, audio_url, label, start_sec, end_sec'
+    )
     .eq('test_id', testRow.id)
     .order('order_no', { ascending: true });
 
@@ -112,7 +116,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
   // 3) Questions
   const { data: questionRows, error: questionError } = await supabase
     .from('listening_questions')
-    .select('*')
+    .select(
+      'id, test_id, section_uuid, section_no, question_number, question_text, question_type, options'
+    )
     .eq('test_id', testRow.id)
     .order('section_no', { ascending: true })
     .order('question_number', { ascending: true });
@@ -121,40 +127,45 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     console.error('Listening questions fetch error', questionError);
   }
 
-  const durationSeconds =
-    (testRow as any).duration_seconds ?? 1800;
+  const durationSeconds = testRow.duration_seconds ?? 1800;
 
   const test: ListeningTest = {
     id: testRow.id as string,
     slug: testRow.slug as string,
-    title: (testRow as any).title ?? 'Listening Test',
-    audioUrl: (testRow as any).audio_url ?? null,
+    title: testRow.title ?? 'Listening Test',
+    audioUrl: testRow.audio_url ?? null,
     durationMinutes: Math.round(durationSeconds / 60),
-    totalQuestions: (testRow as any).total_questions ?? 40,
+    totalQuestions: testRow.total_questions ?? 40,
   };
 
   const sections: ListeningSection[] = (sectionRows ?? []).map(
-    (s: any, idx: number) => ({
-      id: s.id as string,
-      testId: s.test_id as string,
+    (s, idx: number) => ({
+      id: s.id,
+      testId: s.test_id,
       order: s.order_no ?? idx + 1,
       audioUrl: s.audio_url ?? null,
-      label: `Section ${s.order_no ?? idx + 1}`,
+      label: s.label ?? `Section ${s.order_no ?? idx + 1}`,
       startSec: s.start_sec ?? null,
       endSec: s.end_sec ?? null,
     })
   );
 
   const questions: ListeningQuestion[] = (questionRows ?? []).map(
-    (q: any, idx: number) => ({
-      id: q.id as string,
-      testId: q.test_id as string,
-      sectionId: (q.section_uuid as string) ?? '', // IMPORTANT: your schema
-      questionNo: q.question_number ?? idx + 1,
-      text: q.question_text ?? '',
-      type: q.question_type ?? 'mcq',
-      options: q.options ?? null, // stringified JSON, we parse in component
-    })
+    (q, idx: number) => {
+      const fallbackSection = sections.find(
+        (section) => section.order === q.section_no
+      );
+
+      return {
+        id: q.id,
+        testId: q.test_id,
+        sectionId: q.section_uuid ?? fallbackSection?.id ?? sections[0]?.id ?? '',
+        questionNo: q.question_number ?? idx + 1,
+        text: q.question_text ?? '',
+        type: q.question_type ?? 'mcq',
+        options: q.options ?? null, // stringified JSON, we parse in component
+      };
+    }
   );
 
   return {
