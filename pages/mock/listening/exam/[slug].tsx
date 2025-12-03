@@ -1,11 +1,10 @@
-// pages/mock/listening/exam/[slug].tsx
 import * as React from 'react';
 import Head from 'next/head';
 import type { GetServerSideProps, NextPage } from 'next';
 
-import { getServerClient } from '@/lib/supabaseServer';
-import { Container } from '@/components/design-system/Container';
 import { ListeningExamShell } from '@/components/listening/ListeningExamShell';
+import { Container } from '@/components/design-system/Container';
+import { getServerClient } from '@/lib/supabaseServer';
 
 export type ListeningTest = {
   id: string;
@@ -29,7 +28,7 @@ export type ListeningSection = {
 export type ListeningQuestion = {
   id: string;
   testId: string;
-  sectionId: string;
+  sectionId: string; // section_uuid linkage
   questionNo: number;
   text: string;
   type: string;
@@ -52,8 +51,7 @@ const ListeningExamPage: NextPage<PageProps> = ({
       <Head>
         <title>{test.title} · Listening Mock · GramorX</title>
       </Head>
-      {/* Exam room should hug the viewport, minimal padding */}
-      <Container className="py-2">
+      <Container className="py-4">
         <ListeningExamShell
           test={test}
           sections={sections}
@@ -72,16 +70,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
 
   if (!slug) {
     return {
-      redirect: {
-        destination: '/mock/listening',
-        permanent: false,
-      },
+      redirect: { destination: '/mock/listening', permanent: false },
     };
   }
 
   const supabase = getServerClient(ctx);
 
-  // 1) Test by slug
   const { data: testRow, error: testError } = await supabase
     .from('listening_tests')
     .select('*')
@@ -91,14 +85,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
   if (testError || !testRow) {
     console.error('Listening test fetch error', testError);
     return {
-      redirect: {
-        destination: '/mock/listening',
-        permanent: false,
-      },
+      redirect: { destination: '/mock/listening', permanent: false },
     };
   }
 
-  // 2) Sections
   const { data: sectionRows, error: sectionError } = await supabase
     .from('listening_sections')
     .select('*')
@@ -109,7 +99,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     console.error('Listening sections fetch error', sectionError);
   }
 
-  // 3) Questions
   const { data: questionRows, error: questionError } = await supabase
     .from('listening_questions')
     .select('*')
@@ -121,15 +110,14 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     console.error('Listening questions fetch error', questionError);
   }
 
-  const durationSeconds =
-    (testRow as any).duration_seconds ?? 1800;
+  const durationSeconds = (testRow as any).duration_seconds ?? 1800;
 
   const test: ListeningTest = {
     id: testRow.id as string,
     slug: testRow.slug as string,
     title: (testRow as any).title ?? 'Listening Test',
     audioUrl: (testRow as any).audio_url ?? null,
-    durationMinutes: Math.round(durationSeconds / 60),
+    durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
     totalQuestions: (testRow as any).total_questions ?? 40,
   };
 
@@ -149,13 +137,19 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     (q: any, idx: number) => ({
       id: q.id as string,
       testId: q.test_id as string,
-      sectionId: (q.section_uuid as string) ?? '', // IMPORTANT: your schema
+      sectionId: (q.section_uuid as string) ?? '',
       questionNo: q.question_number ?? idx + 1,
       text: q.question_text ?? '',
       type: q.question_type ?? 'mcq',
-      options: q.options ?? null, // stringified JSON, we parse in component
+      options: q.options ?? null,
     })
   );
+
+  if (!test || !sections.length || !questions.length) {
+    return {
+      redirect: { destination: '/mock/listening', permanent: false },
+    };
+  }
 
   return {
     props: {
