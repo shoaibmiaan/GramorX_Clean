@@ -11,7 +11,6 @@ import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
 
 import { getServerClient } from "@/lib/supabaseServer";
-import type { Database } from "@/lib/database.types";
 
 type AttemptSummary = {
   id: string;
@@ -37,12 +36,70 @@ type SectionStat = {
 };
 
 type PageProps = {
-  attempt: AttemptSummary;
-  test: TestSummary;
+  attempt: AttemptSummary | null;
+  test: TestSummary | null;
   sectionStats: SectionStat[];
+  isLoggedIn: boolean;
 };
 
-const ListeningResultPage: NextPage<PageProps> = ({ attempt, test, sectionStats }) => {
+const ListeningResultPage: NextPage<PageProps> = ({
+  attempt,
+  test,
+  sectionStats,
+  isLoggedIn,
+}) => {
+  const notFound = !attempt || !test;
+
+  if (notFound) {
+    return (
+      <>
+        <Head>
+          <title>Listening Result · GramorX</title>
+        </Head>
+
+        <main className="bg-lightBg dark:bg-dark/90 pb-20">
+          <section className="py-16">
+            <Container className="max-w-xl">
+              <Card className="mx-auto rounded-ds-2xl border border-border/60 bg-card/80 p-8 text-center shadow-sm space-y-4">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                  <Icon name="AlertTriangle" className="h-5 w-5 text-destructive" />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                    Result not available
+                  </p>
+                  <p className="text-sm text-grayish">
+                    {isLoggedIn
+                      ? "We couldn't find that attempt. Please retry a Listening mock."
+                      : "You need to be logged in to view this result."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                  {!isLoggedIn && (
+                    <Button asChild size="sm">
+                      <Link href="/login?role=student">
+                        <Icon name="LogIn" className="h-4 w-4 mr-1" />
+                        Log in
+                      </Link>
+                    </Button>
+                  )}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/mock/listening">
+                      <Icon name="ArrowLeft" className="h-4 w-4 mr-1" />
+                      Back to Listening mocks
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            </Container>
+          </section>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -279,41 +336,75 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const supabase = getServerClient(ctx.req, ctx.res);
   const attemptId = ctx.params?.attemptId as string;
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: attemptRow } = await supabase
     .from("listening_attempts")
     .select("*, listening_tests (id, title, slug, questions, duration_minutes)")
     .eq("id", attemptId)
     .single();
 
-  let sectionStats: SectionStat[] = [];
-
-  if (attemptRow?.section_stats) {
-    const rawStats = attemptRow.section_stats as any;
-    sectionStats = Object.keys(rawStats).map((sec) => ({
-      section: Number(sec),
-      correct: rawStats[sec].correct,
-      total: rawStats[sec].total,
-    }));
+  if (!attemptRow) {
+    return {
+      props: { attempt: null, test: null, sectionStats: [], isLoggedIn: !!user },
+    };
   }
+
+  const sectionStats: SectionStat[] = [];
+  const sectionScores = (attemptRow.section_scores as any) ?? {};
+  const questionCount = attemptRow.total_questions ?? attemptRow.questions ?? null;
+
+  Object.keys(sectionScores).forEach((sec) => {
+    const bucket = sectionScores[sec];
+    const total = Math.max(
+      (typeof bucket === "number" ? null : bucket?.total) ??
+        Math.floor((questionCount ?? 40) / 4),
+      1,
+    );
+    sectionStats.push({
+      section: Number(sec),
+      correct:
+        typeof bucket === "number" ? bucket : bucket?.correct ?? bucket?.score ?? 0,
+      total,
+    });
+  });
+
+  // Ensure stable order and at least four sections
+  if (sectionStats.length === 0 && questionCount) {
+    const perSectionTotal = Math.max(Math.floor(questionCount / 4), 1);
+    for (let i = 1; i <= 4; i += 1) {
+      sectionStats.push({ section: i, correct: 0, total: perSectionTotal });
+    }
+  }
+
+  sectionStats.sort((a, b) => a.section - b.section);
 
   return {
     props: {
       attempt: {
         id: attemptRow.id,
-        rawScore: attemptRow.raw_score,
-        bandScore: attemptRow.band_score,
-        questionCount: attemptRow.questions,
+        rawScore: attemptRow.raw_score ?? attemptRow.score ?? null,
+        bandScore: attemptRow.band_score ?? attemptRow.band ?? null,
+        questionCount,
         durationSeconds: attemptRow.duration_seconds,
         createdAt: attemptRow.created_at,
       },
-      test: {
-        id: attemptRow.listening_tests.id,
-        title: attemptRow.listening_tests.title,
-        slug: attemptRow.listening_tests.slug,
-        totalQuestions: attemptRow.listening_tests.questions,
-        durationMinutes: attemptRow.listening_tests.duration_minutes,
-      },
+      test: attemptRow.listening_tests
+        ? {
+            id: attemptRow.listening_tests.id,
+            title: attemptRow.listening_tests.title,
+            slug: attemptRow.listening_tests.slug,
+            totalQuestions:
+              attemptRow.listening_tests.questions ??
+              (attemptRow.listening_tests as any).question_count ??
+              null,
+            durationMinutes: attemptRow.listening_tests.duration_minutes,
+          }
+        : null,
       sectionStats,
+      isLoggedIn: !!user,
     },
   };
 };

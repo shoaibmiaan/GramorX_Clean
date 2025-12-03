@@ -102,11 +102,23 @@ export default async function handler(
         ? 'mcq'
         : 'gap';
 
+    const section =
+      q.section_no ??
+      (qno != null
+        ? qno <= 10
+          ? 1
+          : qno <= 20
+          ? 2
+          : qno <= 30
+          ? 3
+          : 4
+        : null);
+
     return {
       qno: Number(qno ?? 0),
       type: normalizedType as 'mcq' | 'gap' | 'match',
       answer_key: answerKey as any,
-      section: q.section_no ?? null,
+      section,
     };
   });
 
@@ -119,17 +131,24 @@ export default async function handler(
   });
 
   let total = 0;
-  const perSection: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0 };
+  const perSection: Record<string, { total: number; correct: number }> = {};
   const correctness = new Map<number, boolean>();
 
   for (const q of scoringQuestions) {
     const userAnswer = answerByQno.get(q.qno);
     const ok = scoreOne(q as any, userAnswer);
     correctness.set(q.qno, ok);
+
+    const sectionKey = String(q.section ?? '1');
+    const bucket = perSection[sectionKey] ?? { total: 0, correct: 0 };
+    bucket.total += 1;
+    if (ok) {
+      bucket.correct += 1;
+    }
+    perSection[sectionKey] = bucket;
+
     if (ok) {
       total += 1;
-      const sec = q.qno <= 10 ? '1' : q.qno <= 20 ? '2' : q.qno <= 30 ? '3' : '4';
-      perSection[sec] += 1;
     }
   }
 
