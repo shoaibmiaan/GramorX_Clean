@@ -1041,6 +1041,11 @@ const Dashboard: NextPage = () => {
                       Take a mock test
                     </Button>
                   </Link>
+                  <Link href="/mock/listening">
+                    <Button variant="accent" className="rounded-ds-xl">
+                      Start Listening mock
+                    </Button>
+                  </Link>
                   <Link href="/writing">
                     <Button variant="accent" className="rounded-ds-xl">
                       Practice writing
