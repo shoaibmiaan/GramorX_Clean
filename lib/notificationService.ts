@@ -1,10 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+// lib/notificationService.ts
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
-import type { CreateNotificationInput, NotificationNudge } from './schemas/notifications';
-import { getNotificationTemplate, type NotificationTemplate } from './notificationTemplates';
+import type {
+  CreateNotificationInput,
+  NotificationNudge,
+} from './schemas/notifications';
+import {
+  getNotificationTemplate,
+  type NotificationTemplate,
+} from './notificationTemplates';
 
 type NotificationRow = Database['public']['Tables']['notifications']['Row'];
-type NotificationInsert = Database['public']['Tables']['notifications']['Insert'];
+type NotificationInsert =
+  Database['public']['Tables']['notifications']['Insert'];
 
 type ListResult = {
   items: NotificationNudge[];
@@ -13,7 +21,7 @@ type ListResult = {
 };
 
 export class NotificationService {
-  constructor(private supabase: ReturnType<typeof createClient<Database>>) {}
+  constructor(private supabase: SupabaseClient<Database>) {}
 
   private mapRow(row: NotificationRow): NotificationNudge {
     return {
@@ -24,7 +32,8 @@ export class NotificationService {
       createdAt:
         row.created_at instanceof Date
           ? row.created_at.toISOString()
-          : typeof row.created_at === 'string' && !isNaN(Date.parse(row.created_at))
+          : typeof row.created_at === 'string' &&
+            !isNaN(Date.parse(row.created_at))
           ? new Date(row.created_at).toISOString()
           : new Date().toISOString(),
     };
@@ -32,7 +41,7 @@ export class NotificationService {
 
   async listNotifications(
     userId: string,
-    options: { cursor?: string | null; limit?: number } = {}
+    options: { cursor?: string | null; limit?: number } = {},
   ): Promise<ListResult> {
     const limit = options.limit ?? 20;
     const cursor = options.cursor ?? null;
@@ -51,7 +60,9 @@ export class NotificationService {
     const { data, error } = await query;
     if (error) throw error;
 
-    const notifications = (data ?? []).map((row) => this.mapRow(row as NotificationRow));
+    const notifications = (data ?? []).map((row) =>
+      this.mapRow(row as NotificationRow),
+    );
     const items = notifications.slice(0, limit);
     const hasMore = notifications.length > limit;
     const nextCursor = hasMore ? items[items.length - 1]?.createdAt ?? null : null;
@@ -83,7 +94,7 @@ export class NotificationService {
   async createNotification(
     userId: string,
     input: CreateNotificationInput,
-    options: { createdAt?: Date } = {}
+    options: { createdAt?: Date } = {},
   ): Promise<NotificationNudge> {
     const payload: NotificationInsert = {
       user_id: userId,
@@ -108,9 +119,12 @@ export class NotificationService {
     userId: string,
     templateKey: string,
     variables?: Record<string, any>,
-    options: { createdAt?: Date } = {}
+    options: { createdAt?: Date } = {},
   ): Promise<NotificationNudge> {
-    const template: NotificationTemplate = getNotificationTemplate(templateKey, variables);
+    const template: NotificationTemplate = getNotificationTemplate(
+      templateKey,
+      variables,
+    );
 
     return this.createNotification(
       userId,
@@ -118,7 +132,7 @@ export class NotificationService {
         message: template.message,
         url: template.url,
       },
-      options
+      options,
     );
   }
 
@@ -128,7 +142,7 @@ export class NotificationService {
       templateKey: string;
       variables?: Record<string, any>;
       created_at?: Date;
-    }>
+    }>,
   ): Promise<NotificationNudge[]> {
     const results: NotificationNudge[] = [];
 
@@ -138,14 +152,18 @@ export class NotificationService {
           userId,
           notification.templateKey,
           notification.variables,
-          { createdAt: notification.created_at }
+          { createdAt: notification.created_at },
         );
         results.push(result);
 
-        // Add delay to avoid rate limiting
+        // tiny delay just in case of rate limits
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(`Failed to create notification ${notification.templateKey}:`, error);
+        // eslint-disable-next-line no-console
+        console.error(
+          `Failed to create notification ${notification.templateKey}:`,
+          error,
+        );
       }
     }
 
@@ -173,44 +191,94 @@ export class NotificationService {
       variables?: Record<string, any>;
       created_at?: Date;
     }> = [
-      { templateKey: 'WELCOME', created_at: new Date(now - 1000 * 60 * 60 * 24 * 5) },
-      { templateKey: 'FIRST_LOGIN', created_at: new Date(now - 1000 * 60 * 60 * 24 * 4) },
+      // Onboarding & first-touch
+      { templateKey: 'WELCOME', created_at: new Date(now - 1000 * 60 * 60 * 24 * 7) },
+      {
+        templateKey: 'FIRST_LOGIN',
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 6.5),
+      },
+      {
+        templateKey: 'PROFILE_COMPLETE',
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 6),
+      },
+      {
+        templateKey: 'LEARNING_PATH',
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 5.5),
+      },
+      {
+        templateKey: 'GOAL_SETTING',
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 5),
+      },
+
+      // Learning / course progress
       {
         templateKey: 'COURSE_ENROLLED',
-        variables: { course_name: 'Introduction to Programming', course_id: 'prog-101' },
-        created_at: new Date(now - 1000 * 60 * 60 * 24 * 3.5),
+        variables: {
+          course_name: 'IELTS Mission Control',
+          course_id: 'ielts-mc',
+        },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 4.5),
       },
       {
         templateKey: 'COURSE_PROGRESS_25',
-        variables: { course_name: 'Introduction to Programming', course_id: 'prog-101' },
-        created_at: new Date(now - 1000 * 60 * 60 * 24 * 3),
+        variables: {
+          course_name: 'IELTS Mission Control',
+          course_id: 'ielts-mc',
+        },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 4),
+      },
+      {
+        templateKey: 'COURSE_PROGRESS_50',
+        variables: {
+          course_name: 'IELTS Mission Control',
+          course_id: 'ielts-mc',
+        },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 3.5),
       },
       {
         templateKey: 'LEARNING_REMINDER',
-        created_at: new Date(now - 1000 * 60 * 60 * 24 * 2.5),
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 3),
       },
       {
-        templateKey: 'COACHING_SESSION_SCHEDULED',
-        variables: {
-          coach_name: 'Jamie',
-          session_date: 'Friday 3:00 PM',
-          session_id: 'session-001',
-        },
+        templateKey: 'WEEKLY_PROGRESS',
+        variables: { completed_lessons: 6, study_time: 3 },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 2.5),
+      },
+
+      // Billing / plans
+      {
+        templateKey: 'PAYMENT_SUCCESS',
+        variables: { payment_id: 'pay-2024-01', plan_name: 'Rocket' },
         created_at: new Date(now - 1000 * 60 * 60 * 24 * 2),
       },
       {
-        templateKey: 'PAYMENT_SUCCESS',
-        variables: { payment_id: 'pay-2024-01' },
-        created_at: new Date(now - 1000 * 60 * 60 * 24 * 1.5),
+        templateKey: 'SUBSCRIPTION_RENEWAL',
+        variables: { plan_name: 'Rocket', days_left: 7 },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 1.7),
       },
       {
-        templateKey: 'SURVEY_INVITE',
-        variables: { survey_id: 'welcome-survey' },
-        created_at: new Date(now - 1000 * 60 * 60 * 24),
+        templateKey: 'TRIAL_ENDS_SOON',
+        variables: { plan_name: 'Rocket', days_left: 3 },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 1.4),
       },
+
+      // Support & system / security
       {
         templateKey: 'SUPPORT_TICKET_UPDATE',
-        variables: { ticket_id: 'tkt-001', update_message: 'We received your request.' },
+        variables: {
+          ticket_id: 'tkt-001',
+          update_message: 'We received your request.',
+        },
+        created_at: new Date(now - 1000 * 60 * 60 * 24 * 1),
+      },
+      {
+        templateKey: 'SYSTEM_MAINTENANCE',
+        variables: { hours: 2 },
+        created_at: new Date(now - 1000 * 60 * 60 * 18),
+      },
+      {
+        templateKey: 'NEW_FEATURE',
+        variables: { feature_name: 'AI Study Helper' },
         created_at: new Date(now - 1000 * 60 * 60 * 16),
       },
       {
@@ -218,188 +286,32 @@ export class NotificationService {
         variables: { location: 'New York, USA' },
         created_at: new Date(now - 1000 * 60 * 60 * 12),
       },
+
+      // Community / social / nudges
       {
         templateKey: 'COMMUNITY_CHALLENGE',
-        variables: { challenge_name: 'Weekly Practice', challenge_id: 'challenge-01' },
+        variables: {
+          challenge_name: 'Weekly Practice',
+          challenge_id: 'challenge-01',
+        },
         created_at: new Date(now - 1000 * 60 * 60 * 8),
       },
       {
         templateKey: 'MESSAGE_RECEIVED',
         variables: { user_name: 'Study Buddy', thread_id: 'thread-123' },
+        created_at: new Date(now - 1000 * 60 * 60 * 6),
+      },
+      {
+        templateKey: 'COMMUNITY_JOIN',
         created_at: new Date(now - 1000 * 60 * 60 * 4),
       },
-      { templateKey: 'LEARNING_PATH', created_at: new Date(now - 1000 * 60 * 60 * 2) },
       {
-        templateKey: 'WEEKLY_PROGRESS',
-        variables: { completed_lessons: 3, study_time: 2 },
-        created_at: new Date(now - 1000 * 60 * 60),
+        templateKey: 'SURVEY_INVITE',
+        variables: { survey_id: 'welcome-survey' },
+        created_at: new Date(now - 1000 * 60 * 60 * 2),
       },
     ];
 
-    const systemEvents = [
-      'SYSTEM_MAINTENANCE',
-      'NEW_FEATURE',
-      'APP_UPDATE',
-      'SECURITY_ALERT',
-      'PASSWORD_CHANGED',
-      'EMAIL_VERIFIED',
-      'TWO_FACTOR_ENABLED',
-      'DATA_EXPORT_READY',
-      'PRIVACY_POLICY_UPDATE',
-      'COMMUNITY_GUIDELINES',
-      'FEEDBACK_REQUEST',
-      'SURVEY_INVITE',
-      'BUG_REPORT_STATUS',
-      'FEATURE_REQUEST_UPDATE',
-      'SUPPORT_TICKET_UPDATE'
-    ];
-
-    const socialEvents = [
-      'FOLLOWED',
-      'PROFILE_VIEW',
-      'POST_LIKED',
-      'COMMENT_REPLY',
-      'MENTIONED',
-      'STUDY_BUDDY_REQUEST',
-      'STUDY_BUDDY_ACCEPTED',
-      'GROUP_INVITE',
-      'GROUP_EVENT',
-      'COMMUNITY_CHALLENGE',
-      'BADGE_EARNED',
-      'CONTRIBUTION_RECOGNIZED',
-      'PEER_REVIEW_REQUEST',
-      'PEER_REVIEW_COMPLETE',
-      'COMMUNITY_RANK_UP'
-    ];
-
-    const notifications: Array<{ templateKey: string; variables?: Record<string, any> }> = [];
-
-    onboardingTemplates.forEach((templateKey) => notifications.push({ templateKey }));
-
-    courses.forEach((course) => {
-      progressTemplates.forEach((templateKey) => {
-        notifications.push({
-          templateKey,
-          variables: {
-            course_name: course.name,
-            course_id: course.id,
-            days_left: 7,
-            feature_name: 'Interactive Labs',
-            new_rank: 'Gold',
-            rank: 24,
-          },
-        });
-      });
-
-      notifications.push({
-        templateKey: 'KNOWLEDGE_CHECK',
-        variables: { course_name: course.name },
-      });
-
-      notifications.push({
-        templateKey: 'LEARNING_REMINDER',
-        variables: { course_name: course.name },
-      });
-    });
-
-    achievements.forEach((templateKey, index) => {
-      notifications.push({
-        templateKey,
-        variables: {
-          achievement_name: `Milestone ${index + 1}`,
-          quiz_name: `Checkpoint ${index + 1}`,
-          count: (index + 1) * 3,
-          rank: index + 5,
-          new_rank: index % 2 === 0 ? 'Platinum' : 'Gold',
-        },
-      });
-    });
-
-    payments.forEach((templateKey, index) => {
-      notifications.push({
-        templateKey,
-        variables: {
-          payment_id: `pay-${index + 1001}`,
-          plan_name: index % 2 === 0 ? 'Pro Annual' : 'Team Growth',
-          days_left: 5,
-          discount_amount: '$25',
-          discount_percent: 20,
-          course_count: 5,
-          recipient_name: 'Taylor Brooks',
-          sender_name: 'Jordan Lee',
-          amount: '$120',
-          coverage: 60,
-        },
-      });
-    });
-
-    systemEvents.forEach((templateKey, index) => {
-      notifications.push({
-        templateKey,
-        variables: {
-          hours: 24 - index,
-          location: 'New York, USA',
-          survey_id: `srv-${index + 1}`,
-          ticket_id: `tkt-${index + 200}`,
-          feature_name: 'AI Study Helper',
-          status: index % 2 === 0 ? 'resolved' : 'in progress',
-        },
-      });
-    });
-
-    const groupIds = ['alpha', 'beta', 'gamma'];
-    socialEvents.forEach((templateKey, index) => {
-      const group = groupIds[index % groupIds.length];
-
-      notifications.push({
-        templateKey,
-        variables: {
-          follower_name: `Follower ${index + 1}`,
-          follower_id: `user-${index + 300}`,
-          viewer_name: `Viewer ${index + 1}`,
-          user_name: `User ${index + 1}`,
-          post_title: `Deep Dive ${index + 1}`,
-          post_id: `post-${index + 1}`,
-          comment_id: `c-${index + 1}`,
-          user_id: `user-${index + 500}`,
-          group_name: `Study Group ${group}`,
-          group_id: group,
-          event_name: `Workshop ${index + 1}`,
-          event_id: `event-${index + 1}`,
-          challenge_name: `Challenge ${index + 1}`,
-          challenge_id: `challenge-${index + 1}`,
-          badge_name: `Badge ${index + 1}`,
-          project_id: `proj-${index + 1}`,
-          buddy_id: `buddy-${index + 1}`,
-          new_rank: index % 2 === 0 ? 'Contributor' : 'Moderator',
-        },
-      });
-    });
-
-    // Add reminders to ensure the seed includes well over 100 notifications across modules
-    for (let day = 1; day <= 30; day += 1) {
-      notifications.push({
-        templateKey: 'WEEKLY_PROGRESS',
-        variables: { completed_lessons: day, study_time: day % 5 } as Record<string, any>,
-      });
-
-      notifications.push({
-        templateKey: 'MONTHLY_REVIEW',
-        variables: { courses_completed: Math.max(1, Math.floor(day / 5)) },
-      });
-    }
-
-    // Guarantee at least 100 entries even if template lists change
-    while (notifications.length < 100) {
-      notifications.push({ templateKey: 'LEARNING_REMINDER' });
-    }
-
-    const now = Date.now();
-    const staged = notifications.map((notification, index) => ({
-      ...notification,
-      created_at: new Date(now - index * 60 * 60 * 1000), // space by an hour for ordering
-    }));
-
-    await this.bulkCreateNotifications(userId, staged);
+    await this.bulkCreateNotifications(userId, notifications);
   }
 }
