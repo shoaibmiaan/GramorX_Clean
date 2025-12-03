@@ -205,46 +205,52 @@ alter table public.listening_attempts enable row level security;
 alter table public.listening_user_answers enable row level security;
 alter table public.listening_responses enable row level security;
 
--- Public read access to published content
-create policy if not exists "Public read listening_question_types"
+drop policy if exists "Public read listening_question_types" on public.listening_question_types;
+create policy "Public read listening_question_types"
   on public.listening_question_types
   for select to authenticated
   using (true);
 
-create policy if not exists "Public read listening_tests"
+drop policy if exists "Public read listening_tests" on public.listening_tests;
+create policy "Public read listening_tests"
   on public.listening_tests
   for select to authenticated
   using (coalesce(is_published, true));
 
-create policy if not exists "Public read listening_sections"
+drop policy if exists "Public read listening_sections" on public.listening_sections;
+create policy "Public read listening_sections"
   on public.listening_sections
   for select to authenticated
   using (true);
 
-create policy if not exists "Public read listening_questions"
+drop policy if exists "Public read listening_questions" on public.listening_questions;
+create policy "Public read listening_questions"
   on public.listening_questions
   for select to authenticated
   using (true);
 
 -- Attempt-level ownership
-create policy if not exists "listening_attempts_self_read"
+drop policy if exists "listening_attempts_self_read" on public.listening_attempts;
+create policy "listening_attempts_self_read"
   on public.listening_attempts
   for select to authenticated
   using (user_id = auth.uid());
 
-create policy if not exists "listening_attempts_self_write"
+drop policy if exists "listening_attempts_self_write" on public.listening_attempts;
+create policy "listening_attempts_self_write"
   on public.listening_attempts
   for insert to authenticated
   with check (user_id = auth.uid());
 
-create policy if not exists "listening_attempts_self_update"
+drop policy if exists "listening_attempts_self_update" on public.listening_attempts;
+create policy "listening_attempts_self_update"
   on public.listening_attempts
   for update to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- Answers policy via attempt ownership
-create policy if not exists "listening_user_answers_self_read"
+drop policy if exists "listening_user_answers_self_read" on public.listening_user_answers;
+create policy "listening_user_answers_self_read"
   on public.listening_user_answers
   for select to authenticated
   using (
@@ -255,7 +261,8 @@ create policy if not exists "listening_user_answers_self_read"
     )
   );
 
-create policy if not exists "listening_user_answers_self_write"
+drop policy if exists "listening_user_answers_self_write" on public.listening_user_answers;
+create policy "listening_user_answers_self_write"
   on public.listening_user_answers
   for insert to authenticated
   with check (
@@ -266,7 +273,8 @@ create policy if not exists "listening_user_answers_self_write"
     )
   );
 
-create policy if not exists "listening_user_answers_self_update"
+drop policy if exists "listening_user_answers_self_update" on public.listening_user_answers;
+create policy "listening_user_answers_self_update"
   on public.listening_user_answers
   for update to authenticated
   using (
@@ -284,8 +292,8 @@ create policy if not exists "listening_user_answers_self_update"
     )
   );
 
--- Legacy responses table ownership
-create policy if not exists "Students manage own listening_responses"
+drop policy if exists "Students manage own listening_responses" on public.listening_responses;
+create policy "Students manage own listening_responses"
   on public.listening_responses
   for all to authenticated
   using (auth.uid() = user_id)
