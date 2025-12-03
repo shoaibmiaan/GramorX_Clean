@@ -1,3 +1,4 @@
+// pages/api/listening/submit.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
@@ -38,7 +39,7 @@ const extractText = (raw: any): string | null => {
     try {
       const parsed = JSON.parse(raw);
       if (typeof parsed === 'string') return parsed;
-    } catch (_) {
+    } catch {
       return raw;
     }
     return raw;
@@ -48,7 +49,8 @@ const extractText = (raw: any): string | null => {
     if (typeof (raw as any).value === 'string') return (raw as any).value;
     if (typeof (raw as any).text === 'string') return (raw as any).text;
   }
-  return String(raw ?? '').length ? String(raw) : null;
+  const s = String(raw ?? '');
+  return s.length ? s : null;
 };
 
 export default async function handler(
@@ -64,8 +66,14 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthenticated' });
   }
 
-  const { testId, testSlug, answers, durationSeconds, autoSubmit }: Body =
-    req.body || {};
+  const {
+    testId,
+    testSlug,
+    answers,
+    durationSeconds,
+    autoSubmit,
+  }: Body = req.body || {};
+
   if ((!testId && !testSlug) || !Array.isArray(answers)) {
     return res.status(400).json({ error: 'Invalid payload' });
   }
@@ -73,18 +81,22 @@ export default async function handler(
   // Pull questions for deterministic scoring on server
   const { data: questions, error: qErr } = await supabaseAdmin
     .from('listening_questions')
-    .select('id,qno,question_number,question_type,type,correct_answer,section_no,test_id,test_slug')
+    .select(
+      'id,qno,question_number,question_type,type,correct_answer,section_no,test_id,test_slug',
+    )
     .eq(testId ? 'test_id' : 'test_slug', (testId ?? testSlug) as string)
     .order('question_number');
 
   if (qErr) return res.status(500).json({ error: qErr.message });
-  if (!questions || questions.length === 0)
+  if (!questions || questions.length === 0) {
     return res.status(404).json({ error: 'Test not found' });
+  }
 
   // Build scoring payload
-  const scoringQuestions = (questions ?? []).map((q) => {
+  const scoringQuestions = (questions ?? []).map((q: any) => {
     const qno = q.qno ?? q.question_number;
     const typeRaw = (q.type ?? q.question_type ?? 'mcq').toLowerCase();
+
     const answerKey = (() => {
       if (typeRaw === 'matching' || typeRaw === 'match') {
         return { pairs: (q.correct_answer as any)?.pairs ?? [] };
@@ -123,7 +135,6 @@ export default async function handler(
   });
 
   const answerByQno = new Map<number, any>();
-
   (answers ?? []).forEach((a) => {
     if (a.questionNumber != null) {
       answerByQno.set(Number(a.questionNumber), a.answer);
@@ -142,14 +153,10 @@ export default async function handler(
     const sectionKey = String(q.section ?? '1');
     const bucket = perSection[sectionKey] ?? { total: 0, correct: 0 };
     bucket.total += 1;
-    if (ok) {
-      bucket.correct += 1;
-    }
+    if (ok) bucket.correct += 1;
     perSection[sectionKey] = bucket;
 
-    if (ok) {
-      total += 1;
-    }
+    if (ok) total += 1;
   }
 
   const band = rawToBand(total);
@@ -160,8 +167,8 @@ export default async function handler(
     .from('listening_attempts')
     .insert({
       user_id: userId,
-      test_id: questions[0].test_id,
-      test_slug: questions[0].test_slug,
+      test_id: (questions[0] as any).test_id,
+      test_slug: (questions[0] as any).test_slug,
       submitted_at: submittedAt,
       raw_score: total,
       score: total,
@@ -177,21 +184,29 @@ export default async function handler(
     .select('id')
     .single();
 
-  if (aErr || !attemptRow)
-    return res.status(500).json({ error: aErr?.message || 'Insert failed' });
+  if (aErr || !attemptRow) {
+    return res
+      .status(500)
+      .json({ error: aErr?.message || 'Insert attempt failed' });
+  }
 
   // Persist answers with normalization
   const userAnswers = (answers ?? []).map((a) => {
     const qnoGuess = a.questionNumber ?? null;
-    const isCorrect = qnoGuess ? correctness.get(Number(qnoGuess)) ?? false : false;
+    const isCorrect = qnoGuess
+      ? correctness.get(Number(qnoGuess)) ?? false
+      : false;
     const correctRow = (questions ?? []).find(
-      (q) => q.id === a.questionId || q.question_number === qnoGuess,
+      (q: any) => q.id === a.questionId || q.question_number === qnoGuess,
     );
     const correctText = extractText(correctRow?.correct_answer);
 
     let normalized: string | null = null;
-    if (typeof a.answer === 'string') normalized = normText(a.answer);
-    else if (Array.isArray(a.answer)) normalized = normText(JSON.stringify(sortPairs(a.answer)));
+    if (typeof a.answer === 'string') {
+      normalized = normText(a.answer);
+    } else if (Array.isArray(a.answer)) {
+      normalized = normText(JSON.stringify(sortPairs(a.answer)));
+    }
 
     const userAnswerText =
       typeof a.answer === 'string'
@@ -204,7 +219,7 @@ export default async function handler(
 
     return {
       attempt_id: attemptRow.id,
-      question_id: a.questionId,
+      question_id: a.questionId ?? null,
       qno: qnoGuess ?? null,
       question_number: qnoGuess ?? null,
       section: a.section ?? correctRow?.section_no ?? null,
@@ -220,12 +235,14 @@ export default async function handler(
     .from('listening_user_answers')
     .insert(userAnswers);
 
-  if (uaErr) return res.status(500).json({ error: uaErr.message });
+  if (uaErr) {
+    return res.status(500).json({ error: uaErr.message });
+  }
 
   await trackor.log('listening_attempt_submitted', {
     attempt_id: attemptRow.id,
     user_id: userId,
-    test_slug: questions[0].test_slug,
+    test_slug: (questions[0] as any).test_slug,
     score: total,
     band,
     section_scores: perSection,
@@ -234,7 +251,10 @@ export default async function handler(
     meta: { autoSubmit: !!autoSubmit },
   });
 
-  res
-    .status(200)
-    .json({ attemptId: attemptRow.id, score: total, band, sectionScores: perSection });
+  return res.status(200).json({
+    attemptId: attemptRow.id,
+    score: total,
+    band,
+    sectionScores: perSection,
+  });
 }

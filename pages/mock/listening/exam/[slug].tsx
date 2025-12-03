@@ -3,9 +3,9 @@ import * as React from 'react';
 import Head from 'next/head';
 import type { GetServerSideProps, NextPage } from 'next';
 
-import { getServerClient } from '@/lib/supabaseServer';
-import { Container } from '@/components/design-system/Container';
 import { ListeningExamShell } from '@/components/listening/ListeningExamShell';
+import { Container } from '@/components/design-system/Container';
+import { getServerClient } from '@/lib/supabaseServer';
 
 export type ListeningTest = {
   id: string;
@@ -53,8 +53,7 @@ const ListeningExamPage: NextPage<PageProps> = ({
       <Head>
         <title>{test.title} · Listening Mock · GramorX</title>
       </Head>
-      {/* Exam room should hug the viewport, minimal padding */}
-      <Container className="py-2">
+      <Container className="py-4">
         <ListeningExamShell
           test={test}
           sections={sections}
@@ -66,23 +65,19 @@ const ListeningExamPage: NextPage<PageProps> = ({
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (
-  ctx
+  ctx,
 ) => {
   const slugParam = ctx.params?.slug;
   const slug = typeof slugParam === 'string' ? slugParam : null;
 
   if (!slug) {
     return {
-      redirect: {
-        destination: '/mock/listening',
-        permanent: false,
-      },
+      redirect: { destination: '/mock/listening', permanent: false },
     };
   }
 
   const supabase = getServerClient(ctx.req, ctx.res);
 
-  // 1) Test by slug
   const { data: testRow, error: testError } = await supabase
     .from('listening_tests')
     .select('*')
@@ -94,18 +89,14 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
   if (testError || !testRow) {
     console.error('Listening test fetch error', testError);
     return {
-      redirect: {
-        destination: '/mock/listening',
-        permanent: false,
-      },
+      redirect: { destination: '/mock/listening', permanent: false },
     };
   }
 
-  // 2) Sections
   const { data: sectionRows, error: sectionError } = await supabase
     .from('listening_sections')
     .select(
-      'id,test_id,order_no,audio_url,start_sec,end_sec,start_ms,end_ms,title,transcript'
+      'id,test_id,order_no,audio_url,start_sec,end_sec,start_ms,end_ms,title,transcript',
     )
     .eq('test_id', testRow.id)
     .order('order_no', { ascending: true });
@@ -114,11 +105,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     console.error('Listening sections fetch error', sectionError);
   }
 
-  // 3) Questions
   const { data: questionRows, error: questionError } = await supabase
     .from('listening_questions')
     .select(
-      'id,test_id,section_id,section_no,question_number,qno,question_text,prompt,question_type,type,options'
+      'id,test_id,section_id,section_no,question_number,qno,question_text,prompt,question_type,type,options',
     )
     .eq('test_id', testRow.id)
     .order('section_no', { ascending: true })
@@ -138,7 +128,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     title: (testRow as any).title ?? 'Listening Test',
     audioUrl: (testRow as any).audio_url ?? null,
     durationMinutes:
-      (testRow as any).duration_minutes ?? Math.round(durationSeconds / 60),
+      (testRow as any).duration_minutes ??
+      Math.max(1, Math.round(durationSeconds / 60)),
     totalQuestions: (testRow as any).total_questions ?? 40,
   };
 
@@ -151,7 +142,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
       label: `Section ${s.order_no ?? idx + 1}`,
       startSec: s.start_sec ?? null,
       endSec: s.end_sec ?? null,
-    })
+    }),
   );
 
   const questions: ListeningQuestion[] = (questionRows ?? []).map(
@@ -166,9 +157,15 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
       questionNo: q.question_number ?? q.qno ?? idx + 1,
       text: (q.question_text as string) ?? (q.prompt as string) ?? '',
       type: q.type ?? q.question_type ?? 'mcq',
-      options: q.options ?? null, // stringified JSON, we parse in component
-    })
+      options: q.options ?? null,
+    }),
   );
+
+  if (!test || !sections.length || !questions.length) {
+    return {
+      redirect: { destination: '/mock/listening', permanent: false },
+    };
+  }
 
   return {
     props: {
