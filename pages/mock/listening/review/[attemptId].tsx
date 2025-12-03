@@ -11,7 +11,6 @@ import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
 
 import { getServerClient } from "@/lib/supabaseServer";
-import type { Database } from "@/lib/database.types";
 
 type ReviewAnswer = {
   id: string;
@@ -38,12 +37,69 @@ type TestSummary = {
 };
 
 type PageProps = {
-  attempt: AttemptSummary;
-  test: TestSummary;
+  attempt: AttemptSummary | null;
+  test: TestSummary | null;
   answers: ReviewAnswer[];
+  isLoggedIn: boolean;
 };
 
-const ListeningReviewPage: NextPage<PageProps> = ({ attempt, test, answers }) => {
+const ListeningReviewPage: NextPage<PageProps> = ({
+  attempt,
+  test,
+  answers,
+  isLoggedIn,
+}) => {
+  const notFound = !attempt || !test;
+
+  if (notFound) {
+    return (
+      <>
+        <Head>
+          <title>Listening Review · GramorX</title>
+        </Head>
+        <main className="bg-lightBg dark:bg-dark/90 pb-20">
+          <section className="py-16">
+            <Container className="max-w-xl">
+              <Card className="mx-auto rounded-ds-2xl border border-border/60 bg-card/80 p-8 text-center shadow-sm space-y-4">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                  <Icon name="AlertTriangle" className="h-5 w-5 text-destructive" />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                    Review not available
+                  </p>
+                  <p className="text-sm text-grayish">
+                    {isLoggedIn
+                      ? "We couldn't find that attempt. Please retry a Listening mock."
+                      : "You need to be logged in to view this review."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                  {!isLoggedIn && (
+                    <Button asChild size="sm">
+                      <Link href="/login?role=student">
+                        <Icon name="LogIn" className="h-4 w-4 mr-1" />
+                        Log in
+                      </Link>
+                    </Button>
+                  )}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/mock/listening">
+                      <Icon name="ArrowLeft" className="h-4 w-4 mr-1" />
+                      Back to Listening mocks
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            </Container>
+          </section>
+        </main>
+      </>
+    );
+  }
+
   const sections = Array.from(
     new Set(answers.map((a) => a.section)),
   ).sort((a, b) => a - b);
@@ -270,11 +326,26 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const supabase = getServerClient(ctx.req, ctx.res);
   const attemptId = ctx.params?.attemptId as string;
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: attemptRow } = await supabase
     .from("listening_attempts")
     .select("*, listening_tests (id, title, slug, questions)")
     .eq("id", attemptId)
     .single();
+
+  if (!attemptRow) {
+    return {
+      props: {
+        attempt: null,
+        test: null,
+        answers: [],
+        isLoggedIn: !!user,
+      },
+    };
+  }
 
   const { data: answerRows } = await supabase
     .from("listening_attempt_answers")
@@ -285,29 +356,35 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const answers: ReviewAnswer[] =
     answerRows?.map((a: any) => ({
       id: a.id,
-      questionNumber: a.question_number,
-      section: a.section,
+      questionNumber: a.question_number ?? a.qno ?? 0,
+      section: a.section ?? 1,
       userAnswer: a.user_answer,
       correctAnswer: a.correct_answer,
-      isCorrect: a.user_answer?.trim().toLowerCase() === a.correct_answer?.trim().toLowerCase(),
+      isCorrect:
+        typeof a.is_correct === "boolean"
+          ? a.is_correct
+          : a.user_answer?.trim().toLowerCase() === a.correct_answer?.trim().toLowerCase(),
     })) ?? [];
 
   return {
     props: {
       attempt: {
         id: attemptRow.id,
-        rawScore: attemptRow.raw_score,
-        bandScore: attemptRow.band_score,
-        questionCount: attemptRow.questions,
+        rawScore: attemptRow.raw_score ?? attemptRow.score ?? null,
+        bandScore: attemptRow.band_score ?? attemptRow.band ?? null,
+        questionCount: attemptRow.total_questions ?? attemptRow.questions,
         createdAt: attemptRow.created_at,
       },
-      test: {
-        id: attemptRow.listening_tests.id,
-        title: attemptRow.listening_tests.title,
-        slug: attemptRow.listening_tests.slug,
-        totalQuestions: attemptRow.listening_tests.questions,
-      },
+      test: attemptRow.listening_tests
+        ? {
+            id: attemptRow.listening_tests.id,
+            title: attemptRow.listening_tests.title,
+            slug: attemptRow.listening_tests.slug,
+            totalQuestions: attemptRow.listening_tests.questions,
+          }
+        : null,
       answers,
+      isLoggedIn: !!user,
     },
   };
 };

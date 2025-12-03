@@ -1,3 +1,4 @@
+// components/listening/ListeningExamShell.tsx
 import * as React from 'react';
 import { useRouter } from 'next/router';
 
@@ -39,27 +40,37 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
   const router = useRouter();
 
   const [currentSectionId, setCurrentSectionId] = React.useState<string | null>(
-    sections[0]?.id ?? null
+    sections[0]?.id ?? null,
+  );
+
+  const sectionQuestions = React.useMemo(
+    () =>
+      sections.reduce<Record<string, ListeningQuestion[]>>((acc, section) => {
+        acc[section.id] = questions
+          .filter((q) => q.sectionId === section.id)
+          .sort((a, b) => a.questionNo - b.questionNo);
+        return acc;
+      }, {}),
+    [sections, questions],
   );
 
   const initialQuestionId = React.useMemo(() => {
     if (!currentSectionId) return questions[0]?.id ?? null;
-    return (
-      questions.find((q) => q.sectionId === currentSectionId)?.id ??
-      questions[0]?.id ??
-      null
-    );
-  }, [currentSectionId, questions]);
+    const firstInSection =
+      sectionQuestions[currentSectionId]?.[0]?.id ?? questions[0]?.id ?? null;
+    return firstInSection;
+  }, [currentSectionId, questions, sectionQuestions]);
 
-  const [currentQuestionId, setCurrentQuestionId] = React.useState<string | null>(
-    initialQuestionId
-  );
+  const [currentQuestionId, setCurrentQuestionId] =
+    React.useState<string | null>(initialQuestionId);
 
   const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>({});
-  const [flagged, setFlagged] = React.useState<Set<string>>(() => new Set());
+  const [flagged, setFlagged] = React.useState<Set<string>>(
+    () => new Set(),
+  );
 
   const [remainingSeconds, setRemainingSeconds] = React.useState(
-    test.durationMinutes * 60
+    test.durationMinutes * 60,
   );
   const [hasShownFiveMinWarning, setHasShownFiveMinWarning] =
     React.useState(false);
@@ -76,17 +87,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
 
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const sectionQuestions = React.useMemo(
-    () =>
-      sections.reduce<Record<string, ListeningQuestion[]>>((acc, section) => {
-        acc[section.id] = questions
-          .filter((q) => q.sectionId === section.id)
-          .sort((a, b) => a.questionNo - b.questionNo);
-        return acc;
-      }, {}),
-    [sections, questions]
-  );
-
+  // Global timer
   React.useEffect(() => {
     if (remainingSeconds <= 0 || timerRef.current) return;
 
@@ -104,13 +105,14 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
 
     return () => {
       if (timerRef.current) {
-        clearInterval(timerRef.current);
+        clearInterval(timerRef.current as NodeJS.Timeout);
         timerRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 5-minute warning
   React.useEffect(() => {
     if (
       !hasShownFiveMinWarning &&
@@ -122,6 +124,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
     }
   }, [remainingSeconds, hasShownFiveMinWarning]);
 
+  // Ensure current section + question always valid
   React.useEffect(() => {
     if (!currentSectionId && sections[0]) {
       setCurrentSectionId(sections[0].id);
@@ -139,7 +142,8 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
   }, [currentSectionId, currentQuestionId, sectionQuestions, sections]);
 
   const currentQuestion = questions.find((q) => q.id === currentQuestionId);
-  const currentSection = sections.find((s) => s.id === currentSectionId) ?? null;
+  const currentSection =
+    sections.find((s) => s.id === currentSectionId) ?? null;
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60)
@@ -186,7 +190,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
     }
 
     const sectionIndex = sections.findIndex(
-      (section) => section.id === currentQuestion.sectionId
+      (section) => section.id === currentQuestion.sectionId,
     );
     if (sectionIndex >= 0 && sectionIndex + 1 < sections.length) {
       const nextSection = sections[sectionIndex + 1];
@@ -208,7 +212,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
     }
 
     const sectionIndex = sections.findIndex(
-      (section) => section.id === currentQuestion.sectionId
+      (section) => section.id === currentQuestion.sectionId,
     );
     if (sectionIndex > 0) {
       const prevSection = sections[sectionIndex - 1];
@@ -231,7 +235,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
       sections.map((section) => {
         const qs = sectionQuestions[section.id] ?? [];
         const answered = qs.filter(
-          (q) => answers[q.id] !== undefined && answers[q.id] !== null
+          (q) => answers[q.id] !== undefined && answers[q.id] !== null,
         ).length;
 
         return {
@@ -245,12 +249,13 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
           isLocked: false,
         };
       }),
-    [sections, sectionQuestions, answers, currentSectionId]
+    [sections, sectionQuestions, answers, currentSectionId],
   );
 
   const sidebarCurrentSectionQuestions: ListeningQuestionProgress[] =
     React.useMemo(() => {
-      const qs = (currentSectionId && sectionQuestions[currentSectionId]) ?? [];
+      const qs =
+        (currentSectionId && sectionQuestions[currentSectionId]) ?? [];
       return qs.map((question) => ({
         id: question.id,
         questionNo: question.questionNo,
@@ -264,6 +269,7 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
   const submitAttempt = React.useCallback(
     async (auto: boolean) => {
       if (isSubmitting) return attemptId;
+
       try {
         setIsSubmitting(true);
         const res = await fetch('/api/listening/submit', {
@@ -271,8 +277,18 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             testId: test.id,
+            testSlug: test.slug,
             autoSubmit: auto,
-            answers,
+            durationSeconds: test.durationMinutes * 60 - remainingSeconds,
+            answers: Object.entries(answers).map(([questionId, value]) => {
+              const q = questions.find((item) => item.id === questionId);
+              return {
+                questionId,
+                questionNumber: q?.questionNo ?? null,
+                section: q?.sectionNo ?? null,
+                answer: value,
+              };
+            }),
           }),
         });
 
@@ -294,14 +310,20 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
         setIsSubmitting(false);
       }
     },
-    [answers, attemptId, isSubmitting, test.id]
+    [
+      answers,
+      attemptId,
+      isSubmitting,
+      questions,
+      remainingSeconds,
+      test.id,
+      test.slug,
+    ],
   );
 
   const handleTimeUp = React.useCallback(async () => {
     const id = await submitAttempt(true);
-    if (id) {
-      setAttemptId(id);
-    }
+    if (id) setAttemptId(id);
     setShowAutoSubmitModal(true);
   }, [submitAttempt]);
 
@@ -319,6 +341,13 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
 
   const handleExitCancel = () => setShowExitModal(false);
 
+  const handleManualSubmit = async () => {
+    const id = await submitAttempt(false);
+    if (id) {
+      router.push(`/mock/listening/result/${id}`);
+    }
+  };
+
   const handleViewResults = () => {
     if (attemptId) {
       router.push(`/mock/listening/result/${attemptId}`);
@@ -331,8 +360,8 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
     remainingSeconds <= 120
       ? 'destructive'
       : remainingSeconds <= 5 * 60
-        ? 'warning'
-        : 'neutral';
+      ? 'warning'
+      : 'neutral';
 
   const audioUrl = test.audioUrl ?? null;
 
@@ -354,20 +383,28 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
               Listening Mock
             </Badge>
             <div>
-              <p className="text-sm font-semibold leading-tight">{test.title}</p>
+              <p className="text-sm font-semibold leading-tight">
+                {test.title}
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                IELTS-style exam · {test.durationMinutes} min · {test.totalQuestions} questions
+                IELTS-style exam · {test.durationMinutes} min ·{' '}
+                {test.totalQuestions} questions
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 md:flex">
-              <Icon name="user" className="h-3.5 w-3.5 text-muted-foreground" />
+              <Icon
+                name="user"
+                className="h-3.5 w-3.5 text-muted-foreground"
+              />
               <span className="text-[11px] font-medium text-muted-foreground">
                 Candidate ID
               </span>
-              <span className="text-[11px] font-semibold tabular-nums">2025-L-1023</span>
+              <span className="text-[11px] font-semibold tabular-nums">
+                2025-L-1023
+              </span>
             </div>
 
             <Badge
@@ -378,6 +415,18 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
               <Icon name="clock" className="mr-1.5 h-3.5 w-3.5" />
               {formatTime(remainingSeconds)}
             </Badge>
+
+            <Button
+              tone="primary"
+              size="sm"
+              type="button"
+              onClick={handleManualSubmit}
+              disabled={isSubmitting}
+              className="text-xs"
+            >
+              <Icon name="send" className="mr-1.5 h-3.5 w-3.5" />
+              Submit
+            </Button>
 
             <Button
               tone="neutral"
@@ -398,13 +447,17 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
         <div className="border-b border-border/70 bg-muted/40 px-4 py-3">
           <div className="mb-1 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Icon name="headphones" className="h-4 w-4 text-muted-foreground" />
+              <Icon
+                name="headphones"
+                className="h-4 w-4 text-muted-foreground"
+              />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Listening audio
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Audio plays once in the real exam — treat this as the real environment.
+                  Audio plays once in the real exam — treat this as the real
+                  environment.
                 </p>
               </div>
             </div>
@@ -438,15 +491,24 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
                   </div>
                   {currentQuestion && (
                     <Button
-                      tone={flagged.has(currentQuestion.id) ? 'warning' : 'neutral'}
+                      tone={
+                        flagged.has(currentQuestion.id) ? 'warning' : 'neutral'
+                      }
                       variant="ghost"
                       size="xs"
                       type="button"
-                      onClick={() => handleToggleFlag(currentQuestion.id)}
+                      onClick={() =>
+                        handleToggleFlag(currentQuestion.id)
+                      }
                       className="text-[11px]"
                     >
-                      <Icon name="flag" className="mr-1.5 h-3.5 w-3.5" />
-                      {flagged.has(currentQuestion.id) ? 'Unflag' : 'Flag'}
+                      <Icon
+                        name="flag"
+                        className="mr-1.5 h-3.5 w-3.5"
+                      />
+                      {flagged.has(currentQuestion.id)
+                        ? 'Unflag'
+                        : 'Flag'}
                     </Button>
                   )}
                 </div>
@@ -456,7 +518,9 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
                     <ListeningQuestionItem
                       question={currentQuestion}
                       value={answers[currentQuestion.id] ?? null}
-                      onChange={(val) => handleAnswerChange(currentQuestion.id, val)}
+                      onChange={(val) =>
+                        handleAnswerChange(currentQuestion.id, val)
+                      }
                     />
                   ) : (
                     renderEmptyState()
@@ -472,7 +536,10 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
                     onClick={goToPrevQuestion}
                     disabled={!currentQuestion}
                   >
-                    <Icon name="arrow-left" className="mr-1.5 h-3.5 w-3.5" />
+                    <Icon
+                      name="arrow-left"
+                      className="mr-1.5 h-3.5 w-3.5"
+                    />
                     Previous
                   </Button>
 
@@ -484,7 +551,10 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
                     disabled={!currentQuestion}
                   >
                     Next
-                    <Icon name="arrow-right" className="ml-1.5 h-3.5 w-3.5" />
+                    <Icon
+                      name="arrow-right"
+                      className="ml-1.5 h-3.5 w-3.5"
+                    />
                   </Button>
                 </div>
               </div>
@@ -494,7 +564,10 @@ export const ListeningExamShell: React.FC<ListeningExamShellProps> = ({
                   <p className="mb-1 font-semibold text-[11px] uppercase tracking-wide">
                     Visuals / diagrams
                   </p>
-                  <p>Use this area for maps / tables / diagrams that belong to the current set of questions.</p>
+                  <p>
+                    Use this area for maps / tables / diagrams that belong to
+                    the current set of questions.
+                  </p>
                 </Card>
               </div>
             </div>

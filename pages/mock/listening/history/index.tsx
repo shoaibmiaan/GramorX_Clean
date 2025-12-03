@@ -2,17 +2,24 @@
 import * as React from "react";
 import Head from "next/head";
 import Link from "next/link";
+import type { GetServerSideProps } from "next";
 
 import { Container } from "@/components/design-system/Container";
 import { Card } from "@/components/design-system/Card";
 import { Button } from "@/components/design-system/Button";
 import { Badge } from "@/components/design-system/Badge";
 import { Icon } from "@/components/design-system/Icon";
+import DrillBreakdown, {
+  type BandPoint,
+  type ListeningAnalytics,
+  type SectionAccuracy,
+  type TypeAccuracy,
+} from "@/components/listening/analytics/DrillBreakdown";
 
 import { getServerClient } from "@/lib/supabaseServer";
-import type { Database } from "@/lib/database.types";
+import { LISTENING_QUESTION_TYPE_LABELS } from "@/lib/listening/questionTypes";
 
-type ListeningAttempt = {
+export type ListeningAttempt = {
   id: string;
   testTitle: string;
   testSlug: string;
@@ -24,9 +31,15 @@ type ListeningAttempt = {
 
 type PageProps = {
   attempts: ListeningAttempt[];
+  analytics: ListeningAnalytics | null;
+  isLoggedIn: boolean;
 };
 
-const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
+const ListeningHistoryPage: React.FC<PageProps> = ({
+  attempts,
+  analytics,
+  isLoggedIn,
+}) => {
   const hasAttempts = attempts.length > 0;
 
   return (
@@ -36,7 +49,6 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90 pb-20">
-
         {/* -------------------------------------------------------------- */}
         {/* HERO / COMMAND HEADER */}
         {/* -------------------------------------------------------------- */}
@@ -46,6 +58,11 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
               <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <Icon name="Headphones" size={14} />
                 <span>Listening Attempt History</span>
+                {!isLoggedIn && (
+                  <Badge size="xs" variant="neutral">
+                    Sign in to see your data
+                  </Badge>
+                )}
               </div>
 
               <h1 className="font-slab text-h2 leading-tight">
@@ -57,7 +74,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
                 and improvement trend across all Listening mocks.
               </p>
 
-              <div className="flex gap-3 pt-3">
+              <div className="flex gap-3 pt-3 flex-wrap">
                 <Button
                   asChild
                   size="md"
@@ -81,6 +98,17 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
             </div>
           </Container>
         </section>
+
+        {/* -------------------------------------------------------------- */}
+        {/* ANALYTICS */}
+        {/* -------------------------------------------------------------- */}
+        {isLoggedIn && analytics && (
+          <section className="py-10">
+            <Container>
+              <DrillBreakdown analytics={analytics} />
+            </Container>
+          </section>
+        )}
 
         {/* -------------------------------------------------------------- */}
         {/* EMPTY STATE */}
@@ -119,7 +147,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
           <section id="attempts-list" className="py-12">
             <Container>
               <div className="mb-6">
-                <h2 classname="font-slab text-h3">Your Listening attempts</h2>
+                <h2 className="font-slab text-h3">Your Listening attempts</h2>
                 <p className="text-sm text-muted-foreground">
                   Click any attempt to view detailed breakdown and section-wise scores.
                 </p>
@@ -132,7 +160,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
                     className="rounded-ds-2xl p-5 border border-border/60 bg-card/80 flex items-center justify-between hover:-translate-y-1 transition shadow-sm"
                   >
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-sm">{a.testTitle}</h3>
                         <Badge variant="neutral" size="xs">
                           {new Date(a.createdAt).toLocaleDateString()}
@@ -146,14 +174,29 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
                       </p>
                     </div>
 
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="primary"
-                      className="rounded-ds-xl"
-                    >
-                      <Link href={`/mock/listening/result/${a.id}`}>Open result</Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-ds-xl"
+                      >
+                        <Link href={`/mock/listening/review/${a.id}`}>
+                          Review
+                        </Link>
+                      </Button>
+
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="primary"
+                        className="rounded-ds-xl"
+                      >
+                        <Link href={`/mock/listening/result/${a.id}`}>
+                          Open result
+                        </Link>
+                      </Button>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -231,24 +274,114 @@ const ListeningHistoryPage: React.FC<PageProps> = ({ attempts }) => {
 
 export default ListeningHistoryPage;
 
-export const getServerSideProps = async () => {
-  const supabase = getServerClient();
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+  const supabase = getServerClient(ctx.req, ctx.res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data } = await supabase
+  if (!user?.id) {
+    return { props: { attempts: [], analytics: null, isLoggedIn: false } };
+  }
+
+  const { data: attemptRows } = await supabase
     .from("listening_attempts")
-    .select("id, raw_score, band_score, created_at, duration_seconds, test_id, listening_tests (title, slug)")
+    .select(
+      "id, raw_score, band_score, created_at, duration_seconds, total_questions, questions, listening_tests (title, slug)"
+    )
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   const attempts: ListeningAttempt[] =
-    data?.map((row: any) => ({
+    attemptRows?.map((row: any) => ({
       id: row.id,
       testTitle: row.listening_tests?.title ?? "Untitled Test",
       testSlug: row.listening_tests?.slug ?? "",
-      rawScore: row.raw_score,
-      bandScore: row.band_score,
+      rawScore: row.raw_score ?? row.score ?? null,
+      bandScore: row.band_score ?? row.band ?? null,
       createdAt: row.created_at,
       durationSeconds: row.duration_seconds,
     })) ?? [];
 
-  return { props: { attempts } };
+  const attemptIds = attemptRows?.map((row: any) => row.id) ?? [];
+
+  if (attemptIds.length === 0) {
+    return { props: { attempts, analytics: null, isLoggedIn: true } };
+  }
+
+  const { data: answerRows } = await supabase
+    .from("listening_attempt_answers")
+    .select("attempt_id, question_id, section, is_correct")
+    .in("attempt_id", attemptIds);
+
+  const questionIds = Array.from(
+    new Set((answerRows ?? []).map((a) => a.question_id).filter(Boolean)),
+  );
+
+  const { data: questionRows } = questionIds.length
+    ? await supabase
+        .from("listening_questions")
+        .select("id, question_type")
+        .in("id", questionIds)
+    : { data: [] as any };
+
+  const typeMap = new Map<string, string>();
+  (questionRows ?? []).forEach((q: any) => {
+    if (q.id) typeMap.set(String(q.id), q.question_type ?? "");
+  });
+
+  const sectionBuckets = new Map<number, { total: number; correct: number }>();
+  const typeBuckets = new Map<string, { total: number; correct: number; label: string }>();
+
+  (answerRows ?? []).forEach((a: any) => {
+    const section = Number(a.section ?? 1);
+    const secBucket = sectionBuckets.get(section) ?? { total: 0, correct: 0 };
+    secBucket.total += 1;
+    if (a.is_correct) secBucket.correct += 1;
+    sectionBuckets.set(section, secBucket);
+
+    const typeKey = typeMap.get(String(a.question_id)) ?? "other";
+    const label = LISTENING_QUESTION_TYPE_LABELS[
+      typeKey as keyof typeof LISTENING_QUESTION_TYPE_LABELS
+    ] ?? "Other";
+    const typeBucket = typeBuckets.get(typeKey) ?? { total: 0, correct: 0, label };
+    typeBucket.total += 1;
+    if (a.is_correct) typeBucket.correct += 1;
+    typeBuckets.set(typeKey, typeBucket);
+  });
+
+  const sectionAccuracy: SectionAccuracy[] = Array.from(sectionBuckets.entries())
+    .map(([section, bucket]) => ({ section, total: bucket.total, correct: bucket.correct }))
+    .sort((a, b) => a.section - b.section);
+
+  const typeAccuracy: TypeAccuracy[] = Array.from(typeBuckets.entries())
+    .map(([type, bucket]) => ({ type, label: bucket.label, total: bucket.total, correct: bucket.correct }))
+    .sort((a, b) => b.total - a.total);
+
+  const bandTrend: BandPoint[] = (attemptRows ?? [])
+    .slice(0, 12)
+    .map((row: any) => ({
+      attemptId: row.id,
+      band: typeof row.band_score === "number" ? row.band_score : row.band ?? null,
+      createdAt: row.created_at,
+    }));
+
+  const numericBands = bandTrend
+    .map((b) => (typeof b.band === "number" ? b.band : null))
+    .filter((b): b is number => Number.isFinite(b));
+
+  const analytics: ListeningAnalytics = {
+    attemptsWithScores: numericBands.length,
+    averageBand:
+      numericBands.length > 0
+        ? Number(
+            (numericBands.reduce((sum, v) => sum + v, 0) / numericBands.length).toFixed(1),
+          )
+        : null,
+    sectionAccuracy,
+    typeAccuracy,
+    bandTrend,
+  };
+
+  return { props: { attempts, analytics, isLoggedIn: true } };
 };

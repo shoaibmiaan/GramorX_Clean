@@ -123,6 +123,12 @@ const quickLinks = [
     icon: 'FileText' as IconName,
   },
   {
+    label: 'Start a Listening mock',
+    description: 'Strict exam room with single-play audio.',
+    href: '/mock/listening',
+    icon: 'Headphones' as IconName,
+  },
+  {
     label: 'Explore Vocabulary Lab',
     description: 'Topic-wise vocab packs for IELTS.',
     href: '/vocabulary',

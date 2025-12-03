@@ -1,3 +1,4 @@
+// pages/mock/listening/exam/[slug].tsx
 import * as React from 'react';
 import Head from 'next/head';
 import type { GetServerSideProps, NextPage } from 'next';
@@ -28,8 +29,9 @@ export type ListeningSection = {
 export type ListeningQuestion = {
   id: string;
   testId: string;
-  sectionId: string; // section_uuid linkage
+  sectionId: string;
   questionNo: number;
+  sectionNo?: number | null;
   text: string;
   type: string;
   options: unknown;
@@ -63,7 +65,7 @@ const ListeningExamPage: NextPage<PageProps> = ({
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (
-  ctx
+  ctx,
 ) => {
   const slugParam = ctx.params?.slug;
   const slug = typeof slugParam === 'string' ? slugParam : null;
@@ -74,12 +76,14 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     };
   }
 
-  const supabase = getServerClient(ctx);
+  const supabase = getServerClient(ctx.req, ctx.res);
 
   const { data: testRow, error: testError } = await supabase
     .from('listening_tests')
     .select('*')
     .eq('slug', slug)
+    .eq('is_published', true)
+    .eq('is_mock', true)
     .maybeSingle();
 
   if (testError || !testRow) {
@@ -91,7 +95,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
 
   const { data: sectionRows, error: sectionError } = await supabase
     .from('listening_sections')
-    .select('*')
+    .select(
+      'id,test_id,order_no,audio_url,start_sec,end_sec,start_ms,end_ms,title,transcript',
+    )
     .eq('test_id', testRow.id)
     .order('order_no', { ascending: true });
 
@@ -101,7 +107,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
 
   const { data: questionRows, error: questionError } = await supabase
     .from('listening_questions')
-    .select('*')
+    .select(
+      'id,test_id,section_id,section_no,question_number,qno,question_text,prompt,question_type,type,options',
+    )
     .eq('test_id', testRow.id)
     .order('section_no', { ascending: true })
     .order('question_number', { ascending: true });
@@ -110,14 +118,18 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     console.error('Listening questions fetch error', questionError);
   }
 
-  const durationSeconds = (testRow as any).duration_seconds ?? 1800;
+  const durationSeconds =
+    (testRow as any).duration_seconds ??
+    ((testRow as any).duration_minutes ?? 30) * 60;
 
   const test: ListeningTest = {
     id: testRow.id as string,
     slug: testRow.slug as string,
     title: (testRow as any).title ?? 'Listening Test',
     audioUrl: (testRow as any).audio_url ?? null,
-    durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+    durationMinutes:
+      (testRow as any).duration_minutes ??
+      Math.max(1, Math.round(durationSeconds / 60)),
     totalQuestions: (testRow as any).total_questions ?? 40,
   };
 
@@ -130,19 +142,23 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
       label: `Section ${s.order_no ?? idx + 1}`,
       startSec: s.start_sec ?? null,
       endSec: s.end_sec ?? null,
-    })
+    }),
   );
 
   const questions: ListeningQuestion[] = (questionRows ?? []).map(
     (q: any, idx: number) => ({
       id: q.id as string,
       testId: q.test_id as string,
-      sectionId: (q.section_uuid as string) ?? '',
-      questionNo: q.question_number ?? idx + 1,
-      text: q.question_text ?? '',
-      type: q.question_type ?? 'mcq',
+      sectionId:
+        (q.section_id as string) ??
+        sections.find((s) => s.order === q.section_no)?.id ??
+        '',
+      sectionNo: q.section_no ?? null,
+      questionNo: q.question_number ?? q.qno ?? idx + 1,
+      text: (q.question_text as string) ?? (q.prompt as string) ?? '',
+      type: q.type ?? q.question_type ?? 'mcq',
       options: q.options ?? null,
-    })
+    }),
   );
 
   if (!test || !sections.length || !questions.length) {
