@@ -236,6 +236,170 @@ export class NotificationService {
       },
     ];
 
-    await this.bulkCreateNotifications(userId, notifications);
+    const systemEvents = [
+      'SYSTEM_MAINTENANCE',
+      'NEW_FEATURE',
+      'APP_UPDATE',
+      'SECURITY_ALERT',
+      'PASSWORD_CHANGED',
+      'EMAIL_VERIFIED',
+      'TWO_FACTOR_ENABLED',
+      'DATA_EXPORT_READY',
+      'PRIVACY_POLICY_UPDATE',
+      'COMMUNITY_GUIDELINES',
+      'FEEDBACK_REQUEST',
+      'SURVEY_INVITE',
+      'BUG_REPORT_STATUS',
+      'FEATURE_REQUEST_UPDATE',
+      'SUPPORT_TICKET_UPDATE'
+    ];
+
+    const socialEvents = [
+      'FOLLOWED',
+      'PROFILE_VIEW',
+      'POST_LIKED',
+      'COMMENT_REPLY',
+      'MENTIONED',
+      'STUDY_BUDDY_REQUEST',
+      'STUDY_BUDDY_ACCEPTED',
+      'GROUP_INVITE',
+      'GROUP_EVENT',
+      'COMMUNITY_CHALLENGE',
+      'BADGE_EARNED',
+      'CONTRIBUTION_RECOGNIZED',
+      'PEER_REVIEW_REQUEST',
+      'PEER_REVIEW_COMPLETE',
+      'COMMUNITY_RANK_UP'
+    ];
+
+    const notifications: Array<{ templateKey: string; variables?: Record<string, any> }> = [];
+
+    onboardingTemplates.forEach((templateKey) => notifications.push({ templateKey }));
+
+    courses.forEach((course) => {
+      progressTemplates.forEach((templateKey) => {
+        notifications.push({
+          templateKey,
+          variables: {
+            course_name: course.name,
+            course_id: course.id,
+            days_left: 7,
+            feature_name: 'Interactive Labs',
+            new_rank: 'Gold',
+            rank: 24,
+          },
+        });
+      });
+
+      notifications.push({
+        templateKey: 'KNOWLEDGE_CHECK',
+        variables: { course_name: course.name },
+      });
+
+      notifications.push({
+        templateKey: 'LEARNING_REMINDER',
+        variables: { course_name: course.name },
+      });
+    });
+
+    achievements.forEach((templateKey, index) => {
+      notifications.push({
+        templateKey,
+        variables: {
+          achievement_name: `Milestone ${index + 1}`,
+          quiz_name: `Checkpoint ${index + 1}`,
+          count: (index + 1) * 3,
+          rank: index + 5,
+          new_rank: index % 2 === 0 ? 'Platinum' : 'Gold',
+        },
+      });
+    });
+
+    payments.forEach((templateKey, index) => {
+      notifications.push({
+        templateKey,
+        variables: {
+          payment_id: `pay-${index + 1001}`,
+          plan_name: index % 2 === 0 ? 'Pro Annual' : 'Team Growth',
+          days_left: 5,
+          discount_amount: '$25',
+          discount_percent: 20,
+          course_count: 5,
+          recipient_name: 'Taylor Brooks',
+          sender_name: 'Jordan Lee',
+          amount: '$120',
+          coverage: 60,
+        },
+      });
+    });
+
+    systemEvents.forEach((templateKey, index) => {
+      notifications.push({
+        templateKey,
+        variables: {
+          hours: 24 - index,
+          location: 'New York, USA',
+          survey_id: `srv-${index + 1}`,
+          ticket_id: `tkt-${index + 200}`,
+          feature_name: 'AI Study Helper',
+          status: index % 2 === 0 ? 'resolved' : 'in progress',
+        },
+      });
+    });
+
+    const groupIds = ['alpha', 'beta', 'gamma'];
+    socialEvents.forEach((templateKey, index) => {
+      const group = groupIds[index % groupIds.length];
+
+      notifications.push({
+        templateKey,
+        variables: {
+          follower_name: `Follower ${index + 1}`,
+          follower_id: `user-${index + 300}`,
+          viewer_name: `Viewer ${index + 1}`,
+          user_name: `User ${index + 1}`,
+          post_title: `Deep Dive ${index + 1}`,
+          post_id: `post-${index + 1}`,
+          comment_id: `c-${index + 1}`,
+          user_id: `user-${index + 500}`,
+          group_name: `Study Group ${group}`,
+          group_id: group,
+          event_name: `Workshop ${index + 1}`,
+          event_id: `event-${index + 1}`,
+          challenge_name: `Challenge ${index + 1}`,
+          challenge_id: `challenge-${index + 1}`,
+          badge_name: `Badge ${index + 1}`,
+          project_id: `proj-${index + 1}`,
+          buddy_id: `buddy-${index + 1}`,
+          new_rank: index % 2 === 0 ? 'Contributor' : 'Moderator',
+        },
+      });
+    });
+
+    // Add reminders to ensure the seed includes well over 100 notifications across modules
+    for (let day = 1; day <= 30; day += 1) {
+      notifications.push({
+        templateKey: 'WEEKLY_PROGRESS',
+        variables: { completed_lessons: day, study_time: day % 5 } as Record<string, any>,
+      });
+
+      notifications.push({
+        templateKey: 'MONTHLY_REVIEW',
+        variables: { courses_completed: Math.max(1, Math.floor(day / 5)) },
+      });
+    }
+
+    // Guarantee at least 100 entries even if template lists change
+    while (notifications.length < 100) {
+      notifications.push({ templateKey: 'LEARNING_REMINDER' });
+    }
+
+    const now = Date.now();
+    const staged = notifications.map((notification, index) => ({
+      ...notification,
+      created_at: new Date(now - index * 60 * 60 * 1000), // space by an hour for ordering
+    }));
+
+    await this.bulkCreateNotifications(userId, staged);
   }
 }
