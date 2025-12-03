@@ -30,6 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const service = new NotificationService(supabase);
 
   try {
+    await service.ensureSeeded(user.id);
+
     // Validate cursor format
     if (cursor) {
       const cursorDate = new Date(cursor);
