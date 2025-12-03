@@ -7,7 +7,7 @@ export interface NotificationTemplate {
 }
 
 export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
-  // 🎯 User Onboarding & Welcome (10)
+  // 🎯 User Onboarding & Welcome (14)
   WELCOME: {
     event_key: 'welcome',
     message: '🎉 Welcome to GramorX! Start your learning journey today.',
@@ -39,6 +39,26 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     message: '👥 Join our learner community for support and discussions.',
     url: '/community'
   },
+  TUTORIAL_COMPLETED: {
+    event_key: 'tutorial_completed',
+    message: '🎓 You finished the quick tutorial. Ready for your first lesson!',
+    url: '/onboarding/summary'
+  },
+  FIRST_DISCUSSION: {
+    event_key: 'first_discussion',
+    message: '💬 Jump into your first discussion to meet other learners.',
+    url: '/community/introductions'
+  },
+  ACCOUNT_REMINDER: {
+    event_key: 'account_reminder',
+    message: '🔔 Complete your account verification to unlock all features.',
+    url: '/settings/account'
+  },
+  LANGUAGE_PREFERENCE: {
+    event_key: 'language_preference',
+    message: '🌐 Choose your preferred language for a better experience.',
+    url: '/settings/language'
+  },
   LEARNING_PATH: {
     event_key: 'learning_path',
     message: '🗺️ Your personalized learning path is ready!',
@@ -60,7 +80,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     url: '/settings/notifications'
   },
 
-  // 📚 Course & Learning (25)
+  // 📚 Course & Learning (31)
   COURSE_ENROLLED: {
     event_key: 'course_enrolled',
     message: '📖 You enrolled in "{course_name}"! Start learning now.',
@@ -181,8 +201,38 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     message: '🧠 Time for a quick review of what you’ve learned recently',
     url: '/review'
   },
+  LESSON_RELEASED: {
+    event_key: 'lesson_released',
+    message: '📘 New lesson released in "{course_name}"',
+    url: '/learning/{course_id}'
+  },
+  QUIZ_AVAILABLE: {
+    event_key: 'quiz_available',
+    message: '📝 A new quiz is now available in "{course_name}"',
+    url: '/learning/{course_id}/quizzes'
+  },
+  OFFLINE_DOWNLOAD_READY: {
+    event_key: 'offline_download_ready',
+    message: '⬇️ Offline download ready for "{course_name}"',
+    url: '/learning/{course_id}/downloads'
+  },
+  STUDY_PLAN_ADJUSTED: {
+    event_key: 'study_plan_adjusted',
+    message: '🗓️ Your study plan was adjusted based on your availability.',
+    url: '/learning-plan'
+  },
+  COACHING_SESSION_SCHEDULED: {
+    event_key: 'coaching_session_scheduled',
+    message: '🎯 Coaching session with {coach_name} scheduled for {session_date}.',
+    url: '/coaching/sessions/{session_id}'
+  },
+  COACHING_SESSION_REMINDER: {
+    event_key: 'coaching_session_reminder',
+    message: '⏰ Coaching session with {coach_name} starts in {minutes} minutes.',
+    url: '/coaching/sessions/{session_id}'
+  },
 
-  // 🏆 Achievements & Milestones (20)
+  // 🏆 Achievements & Milestones (25)
   ACHIEVEMENT_UNLOCKED: {
     event_key: 'achievement_unlocked',
     message: '🏆 Achievement unlocked: "{achievement_name}"!',
@@ -283,8 +333,33 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     message: '🌎 Global rank #{rank} - Among top learners worldwide!',
     url: '/leaderboard'
   },
+  PROJECT_SUBMITTED: {
+    event_key: 'project_submitted',
+    message: '📂 Project "{project_name}" submitted successfully.',
+    url: '/projects/{project_id}'
+  },
+  PORTFOLIO_PUBLISHED: {
+    event_key: 'portfolio_published',
+    message: '🖼️ Your learning portfolio is now live!',
+    url: '/profile/portfolio'
+  },
+  MENTOR_BADGE: {
+    event_key: 'mentor_badge',
+    message: '🎖️ Mentor badge earned for helping new students.',
+    url: '/achievements'
+  },
+  COLLABORATION_STREAK: {
+    event_key: 'collaboration_streak',
+    message: '🤝 Collaboration streak: {count} consecutive peer reviews!',
+    url: '/community/reviews'
+  },
+  PRACTICE_SET_MASTERED: {
+    event_key: 'practice_set_mastered',
+    message: '🧩 You mastered practice set "{set_name}" with full marks.',
+    url: '/practice/{set_id}'
+  },
 
-  // 💰 Payments & Subscriptions (15)
+  // 💰 Payments & Subscriptions (17)
   PAYMENT_SUCCESS: {
     event_key: 'payment_success',
     message: '✅ Payment successful! Thank you for your purchase.',
@@ -360,8 +435,18 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     message: '🎓 Scholarship approved! {coverage}% of your courses covered.',
     url: '/scholarships'
   },
+  PAYMENT_METHOD_EXPIRES: {
+    event_key: 'payment_method_expires',
+    message: '💳 Payment method expiring soon. Please update your card.',
+    url: '/billing/payment-methods'
+  },
+  INVOICE_AVAILABLE: {
+    event_key: 'invoice_available',
+    message: '🧾 New invoice available for download.',
+    url: '/billing/receipts/{payment_id}'
+  },
 
-  // 🔔 System & Platform (15)
+  // 🔔 System & Platform (17)
   SYSTEM_MAINTENANCE: {
     event_key: 'system_maintenance',
     message: '🔧 Scheduled maintenance in {hours} hours. Platform may be unavailable.',
@@ -437,8 +522,18 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     message: '📞 Update on your support ticket: {update_message}',
     url: '/support/tickets/{ticket_id}'
   },
+  SCHEDULED_OUTAGE: {
+    event_key: 'scheduled_outage',
+    message: '⚠️ Scheduled outage on {outage_date}. Plan your sessions accordingly.',
+    url: '/status'
+  },
+  CONTENT_POLICY_UPDATE: {
+    event_key: 'content_policy_update',
+    message: '🛡️ Content policy updated to keep our community safe.',
+    url: '/content-policy'
+  },
 
-  // 👥 Social & Community (15)
+  // 👥 Social & Community (20)
   FOLLOWED: {
     event_key: 'followed',
     message: '👤 {follower_name} started following you!',
@@ -513,6 +608,31 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     event_key: 'community_rank_up',
     message: '⭐ Community rank upgraded to {new_rank}!',
     url: '/community/rank'
+  },
+  MESSAGE_RECEIVED: {
+    event_key: 'message_received',
+    message: '✉️ New message from {user_name}.',
+    url: '/inbox/{thread_id}'
+  },
+  MESSAGE_REPLIED: {
+    event_key: 'message_replied',
+    message: '↩️ {user_name} replied to your message.',
+    url: '/inbox/{thread_id}'
+  },
+  GROUP_MILESTONE: {
+    event_key: 'group_milestone',
+    message: '🎯 "{group_name}" reached {member_count} members!',
+    url: '/groups/{group_id}'
+  },
+  EVENT_REMINDER: {
+    event_key: 'event_reminder',
+    message: '⏰ Reminder: "{event_name}" starts in {hours} hours.',
+    url: '/events/{event_id}'
+  },
+  FRIEND_JOINED: {
+    event_key: 'friend_joined',
+    message: '🤗 Your friend {user_name} just joined GramorX.',
+    url: '/community/friends'
   }
 };
 
