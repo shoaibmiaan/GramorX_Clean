@@ -41,17 +41,16 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
 }) => {
   const totalQuestions = React.useMemo(
     () => sections.reduce((sum, s) => sum + s.totalQuestions, 0),
-    [sections]
+    [sections],
   );
 
   const totalAnswered = React.useMemo(
     () => sections.reduce((sum, s) => sum + s.answeredQuestions, 0),
-    [sections]
+    [sections],
   );
 
-  const answeredPct = totalQuestions > 0
-    ? Math.round((totalAnswered / totalQuestions) * 100)
-    : 0;
+  const answeredPct =
+    totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
 
   const currentSection = sections.find((s) => s.id === currentSectionId) ?? null;
 
@@ -98,7 +97,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
             const completionPct =
               section.totalQuestions > 0
                 ? Math.round(
-                    (section.answeredQuestions / section.totalQuestions) * 100
+                    (section.answeredQuestions / section.totalQuestions) * 100,
                   )
                 : 0;
 
@@ -123,18 +122,31 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
                 <div className="flex items-center gap-2">
                   <Badge
                     size="xs"
-                    tone={isCurrent ? 'primary' : section.isCompleted ? 'success' : 'neutral'}
+                    tone={
+                      isCurrent
+                        ? 'primary'
+                        : section.isCompleted
+                        ? 'success'
+                        : 'neutral'
+                    }
                   >
                     S{section.order}
                   </Badge>
                   <div>
                     <p className="text-xs font-medium">{section.label}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {section.answeredQuestions}/{section.totalQuestions} answered
+                      {section.answeredQuestions}/{section.totalQuestions}{' '}
+                      answered
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  {completionPct === 100 && !isLocked && (
+                    <Icon
+                      name="CheckCircle"
+                      className="h-3.5 w-3.5 text-emerald-500"
+                    />
+                  )}
                   {isLocked && (
                     <Icon
                       name="lock-closed"
@@ -196,39 +208,16 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
             </div>
 
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <LegendDot className="border-emerald-500/70 bg-emerald-500/10" label="Answered" />
+              <LegendDot
+                className="border-emerald-500/70 bg-emerald-500/10"
+                label="Answered"
+              />
               <LegendDot className="border-border" label="Not answered" />
               <LegendDot className="border-primary bg-primary" label="Current" />
               <LegendDot className="ring-amber-400" label="Flagged" />
             </div>
           </div>
         )}
-      </Card>
-
-      {/* Bottom shortcuts */}
-      <Card className="border-none bg-muted/60 px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            tone="neutral"
-            size="xs"
-            variant="ghost"
-            className="px-1.5 text-[11px]"
-            type="button"
-          >
-            <Icon name="flag" className="mr-1 h-3.5 w-3.5" />
-            Review flagged later
-          </Button>
-          <Button
-            tone="primary"
-            size="xs"
-            variant="ghost"
-            className="px-1.5 text-[11px]"
-            type="button"
-          >
-            <Icon name="arrow-right-circle" className="mr-1 h-3.5 w-3.5" />
-            Next section
-          </Button>
-        </div>
       </Card>
     </aside>
   );

@@ -252,7 +252,7 @@ export default function NotificationsSettingsPage() {
     if (flag === '1') {
       autoUnsubApplied.current = true;
       void handleUnsubscribe('auto');
-      void router.replace('/settings/notifications', undefined, { shallow: true });
+      void router.replace('/account/preferences/notifications', undefined, { shallow: true });
     }
   }, [router, hasLoaded, handleUnsubscribe]);
 
@@ -395,7 +395,7 @@ export default function NotificationsSettingsPage() {
             <span aria-hidden>·</span>
             <Link
               className="text-primary hover:underline"
-              href="/settings/notifications?unsubscribe=1"
+              href="/account/preferences/notifications?unsubscribe=1"
               onClick={(event) => {
                 event.preventDefault();
                 void handleUnsubscribe('manual');

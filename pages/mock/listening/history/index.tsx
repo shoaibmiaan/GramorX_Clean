@@ -42,6 +42,18 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
 }) => {
   const hasAttempts = attempts.length > 0;
 
+  const bands = attempts
+    .map((a) => (typeof a.bandScore === "number" ? a.bandScore : null))
+    .filter((b): b is number => Number.isFinite(b));
+
+  const bestBand = bands.length ? Math.max(...bands) : null;
+  const lastBand = bands.length ? bands[0] : null;
+  const totalAttempts = attempts.length;
+
+  const lastAttemptDate = hasAttempts
+    ? new Date(attempts[0].createdAt).toLocaleDateString()
+    : "—";
+
   return (
     <>
       <Head>
@@ -57,7 +69,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 <Icon name="Headphones" size={14} />
-                <span>Listening Attempt History</span>
+                <span>Listening attempt history</span>
                 {!isLoggedIn && (
                   <Badge size="xs" variant="neutral">
                     Sign in to see your data
@@ -65,13 +77,13 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                 )}
               </div>
 
-              <h1 className="font-slab text-h2 leading-tight">
-                Your Listening mocks. Every score, every mistake.
+              <h1 className="font-slab text-display leading-tight">
+                Every Listening mock. Every band.
               </h1>
 
               <p className="text-sm text-muted-foreground max-w-xl">
-                Track your bands, section accuracy, average raw scores, timing,
-                and improvement trend across all Listening mocks.
+                See how your Listening band is moving over time — scores, timing,
+                section accuracy, and question-type breakdown for all your mocks.
               </p>
 
               <div className="flex gap-3 pt-3 flex-wrap">
@@ -98,6 +110,77 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
             </div>
           </Container>
         </section>
+
+        {/* -------------------------------------------------------------- */}
+        {/* TOP STATS STRIP */}
+        {/* -------------------------------------------------------------- */}
+        {hasAttempts && (
+          <section className="pt-6">
+            <Container>
+              <Card className="rounded-ds-2xl border border-border/60 bg-card/90 p-4 md:p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Listening progress snapshot
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Quick view of your bands and attempts so far.
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <Icon name="Clock" size={12} />
+                    <span>
+                      Last attempt:{" "}
+                      <span className="font-medium text-foreground">
+                        {lastAttemptDate}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-4 text-center text-xs">
+                  <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
+                    <p className="text-[11px] text-muted-foreground">Best band</p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {bestBand ?? "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
+                    <p className="text-[11px] text-muted-foreground">Last band</p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {lastBand ?? "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
+                    <p className="text-[11px] text-muted-foreground">Avg band</p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {analytics?.averageBand ?? "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-ds-xl bg-muted/40 px-3 py-3">
+                    <p className="text-[11px] text-muted-foreground">
+                      Total attempts
+                    </p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {totalAttempts}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                  <span>
+                    Section and question-type analytics are calculated from your
+                    recent mocks.
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="Sparkles" size={12} />
+                    <span>Pair this with AI Lab for targeted drills.</span>
+                  </span>
+                </div>
+              </Card>
+            </Container>
+          </section>
+        )}
 
         {/* -------------------------------------------------------------- */}
         {/* ANALYTICS */}
@@ -212,7 +295,6 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
             <Container>
               <Card className="max-w-4xl mx-auto rounded-ds-2xl p-6 bg-card/90 border border-border/60">
                 <div className="grid md:grid-cols-2 gap-6">
-
                   <div className="space-y-2">
                     <p className="text-xs tracking-wide uppercase text-primary font-semibold">
                       Next smart move
@@ -237,7 +319,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                       <li>1. Pick any past attempt from above.</li>
                       <li>2. Send its score to AI Lab.</li>
                       <li>3. Get deep section-wise analysis.</li>
-                      <li>4. Retry targeted drills & reattempt a mock.</li>
+                      <li>4. Retry targeted drills &amp; reattempt a mock.</li>
                     </ol>
 
                     <div className="flex gap-2">
@@ -260,13 +342,47 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                       </Button>
                     </div>
                   </div>
-
                 </div>
               </Card>
             </Container>
           </section>
         )}
 
+        {/* -------------------------------------------------------------- */}
+        {/* COMING SOON BANNER – POWER TECHNIQUES FROM HISTORY */}
+        {/* -------------------------------------------------------------- */}
+        {isLoggedIn && (
+          <section className="pt-10">
+            <Container>
+              <Card className="mx-auto max-w-4xl rounded-ds-2xl border border-dashed border-primary/40 bg-gradient-to-r from-primary/5 via-card/90 to-primary/5 p-5 md:p-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
+                      <Icon name="Sparkles" size={14} />
+                      <span>Listening Power Techniques · Coming soon</span>
+                    </div>
+                    <h3 className="font-slab text-h4">
+                      Turn your history into auto-generated drill plans.
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground max-w-xl">
+                      Soon you’ll be able to auto-generate weakness drills, retry packs,
+                      and technique checklists straight from your attempt history — no
+                      manual planning needed.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-start gap-2 text-[11px] text-muted-foreground md:text-right">
+                    <span className="inline-flex items-center gap-1 rounded-ds-full bg-muted/70 px-3 py-1">
+                      <Icon name="Construction" size={14} />
+                      <span>In active development</span>
+                    </span>
+                    <span>Watch this space. You’ll see it light up here first.</span>
+                  </div>
+                </div>
+              </Card>
+            </Container>
+          </section>
+        )}
       </main>
     </>
   );
@@ -315,7 +431,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .in("attempt_id", attemptIds);
 
   const questionIds = Array.from(
-    new Set((answerRows ?? []).map((a) => a.question_id).filter(Boolean)),
+    new Set((answerRows ?? []).map((a) => a.question_id).filter(Boolean))
   );
 
   const { data: questionRows } = questionIds.length
@@ -331,38 +447,61 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   });
 
   const sectionBuckets = new Map<number, { total: number; correct: number }>();
-  const typeBuckets = new Map<string, { total: number; correct: number; label: string }>();
+  const typeBuckets = new Map<
+    string,
+    { total: number; correct: number; label: string }
+  >();
 
   (answerRows ?? []).forEach((a: any) => {
     const section = Number(a.section ?? 1);
-    const secBucket = sectionBuckets.get(section) ?? { total: 0, correct: 0 };
+    const secBucket = sectionBuckets.get(section) ?? {
+      total: 0,
+      correct: 0,
+    };
     secBucket.total += 1;
     if (a.is_correct) secBucket.correct += 1;
     sectionBuckets.set(section, secBucket);
 
     const typeKey = typeMap.get(String(a.question_id)) ?? "other";
-    const label = LISTENING_QUESTION_TYPE_LABELS[
-      typeKey as keyof typeof LISTENING_QUESTION_TYPE_LABELS
-    ] ?? "Other";
-    const typeBucket = typeBuckets.get(typeKey) ?? { total: 0, correct: 0, label };
+    const label =
+      LISTENING_QUESTION_TYPE_LABELS[
+        typeKey as keyof typeof LISTENING_QUESTION_TYPE_LABELS
+      ] ?? "Other";
+    const typeBucket = typeBuckets.get(typeKey) ?? {
+      total: 0,
+      correct: 0,
+      label,
+    };
     typeBucket.total += 1;
     if (a.is_correct) typeBucket.correct += 1;
     typeBuckets.set(typeKey, typeBucket);
   });
 
-  const sectionAccuracy: SectionAccuracy[] = Array.from(sectionBuckets.entries())
-    .map(([section, bucket]) => ({ section, total: bucket.total, correct: bucket.correct }))
+  const sectionAccuracy: SectionAccuracy[] = Array.from(
+    sectionBuckets.entries()
+  )
+    .map(([section, bucket]) => ({
+      section,
+      total: bucket.total,
+      correct: bucket.correct,
+    }))
     .sort((a, b) => a.section - b.section);
 
   const typeAccuracy: TypeAccuracy[] = Array.from(typeBuckets.entries())
-    .map(([type, bucket]) => ({ type, label: bucket.label, total: bucket.total, correct: bucket.correct }))
+    .map(([type, bucket]) => ({
+      type,
+      label: bucket.label,
+      total: bucket.total,
+      correct: bucket.correct,
+    }))
     .sort((a, b) => b.total - a.total);
 
   const bandTrend: BandPoint[] = (attemptRows ?? [])
     .slice(0, 12)
     .map((row: any) => ({
       attemptId: row.id,
-      band: typeof row.band_score === "number" ? row.band_score : row.band ?? null,
+      band:
+        typeof row.band_score === "number" ? row.band_score : row.band ?? null,
       createdAt: row.created_at,
     }));
 
@@ -375,7 +514,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     averageBand:
       numericBands.length > 0
         ? Number(
-            (numericBands.reduce((sum, v) => sum + v, 0) / numericBands.length).toFixed(1),
+            (
+              numericBands.reduce((sum, v) => sum + v, 0) / numericBands.length
+            ).toFixed(1)
           )
         : null,
     sectionAccuracy,

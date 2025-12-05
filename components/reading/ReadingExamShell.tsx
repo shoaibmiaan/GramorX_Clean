@@ -1,4 +1,3 @@
-// components/reading/ReadingExamShell.tsx
 import * as React from 'react';
 
 import { Card } from '@/components/design-system/Card';
@@ -18,16 +17,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { readingBandFromRaw } from '@/lib/reading/band';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/design-system/Toaster';
-
-import { ExamHeader } from '@/components/exam/ExamHeader';
-import {
-  ExamBreadcrumbs,
-  type ExamBreadcrumbItem,
-} from '@/components/exam/ExamBreadcrumbs';
-import { ExamFooter } from '@/components/exam/ExamFooter';
 import { Icon } from '@/components/design-system/Icon';
 
-// NEW STRICT CBE MODALS
+// STRICT CBE MODALS
 import { ExamConfirmPopup } from '@/components/exam/ExamConfirmPopup';
 import { ExamStrictModePopup } from '@/components/exam/ExamStrictModePopup';
 import { ExamExitPopup } from '@/components/exam/ExamExitPopup';
@@ -603,185 +595,285 @@ const ReadingExamShellInner: React.FC<Props> = ({
       ? 'IELTS Reading · General Training'
       : 'IELTS Reading · Academic';
 
-  const breadcrumbs: ExamBreadcrumbItem[] = [
-    { label: 'Home', href: '/' },
-    { label: 'Mocks', href: '/mock' },
-    { label: 'Reading', href: '/mock/reading' },
-    { label: test.title, active: true },
-  ];
-
   const durationMinutes = Math.round(durationSeconds / 60);
+  const remainingMinutesSafe = Math.max(
+    0,
+    Math.floor(remainingSeconds / 60),
+  );
 
   return (
     <div
       className={cn(
-        'w-full border border-border/70 rounded-xl bg-background/95 shadow-sm overflow-hidden flex flex-col transition-colors duration-300',
-        focusMode && 'ring-2 ring-primary/40 bg-background',
+          'h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col overflow-hidden',
+        focusMode && 'ring-2 ring-primary/40',
       )}
     >
-      {/* HEADER */}
-      <div className="sticky top-0 z-40">
-        <div
-          className={cn(
-            'border-b border-border/70 shadow-sm',
-            isDark
-              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950'
-              : 'bg-gradient-to-r from-blue-50 via-white to-blue-50',
-          )}
-        >
-          <div className="px-3 py-2 sm:px-4 sm:py-2 border-b border-white/5">
-            <ExamBreadcrumbs items={breadcrumbs} />
+      {/* TOP EXAM BAR (CBE-PLUS) */}
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 border-b border-border/70 px-3 py-2 sm:px-4 sm:py-2 shadow-sm',
+          isDark
+            ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950'
+            : 'bg-gradient-to-r from-blue-50 via-white to-blue-50',
+        )}
+      >
+        {/* Left: exam meta */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-primary/80">
+            <span className="inline-flex items-center gap-1">
+              <Icon name="BookOpen" className="h-3.5 w-3.5" />
+              {examTypeLabel}
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <Icon name="FileText" className="h-3.5 w-3.5" />
+              {total} Q
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 text-muted-foreground">
+              <Icon name="Layers" className="h-3.5 w-3.5" />
+              {passages.length} passages
+            </span>
+            <span className="hidden md:inline-flex items-center gap-1 text-muted-foreground">
+              <Icon name="Clock" className="h-3.5 w-3.5" />
+              {durationMinutes} min
+            </span>
           </div>
 
-          <ExamHeader
-            breadcrumbs={undefined}
-            examLabel={examTypeLabel}
-            title={test.title}
-            subtitle={
-              test.description ??
-              'Three passages, 40 questions. Strict timing, auto-saving, exam-style layout.'
-            }
-            metaLeft={
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="file-text" className="h-3.5 w-3.5" />
-                  {total} questions
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="book-open" className="h-3.5 w-3.5" />
-                  {passages.length} passages
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="clock" className="h-3.5 w-3.5" />
-                  {durationMinutes} minutes
-                </span>
-                <span className="hidden sm:inline-flex items-center gap-1">
-                  <Icon name="flag" className="h-3.5 w-3.5" />
-                  {flaggedCount} flagged
-                </span>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="line-clamp-1 font-medium text-foreground">
+              {test.title}
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="inline-flex items-center gap-1">
+              <Icon name="CheckCircle2" className="h-3.5 w-3.5" />
+              {answeredCount}/{total} answered
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1">
+              <Icon name="Flag" className="h-3.5 w-3.5" />
+              {flaggedCount} flagged
+            </span>
+          </div>
+        </div>
+
+        {/* Right: controls + timer */}
+        <div className="flex flex-col items-end gap-2">
+          {/* Controls row */}
+          <div className="flex items-center gap-2">
+            {/* Exit */}
+            <Button
+              size="xs"
+              variant="outline"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => setShowExitPopup(true)}
+              disabled={readOnly}
+            >
+              <Icon name="LogOut" className="mr-1 h-3.5 w-3.5" />
+              Exit
+            </Button>
+
+            {/* Theme toggle */}
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={toggleTheme}
+              className="h-7 w-7"
+            >
+              <Icon
+                name={isDark ? 'Moon' : 'Sun'}
+                className="h-4 w-4"
+              />
+            </Button>
+
+            {/* Zoom + focus pill */}
+            <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Zoom
+              </span>
+              <Button
+                size="xs"
+                variant={zoom === 'sm' ? 'secondary' : 'ghost'}
+                className="h-6 px-1.5 text-[10px]"
+                onClick={() => changeZoom('sm')}
+              >
+                S
+              </Button>
+              <Button
+                size="xs"
+                variant={zoom === 'md' ? 'secondary' : 'ghost'}
+                className="h-6 px-1.5 text-[10px]"
+                onClick={() => changeZoom('md')}
+              >
+                M
+              </Button>
+              <Button
+                size="xs"
+                variant={zoom === 'lg' ? 'secondary' : 'ghost'}
+                className="h-6 px-1.5 text-[10px]"
+                onClick={() => changeZoom('lg')}
+              >
+                L
+              </Button>
+
+              <span className="mx-1 h-4 w-px bg-border/60" />
+
+              <Button
+                size="xs"
+                variant={focusMode ? 'primary' : 'outline'}
+                className="h-6 px-2 text-[10px] font-semibold"
+                onClick={toggleFocus}
+              >
+                {focusMode ? 'Focus on' : 'Focus mode'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Timer */}
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-semibold tracking-wide text-primary/80 uppercase">
+                Time remaining
+              </span>
+              <div className="mt-0.5 text-sm font-semibold tabular-nums">
+                <TimerProgress total={total} />
               </div>
-            }
-            metaRight={
-              <div className="flex flex-col items-end gap-2">
-                {/* Theme Toggle + Zoom + Focus */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={toggleTheme}
-                    className="h-7 w-7"
-                  >
-                    <Icon
-                      name={isDark ? 'moon' : 'sun'}
-                      className="h-4 w-4"
-                    />
-                  </Button>
-
-                  <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
-                    <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Zoom
-                    </span>
-                    <Button
-                      size="xs"
-                      variant={zoom === 'sm' ? 'secondary' : 'ghost'}
-                      className="h-6 px-1.5 text-[10px]"
-                      onClick={() => changeZoom('sm')}
-                    >
-                      S
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant={zoom === 'md' ? 'secondary' : 'ghost'}
-                      className="h-6 px-1.5 text-[10px]"
-                      onClick={() => changeZoom('md')}
-                    >
-                      M
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant={zoom === 'lg' ? 'secondary' : 'ghost'}
-                      className="h-6 px-1.5 text-[10px]"
-                      onClick={() => changeZoom('lg')}
-                    >
-                      L
-                    </Button>
-
-                    <span className="mx-1 h-4 w-px bg-border/60" />
-
-                    <Button
-                      size="xs"
-                      variant={focusMode ? 'primary' : 'outline'}
-                      className="h-6 px-2 text-[10px] font-semibold"
-                      onClick={toggleFocus}
-                    >
-                      {focusMode ? 'Focus on' : 'Focus mode'}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Timer */}
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-semibold tracking-wide text-primary/80 uppercase">
-                      Time remaining
-                    </span>
-                    <div className="mt-0.5 text-sm font-semibold tabular-nums">
-                      <TimerProgress total={total} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-            onExitHref="/mock/reading"
-            onExitClick={() => setShowExitPopup(true)}
-          />
+              <span className="mt-0.5 text-[10px] text-muted-foreground">
+                ~{remainingMinutesSafe} minutes left
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* DESKTOP LAYOUT WITH DRAGGABLE SPLIT */}
-      <div
-        ref={layoutContainerRef}
-        className={cn(
-          'hidden lg:grid gap-4 h-[calc(100vh-190px)] px-4 py-3 overflow-hidden',
-          SPLIT_LAYOUT_CLASSES[splitStep],
-        )}
-      >
-        {/* Passage side */}
-        <ReadingPassagePane
-          passage={currentPassage}
-          totalPassages={passages.length}
-          currentPassageIndex={currentPassageIdx}
-          onPrev={goPrevPassage}
-          onNext={goNextPassage}
-          highlights={currentHighlights}
-          onAddHighlight={(text) =>
-            handleAddHighlight(currentPassage.id, text)
-          }
-          onClearHighlights={() =>
-            handleClearHighlights(currentPassage.id)
-          }
-          zoom={zoom}
-        />
-
-        {/* Drag handle */}
+      {/* BODY AREA */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* DESKTOP LAYOUT WITH DRAGGABLE SPLIT */}
         <div
-          className="hidden lg:flex items-center justify-center cursor-col-resize select-none"
-          onMouseDown={handleSplitMouseDown}
-          aria-hidden="true"
+          ref={layoutContainerRef}
+          className={cn(
+            'hidden lg:grid flex-1 gap-4 px-4 py-3 overflow-hidden',
+            SPLIT_LAYOUT_CLASSES[splitStep],
+          )}
         >
-          <div className="relative h-[80%] w-px bg-border/60">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/70 bg-background/90 px-1.5 py-2 shadow-sm flex items-center justify-center">
-              <Icon
-                name="grip-vertical"
-                className="h-3 w-3 text-muted-foreground"
+          {/* Passage side */}
+          <ReadingPassagePane
+            passage={currentPassage}
+            totalPassages={passages.length}
+            currentPassageIndex={currentPassageIdx}
+            onPrev={goPrevPassage}
+            onNext={goNextPassage}
+            highlights={currentHighlights}
+            onAddHighlight={(text) =>
+              handleAddHighlight(currentPassage.id, text)
+            }
+            onClearHighlights={() =>
+              handleClearHighlights(currentPassage.id)
+            }
+            zoom={zoom}
+          />
+
+          {/* Drag handle */}
+          <div
+            className="hidden lg:flex items-center justify-center cursor-col-resize select-none"
+            onMouseDown={handleSplitMouseDown}
+            aria-hidden="true"
+          >
+            <div className="relative h-[80%] w-px bg-border/60">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/70 bg-background/90 px-1.5 py-2 shadow-sm flex items-center justify-center">
+                <Icon
+                  name="GripVertical"
+                  className="h-3 w-3 text-muted-foreground"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Questions side */}
+          <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
+            <div id="reading-question-nav">
+              <QuestionNav
+                questions={questions}
+                answers={answers}
+                flags={flags}
+                currentQuestionId={currentQuestionId}
+                onJump={handleJump}
+                statusFilter={statusFilter}
+                typeFilter={typeFilter}
+                setStatusFilter={setStatusFilter}
+                setTypeFilter={setTypeFilter}
               />
+            </div>
+
+            <div
+              className={cn(
+                'flex-1 overflow-y-auto px-4 py-4 space-y-4',
+                isDark ? 'bg-background/80' : 'bg-white',
+                zoom === 'sm' && 'text-xs',
+                zoom === 'md' && 'text-sm',
+                zoom === 'lg' && 'text-base',
+              )}
+            >
+              {visibleQuestions.length === 0 ? (
+                <Card className="p-4 text-sm text-muted-foreground">
+                  No questions match the current filters for this passage.
+                </Card>
+              ) : (
+                visibleQuestions.map((q) => {
+                  const isCurrent = q.id === currentQuestionId;
+                  const isFlagged = !!flags[q.id];
+                  const val = answers[q.id] ?? null;
+
+                  return (
+                    <div
+                      key={q.id}
+                      ref={(el) => {
+                        questionRefs.current[q.id] = el;
+                      }}
+                      className={cn(
+                        'rounded-lg transition ring-0',
+                        isCurrent
+                          ? isDark
+                            ? 'ring-1 ring-primary/70 bg-primary/10'
+                            : 'ring-2 ring-blue-500 bg-blue-50'
+                          : 'hover:bg-muted/50',
+                      )}
+                    >
+                      <ReadingQuestionItem
+                        question={q}
+                        value={val}
+                        onChange={(v) => handleAnswerChange(q.id, v)}
+                        isFlagged={isFlagged}
+                        onToggleFlag={() => toggleFlag(q.id)}
+                      />
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
 
-        {/* Questions side */}
-        <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
-          <div id="reading-question-nav">
+        {/* MOBILE / TABLET STACKED */}
+        <div className="flex flex-col gap-4 px-4 py-3 lg:hidden overflow-y-auto">
+          <ReadingPassagePane
+            passage={currentPassage}
+            totalPassages={passages.length}
+            currentPassageIndex={currentPassageIdx}
+            onPrev={goPrevPassage}
+            onNext={goNextPassage}
+            highlights={currentHighlights}
+            onAddHighlight={(text) =>
+              handleAddHighlight(currentPassage.id, text)
+            }
+            onClearHighlights={() =>
+              handleClearHighlights(currentPassage.id)
+            }
+            zoom={zoom}
+          />
+
+          <Card
+            className="p-3 border-border/70 bg-card/95 shadow-sm"
+            id="reading-question-nav"
+          >
             <QuestionNav
               questions={questions}
               answers={answers}
@@ -793,12 +885,11 @@ const ReadingExamShellInner: React.FC<Props> = ({
               setStatusFilter={setStatusFilter}
               setTypeFilter={setTypeFilter}
             />
-          </div>
+          </Card>
 
           <div
             className={cn(
-              'flex-1 overflow-y-auto px-4 py-4 space-y-4',
-              isDark ? 'bg-background/80' : 'bg-white',
+              'space-y-3',
               zoom === 'sm' && 'text-xs',
               zoom === 'md' && 'text-sm',
               zoom === 'lg' && 'text-base',
@@ -826,7 +917,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
                         ? isDark
                           ? 'ring-1 ring-primary/70 bg-primary/10'
                           : 'ring-2 ring-blue-500 bg-blue-50'
-                        : 'hover:bg-muted/50',
+                        : 'p-0',
                     )}
                   >
                     <ReadingQuestionItem
@@ -844,98 +935,44 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* MOBILE / TABLET STACKED */}
-      <div className="flex flex-col gap-4 px-4 py-3 lg:hidden">
-        <ReadingPassagePane
-          passage={currentPassage}
-          totalPassages={passages.length}
-          currentPassageIndex={currentPassageIdx}
-          onPrev={goPrevPassage}
-          onNext={goNextPassage}
-          highlights={currentHighlights}
-          onAddHighlight={(text) =>
-            handleAddHighlight(currentPassage.id, text)
-          }
-          onClearHighlights={() =>
-            handleClearHighlights(currentPassage.id)
-          }
-          zoom={zoom}
-        />
-
-        <Card
-          className="p-3 border-border/70 bg-card/95 shadow-sm"
-          id="reading-question-nav"
-        >
-          <QuestionNav
-            questions={questions}
-            answers={answers}
-            flags={flags}
-            currentQuestionId={currentQuestionId}
-            onJump={handleJump}
-            statusFilter={statusFilter}
-            typeFilter={typeFilter}
-            setStatusFilter={setStatusFilter}
-            setTypeFilter={setTypeFilter}
-          />
-        </Card>
-
-        <div
-          className={cn(
-            'space-y-3',
-            zoom === 'sm' && 'text-xs',
-            zoom === 'md' && 'text-sm',
-            zoom === 'lg' && 'text-base',
-          )}
-        >
-          {visibleQuestions.length === 0 ? (
-            <Card className="p-4 text-sm text-muted-foreground">
-              No questions match the current filters for this passage.
-            </Card>
-          ) : (
-            visibleQuestions.map((q) => {
-              const isCurrent = q.id === currentQuestionId;
-              const isFlagged = !!flags[q.id];
-              const val = answers[q.id] ?? null;
-
-              return (
-                <div
-                  key={q.id}
-                  ref={(el) => {
-                    questionRefs.current[q.id] = el;
-                  }}
-                  className={cn(
-                    'rounded-lg transition ring-0',
-                    isCurrent
-                      ? isDark
-                        ? 'ring-1 ring-primary/70 bg-primary/10'
-                        : 'ring-2 ring-blue-500 bg-blue-50'
-                      : 'p-0',
-                  )}
-                >
-                  <ReadingQuestionItem
-                    question={q}
-                    value={val}
-                    onChange={(v) => handleAnswerChange(q.id, v)}
-                    isFlagged={isFlagged}
-                    onToggleFlag={() => toggleFlag(q.id)}
-                  />
-                </div>
-              );
-            })
+      {/* BOTTOM EXAM ACTION BAR */}
+      <div className="border-t border-border/70 bg-card/95 px-3 py-2 sm:px-4 sm:py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-foreground">
+            Question {currentIndex + 1} of {total}
+          </span>
+          <span>•</span>
+          <span>
+            {answeredCount} answered, {unansweredCount} remaining
+          </span>
+          {flaggedCount > 0 && (
+            <>
+              <span>•</span>
+              <span>{flaggedCount} flagged</span>
+            </>
           )}
         </div>
-      </div>
 
-      {/* FOOTER */}
-      <ExamFooter
-        currentQuestion={currentIndex + 1}
-        totalQuestions={total}
-        primaryLabel={readOnly ? 'Review only' : 'Submit attempt'}
-        onPrimaryClick={readOnly ? undefined : handleSubmitClick}
-        primaryDisabled={readOnly}
-        secondaryLabel={currentIndex > 0 ? 'Previous question' : undefined}
-        onSecondaryClick={currentIndex > 0 ? goPrevQuestion : undefined}
-      />
+        <div className="flex items-center gap-2 justify-end">
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={currentIndex <= 0}
+            onClick={goPrevQuestion}
+          >
+            <Icon name="ArrowLeft" className="mr-1 h-4 w-4" />
+            Previous
+          </Button>
+          <Button
+            size="sm"
+            variant={readOnly ? 'secondary' : 'primary'}
+            disabled={readOnly}
+            onClick={readOnly ? undefined : handleSubmitClick}
+          >
+            {readOnly ? 'Review only' : 'Submit attempt'}
+          </Button>
+        </div>
+      </div>
 
       {/* STRICT MODE POPUP */}
       {!readOnly && (
@@ -967,10 +1004,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
       {/* TIME WARNING POPUP */}
       <ExamTimeWarningPopup
         open={showTimeWarning}
-        remainingMinutes={Math.max(
-          0,
-          Math.floor(remainingSeconds / 60),
-        )}
+        remainingMinutes={remainingMinutesSafe}
         onClose={() => setShowTimeWarning(false)}
         onJumpToNav={() => {
           if (typeof document !== 'undefined') {

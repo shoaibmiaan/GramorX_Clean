@@ -92,6 +92,14 @@ const isMockTestsFlowRoute = (pathname: string) => {
   return isMockAttempt || isWritingAttempt;
 };
 
+// ❗ treat ALL /mock/listening paths as exam-room (no chrome)
+const isListeningMockRoute = (pathname: string) =>
+  pathname.startsWith('/mock/listening');
+
+// ❗ NEW: treat ALL Reading test exam-room routes as no-chrome
+const isReadingExamRoute = (pathname: string) =>
+  // /mock/reading/[slug] → exam room
+  /^\/mock\/reading\/[^/]+(\/|$)/.test(pathname);
 // ---------- Auth bridge ----------
 function useAuthBridge() {
   const router = useRouter();
@@ -203,6 +211,8 @@ function useRouteConfiguration(pathname: string) {
 
     const derivedIsAuth = routeConfig.layout === 'auth' || isAuthPage(pathname);
     const isAttempt = isAttemptPath(pathname);
+    const listeningMock = isListeningMockRoute(pathname);
+    const readingExam = isReadingExamRoute(pathname);
 
     const isNoChromeRoute =
       derivedIsAuth ||
@@ -211,7 +221,9 @@ function useRouteConfiguration(pathname: string) {
       /\/focus-mode(\/|$)/.test(pathname) ||
       routeConfig.showChrome === false ||
       isAttempt ||
-      isMockTestsFlowRoute(pathname);
+      isMockTestsFlowRoute(pathname) ||
+      listeningMock ||
+      readingExam; // ❗ hide header/footer for ALL reading exam routes
 
     const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
 
@@ -360,6 +372,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
     !routeConfiguration.isProctoringRoute &&
     !routeConfiguration.isPremiumRoute &&
     !isMockTestsFlowRoute(pathname) &&
+    !isListeningMockRoute(pathname) &&
+    !isReadingExamRoute(pathname) &&
     !pathname.includes('/run') &&
     !pathname.includes('/review') &&
     !routeConfiguration.isNoChromeRoute;
@@ -389,7 +403,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
-
               // ⭐ SEND TO LAYOUT MANAGER
               showBreadcrumbs={showBreadcrumbs}
             >

@@ -5358,7 +5358,7 @@
 |   |   |-- ./pages/settings/index.tsx
 |   |   |-- ./pages/settings/language.tsx
 |   |   |-- ./pages/settings/notifications.tsx
-|   |   `-- ./pages/settings/security.tsx
+|   |   `-- ./pages/account/security.tsx
 |   |-- ./pages/signup
 |   |   |-- ./pages/signup/email.tsx
 |   |   |-- ./pages/signup/index.tsx

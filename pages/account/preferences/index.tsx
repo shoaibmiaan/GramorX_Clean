@@ -45,19 +45,19 @@ const sections: SettingsSection[] = [
 
   // Experience group – classic “settings”
   {
-    href: '/settings/notifications',
+    href: '/account/preferences/notifications',
     label: 'Notifications',
     description: 'Email / WhatsApp reminders, quiet hours, and timezone.',
     group: 'experience',
   },
   {
-    href: '/settings/language',
+    href: '/account/preferences/language',
     label: 'Language',
     description: 'Switch the interface between English and Urdu.',
     group: 'experience',
   },
   {
-    href: '/settings/accessibility',
+    href: '/account/preferences/accessibility',
     label: 'Accessibility',
     description: 'High contrast, focus styles, and readability options.',
     group: 'experience',
@@ -65,7 +65,7 @@ const sections: SettingsSection[] = [
 
   // Security group
   {
-    href: '/settings/security',
+    href: '/account/security',
     label: 'Security',
     description: 'MFA, active sessions, and login history.',
     group: 'security',

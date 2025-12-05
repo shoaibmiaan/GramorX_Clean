@@ -35,20 +35,24 @@ async function getUserId(req: NextApiRequest, res: NextApiResponse) {
 
 const extractText = (raw: any): string | null => {
   if (raw == null) return null;
+
   if (typeof raw === 'string') {
     try {
       const parsed = JSON.parse(raw);
       if (typeof parsed === 'string') return parsed;
     } catch {
-      return raw;
+      // ignore
     }
     return raw;
   }
+
   if (Array.isArray(raw)) return raw[0] ?? null;
+
   if (typeof raw === 'object') {
     if (typeof (raw as any).value === 'string') return (raw as any).value;
     if (typeof (raw as any).text === 'string') return (raw as any).text;
   }
+
   const s = String(raw ?? '');
   return s.length ? s : null;
 };
@@ -67,29 +71,75 @@ export default async function handler(
   }
 
   const {
-    testId,
-    testSlug,
+    testId: testIdRaw,
+    testSlug: testSlugRaw,
     answers,
     durationSeconds,
     autoSubmit,
   }: Body = req.body || {};
 
-  if ((!testId && !testSlug) || !Array.isArray(answers)) {
-    return res.status(400).json({ error: 'Invalid payload' });
+  if (!Array.isArray(answers) || answers.length === 0) {
+    return res.status(400).json({ error: 'Invalid payload: answers missing' });
+  }
+
+  // Resolve test from id or slug
+  let testId: string | null = testIdRaw ?? null;
+  let testSlug: string | null = testSlugRaw ?? null;
+
+  if (!testId || !testSlug) {
+    if (!testId && !testSlug) {
+      return res
+        .status(400)
+        .json({ error: 'Missing testId or testSlug in payload' });
+    }
+
+    const query = supabaseAdmin
+      .from('listening_tests')
+      .select('id,slug')
+      .limit(1);
+
+    if (testId) {
+      query.eq('id', testId);
+    } else if (testSlug) {
+      query.eq('slug', testSlug);
+    }
+
+    const { data: testRow, error: testErr } = await query.single();
+
+    if (testErr || !testRow) {
+      return res.status(404).json({ error: 'Listening test not found' });
+    }
+
+    testId = testRow.id as string;
+    testSlug = testRow.slug as string;
   }
 
   // Pull questions for deterministic scoring on server
   const { data: questions, error: qErr } = await supabaseAdmin
     .from('listening_questions')
     .select(
-      'id,qno,question_number,question_type,type,correct_answer,section_no,test_id,test_slug',
+      'id,test_id,test_slug,section_id,section_no,question_number,qno,question_type,type,correct_answer',
     )
-    .eq(testId ? 'test_id' : 'test_slug', (testId ?? testSlug) as string)
-    .order('question_number');
+    .eq('test_id', testId as string)
+    .order('question_number', { ascending: true });
 
   if (qErr) return res.status(500).json({ error: qErr.message });
   if (!questions || questions.length === 0) {
-    return res.status(404).json({ error: 'Test not found' });
+    return res
+      .status(404)
+      .json({ error: 'No questions found for this listening test' });
+  }
+
+  // Quick lookup maps
+  const questionsById = new Map<string, any>();
+  const questionsByQno = new Map<number, any>();
+  for (const q of questions) {
+    questionsById.set(q.id as string, q);
+    const numericQno =
+      (q as any).qno ?? (q as any).question_number ?? null;
+    if (numericQno != null) {
+      questionsByQno.set(Number(numericQno), q);
+    }
   }
 
   // Build scoring payload
@@ -134,13 +184,24 @@ export default async function handler(
     };
   });
 
+  // Map answers by qno
   const answerByQno = new Map<number, any>();
   (answers ?? []).forEach((a) => {
+    let qno: number | null = null;
+
     if (a.questionNumber != null) {
-      answerByQno.set(Number(a.questionNumber), a.answer);
+      qno = Number(a.questionNumber);
+    } else if (a.questionId && questionsById.has(a.questionId)) {
+      const q = questionsById.get(a.questionId);
+      qno = Number(q.qno ?? q.question_number ?? 0);
+    }
+
+    if (qno != null) {
+      answerByQno.set(qno, a.answer);
     }
   });
 
+  // Score
   let total = 0;
   const perSection: Record<string, { total: number; correct: number }> = {};
   const correctness = new Map<number, boolean>();
@@ -161,25 +222,26 @@ export default async function handler(
 
   const band = rawToBand(total);
   const submittedAt = new Date().toISOString();
+  const questionCount = questions.length;
 
-  // Persist attempt
+  // Insert into listening_attempts
   const { data: attemptRow, error: aErr } = await supabaseAdmin
     .from('listening_attempts')
     .insert({
       user_id: userId,
-      test_id: (questions[0] as any).test_id,
-      test_slug: (questions[0] as any).test_slug,
-      submitted_at: submittedAt,
+      test_id: testId,
+      test_slug: testSlug,
       raw_score: total,
       score: total,
-      total_questions: questions.length,
-      questions: questions.length,
+      total_questions: questionCount,
+      questions: questionCount,
       band_score: band,
       band,
       duration_seconds: durationSeconds ?? null,
-      section_scores: perSection,
       status: autoSubmit ? 'auto_submitted' : 'completed',
+      section_scores: perSection,
       meta: { autoSubmit: !!autoSubmit },
+      submitted_at: submittedAt,
     })
     .select('id')
     .single();
@@ -190,16 +252,27 @@ export default async function handler(
       .json({ error: aErr?.message || 'Insert attempt failed' });
   }
 
-  // Persist answers with normalization
-  const userAnswers = (answers ?? []).map((a) => {
-    const qnoGuess = a.questionNumber ?? null;
-    const isCorrect = qnoGuess
-      ? correctness.get(Number(qnoGuess)) ?? false
-      : false;
-    const correctRow = (questions ?? []).find(
-      (q: any) => q.id === a.questionId || q.question_number === qnoGuess,
-    );
-    const correctText = extractText(correctRow?.correct_answer);
+  const attemptId = attemptRow.id as string;
+
+  // Build detailed answers for listening_user_answers + listening_attempt_answers
+  const userAnswersDetailed = (answers ?? []).map((a) => {
+    let qRow: any | null = null;
+    let qnoGuess: number | null = null;
+
+    if (a.questionId && questionsById.has(a.questionId)) {
+      qRow = questionsById.get(a.questionId);
+      qnoGuess = Number(qRow.qno ?? qRow.question_number ?? 0);
+    } else if (a.questionNumber != null) {
+      qnoGuess = Number(a.questionNumber);
+      qRow = questionsByQno.get(qnoGuess) ?? null;
+    }
+
+    const isCorrect =
+      qnoGuess != null ? correctness.get(qnoGuess) ?? false : false;
+
+    const correctText = qRow
+      ? extractText(qRow.correct_answer)
+      : null;
 
     let normalized: string | null = null;
     if (typeof a.answer === 'string') {
@@ -217,42 +290,110 @@ export default async function handler(
         ? null
         : String(a.answer);
 
+    const sectionNo =
+      a.section ??
+      (qRow ? qRow.section_no : null);
+
+    const qnoFinal =
+      qnoGuess ??
+      (qRow ? Number(qRow.qno ?? qRow.question_number ?? 0) : 0);
+
+    const questionNumber =
+      qRow?.question_number ?? qnoFinal ?? null;
+
     return {
-      attempt_id: attemptRow.id,
-      question_id: a.questionId ?? null,
-      qno: qnoGuess ?? null,
-      question_number: qnoGuess ?? null,
-      section: a.section ?? correctRow?.section_no ?? null,
-      answer: a.answer ?? null,
-      user_answer: userAnswerText,
-      normalized_answer: normalized,
-      correct_answer: correctText,
-      is_correct: isCorrect,
+      attemptId,
+      questionId: qRow?.id ?? a.questionId ?? null,
+      qno: qnoFinal,
+      questionNumber,
+      section: sectionNo ?? null,
+      rawAnswer: a.answer ?? null,
+      userAnswerText,
+      normalized,
+      correctText,
+      isCorrect,
     };
   });
 
+  // Insert into listening_user_answers
+  const userAnswerRows = userAnswersDetailed.map((ua) => ({
+    attempt_id: ua.attemptId,
+    question_id: ua.questionId,
+    qno: ua.qno,
+    question_number: ua.questionNumber,
+    section: ua.section,
+    answer: ua.rawAnswer,
+    user_answer: ua.userAnswerText,
+    normalized_answer: ua.normalized,
+    correct_answer: ua.correctText,
+    is_correct: ua.isCorrect,
+  }));
+
   const { error: uaErr } = await supabaseAdmin
     .from('listening_user_answers')
-    .insert(userAnswers);
+    .insert(userAnswerRows);
 
   if (uaErr) {
     return res.status(500).json({ error: uaErr.message });
   }
 
+  // Backfill compatibility: listening_attempt_answers (simple text version)
+  const legacyAnswerRows = userAnswersDetailed.map((ua) => ({
+    attempt_id: ua.attemptId,
+    question_id: ua.questionId,
+    question_number: ua.questionNumber,
+    section: ua.section,
+    user_answer: ua.userAnswerText,
+    correct_answer: ua.correctText,
+    is_correct: ua.isCorrect,
+  }));
+
+  const { error: legacyErr } = await supabaseAdmin
+    .from('listening_attempt_answers')
+    .insert(legacyAnswerRows);
+
+  if (legacyErr) {
+    // Don't kill the whole flow – just log via response meta
+    console.error('listening_attempt_answers insert failed', legacyErr);
+  }
+
+  // Backfill compatibility: listening_responses (summary table)
+  const accuracy =
+    questionCount > 0 ? total / questionCount : null;
+
+  const { error: respErr } = await supabaseAdmin
+    .from('listening_responses')
+    .insert({
+      user_id: userId,
+      test_slug: testSlug,
+      score: total,
+      total_questions: questionCount,
+      accuracy,
+      band,
+      meta: { attempt_id: attemptId },
+      submitted_at: submittedAt,
+    });
+
+  if (respErr) {
+    console.error('listening_responses insert failed', respErr);
+  }
+
+  // Analytics event
   await trackor.log('listening_attempt_submitted', {
-    attempt_id: attemptRow.id,
+    attempt_id: attemptId,
     user_id: userId,
-    test_slug: (questions[0] as any).test_slug,
-    score: total,
-    band,
+    test_id: testId,
+    test_slug: testSlug,
+    raw_score: total,
+    band_score: band,
     section_scores: perSection,
-    question_count: questions.length,
+    question_count: questionCount,
     submitted_at: submittedAt,
     meta: { autoSubmit: !!autoSubmit },
   });
 
   return res.status(200).json({
-    attemptId: attemptRow.id,
+    attemptId,
     score: total,
     band,
     sectionScores: perSection,

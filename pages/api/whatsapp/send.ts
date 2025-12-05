@@ -17,7 +17,7 @@ export default async function whatsappSendHandler(req: NextApiRequest, res: Next
     // If Twilio configured, attempt send
     if (TWILIO_SID && TWILIO_TOKEN && WHATSAPP_FROM) {
       const client = Twilio(TWILIO_SID, TWILIO_TOKEN);
-      // User phone must exist in users/profile table — here we fetch profile phone
+      // User phone must exist in users/account/profile table — here we fetch profile phone
       const { data: profile } = await SUPABASE.from('profiles').select('phone, id').eq('user_id', task.user_id).maybeSingle();
       const to = profile?.phone;
       if (!to) return res.status(400).json({ error: 'Recipient phone not configured' });

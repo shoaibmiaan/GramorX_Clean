@@ -37,7 +37,8 @@ function parseTimestamp(raw: string): number | null {
   return Math.max(0, Math.round(total * 1000));
 }
 
-const TIMING_RE = /(?<start>\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d{1,3})?)\s*-->\s*(?<end>\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d{1,3})?)/;
+const TIMING_RE =
+  /(?<start>\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d{1,3})?)\s*-->\s*(?<end>\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d{1,3})?)/;
 
 function stripHtml(text: string) {
   return text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
@@ -56,7 +57,10 @@ function parseTranscript(raw?: string | null): Cue[] {
   const cues: Cue[] = [];
 
   blocks.forEach((block, idx) => {
-    const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+    const lines = block
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
     if (!lines.length) return;
 
     let pointer = 0;
@@ -96,7 +100,10 @@ function parseTranscript(raw?: string | null): Cue[] {
   }
 
   // Fallback: treat each line as a cue even without timing.
-  const fallbackLines = normalized.split(/\n+/).map((line) => stripHtml(line)).filter(Boolean);
+  const fallbackLines = normalized
+    .split(/\n+/)
+    .map((line) => stripHtml(line))
+    .filter(Boolean);
   return fallbackLines.map((text, idx) => ({
     id: `plain-${idx}`,
     startMs: idx * 4000,
@@ -129,7 +136,10 @@ export const Transcript: React.FC<TranscriptProps> = ({
   const isControlled = typeof expanded === 'boolean';
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const expandedState = isControlled ? expanded : internalExpanded;
-  const contentId = useMemo(() => `transcript-panel-${Math.random().toString(36).slice(2, 8)}`, []);
+  const contentId = useMemo(
+    () => `transcript-panel-${Math.random().toString(36).slice(2, 8)}`,
+    []
+  );
   const cueRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
@@ -144,7 +154,9 @@ export const Transcript: React.FC<TranscriptProps> = ({
 
   const activeIndex = useMemo(() => {
     if (!cues.length) return -1;
-    const idx = cues.findIndex((cue) => currentTimeMs >= cue.startMs && currentTimeMs < cue.endMs);
+    const idx = cues.findIndex(
+      (cue) => currentTimeMs >= cue.startMs && currentTimeMs < cue.endMs
+    );
     return idx;
   }, [cues, currentTimeMs]);
 
@@ -189,7 +201,7 @@ export const Transcript: React.FC<TranscriptProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        className={`flex w-full items-center justify-between gap-2 rounded-ds border border-lightBorder px-3 py-2 text-left transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10`}
+        className="flex w-full items-center justify-between gap-2 rounded-ds border border-lightBorder px-3 py-2 text-left transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10"
         aria-expanded={showContent}
         aria-controls={contentId}
         disabled={disabled}
@@ -200,7 +212,13 @@ export const Transcript: React.FC<TranscriptProps> = ({
           Transcript
         </span>
         <span className="text-small text-grayish">
-          {locked ? 'Locked' : cues.length ? (showContent ? 'Hide' : 'Show') : 'Unavailable'}
+          {locked
+            ? 'Locked'
+            : cues.length
+            ? showContent
+              ? 'Hide'
+              : 'Show'
+            : 'Unavailable'}
         </span>
       </button>
 
@@ -234,8 +252,14 @@ export const Transcript: React.FC<TranscriptProps> = ({
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <span className="flex-1 whitespace-pre-line break-words text-sm">{cue.text}</span>
-                        <span className={`ml-2 shrink-0 text-caption ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+                        <span className="flex-1 whitespace-pre-line break-words text-sm">
+                          {cue.text}
+                        </span>
+                        <span
+                          className={`ml-2 shrink-0 text-caption ${
+                            active ? 'text-primary' : 'text-muted-foreground'
+                          }`}
+                        >
                           {formatTimestamp(cue.startMs)}
                         </span>
                       </div>
@@ -245,7 +269,9 @@ export const Transcript: React.FC<TranscriptProps> = ({
               })}
             </ul>
           ) : (
-            <p className="text-small text-grayish">No transcript available for this section.</p>
+            <p className="text-small text-grayish">
+              No transcript available for this section.
+            </p>
           )}
         </div>
       )}

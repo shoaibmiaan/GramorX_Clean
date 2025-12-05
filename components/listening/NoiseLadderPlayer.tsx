@@ -48,10 +48,16 @@ export const NoiseLadderPlayer: React.FC<NoiseLadderPlayerProps> = ({
     const handlePlay = () => {
       if (level > 0 && noise.src) {
         noise.currentTime = base.currentTime;
-        noise.play().catch(() => {});
+        noise
+          .play()
+          .catch(() => {
+            // ignore playback block
+          });
       }
     };
-    const handlePause = () => noise.pause();
+    const handlePause = () => {
+      noise.pause();
+    };
 
     base.addEventListener('play', handlePlay);
     base.addEventListener('pause', handlePause);
@@ -76,19 +82,17 @@ export const NoiseLadderPlayer: React.FC<NoiseLadderPlayerProps> = ({
         type="button"
         onClick={() => step(-1)}
         disabled={level <= 0}
-        className="px-2 py-1 rounded-ds border border-lightBorder dark:border-white/10"
+        className="rounded-ds border border-lightBorder px-2 py-1 dark:border-white/10"
         aria-label="Decrease noise"
       >
         -
       </button>
-      <span className="text-small">
-        {layers[level]?.label ?? 'Off'}
-      </span>
+      <span className="text-small">{layers[level]?.label ?? 'Off'}</span>
       <button
         type="button"
         onClick={() => step(1)}
         disabled={level >= layers.length - 1}
-        className="px-2 py-1 rounded-ds border border-lightBorder dark:border-white/10"
+        className="rounded-ds border border-lightBorder px-2 py-1 dark:border-white/10"
         aria-label="Increase noise"
       >
         +

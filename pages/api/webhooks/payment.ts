@@ -35,7 +35,7 @@ const handler: NextApiHandler<Ok | Err> = async (req, res) => {
     if (!contact.email) return;
 
     const payload: Record<string, unknown> = {
-      deep_link: `${baseUrl}/settings/billing`,
+      deep_link: `${baseUrl}/account/billing/account/preferences`,
       user_email: contact.email,
       ...extras,
     };

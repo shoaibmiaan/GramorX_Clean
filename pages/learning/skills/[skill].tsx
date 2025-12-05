@@ -10,7 +10,7 @@ import { Badge } from '@/components/design-system/Badge';
 import { Alert } from '@/components/design-system/Alert';
 import { StreakIndicator } from '@/components/design-system/StreakIndicator';
 import { Skeleton } from '@/components/design-system/Skeleton';
-import type { Profile, AIPlan } from '@/types/profile';
+import type { Profile, AIPlan } from "@/types/profile";
 import { useSignedAvatar } from '@/hooks/useSignedAvatar';
 
 const supabase = createClient(
@@ -39,7 +39,7 @@ export default function Dashboard() {
 
       if (error) console.error(error);
       if (!data || data.draft) {
-        router.replace('/profile/setup');
+        router.replace('/account/setup');
         return;
       }
 
@@ -178,7 +178,7 @@ export default function Dashboard() {
               <Alert variant="info" className="mt-3">Add more details in <b>Profile</b> to refine your AI plan.</Alert>
             )}
             <div className="mt-4">
-              <Button as="a" href="/profile/setup" variant="secondary" className="rounded-ds-xl">Edit Profile</Button>
+              <Button as="a" href="/account/setup" variant="secondary" className="rounded-ds-xl">Edit Profile</Button>
             </div>
           </Card>
         </div>

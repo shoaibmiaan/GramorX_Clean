@@ -13,7 +13,6 @@ import type {
   ReadingQuestion as ReadingQuestionType,
 } from '@/lib/reading/types';
 
-import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
@@ -32,10 +31,10 @@ const ReadingMockRunPage: NextPage<PageProps> = ({ test, passages, questions }) 
         <Head>
           <title>Reading mock not found · GramorX</title>
         </Head>
-        <Container className="py-10">
+        <main className="h-[100dvh] w-full bg-background overflow-hidden">
           <Card className="mx-auto max-w-xl p-8 text-center space-y-4">
             <div className="flex flex-col items-center gap-2">
-              <Icon name="alert-circle" className="h-8 w-8 text-destructive" />
+              <Icon name="AlertCircle" className="h-8 w-8 text-destructive" />
               <h1 className="text-lg font-semibold">Reading mock not found</h1>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -44,13 +43,13 @@ const ReadingMockRunPage: NextPage<PageProps> = ({ test, passages, questions }) 
             <div className="flex justify-center">
               <Button asChild>
                 <Link href="/mock/reading">
-                  <Icon name="arrow-left" className="mr-2 h-4 w-4" />
+                  <Icon name="ArrowLeft" className="mr-2 h-4 w-4" />
                   Back to Reading Mocks
                 </Link>
               </Button>
             </div>
           </Card>
-        </Container>
+        </main>
       </>
     );
   }
@@ -60,9 +59,10 @@ const ReadingMockRunPage: NextPage<PageProps> = ({ test, passages, questions }) 
       <Head>
         <title>{test.title} · Reading Mock · GramorX</title>
       </Head>
-      <Container fluid className="p-0">
+      {/* One-page full-screen exam room. No Container, no extra layout. */}
+      <main className="min-h-[100dvh] w-full bg-background">
         <ReadingExamShell test={test} passages={passages} questions={questions} />
-      </Container>
+      </main>
     </>
   );
 };
@@ -80,7 +80,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  const supabase = getServerClient(ctx.req, ctx.res);
+  const supabase = getServerClient<Database>(ctx.req, ctx.res);
   type TestRow = Database['public']['Tables']['reading_tests']['Row'];
   type PassageRow = Database['public']['Tables']['reading_passages']['Row'];
   type QuestionRow = Database['public']['Tables']['reading_questions']['Row'];

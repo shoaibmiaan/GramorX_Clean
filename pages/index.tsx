@@ -107,7 +107,7 @@ const quickLinks = [
   {
     label: 'Finish onboarding',
     description: 'Lock in goal band, exam date, and plan.',
-    href: '/profile/setup',
+    href: '/account/setup',
     icon: 'ClipboardCheck' as IconName,
   },
   {

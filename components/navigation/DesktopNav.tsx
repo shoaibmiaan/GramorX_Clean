@@ -331,7 +331,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
         {ready && uid && (
           <StreakChip
             value={streak ?? 0}
-            href="/profile/streak"
+            href="/account/progress/streak"
             className="shrink-0"
           />
         )}

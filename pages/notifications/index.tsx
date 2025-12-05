@@ -139,7 +139,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ initial, loadErro
             See announcements, study nudges, and progress updates across your GramorX workspace.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Button href="/settings/notifications" variant="soft" tone="info" size="sm">
+            <Button href="/account/preferences/notifications" variant="soft" tone="info" size="sm">
               Manage preferences
             </Button>
             <Button href="/dashboard" variant="outline" size="sm">
