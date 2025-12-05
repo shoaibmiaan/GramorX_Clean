@@ -9,6 +9,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Alert } from '@/components/design-system/Alert';
 import { Skeleton } from '@/components/design-system/Skeleton';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 type TestRow = {
   slug: string;
@@ -199,125 +200,163 @@ export default function ListeningIndexPage() {
     return { total, withDraft };
   }, [items]);
 
+  const medianDurationMin = useMemo(() => {
+    if (!items.length) return 0;
+    const durations = items
+      .map((i) => Math.max(0, Math.round(i.durationSec / 60)))
+      .sort((a, b) => a - b);
+    const mid = Math.floor(durations.length / 2);
+    return durations.length % 2 === 0
+      ? Math.round(((durations[mid - 1] + durations[mid]) / 2) * 10) / 10
+      : durations[mid];
+  }, [items]);
+
+  const heroStats = [
+    {
+      label: 'Tests ready',
+      value: loading ? 'Loading…' : `${items.length}`,
+      helper: `${stats.withDraft} saved drafts`,
+    },
+    {
+      label: 'Median duration',
+      value: medianDurationMin ? `${medianDurationMin} min` : '—',
+      helper: 'Auto section timing enabled',
+    },
+    {
+      label: 'Resume-ready',
+      value: `${stats.withDraft}`,
+      helper: 'Drafts detected on this device',
+    },
+  ];
+
   return (
-    <section className="py-24 bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-      <Container>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="font-slab text-display text-gradient-primary">Listening Tests</h1>
-            <p className="text-grayish max-w-2xl">
-              Pick a paper to start or resume where you left off. Auto-play per section & answer
-              review are built in.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="info">Total: {stats.total}</Badge>
-            <Badge variant="warning">Drafts: {stats.withDraft}</Badge>
-          </div>
-        </div>
+    <>
+      <ModuleHomeHero
+        eyebrow="Listening module"
+        title="IELTS Listening"
+        description="Pick a paper, auto-play each section, and jump back into drafts without losing timing."
+        primaryAction={{ label: 'Start a test', href: '#tests' }}
+        secondaryAction={{ label: 'View drafts', href: '#tests', variant: 'ghost' }}
+        stats={heroStats}
+        highlights={[
+          {
+            icon: 'Headphones',
+            title: 'Auto-section timing',
+            body: 'Pacing and navigation match the official flow.',
+          },
+          {
+            icon: 'ArchiveRestore',
+            title: 'Resume protection',
+            body: 'Draft detection keeps local and legacy attempts intact.',
+          },
+        ]}
+      />
 
-        {err && (
-          <Alert className="mt-6" variant="warning" title="Couldn’t load tests">
-            {err}
-          </Alert>
-        )}
+      <section className="pb-24">
+        <Container>
+          {err && (
+            <Alert className="mb-6" variant="warning" title="Couldn’t load tests">
+              {err}
+            </Alert>
+          )}
 
-        {loading ? (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="card-surface p-6 rounded-ds-2xl">
-                <Skeleton className="h-6 w-2/3 mb-3" />
-                <Skeleton className="h-4 w-1/3 mb-6" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-9 w-24" />
-                  <Skeleton className="h-9 w-24" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <Card className="card-surface p-6 rounded-ds-2xl mt-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold mb-1">No tests available yet</div>
-                <p className="opacity-80">
-                  Add rows to <code>lm_listening_tests</code> and <code>lm_listening_sections</code>.
-                </p>
-              </div>
-            </div>
-          </Card>
-        ) : (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((it) => {
-              const mins = Math.floor(it.durationSec / 60);
-              const secs = it.durationSec % 60;
-              const durationStr = it.durationSec ? `${mins}m ${secs}s` : '—';
-              return (
-                <Card key={it.slug} className="card-surface p-6 rounded-ds-2xl">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">{it.title}</h3>
-                      <div className="text-small opacity-80 mt-1">
-                        Slug: <code>{it.slug}</code>
-                      </div>
-                      <div className="text-small opacity-80 mt-1">Duration: {durationStr}</div>
-                      {it.lastActivityAt && (
-                        <div className="text-small opacity-80 mt-1">
-                          Last activity: {new Date(it.lastActivityAt).toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="shrink-0">
-                      {it.hasDraft ? (
-                        <Badge variant="warning" size="sm">
-                          Draft
-                        </Badge>
-                      ) : (
-                        <Badge variant="neutral" size="sm">
-                          New
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex gap-3">
-                    {it.hasDraft ? (
-                      <>
-                        <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
-                          Resume
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            try {
-                              localStorage.removeItem(AUTOSAVE_KEY(it.slug));
-                              localStorage.removeItem(LEGACY_DRAFT_KEY(it.slug));
-                            } catch {}
-                            // update state immediately
-                            setItems((prev) =>
-                              prev.map((x) =>
-                                x.slug === it.slug
-                                  ? { ...x, hasDraft: hasDraftFor(it.slug) }
-                                  : x,
-                              ),
-                            );
-                          }}
-                        >
-                          Clear draft
-                        </Button>
-                      </>
-                    ) : (
-                      <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
-                        Start
-                      </Button>
-                    )}
+          {loading ? (
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="card-surface rounded-ds-2xl p-6">
+                  <Skeleton className="mb-3 h-6 w-2/3" />
+                  <Skeleton className="mb-6 h-4 w-1/3" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 w-24" />
+                    <Skeleton className="h-9 w-24" />
                   </div>
                 </Card>
-              );
-            })}
-          </div>
-        )}
-      </Container>
-    </section>
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <Card className="card-surface mt-6 rounded-ds-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="mb-1 font-semibold">No tests available yet</div>
+                  <p className="opacity-80">
+                    Add rows to <code>lm_listening_tests</code> and <code>lm_listening_sections</code>.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <div id="tests" className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((it) => {
+                const mins = Math.floor(it.durationSec / 60);
+                const secs = it.durationSec % 60;
+                const durationStr = it.durationSec ? `${mins}m ${secs}s` : '—';
+                return (
+                  <Card key={it.slug} className="card-surface rounded-ds-2xl p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold">{it.title}</h3>
+                        <div className="text-small opacity-80 mt-1">
+                          Slug: <code>{it.slug}</code>
+                        </div>
+                        <div className="text-small opacity-80 mt-1">Duration: {durationStr}</div>
+                        {it.lastActivityAt && (
+                          <div className="text-small opacity-80 mt-1">
+                            Last activity: {new Date(it.lastActivityAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        {it.hasDraft ? (
+                          <Badge variant="warning" size="sm">
+                            Draft
+                          </Badge>
+                        ) : (
+                          <Badge variant="neutral" size="sm">
+                            New
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex gap-3">
+                      {it.hasDraft ? (
+                        <>
+                          <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
+                            Resume
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              try {
+                                localStorage.removeItem(AUTOSAVE_KEY(it.slug));
+                                localStorage.removeItem(LEGACY_DRAFT_KEY(it.slug));
+                              } catch {}
+                              // update state immediately
+                              setItems((prev) =>
+                                prev.map((x) =>
+                                  x.slug === it.slug
+                                    ? { ...x, hasDraft: hasDraftFor(it.slug) }
+                                    : x,
+                                ),
+                              );
+                            }}
+                          >
+                            Clear draft
+                          </Button>
+                        </>
+                      ) : (
+                        <Button as={Link as any} href={`/listening/${it.slug}`} variant="primary">
+                          Start
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </Container>
+      </section>
+    </>
   );
 }

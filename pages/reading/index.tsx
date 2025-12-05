@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/design-system/Skeleton';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { ReadingFilterBar } from '@/components/reading/ReadingFilterBar';
 import ReadingDashboard from '@/components/reading/ReadingDashboard';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 const KIND_VALUES = ['tfng', 'mcq', 'matching', 'short'] as const;
 type Kind = (typeof KIND_VALUES)[number];
@@ -208,24 +209,56 @@ export default function ReadingListPage() {
 
   const summary = useMemo(() => summarize(filtered), [filtered]);
 
+  const heroStats = [
+    {
+      label: 'Passages ready',
+      value: items ? `${items.length}` : 'Loading…',
+      helper: 'Updated weekly with teacher-reviewed sets',
+    },
+    {
+      label: 'Typical set',
+      value: `${summary.medianQ || 0} Q / ${summary.medianMin || 0} min`,
+      helper: `${summary.topTypeLabel}${summary.plusN > 0 ? ` +${summary.plusN}` : ''}`,
+    },
+    {
+      label: 'Your avg score',
+      value:
+        userStats && Number.isFinite(userStats.avgScore)
+          ? `${Math.round(userStats.avgScore)}%`
+          : '—',
+      helper:
+        userStats && Number.isFinite(userStats.completionRate)
+          ? `${Math.round(userStats.completionRate * 100)}% completion`
+          : 'Sign in to track progress',
+    },
+  ];
+
   return (
     <>
+      <ModuleHomeHero
+        eyebrow="Reading module"
+        title="IELTS Reading"
+        description="Adaptive passages with instant scoring, skill filters, and a dashboard tuned to IELTS band descriptors."
+        primaryAction={{ label: 'Start practicing', href: '#practice' }}
+        secondaryAction={{ label: 'Open dashboard', href: '#dashboard', variant: 'ghost' }}
+        stats={heroStats}
+        highlights={[
+          {
+            icon: 'Filter',
+            title: 'Smart filters',
+            body: 'Surface TFNG, MCQ, matching, or short-answer sets instantly.',
+          },
+          {
+            icon: 'TrendingUp',
+            title: 'Progress-aware',
+            body: 'Track streaks, completion, and strengths without leaving the page.',
+          },
+        ]}
+      />
+
       <Section id="reading">
         <Container>
-          <div className="mx-auto mb-8 max-w-3xl text-center">
-            <Badge variant="info" size="sm" className="mb-4 inline-flex items-center gap-2">
-              <Icon name="BookOpen" className="text-electricBlue" />
-              Reading vault
-            </Badge>
-            <h1 className="font-slab text-display mb-2 text-gradient-primary">IELTS Reading</h1>
-            <p className="text-muted-foreground">Compact practice list. Start fast—no clutter.</p>
-            <div className="mt-5">
-              <a href="#practice" className="inline-flex">
-                <Button variant="primary" size="lg" className="rounded-ds-xl">Start practicing</Button>
-              </a>
-            </div>
-          </div>
-
+          <div id="dashboard" className="sr-only" aria-hidden />
           <div
             role="tablist"
             aria-label="Reading sections"

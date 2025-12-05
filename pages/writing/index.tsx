@@ -12,6 +12,7 @@ import { Alert } from '@/components/design-system/Alert';
 import { Skeleton } from '@/components/design-system/Skeleton';
 import { ProgressBar } from '@/components/design-system/ProgressBar';
 import { WritingFilterBar } from '@/components/writing/WritingFilterBar';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 const KIND_VALUES = [
   'task1-graph',
@@ -210,6 +211,30 @@ export default function WritingListPage() {
 
   const summary = useMemo(() => summarize(filtered), [filtered]);
 
+  const heroStats = [
+    {
+      label: 'Tasks ready',
+      value: items ? `${items.length}` : 'Loading…',
+      helper: 'Task 1 + Task 2 sets with teacher prompts',
+    },
+    {
+      label: 'Typical set',
+      value: `${summary.medianWords || 0} words / ${summary.medianMin || 0} min`,
+      helper: `${summary.topTypeLabel}${summary.plusN > 0 ? ` +${summary.plusN}` : ''}`,
+    },
+    {
+      label: 'Your avg score',
+      value:
+        userStats && Number.isFinite(userStats.avgScore)
+          ? `${Math.round(userStats.avgScore)}%`
+          : '—',
+      helper:
+        userStats && Number.isFinite(userStats.completionRate)
+          ? `${Math.round(userStats.completionRate * 100)}% completion`
+          : 'Sign in to track progress',
+    },
+  ];
+
   // --- Conditional render AFTER hooks ---
   if (isReadingOnly) {
     return (
@@ -234,22 +259,30 @@ export default function WritingListPage() {
   // ========== MAIN UI ==========
   return (
     <>
+      <ModuleHomeHero
+        eyebrow="Writing module"
+        title="IELTS Writing"
+        description="Task 1 and Task 2 prompts with band-aligned feedback, timers, and streak-aware progress."
+        primaryAction={{ label: 'Start practicing', href: '#practice' }}
+        secondaryAction={{ label: 'Open dashboard', href: '#dashboard', variant: 'ghost' }}
+        stats={heroStats}
+        highlights={[
+          {
+            icon: 'Sparkles',
+            title: 'Templates & structure',
+            body: 'Open model outlines and connectors without leaving the task.',
+          },
+          {
+            icon: 'BarChart3',
+            title: 'Score clarity',
+            body: 'Automatic band hints with word count and timing guidance.',
+          },
+        ]}
+      />
+
       <Section id="writing">
         <Container>
-          {/* Header */}
-          <div className="mx-auto mb-8 max-w-3xl text-center">
-            <Badge variant="info" size="sm" className="mb-4 inline-flex items-center gap-2">
-              <Icon name="Edit3" className="text-electricBlue" />
-              Writing vault
-            </Badge>
-            <h1 className="font-slab text-display mb-2 text-gradient-primary">IELTS Writing</h1>
-            <p className="text-muted-foreground">Compact practice list. Start fast—no clutter.</p>
-            <div className="mt-5">
-              <a href="#practice" className="inline-flex">
-                <Button variant="primary" size="lg" className="rounded-ds-xl">Start practicing</Button>
-              </a>
-            </div>
-          </div>
+          <div id="dashboard" className="sr-only" aria-hidden />
 
           {/* Tabs */}
           <div role="tablist" aria-label="Writing sections"
