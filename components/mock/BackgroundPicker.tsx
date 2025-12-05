@@ -68,27 +68,32 @@ export function BackgroundPicker({ value, onChange }: BackgroundPickerProps) {
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-40">
+    <div className="pointer-events-none fixed bottom-5 right-4 z-40 sm:bottom-8 sm:right-8">
       <div className="pointer-events-auto inline-block text-left">
         <Button
           size="sm"
           variant="secondary"
           onClick={() => setOpen((prev) => !prev)}
-          className="shadow-lg shadow-black/10"
+          className="rounded-full bg-white/90 text-slate-900 shadow-lg shadow-black/10 backdrop-blur dark:bg-slate-900/70 dark:text-slate-50"
           aria-expanded={open}
+          aria-haspopup="dialog"
         >
           <Icon name="Palette" size={16} className="mr-2" />
           Theme
         </Button>
 
         {open && (
-          <Card className="absolute bottom-12 right-0 w-72 space-y-3 bg-white/90 p-3 shadow-xl backdrop-blur-lg">
-            <div className="flex items-center justify-between">
+          <Card className="absolute bottom-14 right-0 w-80 space-y-3 rounded-2xl border border-slate-200/70 bg-white/95 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Background themes</p>
-                <p className="text-xs text-slate-600">Instantly switch your mock vibe.</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Background themes</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Instantly switch your mock vibe.</p>
               </div>
-              <Badge variant="outline" size="sm" className="text-[11px] uppercase tracking-[0.12em] text-slate-600">
+              <Badge
+                variant="outline"
+                size="sm"
+                className="text-[11px] uppercase tracking-[0.12em] text-slate-600 dark:border-white/30 dark:text-slate-200"
+              >
                 Beta
               </Badge>
             </div>
@@ -100,17 +105,17 @@ export function BackgroundPicker({ value, onChange }: BackgroundPickerProps) {
                   type="button"
                   onClick={() => handleSelect(option.value)}
                   className={cn(
-                    'flex items-center gap-3 rounded-ds-lg border border-slate-200 bg-white/70 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-white shadow-sm',
-                    value === option.value && 'ring-2 ring-primary/40'
+                    'flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white/75 px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md backdrop-blur dark:border-white/10 dark:bg-slate-900/70',
+                    value === option.value && 'ring-2 ring-primary/50'
                   )}
                 >
                   <span
-                    className={cn('h-10 w-10 rounded-md border border-white/50 shadow-inner', option.previewClass)}
+                    className={cn('h-10 w-10 rounded-md border border-white/50 shadow-inner ring-1 ring-black/5', option.previewClass)}
                     aria-hidden
                   />
                   <span className="flex flex-1 flex-col">
-                    <span className="text-sm font-semibold text-slate-900">{option.label}</span>
-                    {option.helper ? <span className="text-xs text-slate-600">{option.helper}</span> : null}
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">{option.label}</span>
+                    {option.helper ? <span className="text-xs text-slate-600 dark:text-slate-300">{option.helper}</span> : null}
                   </span>
                   {value === option.value && <Icon name="Check" size={16} className="text-primary" />}
                 </button>

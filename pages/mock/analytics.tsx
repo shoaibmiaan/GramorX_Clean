@@ -1,4 +1,6 @@
+import * as React from "react";
 import { useEffect, useState } from "react";
+import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
@@ -6,6 +8,7 @@ import { Container } from "@/components/design-system/Container";
 import { Card } from "@/components/design-system/Card";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 import { Badge } from "@/components/design-system/Badge";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 interface ResultRow {
   created_at: string;
@@ -23,7 +26,7 @@ interface SectionStat {
   attempts: number;
 }
 
-export default function MockTestAnalytics() {
+const MockTestAnalytics: NextPage & { getLayout?: (page: React.ReactNode) => React.ReactNode } = () => {
   const router = useRouter();
   const [results, setResults] = useState<ResultRow[]>([]);
 
@@ -126,7 +129,11 @@ export default function MockTestAnalytics() {
       </Container>
     </section>
   );
-}
+};
+
+MockTestAnalytics.getLayout = (page) => <MockAllLayout>{page}</MockAllLayout>;
+
+export default MockTestAnalytics;
 
 function KPI({ title, value }) {
   return (

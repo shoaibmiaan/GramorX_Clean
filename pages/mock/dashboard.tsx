@@ -11,6 +11,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 type DashboardAttempt = {
   id: string;
@@ -48,7 +49,7 @@ type PageProps = {
   aiInsights: string[];
 };
 
-const MockDashboardPage: NextPage<PageProps> = ({
+const MockDashboardPage: NextPage<PageProps> & { getLayout?: (page: React.ReactNode) => React.ReactNode } = ({
   profile,
   bands,
   recentAttempts,
@@ -399,6 +400,8 @@ const MockDashboardPage: NextPage<PageProps> = ({
     </Container>
   );
 };
+
+MockDashboardPage.getLayout = (page: React.ReactNode) => <MockAllLayout>{page}</MockAllLayout>;
 
 type SummaryPillProps = {
   label: string;
