@@ -1,9 +1,24 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { StreakSummary, StreakMutationAction } from '@/types/streak';
 
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
 const STREAK_TIMEOUT_MS = 10_000;
 
-export const getDayKeyInTZ = (date: Date = new Date(), timeZone = 'Asia/Karachi'): string => {
+export const getClientTimezone = (): string => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
+export const getDayKeyInTZ = (date: Date = new Date(), timeZone: string = getClientTimezone()): string => {
   try {
     const formatter = new Intl.DateTimeFormat('en-CA', {
       timeZone,
@@ -65,9 +80,10 @@ const handleMutation = async (payload: { action?: StreakMutationAction; date?: s
 
   if (sessionError || !session) {
     console.error('[streak] Session error:', sessionError?.message || 'No session');
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError('Unauthorized');
   }
 
+  const timezone = getClientTimezone();
   const body: Record<string, unknown> = {};
   if (payload.action) body.action = payload.action;
   if (payload.date) body.date = payload.date;
@@ -75,11 +91,12 @@ const handleMutation = async (payload: { action?: StreakMutationAction; date?: s
   let res: Response;
   try {
     res = await withTimeout((signal) =>
-      fetch('/api/streak', {
+      fetch(`/api/streak?tz=${encodeURIComponent(timezone)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
+          'x-user-timezone': timezone,
         },
         body: JSON.stringify(body),
         signal,
@@ -90,6 +107,10 @@ const handleMutation = async (payload: { action?: StreakMutationAction; date?: s
       throw new Error('Streak request timed out');
     }
     throw error;
+  }
+
+  if (res.status === 401) {
+    throw new UnauthorizedError('Unauthorized');
   }
 
   if (!res.ok) {
@@ -108,23 +129,23 @@ export const fetchStreak = async (): Promise<StreakSummary> => {
   } = await supabase.auth.getSession();
 
   if (sessionError || !session) {
-    if (sessionError) {
-      console.warn('[fetchStreak] Session error (treating as guest):', sessionError.message);
-    }
-    return emptyStreak();
+    const message = sessionError?.message || 'No session';
+    console.warn('[fetchStreak] Session error:', message);
+    throw new UnauthorizedError(message);
   }
+
+  const timezone = getClientTimezone();
 
   try {
     const res = await withTimeout((signal) =>
-      fetch('/api/streak', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      fetch(`/api/streak?tz=${encodeURIComponent(timezone)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}`, 'x-user-timezone': timezone },
         signal,
       })
     );
 
     if (res.status === 401) {
-      console.info('[fetchStreak] Received 401 from streak API, defaulting to empty streak');
-      return emptyStreak();
+      throw new UnauthorizedError('Unauthorized');
     }
 
     if (!res.ok) {

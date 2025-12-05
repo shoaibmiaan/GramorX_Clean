@@ -94,9 +94,19 @@ export const computeStreakUpdate = ({ now = new Date(), tz, row }: ComputeParams
 export async function syncStreak(
   supabase: SupabaseClient,
   userId: string,
-  tz: string,
+  tzOrUpdate: string | ComputeResult,
   now: Date = new Date(),
 ): Promise<number> {
+  if (typeof tzOrUpdate !== 'string') {
+    const update = tzOrUpdate;
+    const { error: upsertErr } = await supabase
+      .from('user_streaks')
+      .upsert({ user_id: userId, current_streak: update.current, last_activity_date: update.todayKey });
+    if (upsertErr) throw upsertErr;
+    return update.current;
+  }
+
+  const tz = tzOrUpdate;
   const compute = ({ data }: { data: StreakRow | null }) => computeStreakUpdate({ now, tz, row: data });
 
   const { data, error } = await supabase

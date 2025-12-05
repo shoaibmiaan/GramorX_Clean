@@ -5,6 +5,7 @@ import {
   claimShield as apiClaimShield,
   scheduleRecovery as apiScheduleRecovery,
   getDayKeyInTZ,
+  UnauthorizedError,
 } from '@/lib/streak';
 
 export type StreakState = {
@@ -15,6 +16,7 @@ export type StreakState = {
   nextRestart: string | null;
   shields: number;
   error: string | null;
+  status: 'loading' | 'ready' | 'unauthorized';
 };
 
 export function useStreak() {
@@ -26,6 +28,7 @@ export function useStreak() {
     nextRestart: null,
     shields: 0,
     error: null,
+    status: 'loading',
   });
   const mountedRef = useRef(true);
 
@@ -71,7 +74,7 @@ export function useStreak() {
 
   const load = useCallback(async () => {
     if (!mountedRef.current) return;
-    setState((s) => ({ ...s, loading: true, error: null }));
+    setState((s) => ({ ...s, loading: true, error: null, status: 'loading' }));
     try {
       const data = await fetchStreak();
       if (!mountedRef.current) return;
@@ -83,11 +86,16 @@ export function useStreak() {
         nextRestart: data.next_restart_date ?? null,
         shields: data.shields ?? 0,
         error: null,
+        status: 'ready',
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to load';
       if (!mountedRef.current) return;
-      setState((s) => ({ ...s, loading: false, error: message }));
+      if (e instanceof UnauthorizedError) {
+        setState((s) => ({ ...s, loading: false, status: 'unauthorized', error: null }));
+        return;
+      }
+      setState((s) => ({ ...s, loading: false, error: message, status: 'ready' }));
     }
   }, []);
 
@@ -123,7 +131,11 @@ export function useStreak() {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to update';
       if (mountedRef.current) {
-        setState((s) => ({ ...s, error: message }));
+        if (e instanceof UnauthorizedError) {
+          setState((s) => ({ ...s, error: null, status: 'unauthorized' }));
+        } else {
+          setState((s) => ({ ...s, error: message }));
+        }
       }
       throw e;
     }
@@ -151,7 +163,11 @@ export function useStreak() {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to claim';
       if (mountedRef.current) {
-        setState((s) => ({ ...s, error: message }));
+        if (e instanceof UnauthorizedError) {
+          setState((s) => ({ ...s, error: null, status: 'unauthorized' }));
+        } else {
+          setState((s) => ({ ...s, error: message }));
+        }
       }
       throw e;
     }
@@ -179,7 +195,11 @@ export function useStreak() {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to use';
       if (mountedRef.current) {
-        setState((s) => ({ ...s, error: message }));
+        if (e instanceof UnauthorizedError) {
+          setState((s) => ({ ...s, error: null, status: 'unauthorized' }));
+        } else {
+          setState((s) => ({ ...s, error: message }));
+        }
       }
       throw e;
     }
@@ -207,7 +227,11 @@ export function useStreak() {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to schedule recovery';
       if (mountedRef.current) {
-        setState((s) => ({ ...s, error: message }));
+        if (e instanceof UnauthorizedError) {
+          setState((s) => ({ ...s, error: null, status: 'unauthorized' }));
+        } else {
+          setState((s) => ({ ...s, error: message }));
+        }
       }
       throw e;
     }

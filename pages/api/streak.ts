@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { supabaseService, supabaseServer } from '@/lib/supabaseServer';
+import { supabaseServer } from '@/lib/supabaseServer';
+import { computeStreakUpdate, syncStreak } from '@/lib/streaks';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,12 +10,17 @@ export type StreakData = {
   current_streak: number;
   longest_streak: number;
   last_activity_date: string | null; // YYYY-MM-DD
-  next_restart_date: string | null;  // not persisted on 'streaks' table
-  shields: number;                   // not persisted on 'streaks' table
+  next_restart_date: string | null; // not persisted on 'user_streaks' table
+  shields: number; // not persisted on 'user_streaks' table
 };
 
-const getDayKey = (d = new Date()) => d.toISOString().split('T')[0];
-const ms = (h: number) => h * 60 * 60 * 1000;
+const getTimezone = (req: NextApiRequest): string => {
+  const queryTz = Array.isArray(req.query.tz) ? req.query.tz[0] : req.query.tz;
+  const headerTz = Array.isArray(req.headers['x-user-timezone'])
+    ? req.headers['x-user-timezone'][0]
+    : req.headers['x-user-timezone'];
+  return (typeof queryTz === 'string' && queryTz) || (typeof headerTz === 'string' && headerTz) || 'UTC';
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   let token = req.headers.authorization?.split(' ')[1] ?? null;
@@ -67,64 +73,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(503).json({ error: 'auth_unavailable' });
   }
 
+  const timezone = getTimezone(req);
+
   try {
-    // Read current row (aliases to expected keys)
-    let { data: row, error: fetchError } = await supabaseUser
-      .from('streaks')
-      .select('user_id,current_streak:current,longest_streak:longest,last_activity_date:last_active_date,updated_at')
+    const { data: fetchedRow, error: fetchError } = await supabaseUser
+      .from('user_streaks')
+      .select('current_streak, last_activity_date')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
-    // If no row, create one
-    const baseInsert = { user_id: user.id, current: 0, longest: 0, last_active_date: null, updated_at: null };
-
-    if (!row) {
-      const { data: inserted, error: insertError } = await supabaseUser
-        .from('streaks')
-        .insert(baseInsert)
-        .select('user_id,current_streak:current,longest_streak:longest,last_activity_date:last_active_date,updated_at')
-        .single();
-      if (insertError) {
-        console.error('[API/streak] Insert failed:', insertError);
-
-        const shouldRetryWithService =
-          insertError?.code === '42501' || insertError?.message?.includes('row-level security');
-
-        if (shouldRetryWithService) {
-          try {
-            const svc = supabaseService();
-            const { data: serviceInserted, error: serviceErr } = await svc
-              .from('streaks')
-              .insert(baseInsert)
-              .select('user_id,current_streak:current,longest_streak:longest,last_activity_date:last_active_date,updated_at')
-              .single();
-
-            if (serviceErr) {
-              console.error('[API/streak] Service insert failed:', serviceErr);
-            } else {
-              row = serviceInserted ?? row;
-            }
-          } catch (serviceClientError) {
-            console.error('[API/streak] Service client unavailable for insert:', serviceClientError);
-          }
-        }
-
-        // Fallback: treat as new streak of 0 when all attempts fail
-        if (!row) {
-          row = {
-            user_id: user.id,
-            current_streak: 0,
-            longest_streak: 0,
-            last_activity_date: null,
-            updated_at: null,
-          } as typeof row;
-        }
-      } else {
-        row = inserted;
-      }
-    }
+    let row = fetchedRow ?? null;
 
     let shieldTokens = 0;
     try {
@@ -139,10 +99,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       shieldTokens = 0;
     }
 
-    // Build response object (shields/next_restart_date are not stored on this table)
-    const asResponse = (r: typeof row, shields = shieldTokens): StreakData => ({
-      current_streak: r?.current_streak ?? 0,
-      longest_streak: r?.longest_streak ?? r?.current_streak ?? 0,
+    const asResponse = (
+      r: { current_streak?: number | null; last_activity_date?: string | null } | null,
+      shields = shieldTokens,
+    ): StreakData => ({
+      current_streak: Number(r?.current_streak ?? 0),
+      longest_streak: Number(r?.current_streak ?? 0),
       last_activity_date: r?.last_activity_date ?? null,
       next_restart_date: null,
       shields,
@@ -154,10 +116,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'POST') {
       const { action, date } = req.body as { action?: 'use' | 'claim' | 'schedule'; date?: string };
-
       const now = new Date();
-      const today = getDayKey(now);
-      const previousCurrent = row.current_streak ?? 0;
+      const previousCurrent = row?.current_streak ?? 0;
 
       if (action === 'claim') {
         const nextTokens = shieldTokens + 1;
@@ -179,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (action === 'schedule') {
         if (!date) return res.status(400).json({ error: 'Date required for scheduling' });
-        return res.status(200).json({ ...asResponse(row, shieldTokens), next_restart_date: date });
+        return res.status(200).json({ ...asResponse(row), next_restart_date: date });
       }
 
       const spentShield = action === 'use';
@@ -187,62 +147,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'No shields available' });
       }
 
-      if (!spentShield && row.last_activity_date === today) {
-        return res.status(200).json(asResponse(row, shieldTokens));
-      }
+      const update = computeStreakUpdate({ now, tz: timezone, row: row ?? null });
+      const computed = spentShield
+        ? {
+            ...update,
+            current: (row?.current_streak ?? 0) + 1,
+            changed: (row?.current_streak ?? 0) + 1 !== (row?.current_streak ?? 0),
+          }
+        : update;
 
-      const lastTs = row.updated_at ? new Date(row.updated_at) : null;
-      const within24h = lastTs ? now.getTime() - lastTs.getTime() <= ms(24) : false;
-
-      let newCurrent = 1;
-      if (spentShield) {
-        newCurrent = previousCurrent + 1;
-      } else if (within24h) {
-        newCurrent = previousCurrent + 1;
-      } else {
-        newCurrent = 1;
-      }
-
-      const previousLongest = row.longest_streak ?? row.current_streak ?? 0;
-      const newLongest = Math.max(previousLongest, newCurrent);
-
-      const { data: updatedRow, error: upErr } = await supabaseUser
-        .from('streaks')
-        .update({
-          current: newCurrent,
-          longest: newLongest,
-          last_active_date: today,
-          updated_at: now.toISOString(),
-        })
-        .eq('user_id', user.id)
-        .select('user_id,current_streak:current,longest_streak:longest,last_activity_date:last_active_date,updated_at')
-        .single();
-
-      if (upErr) {
-        console.error('[API/streak] Update failed:', upErr);
-        return res.status(200).json(asResponse(row, shieldTokens));
+      if (computed.changed) {
+        try {
+          await syncStreak(supabaseUser, user.id, computed, now);
+          row ??= {};
+          row.current_streak = computed.current;
+          row.last_activity_date = computed.todayKey;
+        } catch (upsertErr) {
+          console.error('[API/streak] Failed to sync streak', upsertErr);
+          return res.status(500).json({ error: 'Failed to update streak' });
+        }
       }
 
       let tokensDelta = 0;
       if (spentShield) tokensDelta -= 1;
-      if (newCurrent > previousCurrent && newCurrent % 7 === 0) tokensDelta += 1;
+      if (computed.current > previousCurrent && computed.current % 7 === 0) tokensDelta += 1;
 
-      let nextTokens = shieldTokens;
       if (tokensDelta !== 0) {
-        nextTokens = Math.max(0, shieldTokens + tokensDelta);
         try {
-          const { data: shieldRow, error: shieldUpdateErr } = await supabaseUser
+          const nextTokens = Math.max(0, shieldTokens + tokensDelta);
+          const { data: shieldRowUpdated, error: shieldErr } = await supabaseUser
             .from('streak_shields')
             .upsert({ user_id: user.id, tokens: nextTokens }, { onConflict: 'user_id' })
             .select('tokens')
             .single();
-          if (shieldUpdateErr) {
-            console.error('[API/streak] Failed to update shields', shieldUpdateErr);
-          } else {
-            nextTokens = shieldRow?.tokens ?? nextTokens;
-          }
+          if (shieldErr) throw shieldErr;
+          shieldTokens = shieldRowUpdated?.tokens ?? nextTokens;
         } catch (shieldUpdateError) {
-          console.error('[API/streak] Shield upsert failed', shieldUpdateError);
+          console.error('[API/streak] Shield update failed', shieldUpdateError);
         }
       }
 
@@ -253,7 +194,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await supabaseUser.from('streak_shield_logs').insert({ user_id: user.id, action: 'claim' });
       }
 
-      return res.status(200).json(asResponse(updatedRow, nextTokens));
+      return res.status(200).json(asResponse(row, shieldTokens));
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
