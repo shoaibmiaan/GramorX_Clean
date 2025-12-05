@@ -11,6 +11,7 @@ import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
 
 import { getServerClient } from "@/lib/supabaseServer";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 type WritingTaskResult = {
   taskType: "task1" | "task2";
@@ -31,7 +32,9 @@ type PageProps = {
   task2: WritingTaskResult | null;
 };
 
-const WritingResultPage: NextPage<PageProps> = ({ attempt, task1, task2 }) => {
+const WritingResultPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({ attempt, task1, task2 }) => {
   const hasBoth = task1 && task2;
 
   return (
@@ -229,6 +232,10 @@ const WritingResultPage: NextPage<PageProps> = ({ attempt, task1, task2 }) => {
     </>
   );
 };
+
+WritingResultPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default WritingResultPage;
 

@@ -8,6 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -122,7 +123,9 @@ const writingTasks: WritingTask[] = [
   },
 ];
 
-const WritingMockHomePage: React.FC = () => {
+const WritingMockHomePage: React.FC & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = () => {
   return (
     <>
       <Head>
@@ -418,5 +421,9 @@ const WritingMockHomePage: React.FC = () => {
     </>
   );
 };
+
+WritingMockHomePage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default WritingMockHomePage;

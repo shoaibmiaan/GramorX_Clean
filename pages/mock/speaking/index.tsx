@@ -8,6 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 import { speakingPracticeList } from '@/data/speaking'; // :contentReference[oaicite:3]{index=3}
 
@@ -53,7 +54,9 @@ const speakingFlow = [
   },
 ];
 
-const SpeakingMockIndexPage: React.FC = () => {
+const SpeakingMockIndexPage: React.FC & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = () => {
   const primaryScript = speakingPracticeList[0];
   const totalScripts = speakingPracticeList.length;
   const totalPrompts = speakingPracticeList.reduce(
@@ -319,5 +322,9 @@ const SpeakingMockIndexPage: React.FC = () => {
     </>
   );
 };
+
+SpeakingMockIndexPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default SpeakingMockIndexPage;

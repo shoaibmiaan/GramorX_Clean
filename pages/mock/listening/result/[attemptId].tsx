@@ -11,6 +11,7 @@ import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
 
 import { getServerClient } from "@/lib/supabaseServer";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 type AttemptSummary = {
   id: string;
@@ -42,7 +43,9 @@ type PageProps = {
   isLoggedIn: boolean;
 };
 
-const ListeningResultPage: NextPage<PageProps> = ({
+const ListeningResultPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   attempt,
   test,
   sectionStats,
@@ -329,6 +332,10 @@ const ListeningResultPage: NextPage<PageProps> = ({
     </>
   );
 };
+
+ListeningResultPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ListeningResultPage;
 

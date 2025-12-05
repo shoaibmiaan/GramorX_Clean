@@ -11,6 +11,7 @@ import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
 
 import { getServerClient } from "@/lib/supabaseServer";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 type ReviewAnswer = {
   id: string;
@@ -43,7 +44,9 @@ type PageProps = {
   isLoggedIn: boolean;
 };
 
-const ListeningReviewPage: NextPage<PageProps> = ({
+const ListeningReviewPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   attempt,
   test,
   answers,
@@ -319,6 +322,10 @@ const ListeningReviewPage: NextPage<PageProps> = ({
     </>
   );
 };
+
+ListeningReviewPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ListeningReviewPage;
 

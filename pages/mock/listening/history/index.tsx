@@ -18,6 +18,7 @@ import DrillBreakdown, {
 
 import { getServerClient } from "@/lib/supabaseServer";
 import { LISTENING_QUESTION_TYPE_LABELS } from "@/lib/listening/questionTypes";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 export type ListeningAttempt = {
   id: string;
@@ -35,7 +36,9 @@ type PageProps = {
   isLoggedIn: boolean;
 };
 
-const ListeningHistoryPage: React.FC<PageProps> = ({
+const ListeningHistoryPage: React.FC<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   attempts,
   analytics,
   isLoggedIn,
@@ -387,6 +390,10 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
     </>
   );
 };
+
+ListeningHistoryPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ListeningHistoryPage;
 

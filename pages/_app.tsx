@@ -1,6 +1,6 @@
 // pages/_app.tsx
 import type { AppProps } from 'next/app';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
@@ -273,7 +273,12 @@ function useRouteAccessCheck(pathname: string, role?: string | null) {
 }
 
 // ---------- Inner app ----------
+type NextPageWithLayout = AppProps['Component'] & {
+  getLayout?: (page: ReactNode) => ReactNode;
+};
+
 function InnerApp({ Component, pageProps }: AppProps) {
+  const ComponentWithLayout = Component as NextPageWithLayout;
   const router = useRouter();
   const pathname = router.pathname;
   const { locale: activeLocale } = useLocale();
@@ -366,6 +371,9 @@ function InnerApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} key={router.asPath} />
     );
 
+  const hasCustomLayout = typeof ComponentWithLayout.getLayout === 'function';
+  const pageWithLayout = ComponentWithLayout.getLayout?.(basePage) ?? basePage;
+
   // ⭐ Decide when to show breadcrumb bar
   const showBreadcrumbs =
     !routeConfiguration.isAuthPage &&
@@ -378,6 +386,9 @@ function InnerApp({ Component, pageProps }: AppProps) {
     !pathname.includes('/review') &&
     !routeConfiguration.isNoChromeRoute;
 
+  const effectiveShowLayout = routeConfiguration.showLayout && !hasCustomLayout;
+  const effectiveShowBreadcrumbs = showBreadcrumbs && !hasCustomLayout;
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
@@ -389,7 +400,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
             <AppLayoutManager
               isAuthPage={routeConfiguration.isAuthPage}
               isProctoringRoute={routeConfiguration.isProctoringRoute}
-              showLayout={routeConfiguration.showLayout}
+              showLayout={effectiveShowLayout}
               forceLayoutOnAuthPage={forceLayoutOnAuthPage}
               isAdminRoute={routeConfiguration.isAdminRoute}
               isInstitutionsRoute={routeConfiguration.isInstitutionsRoute}
@@ -404,14 +415,14 @@ function InnerApp({ Component, pageProps }: AppProps) {
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
               // ⭐ SEND TO LAYOUT MANAGER
-              showBreadcrumbs={showBreadcrumbs}
+              showBreadcrumbs={effectiveShowBreadcrumbs}
             >
               {(router.pathname === '/pricing' ||
                 router.pathname === '/pricing/overview') && (
                 <PricingReasonBanner />
               )}
 
-              {basePage}
+              {pageWithLayout}
             </AppLayoutManager>
           </AnimationProvider>
         </div>

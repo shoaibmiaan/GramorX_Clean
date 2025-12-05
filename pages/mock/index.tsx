@@ -10,6 +10,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 import { getServerClient } from '@/lib/supabaseServer';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -118,7 +119,9 @@ const todayTasks: TodayTask[] = [
   },
 ];
 
-const MockHomePage: NextPage<PageProps> = ({
+const MockHomePage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   listeningAttemptCount,
   listeningLastBand,
   listeningLastAttemptAt,
@@ -548,6 +551,8 @@ const MockHomePage: NextPage<PageProps> = ({
     </>
   );
 };
+
+MockHomePage.getLayout = (page: React.ReactNode) => <MockAllLayout>{page}</MockAllLayout>;
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = getServerClient(ctx.req, ctx.res);

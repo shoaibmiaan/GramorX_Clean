@@ -8,6 +8,7 @@ import { Container } from "@/components/design-system/Container";
 import { Card } from "@/components/design-system/Card";
 import { Button } from "@/components/design-system/Button";
 import { Icon } from "@/components/design-system/Icon";
+import MockAllLayout from "@/components/layouts/MockAllLayout";
 
 import {
   ReadingHistoryTable,
@@ -22,7 +23,9 @@ type PageProps = {
   filterTitle?: string | null;
 };
 
-const ReadingHistoryPage: NextPage<PageProps> = ({
+const ReadingHistoryPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   rows,
   filterSlug,
   filterTitle,
@@ -287,5 +290,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     },
   };
 };
+
+ReadingHistoryPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ReadingHistoryPage;

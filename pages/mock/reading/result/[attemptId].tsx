@@ -10,6 +10,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 import { Icon } from '@/components/design-system/Icon';
 import { ReadingResultSummary } from '@/components/reading/ReadingResultSummary';
 
@@ -37,7 +38,9 @@ type PageProps = {
   isLoggedIn: boolean;
 };
 
-const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) => {
+const ReadingResultPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({ attempt, test, isLoggedIn }) => {
   const notFound = !attempt || !test;
 
   if (notFound) {
@@ -273,5 +276,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     },
   };
 };
+
+ReadingResultPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ReadingResultPage;

@@ -6,6 +6,7 @@ import type { GetServerSideProps, NextPage } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
@@ -59,7 +60,9 @@ type PageProps = {
 // PAGE
 // -----------------------------------------------------------------------------
 
-const ListeningMockIndexPage: NextPage<PageProps> = ({
+const ListeningMockIndexPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   tests,
   attemptSummaries,
   stats,
@@ -301,6 +304,10 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
     </>
   );
 };
+
+ListeningMockIndexPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 // -----------------------------------------------------------------------------
 // Helper Components

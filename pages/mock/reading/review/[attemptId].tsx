@@ -8,6 +8,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
+import MockAllLayout from '@/components/layouts/MockAllLayout';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
@@ -52,7 +53,9 @@ type PageProps = {
   nextAttempt: AttemptNeighborSummary | null;
 };
 
-const ReadingReviewPage: NextPage<PageProps> = ({
+const ReadingReviewPage: NextPage<PageProps> & {
+  getLayout?: (page: React.ReactNode) => React.ReactNode;
+} = ({
   test,
   passages,
   questions,
@@ -724,5 +727,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     },
   };
 };
+
+ReadingReviewPage.getLayout = (page: React.ReactNode) => (
+  <MockAllLayout>{page}</MockAllLayout>
+);
 
 export default ReadingReviewPage;
