@@ -8,6 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 import { speakingPracticeList } from '@/data/speaking'; // :contentReference[oaicite:3]{index=3}
 
@@ -61,6 +62,24 @@ const SpeakingMockIndexPage: React.FC = () => {
     0,
   );
 
+  const heroStats = [
+    {
+      label: 'Scripts ready',
+      value: `${totalScripts}`,
+      helper: `${totalPrompts} prompts`,
+    },
+    {
+      label: 'Top pick',
+      value: primaryScript?.title ?? 'Browse library',
+      helper: 'Jump straight into a curated mock',
+    },
+    {
+      label: 'Flow',
+      value: 'Parts 1–3',
+      helper: 'Warm-up, cue card, and discussion',
+    },
+  ];
+
   return (
     <>
       <Head>
@@ -72,83 +91,22 @@ const SpeakingMockIndexPage: React.FC = () => {
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90">
-
-        {/* ------------------------------------------------------------- */}
-        {/* HERO / COMMAND CENTER */}
-        {/* ------------------------------------------------------------- */}
-        <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
-          <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-
-              {/* LEFT */}
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="Mic" size={14} />
-                  <span>Speaking Mock Suite</span>
-                </div>
-
-                <h1 className="font-slab text-h2 leading-tight">
-                  Full Speaking mocks with transcripts + AI feedback.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl">
-                  Simulate the real interview: Part 1 warm-up, Part 2 cue card,
-                  Part 3 follow-ups. AI gives instant transcripts, filler
-                  detection, pacing metrics, and personalised improvement steps.
-                </p>
-
-                <div className="flex gap-3 pt-2">
-                  {primaryScript && (
-                    <Button
-                      asChild
-                      size="md"
-                      variant="primary"
-                      className="rounded-ds-xl"
-                    >
-                      <Link href={`/mock/speaking/${primaryScript.id}`}>
-                        Start {primaryScript.title}
-                      </Link>
-                    </Button>
-                  )}
-
-                  <Button
-                    asChild
-                    size="md"
-                    variant="secondary"
-                    className="rounded-ds-xl"
-                  >
-                    <Link href="#speaking-library">Browse scripts</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* RIGHT QUICK STATS */}
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 w-full max-w-xs shadow-sm">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Quick Stats
-                </p>
-
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Scripts</p>
-                    <p className="text-lg font-semibold">{totalScripts}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total prompts</p>
-                    <p className="text-lg font-semibold">
-                      {totalPrompts.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Parts</p>
-                    <p className="text-lg font-semibold">1–3</p>
-                  </div>
-                </div>
-              </Card>
-
-            </div>
-          </Container>
-        </section>
+        <ModuleHomeHero
+          eyebrow="Speaking mock suite"
+          title="IELTS Speaking Mocks"
+          description="Real interview flow with transcripts, pacing metrics, and AI follow-up coaching."
+          primaryAction={{
+            label: primaryScript ? `Start ${primaryScript.title}` : 'Start a mock',
+            href: primaryScript ? `/mock/speaking/${primaryScript.id}` : '#speaking-library',
+          }}
+          secondaryAction={{ label: 'Browse scripts', href: '#speaking-library', variant: 'ghost' }}
+          stats={heroStats}
+          highlights={speakingHighlights.slice(0, 2).map((item) => ({
+            icon: item.icon as IconName,
+            title: item.title,
+            body: item.description,
+          }))}
+        />
 
         {/* ------------------------------------------------------------- */}
         {/* SPEAKING FEATURES / HIGHLIGHTS */}

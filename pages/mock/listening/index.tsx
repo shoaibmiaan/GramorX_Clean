@@ -12,6 +12,7 @@ import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 // -----------------------------------------------------------------------------
 // TYPES
@@ -99,6 +100,24 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
       }. Best band ${stats.bestBand ?? '--'}.`
     : `Start your first Listening Mock to unlock analytics.`;
 
+  const heroStats = [
+    {
+      label: 'Mocks attempted',
+      value: `${stats.totalTestsAttempted}`,
+      helper: `${stats.totalAttempts} total attempts`,
+    },
+    {
+      label: 'Best band',
+      value: stats.bestBand != null ? `${stats.bestBand}` : '--',
+      helper: stats.avgBand != null ? `Avg ${stats.avgBand}` : 'No attempts yet',
+    },
+    {
+      label: 'Last attempt',
+      value: stats.lastAttemptAt ? new Date(stats.lastAttemptAt).toLocaleDateString() : '--',
+      helper: stats.lastAttemptAt ? 'Recent mocks found' : 'Try your first mock',
+    },
+  ];
+
   return (
     <>
       <Head>
@@ -106,68 +125,28 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90">
-        {/* ------------------------------------------------------------- */}
-        {/* TOP HERO COMMAND BAR */}
-        {/* ------------------------------------------------------------- */}
-        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
-          <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Left side */}
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="Headphones" size={14} />
-                  <span>Listening Mock Suite</span>
-                </div>
+        <ModuleHomeHero
+          eyebrow="Listening mock suite"
+          title="IELTS Listening Mocks"
+          description="Four sections, continuous audio, and band tracking in a strict computer-based environment."
+          primaryAction={{ label: 'Start a Listening Mock', href: '#tests-list' }}
+          secondaryAction={{ label: 'Back to Mock Hub', href: '/mock', variant: 'ghost' }}
+          stats={heroStats}
+          highlights={[
+            {
+              icon: 'Headphones',
+              title: 'Exam-room layout',
+              body: 'Single audio file, official pacing, and numbered sections.',
+            },
+            {
+              icon: 'Sparkles',
+              title: 'Band-aware feedback',
+              body: helperText,
+            },
+          ]}
+        />
 
-                <h1 className="font-slab text-h2 leading-tight">
-                  Your Listening Mock Command Center.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Four sections. Forty questions. Single continuous audio — strict IELTS
-                  computer-based environment with exam-room layout and band tracking.
-                </p>
-
-                <div className="text-xs text-muted-foreground">{helperText}</div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
-                    <Link href="#tests-list">Start a Listening Mock</Link>
-                  </Button>
-                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
-                    <Link href="/mock">Back to Mock Hub</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Right side quick stats */}
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Listening Quick Stats
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </Container>
-        </section>
-
-        {/* ------------------------------------------------------------- */}
-        {/* GRID LAYOUT */}
-        {/* ------------------------------------------------------------- */}
-        <section className="pb-20 pt-8">
+        <section className="pb-20 pt-2">
           <Container>
             <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
               {/* ------------------ LEFT: MOCK LIST ------------------ */}

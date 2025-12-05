@@ -12,6 +12,7 @@ import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 import { ReadingForecastPanel } from '@/components/reading/ReadingForecastPanel';
 import { AISummaryCard } from '@/components/reading/AISummaryCard';
@@ -100,6 +101,24 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
     ? `You attempted ${stats.totalTestsAttempted} mock${stats.totalTestsAttempted === 1 ? '' : 's'}. Best band ${stats.bestBand ?? '--'}.`
     : `Start your first Reading Mock to unlock analytics.`;
 
+  const heroStats = [
+    {
+      label: 'Mocks attempted',
+      value: `${stats.totalTestsAttempted}`,
+      helper: `${stats.totalAttempts} total attempts`,
+    },
+    {
+      label: 'Best band',
+      value: stats.bestBand != null ? `${stats.bestBand}` : '--',
+      helper: stats.avgBand != null ? `Avg ${stats.avgBand}` : 'No attempts yet',
+    },
+    {
+      label: 'Streak',
+      value: streakCurrent ? `${streakCurrent} days` : 'Start today',
+      helper: stats.lastAttemptAt ? `Last on ${new Date(stats.lastAttemptAt).toLocaleDateString()}` : 'No attempts yet',
+    },
+  ];
+
   return (
     <>
       <Head>
@@ -107,66 +126,31 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90">
-        {/* ------------------------------------------------------------- */}
-        {/* TOP HERO COMMAND BAR */}
-        {/* ------------------------------------------------------------- */}
-        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
-          <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="BookOpen" size={14} />
-                  <span>Reading Mock Suite</span>
-                </div>
-
-                <h1 className="font-slab text-h2 leading-tight">
-                  Your Reading Mock Command Center.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Three passages. Forty questions. Strict timing. Cambridge-style academic
-                  design with AI summaries, speed metrics, band prediction & attempt analytics.
-                </p>
-
-                <div className="text-xs text-muted-foreground">{helperText}</div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
-                    <Link href="#tests-list">Start a Reading Mock</Link>
-                  </Button>
-                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
-                    <Link href="/mock/reading/daily">Daily Reading Challenge</Link>
-                  </Button>
-                </div>
-              </div>
-
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Quick Stats
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </Container>
-        </section>
+        <ModuleHomeHero
+          eyebrow="Reading mock suite"
+          title="IELTS Reading Mocks"
+          description="Three passages, official timing, and band insights with streak tracking."
+          primaryAction={{ label: 'Start a Reading Mock', href: '#tests-list' }}
+          secondaryAction={{ label: 'Daily challenge', href: '/mock/reading/daily', variant: 'ghost' }}
+          stats={heroStats}
+          highlights={[
+            {
+              icon: 'BookOpen',
+              title: 'Exam-realistic flow',
+              body: 'Full-length papers with Academic/GT labeling and pacing.',
+            },
+            {
+              icon: 'Sparkles',
+              title: 'Analytics on entry',
+              body: helperText,
+            },
+          ]}
+        />
 
         {/* ------------------------------------------------------------- */}
         {/* DAILY CHALLENGE */}
         {/* ------------------------------------------------------------- */}
-        <section className="py-8">
+        <section className="py-8 pt-2">
           <Container>
             <DailyChallengeBanner streakCurrent={streakCurrent} />
           </Container>

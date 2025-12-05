@@ -8,6 +8,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
+import { ModuleHomeHero } from '@/components/modules/ModuleHomeHero';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -122,6 +123,24 @@ const writingTasks: WritingTask[] = [
   },
 ];
 
+const heroStats = [
+  {
+    label: 'Task templates',
+    value: `${writingTemplates.length}`,
+    helper: 'Academic & GT mixes',
+  },
+  {
+    label: 'Quick actions',
+    value: `${quickWritingActions.length}`,
+    helper: 'Start, review, improve',
+  },
+  {
+    label: 'Practice drills',
+    value: `${writingTasks.length}`,
+    helper: 'Task 1, Task 2 & review',
+  },
+];
+
 const WritingMockHomePage: React.FC = () => {
   return (
     <>
@@ -134,54 +153,44 @@ const WritingMockHomePage: React.FC = () => {
       </Head>
 
       <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+        <ModuleHomeHero
+          eyebrow="Writing mock suite"
+          title="IELTS Writing Mocks"
+          description="Task 1 and Task 2 under strict timing with band-aware feedback and ready-made templates."
+          primaryAction={{
+            label: hasWritingDraft ? 'Resume Writing mock' : 'Start a Writing mock',
+            href: hasWritingDraft ? '/mock/writing/draft' : '/mock/writing/new',
+          }}
+          secondaryAction={{ label: 'View history', href: '/mock/writing/history', variant: 'ghost' }}
+          stats={heroStats}
+          highlights={[
+            {
+              icon: 'PenSquare',
+              title: 'Structured starts',
+              body: 'Templates keep you focused on Task Achievement.',
+            },
+            {
+              icon: 'Sparkles',
+              title: 'Band feedback',
+              body: 'AI coach tips and history for every attempt.',
+            },
+          ]}
+        />
 
-        {/* HERO */}
-        <section className="pb-10 pt-10 md:pt-14">
+        <section className="pb-10">
           <Container>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name="PenSquare" size={14} />
-                  </span>
-                  <span>Writing Mock Room · Task 1 + Task 2</span>
-                </div>
-
-                <h1 className="font-slab text-display text-gradient-primary">
-                  Writing mocks that show your real band.
-                </h1>
-
-                <p className="max-w-2xl text-small text-grayish">
-                  Real prompts, strict timers, and AI feedback so you stop guessing and
-                  actually improve.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
-                <Badge variant="neutral" size="sm">1 Task 2 essay/day recommended</Badge>
-                <p>Your progress depends on consistency, not luck.</p>
-              </div>
-            </div>
-
-            {/* START / RESUME BLOCK */}
-            <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
-
+            <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
               <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       {hasWritingDraft ? 'Resume your mock' : 'Start a new Writing mock'}
                     </p>
-
-                    {hasWritingDraft ? (
-                      <p className="text-sm text-foreground">Continue the essay you were writing.</p>
-                    ) : (
-                      <p className="text-sm text-foreground">
-                        Pick a prompt and write under strict IELTS timing.
-                      </p>
-                    )}
-
+                    <p className="text-sm text-foreground">
+                      {hasWritingDraft
+                        ? 'Continue the essay you were writing.'
+                        : 'Pick a prompt and write under strict IELTS timing.'}
+                    </p>
                   </div>
 
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -190,31 +199,18 @@ const WritingMockHomePage: React.FC = () => {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {hasWritingDraft ? (
-                    <>
-                      <Button asChild variant="primary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/writing/draft">Resume Writing mock</Link>
-                      </Button>
+                  <Button asChild variant="primary" size="md" className="rounded-ds-xl px-5">
+                    <Link href={hasWritingDraft ? '/mock/writing/draft' : '/mock/writing/new'}>
+                      {hasWritingDraft ? 'Resume Writing mock' : 'Start a Writing mock'}
+                    </Link>
+                  </Button>
 
-                      <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/writing/new">Start new Writing mock</Link>
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button asChild variant="primary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/writing/new">Start new Writing mock</Link>
-                      </Button>
-
-                      <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/writing/history">View Writing history</Link>
-                      </Button>
-                    </>
-                  )}
+                  <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
+                    <Link href="/mock/writing/history">View Writing history</Link>
+                  </Button>
                 </div>
               </Card>
 
-              {/* SNAPSHOT */}
               <Card className="card-surface rounded-ds-2xl p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -227,11 +223,7 @@ const WritingMockHomePage: React.FC = () => {
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {[
-                    { label: 'Best Writing band', icon: 'Medal' },
-                    { label: 'Biggest weakness', icon: 'Target' },
-                    { label: 'Avg time / essay', icon: 'Clock' },
-                  ].map((stat, idx) => (
+                  {[{ label: 'Best Writing band', icon: 'Medal' }, { label: 'Biggest weakness', icon: 'Target' }, { label: 'Avg time / essay', icon: 'Clock' }].map((stat, idx) => (
                     <div key={idx} className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Icon name={stat.icon as IconName} size={14} />
@@ -242,7 +234,6 @@ const WritingMockHomePage: React.FC = () => {
                   ))}
                 </div>
               </Card>
-
             </div>
           </Container>
         </section>
