@@ -8,8 +8,8 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Alert } from '@/components/design-system/Alert';
 import { useToast } from '@/components/design-system/Toaster';
-import { fetchProfile } from '@/lib/profile';
-import type { Profile } from '@/types/profile';
+import { fetchProfile } from "@/lib/profile";
+import type { Profile } from "@/types/profile";
 import { GlobalPlanGuard } from '@/components/GlobalPlanGuard';
 import { useLocale } from '@/lib/locale';
 import type { PlanId } from '@/types/pricing';
@@ -213,7 +213,7 @@ export default function SubscriptionPage() {
                     <Button
                       variant="ghost"
                       className="rounded-ds-xl"
-                      onClick={() => router.push('/profile/profile/account/billing')}
+                      onClick={() => router.push('/account/billing')}
                     >
                       {t('subscription.billing', 'View billing history')}
                     </Button>

@@ -4,7 +4,7 @@ import Head from 'next/head';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { Container } from '@/components/design-system/Container';
-import type { Profile } from '@/types/profile';
+import type { Profile } from "@/types/profile";
 
 export default function Students() {
   const [q, setQ] = useState('');

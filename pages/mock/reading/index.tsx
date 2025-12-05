@@ -97,9 +97,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
   const hasAttempts = stats.totalAttempts > 0;
 
   const helperText = hasAttempts
-    ? `You attempted ${stats.totalTestsAttempted} mock${
-        stats.totalTestsAttempted === 1 ? '' : 's'
-      }. Best band ${stats.bestBand ?? '--'}.`
+    ? `You attempted ${stats.totalTestsAttempted} mock${stats.totalTestsAttempted === 1 ? '' : 's'}. Best band ${stats.bestBand ?? '--'}.`
     : `Start your first Reading Mock to unlock analytics.`;
 
   return (
@@ -115,7 +113,6 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
         <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
           <Container>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Left side */}
               <div className="space-y-3 max-w-2xl">
                 <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   <Icon name="BookOpen" size={14} />
@@ -143,7 +140,6 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                 </div>
               </div>
 
-              {/* Right side quick stats */}
               <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
                   Quick Stats
@@ -179,7 +175,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
         {/* ------------------------------------------------------------- */}
         {/* GRID LAYOUT */}
         {/* ------------------------------------------------------------- */}
-        <section className="pb-20">
+ingos        <section className="pb-20">
           <Container>
             <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
               {/* ------------------ LEFT: MOCK LIST ------------------ */}
@@ -191,7 +187,6 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                       All full-length Reading tests available.
                     </p>
                   </div>
-                  {/* filter intentionally removed */}
                 </div>
 
                 <div id="tests-list" className="grid gap-5 md:grid-cols-2">
@@ -220,52 +215,58 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                             {t.title}
                           </h3>
 
-                          {/* no description, no repeated timing line */}
-
-                          {!attempt ? (
-                            <Badge variant="outline" size="xs" className="rounded-ds-xl">
-                              <Icon name="EyeOff" className="h-3.5 w-3.5 mr-1" />
-                              Not attempted
-                            </Badge>
-                          ) : (
+                          {attempt ? (
                             <Badge variant="accent" size="xs" className="rounded-ds-xl">
                               <Icon name="CheckCircle" className="h-3.5 w-3.5 mr-1" />
                               Band {attempt.latestBandScore ?? '--'}
                             </Badge>
+                          ) : (
+                            <Badge variant="outline" size="xs" className="rounded-ds-xl">
+                              <Icon name="EyeOff" className="h-3.5 w-3.5 mr-1" />
+                              Not attempted
+                            </Badge>
                           )}
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between">
-                          {!attempt ? (
+                        {/* UPDATED BUTTON SECTION */}
+                        <div className="mt-4 flex items-center gap-2">
+                          {/* Primary: Start or Re-attempt */}
+                          <Button
+                            asChild
+                            variant="primary"
+                            className="rounded-ds-xl text-xs font-semibold flex-1"
+                          >
+                            <Link href={`/mock/reading/${t.slug}`}>
+                              {attempt ? 'Re-attempt Mock' : 'Start Mock'}
+                            </Link>
+                          </Button>
+
+                          {/* History icon button */}
+                          <Button
+                            asChild
+                            variant="secondary"
+                            size="icon"
+                            className="rounded-ds"
+                            title="View attempt history"
+                          >
+                            <Link href={`/mock/reading/history?test=${t.slug}`}>
+                              <Icon name="History" className="h-4 w-4" />
+                            </Link>
+                          </Button>
+
+                          {/* Optional text link for attempted tests */}
+                          {attempt && (
                             <Button
                               asChild
-                              className="rounded-ds-xl text-xs font-semibold flex-1"
-                              variant="primary"
-                            >
-                              <Link href={`/mock/reading/${t.slug}`}>Start Mock</Link>
-                            </Button>
-                          ) : (
-                            <Button
-                              asChild
-                              className="rounded-ds-xl text-xs font-semibold flex-1"
-                              variant="primary"
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs whitespace-nowrap"
                             >
                               <Link href={`/mock/reading/history?test=${t.slug}`}>
                                 View Attempts
                               </Link>
                             </Button>
                           )}
-
-                          <Button
-                            asChild
-                            variant="secondary"
-                            size="icon"
-                            className="rounded-ds ml-2"
-                          >
-                            <Link href={`/mock/reading/history?test=${t.slug}`}>
-                              <Icon name="History" className="h-4 w-4" />
-                            </Link>
-                          </Button>
                         </div>
                       </Card>
                     );
@@ -357,7 +358,7 @@ const Tool = ({
 );
 
 // ------------------------------------------------------------------------------------
-// SSR
+// SSR (unchanged)
 // ------------------------------------------------------------------------------------
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   try {
@@ -376,7 +377,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       };
     }
 
-    // Load tests
     const { data: testsRows, error: testsErr } = await supabase
       .from('reading_tests')
       .select(
@@ -399,7 +399,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       lastAttemptAt: null,
     };
 
-    // 🔑 Correct table: reading_attempts
     const { data: attempts, error: attemptsErr } = await supabase
       .from('reading_attempts')
       .select('id, test_id, raw_score, band_score, created_at')

@@ -217,7 +217,7 @@ export function MobileNav({
             <Icon name="X" size={20} />
           </motion.button>
           {typeof streak === 'number' && streak > 0 && (
-            <StreakChip value={streak} href="/profile/streak" className="shrink-0" />
+            <StreakChip value={streak} href="/account/progress/streak" className="shrink-0" />
           )}
         </div>
 

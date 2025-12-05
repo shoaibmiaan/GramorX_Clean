@@ -54,7 +54,7 @@ const StreakPage: NextPage<Props> = ({ streak, history }) => {
               Keep learning every day—complete a study task before midnight Pakistan time to maintain the streak.
             </p>
           </div>
-          <StreakChip value={streak.current} href="/profile/streak" />
+          <StreakChip value={streak.current} href="/account/progress/streak" />
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[2fr_1fr]">

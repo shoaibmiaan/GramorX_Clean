@@ -4,9 +4,15 @@ import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { Icon } from '@/components/design-system/Icon';
 
-import type { ListeningQuestion } from '@/pages/mock/listening/exam/[slug]';
+import type { ListeningQuestion as ListeningQuestionModel } from '@/lib/listening/types';
 
 type AnswerValue = string | string[] | null;
+
+// Extend the core model with a couple of legacy fields so older callers don’t explode
+type ListeningQuestion = ListeningQuestionModel & {
+  questionNo?: number | null;
+  text?: string | null;
+};
 
 type ListeningQuestionItemProps = {
   question: ListeningQuestion;
@@ -20,7 +26,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
   onChange,
 }) => {
   const parsedOptions = React.useMemo(() => {
-    const raw = question.options;
+    const raw = question.options as unknown;
     if (!raw) return [] as { label: string; value: string }[];
 
     if (Array.isArray(raw)) {
@@ -47,7 +53,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
                   label:
                     (opt as any).label ?? (opt as any).text ?? `Option ${idx + 1}`,
                   value: (opt as any).value ?? (opt as any).key ?? String(idx),
-                }
+                },
           );
         }
       } catch (err) {
@@ -58,30 +64,45 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
     return [] as { label: string; value: string }[];
   }, [question.options]);
 
-  const type = (question.type ?? 'mcq').toLowerCase();
+  const rawType = (question.type ?? question.questionType ?? 'mcq').toLowerCase();
   const isMcq =
-    type === 'mcq' ||
-    type === 'multiple_choice' ||
-    type === 'matching' ||
-    (parsedOptions.length > 0 && type.includes('choice'));
+    rawType === 'mcq' ||
+    rawType === 'multiple_choice' ||
+    rawType === 'matching' ||
+    (parsedOptions.length > 0 && rawType.includes('choice'));
 
   const handleMcqChange = (val: string) => {
     onChange(val);
   };
 
   const handleShortTextChange: React.ChangeEventHandler<HTMLInputElement> = (
-    event
+    event,
   ) => {
     onChange(event.target.value);
   };
 
   const typeLabel = React.useMemo(() => {
     if (isMcq) return 'Multiple choice';
-    if (type.includes('sentence')) return 'Sentence completion';
-    if (type.includes('table')) return 'Table completion';
-    if (type.includes('form')) return 'Form completion';
+    if (rawType.includes('sentence')) return 'Sentence completion';
+    if (rawType.includes('table')) return 'Table completion';
+    if (rawType.includes('form')) return 'Form completion';
     return 'Short answer';
-  }, [isMcq, type]);
+  }, [isMcq, rawType]);
+
+  const questionNo =
+    question.questionNo ??
+    (question as any).questionNo ??
+    question.questionNumber ??
+    question.qno ??
+    (question as any).question_no ??
+    0;
+
+  const promptText =
+    (question as any).text ??
+    question.questionText ??
+    question.question_text ??
+    question.prompt ??
+    '';
 
   return (
     <Card className="border-none bg-background/90 p-4 shadow-sm">
@@ -89,13 +110,13 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Badge tone="neutral" size="xs">
-              Q{question.questionNo}
+              Q{questionNo}
             </Badge>
             <Badge tone="info" size="xs">
               {typeLabel}
             </Badge>
           </div>
-          <p className="text-sm font-medium leading-relaxed">{question.text}</p>
+          <p className="text-sm font-medium leading-relaxed">{promptText}</p>
         </div>
       </div>
 

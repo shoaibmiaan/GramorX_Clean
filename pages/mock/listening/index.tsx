@@ -4,269 +4,159 @@ import Head from 'next/head';
 import Link from 'next/link';
 import type { GetServerSideProps, NextPage } from 'next';
 
+import { getServerClient } from '@/lib/supabaseServer';
+import type { Database } from '@/lib/database.types';
+
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
-import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
-import { getServerClient } from '@/lib/supabaseServer';
 
 // -----------------------------------------------------------------------------
-// Page Props
+// TYPES
 // -----------------------------------------------------------------------------
-type PageProps = {
-  startMockHref: string;
-  lastBand: number | null;
-  attemptCount: number;
-  lastAttemptId: string | null;
+
+type ListeningMockListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  difficulty: string | null; // mapped from level
+  durationSeconds: number;
+  totalQuestions: number;
 };
 
-// You can wire this later from listening_attempts
-const hasListeningDraft = false;
+type TestAttemptInfo = {
+  latestBandScore: number | null;
+  latestCreatedAt: string | null;
+};
+
+type ListeningStats = {
+  totalAttempts: number;
+  totalTestsAttempted: number;
+  bestBand: number | null;
+  avgBand: number | null;
+  lastAttemptAt: string | null;
+};
+
+type ListeningAttemptSummary = {
+  rawScore: number;
+  totalQuestions: number;
+  bandScore: number | null;
+  createdAt: string;
+};
+
+type PageProps = {
+  tests: ListeningMockListItem[];
+  attemptSummaries: ListeningAttemptSummary[];
+  stats: ListeningStats;
+  attemptMap: Record<string, TestAttemptInfo>;
+  error?: string;
+};
 
 // -----------------------------------------------------------------------------
-// Quick Actions (static)
+// PAGE
 // -----------------------------------------------------------------------------
-const quickListeningActions = [
-  {
-    id: 'start-full',
-    label: 'Start full Listening mock',
-    description: 'Four sections, 40 questions, strict single-play audio.',
-    href: '/mock/listening/new',
-    icon: 'Headphones' as const,
-  },
-  {
-    id: 'history',
-    label: 'View Listening mock history',
-    description: 'Bands, attempts, and timing for past tests.',
-    href: '/mock/listening/history',
-    icon: 'BarChart3' as const,
-  },
-  {
-    id: 'analytics',
-    label: 'Open Listening analytics',
-    description: 'Spot weak sections and question types.',
-    href: '/analytics/listening',
-    icon: 'PieChart' as const,
-  },
-];
 
-// -----------------------------------------------------------------------------
-// Sets (static)
-// -----------------------------------------------------------------------------
-const listeningSets = [
-  {
-    id: 'full-academic',
-    title: 'Full IELTS Listening mock',
-    description: 'All four sections, one sitting, strict CBE layout.',
-    level: 'Standard' as const,
-    meta: '4 sections · ~30–35 mins',
-    href: '/mock/listening/new',
-  },
-  {
-    id: 'section1-focus',
-    title: 'Section 1 · Conversation',
-    description: 'Train note-taking and spelling under low-pressure audio.',
-    level: 'Easier' as const,
-    meta: '1 section · ~8–10 mins',
-    href: '/mock/listening/new',
-  },
-  {
-    id: 'section3-focus',
-    title: 'Section 3 · Discussion',
-    description: 'Harder, fast-paced discussion with multiple speakers.',
-    level: 'Challenging' as const,
-    meta: '1 section · ~8–10 mins',
-    href: '/mock/listening/new',
-  },
-  {
-    id: 'mixed-difficult',
-    title: 'Mixed difficult set',
-    description: 'Pulled from tougher tests for band 7+ practice.',
-    level: 'Challenging' as const,
-    meta: '2 sections · ~15–18 mins',
-    href: '/mock/listening/new',
-  },
-];
-
-// -----------------------------------------------------------------------------
-// Today’s tasks (static)
-// -----------------------------------------------------------------------------
-const listeningTasks = [
-  {
-    id: 'today-full',
-    label: 'Do one full Listening mock under exam rules',
-    estimate: '~35 mins',
-    href: '/mock/listening/new',
-    focus: 'section1' as const,
-  },
-  {
-    id: 'today-section3',
-    label: 'Hit one Section 3 for difficulty training',
-    estimate: '~10 mins',
-    href: '/mock/listening/new',
-    focus: 'section3' as const,
-  },
-  {
-    id: 'today-weakness',
-    label: 'Fix 5 mistakes from your last Listening test',
-    estimate: '~15 mins',
-    href: '/mock/listening/history',
-    focus: 'weakness' as const,
-  },
-];
-
-// -----------------------------------------------------------------------------
-// Page Component
-// -----------------------------------------------------------------------------
-const ListeningMockHomePage: NextPage<PageProps> = ({
-  startMockHref,
-  lastBand,
-  attemptCount,
-  lastAttemptId,
+const ListeningMockIndexPage: NextPage<PageProps> = ({
+  tests,
+  attemptSummaries,
+  stats,
+  attemptMap,
+  error,
 }) => {
+  if (error) {
+    return (
+      <>
+        <Head>
+          <title>Error · Listening Mocks · GramorX</title>
+        </Head>
+        <Container className="py-10 max-w-4xl">
+          <Card className="p-6 text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
+            </div>
+            <h2 className="text-lg font-semibold">Unable to load Listening mocks</h2>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button asChild>
+              <Link href="/">
+                <Icon name="Home" className="h-4 w-4 mr-2" />
+                Go Home
+              </Link>
+            </Button>
+          </Card>
+        </Container>
+      </>
+    );
+  }
+
+  const hasAttempts = stats.totalAttempts > 0;
+
+  const helperText = hasAttempts
+    ? `You attempted ${stats.totalTestsAttempted} mock${
+        stats.totalTestsAttempted === 1 ? '' : 's'
+      }. Best band ${stats.bestBand ?? '--'}.`
+    : `Start your first Listening Mock to unlock analytics.`;
+
   return (
     <>
       <Head>
-        <title>Listening Mocks · GramorX</title>
-        <meta
-          name="description"
-          content="Strict IELTS Listening mocks with four sections, single-play audio, and analytics so you train exactly like the real computer-based exam."
-        />
+        <title>IELTS Listening Mock Command Center</title>
       </Head>
 
-      <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        {/* HERO */}
-        <section className="pb-10 pt-10 md:pt-14">
+      <main className="bg-lightBg dark:bg-dark/90">
+        {/* ------------------------------------------------------------- */}
+        {/* TOP HERO COMMAND BAR */}
+        {/* ------------------------------------------------------------- */}
+        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
           <Container>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name="Headphones" size={14} />
-                  </span>
-                  <span>Listening Mock Room · Strict CBE + single-play audio</span>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Left side */}
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <Icon name="Headphones" size={14} />
+                  <span>Listening Mock Suite</span>
                 </div>
 
-                <h1 className="font-slab text-display text-gradient-primary">
-                  Listening mocks that feel like exam day.
+                <h1 className="font-slab text-h2 leading-tight">
+                  Your Listening Mock Command Center.
                 </h1>
 
-                <p className="max-w-2xl text-small text-grayish">
-                  Same four-section flow, same timing stress — but with analytics and AI
-                  feedback waiting after you submit.
+                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                  Four sections. Forty questions. Single continuous audio — strict IELTS
+                  computer-based environment with exam-room layout and band tracking.
                 </p>
+
+                <div className="text-xs text-muted-foreground">{helperText}</div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
+                    <Link href="#tests-list">Start a Listening Mock</Link>
+                  </Button>
+                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
+                    <Link href="/mock">Back to Mock Hub</Link>
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
-                <Badge variant="neutral" size="sm">
-                  Minimum: 2 Listening mocks / week
-                </Badge>
-                <p>Use /listening for practice. This page is for strict mocks only.</p>
-              </div>
-            </div>
-
-            {/* START BLOCK */}
-            <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
-              <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      {hasListeningDraft ? 'Resume Listening mock' : 'Start a new Listening mock'}
-                    </p>
-
-                    <p className="text-sm text-foreground">
-                      {hasListeningDraft
-                        ? 'Continue the mock you paused. Audio + timer rules stay strict.'
-                        : 'Start a full four-section Listening test with exam-style controls.'}
-                    </p>
-                  </div>
-
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name={hasListeningDraft ? 'PlayCircle' : 'Headphones'} size={18} />
-                  </span>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {hasListeningDraft ? (
-                    <>
-                      <Button asChild variant="primary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/listening/draft">Resume Listening mock</Link>
-                      </Button>
-                      <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
-                        <Link href={startMockHref}>Start new Listening mock</Link>
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button asChild variant="primary" size="md" className="rounded-ds-xl px-5">
-                        <Link href={startMockHref}>Start new Listening mock</Link>
-                      </Button>
-                      <Button asChild variant="secondary" size="md" className="rounded-ds-xl px-5">
-                        <Link href="/mock/listening/history">View Listening history</Link>
-                      </Button>
-                      {lastAttemptId && (
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="md"
-                          className="rounded-ds-xl px-5"
-                        >
-                          <Link href={`/mock/listening/result/${lastAttemptId}`}>
-                            View last result
-                          </Link>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </Card>
-
-              {/* SNAPSHOT BLOCK */}
-              <Card className="card-surface rounded-ds-2xl p-5">
-                <div className="flex items-center justify-between gap-3">
+              {/* Right side quick stats */}
+              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
+                  Listening Quick Stats
+                </p>
+                <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Listening snapshot
-                    </p>
-                    <p className="text-xs text-grayish">
-                      Quick stats from your recent Listening mocks.
-                    </p>
+                    <p className="text-xs text-muted-foreground">Best</p>
+                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
                   </div>
-                  <Icon name="PieChart" size={18} className="text-muted-foreground" />
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Icon name="Medal" size={14} />
-                      <span>Last band</span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {lastBand ?? '—'}
-                    </p>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Avg</p>
+                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
                   </div>
-
-                  <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Icon name="Target" size={14} />
-                      <span>Attempts completed</span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {attemptCount}
-                    </p>
-                  </div>
-
-                  <div className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Icon name="Clock" size={14} />
-                      <span>Next action</span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {lastAttemptId
-                        ? 'Review your last mock'
-                        : 'Start your first mock'}
-                    </p>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Attempts</p>
+                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
                   </div>
                 </div>
               </Card>
@@ -274,211 +164,137 @@ const ListeningMockHomePage: NextPage<PageProps> = ({
           </Container>
         </section>
 
-        {/* QUICK ACTIONS */}
-        <section className="pb-12">
+        {/* ------------------------------------------------------------- */}
+        {/* GRID LAYOUT */}
+        {/* ------------------------------------------------------------- */}
+        <section className="pb-20 pt-8">
           <Container>
-            <div className="mb-4">
-              <h2 className="font-slab text-h2">Start or explore Listening mocks</h2>
-              <p className="text-small text-grayish">This area is exam-only. No transcripts.</p>
-            </div>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
+              {/* ------------------ LEFT: MOCK LIST ------------------ */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-slab text-xl">Listening Mock Library</h2>
+                    <p className="text-xs text-muted-foreground">
+                      All full-length Listening tests available.
+                    </p>
+                  </div>
+                </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              {quickListeningActions.map((action) => {
-                const href = action.id === 'start-full' ? startMockHref : action.href;
+                <div id="tests-list" className="grid gap-5 md:grid-cols-2">
+                  {tests.map((t) => {
+                    const attempt = attemptMap[t.slug];
 
-                return (
-                  <Card
-                    key={action.id}
-                    className="group flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4 transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
-                  >
-                    <Link href={href} className="flex h-full flex-col gap-3">
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                          <Icon name={action.icon} size={18} />
-                        </span>
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-foreground">{action.label}</p>
-                          <p className="text-xs text-muted-foreground">{action.description}</p>
+                    return (
+                      <Card
+                        key={t.id}
+                        className="p-4 rounded-ds-2xl bg-card/70 border border-border/60 shadow-sm transition hover:shadow-lg hover:-translate-y-1"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="neutral" size="xs">
+                              Academic
+                            </Badge>
+
+                            {t.difficulty && (
+                              <Badge variant="soft" size="xs">
+                                {t.difficulty}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <h3 className="text-sm font-semibold leading-snug line-clamp-2">
+                            {t.title}
+                          </h3>
+
+                          <p className="text-[11px] text-muted-foreground">
+                            {Math.round(t.durationSeconds / 60)} min • {t.totalQuestions}{' '}
+                            questions
+                          </p>
+
+                          {!attempt ? (
+                            <Badge variant="outline" size="xs" className="rounded-ds-xl">
+                              <Icon name="EyeOff" className="h-3.5 w-3.5 mr-1" />
+                              Not attempted
+                            </Badge>
+                          ) : (
+                            <Badge variant="accent" size="xs" className="rounded-ds-xl">
+                              <Icon name="CheckCircle" className="h-3.5 w-3.5 mr-1" />
+                              Band {attempt.latestBandScore ?? '--'}
+                            </Badge>
+                          )}
                         </div>
-                      </div>
 
-                      <span className="mt-auto inline-flex items-center text-xs font-medium text-primary group-hover:underline">
-                        Open
-                        <Icon name="ArrowRight" size={14} className="ml-1" />
-                      </span>
-                    </Link>
-                  </Card>
-                );
-              })}
-            </div>
-          </Container>
-        </section>
+                        <div className="mt-4 flex items-center justify-between">
+                          <Button
+                            asChild
+                            className="rounded-ds-xl text-xs font-semibold flex-1"
+                            variant="primary"
+                          >
+                            <Link href={`/mock/listening/${t.slug}`}>
+                              {attempt ? 'Re-attempt Mock' : 'Start Mock'}
+                            </Link>
+                          </Button>
 
-        {/* MOCK SETS */}
-        <section className="bg-muted/40 py-12">
-          <Container>
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                  Listening mock sets
-                </p>
-                <h2 className="mt-1 font-slab text-h2">Choose your pressure level.</h2>
-                <p className="mt-1 max-w-2xl text-small text-grayish">
-                  Full tests when you have time, single sections when you don’t.
-                </p>
-              </div>
-
-              <Button asChild size="sm" variant="secondary" className="rounded-ds-xl">
-                <Link href="/mock/listening/history">Open Listening library</Link>
-              </Button>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {listeningSets.map((set) => {
-                const href = set.href === '/mock/listening/new' ? startMockHref : set.href;
-
-                return (
-                  <Card
-                    key={set.id}
-                    className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary/60 hover:bg-card/90 hover:shadow-lg"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="text-sm font-semibold text-foreground">{set.title}</h3>
-
-                        <Badge
-                          size="xs"
-                          variant={
-                            set.level === 'Challenging'
-                              ? 'danger'
-                              : set.level === 'Standard'
-                              ? 'info'
-                              : 'neutral'
-                          }
-                        >
-                          {set.level}
-                        </Badge>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground">{set.description}</p>
-                      <p className="text-xs font-medium text-muted-foreground">{set.meta}</p>
-                    </div>
-
-                    <div className="pt-4">
-                      <Button asChild size="sm" variant="primary" className="w-full rounded-ds-xl">
-                        <Link href={href}>Start this mock</Link>
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </Container>
-        </section>
-
-        {/* TODAY’S TASKS */}
-        <section className="py-12">
-          <Container>
-            <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                Today’s Listening plan
-              </p>
-              <h2 className="mt-1 font-slab text-h2">Minimum Listening work.</h2>
-              <p className="mt-1 max-w-2xl text-small text-grayish">
-                On busy days: one mock or one hard section. No off days.
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              {listeningTasks.map((task) => {
-                const href = task.href === '/mock/listening/new' ? startMockHref : task.href;
-
-                return (
-                  <Card
-                    key={task.id}
-                    className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          <Icon
-                            name={
-                              task.focus === 'section1'
-                                ? 'MessageCircle'
-                                : task.focus === 'section3'
-                                ? 'Users'
-                                : 'AlertTriangle'
-                            }
-                            size={14}
-                          />
-                          <span className="capitalize">
-                            {task.focus === 'weakness'
-                              ? 'Weakness drill'
-                              : `Section ${task.focus === 'section1' ? '1' : '3'}`}
-                          </span>
-                        </span>
-
-                        <span className="text-[11px] text-muted-foreground">
-                          {task.estimate}
-                        </span>
-                      </div>
-
-                      <p className="text-sm font-semibold text-foreground">{task.label}</p>
-                    </div>
-
-                    <Button asChild variant="primary" size="sm" className="mt-3 w-full rounded-ds-xl">
-                      <Link href={href}>Start now</Link>
-                    </Button>
-                  </Card>
-                );
-              })}
-            </div>
-          </Container>
-        </section>
-
-        {/* AI FLOW */}
-        <section className="bg-muted/40 pb-14 pt-10">
-          <Container>
-            <Card className="mx-auto max-w-4xl rounded-ds-2xl border border-border/60 bg-card/90 p-6 md:p-7">
-              <div className="grid gap-6 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.3fr)] md:items-center">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                    Next smart move
-                  </p>
-
-                  <h2 className="font-slab text-h3">Don’t just repeat mocks. Fix patterns.</h2>
-
-                  <p className="text-small text-grayish">
-                    After each Listening mock, send it to AI Lab. It shows which sections
-                    and question types are killing your band.
-                  </p>
-                </div>
-
-                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-sm">
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                    <Icon name="Sparkles" size={14} />
-                    <span>Recommended Listening flow</span>
-                  </div>
-
-                  <ol className="space-y-2 text-xs text-muted-foreground">
-                    <li>1. Take a strict Listening mock from this page.</li>
-                    <li>2. Submit → see your raw score & band.</li>
-                    <li>3. Open AI Lab → send attempt for analysis.</li>
-                    <li>4. Do one weakness drill.</li>
-                  </ol>
-
-                  <div className="flex gap-2 pt-1">
-                    <Button asChild size="sm" variant="secondary" className="w-full rounded-ds-xl">
-                      <Link href="/ai">Open AI Lab</Link>
-                    </Button>
-
-                    <Button asChild size="sm" variant="ghost" className="w-full rounded-ds-xl">
-                      <Link href="/mock/listening/history">View Listening attempts</Link>
-                    </Button>
-                  </div>
+                          <Button
+                            asChild
+                            variant="secondary"
+                            size="icon"
+                            className="rounded-ds ml-2"
+                          >
+                            <Link href={`/mock/listening/history?test=${t.slug}`}>
+                              <Icon name="History" className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
-            </Card>
+
+              {/* ------------------ RIGHT RAIL ------------------ */}
+              <div className="space-y-6">
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
+                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
+                    Listening Metrics
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Info label="Mocks available" value={tests.length} />
+                    <Info label="Mocks attempted" value={stats.totalTestsAttempted} />
+                    <Info label="Best band" value={stats.bestBand ?? '--'} />
+                    <Info label="Avg band" value={stats.avgBand ?? '--'} />
+                  </div>
+
+                  {stats.lastAttemptAt && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Last attempt:{' '}
+                      {new Date(stats.lastAttemptAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </Card>
+
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
+                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
+                    Power Tools (Listening)
+                  </p>
+
+                  <Tool href="/mock/listening/drill/section" icon="Waveform">
+                    Section-wise practice
+                  </Tool>
+                  <Tool href="/mock/listening/drill/question-type" icon="Target">
+                    Question-type drills
+                  </Tool>
+                  <Tool href="/mock/listening/analytics" icon="Activity">
+                    Analytics & Weaknesses
+                  </Tool>
+                  <Tool href="/mock/listening/techniques" icon="BookOpen">
+                    Techniques trainer
+                  </Tool>
+                </Card>
+              </div>
+            </div>
           </Container>
         </section>
       </main>
@@ -487,52 +303,172 @@ const ListeningMockHomePage: NextPage<PageProps> = ({
 };
 
 // -----------------------------------------------------------------------------
-// Server-side: Fetch random published mock from listening_tests
+// Helper Components
 // -----------------------------------------------------------------------------
+
+const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex justify-between text-xs">
+    <span className="text-muted-foreground">{label}</span>
+    <span className="font-semibold">{value}</span>
+  </div>
+);
+
+const Tool = ({
+  href,
+  icon,
+  children,
+}: {
+  href: string;
+  icon: string;
+  children: React.ReactNode;
+}) => (
+  <Link
+    href={href}
+    className="flex justify-between items-center px-3 py-2 rounded-md border hover:bg-muted/70 transition-colors"
+  >
+    <span>{children}</span>
+    <Icon name={icon} className="h-4 w-4" />
+  </Link>
+);
+
+// -----------------------------------------------------------------------------
+// SSR
+// -----------------------------------------------------------------------------
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
+  try {
+    const supabase = getServerClient<Database>(ctx.req, ctx.res);
 
-  const { data, error } = await supabase
-    .from('listening_tests')
-    .select('slug')
-    .eq('is_mock', true)
-    .eq('is_published', true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  let startMockHref = '/mock/listening/history';
-  let attemptCount = 0;
-  let lastBand: number | null = null;
-  let lastAttemptId: string | null = null;
+    if (!user) {
+      return {
+        redirect: {
+          destination: '/login?next=/mock/listening',
+          permanent: false,
+        },
+      };
+    }
 
-  if (!error && data && data.length > 0) {
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const slug = data[randomIndex].slug;
-    // 👉 now sends user straight into the strict exam room for that slug
-    startMockHref = `/mock/listening/exam/${encodeURIComponent(slug ?? '')}`;
-  }
+    // Load listening tests (only published mocks)
+    const { data: testsRows, error: testsErr } = await supabase
+      .from('listening_tests')
+      .select(
+        'id, slug, title, description, duration_minutes, questions, level',
+      )
+      .eq('is_mock', true)
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    if (testsErr) throw testsErr;
 
-  if (user) {
-    const { data: attempts } = await supabase
+    type ListeningAttemptsRow =
+      Database['public']['Tables']['listening_attempts']['Row'];
+
+    const stats: ListeningStats = {
+      totalAttempts: 0,
+      totalTestsAttempted: 0,
+      bestBand: null,
+      avgBand: null,
+      lastAttemptAt: null,
+    };
+
+    const { data: attempts, error: attemptsErr } = await supabase
       .from('listening_attempts')
-      .select('id, band_score, created_at')
+      .select('id, test_id, raw_score, band_score, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(200);
 
-    attemptCount = attempts?.length ?? 0;
-    if (attempts && attempts.length > 0) {
-      const bandValue = (attempts[0] as any).band_score;
-      lastBand = bandValue != null ? Number(bandValue) : null;
-      lastAttemptId = attempts[0].id as string;
+    if (attemptsErr) throw attemptsErr;
+
+    const safeAttempts: ListeningAttemptsRow[] = attempts ?? [];
+
+    stats.totalAttempts = safeAttempts.length;
+    if (safeAttempts.length > 0) {
+      stats.lastAttemptAt = safeAttempts[0].created_at;
     }
-  }
 
-  return {
-    props: { startMockHref, lastBand, attemptCount, lastAttemptId },
-  };
+    const attemptSummaries: ListeningAttemptSummary[] = safeAttempts.map((a) => ({
+      rawScore: Number(a.raw_score ?? 0),
+      totalQuestions: 40,
+      bandScore: a.band_score != null ? Number(a.band_score) : null,
+      createdAt: a.created_at,
+    }));
+
+    const bands = safeAttempts
+      .map((a) => (a.band_score != null ? Number(a.band_score) : null))
+      .filter((v): v is number => typeof v === 'number');
+
+    if (bands.length > 0) {
+      stats.bestBand = Math.max(...bands);
+      const avg = bands.reduce((acc, v) => acc + v, 0) / bands.length;
+      stats.avgBand = Math.round((avg + Number.EPSILON) * 10) / 10;
+    }
+
+    const mapByTestId: Record<string, TestAttemptInfo> = {};
+    for (const a of safeAttempts) {
+      if (!a.test_id) continue;
+      if (!mapByTestId[a.test_id]) {
+        mapByTestId[a.test_id] = {
+          latestBandScore: a.band_score != null ? Number(a.band_score) : null,
+          latestCreatedAt: a.created_at,
+        };
+      }
+    }
+
+    stats.totalTestsAttempted = Object.keys(mapByTestId).length;
+
+    const testSlugMap = Object.fromEntries(
+      (testsRows ?? []).map((t) => [t.id, t.slug]),
+    );
+
+    const attemptMap: Record<string, TestAttemptInfo> = {};
+    Object.entries(mapByTestId).forEach(([testId, info]) => {
+      const slug = testSlugMap[testId];
+      if (slug) attemptMap[slug] = info;
+    });
+
+    const tests: ListeningMockListItem[] =
+      testsRows?.map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        title: t.title,
+        description: t.description ?? null,
+        difficulty: t.level ?? null, // mapped from level
+        durationSeconds: (t.duration_minutes ?? 40) * 60,
+        totalQuestions: t.questions ?? 40,
+      })) ?? [];
+
+    return {
+      props: {
+        tests,
+        attemptSummaries,
+        stats,
+        attemptMap,
+      },
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to load Listening mocks.';
+    return {
+      props: {
+        tests: [],
+        attemptSummaries: [],
+        stats: {
+          totalAttempts: 0,
+          totalTestsAttempted: 0,
+          bestBand: null,
+          avgBand: null,
+          lastAttemptAt: null,
+        },
+        attemptMap: {},
+        error: message,
+      },
+    };
+  }
 };
 
-export default ListeningMockHomePage;
+export default ListeningMockIndexPage;

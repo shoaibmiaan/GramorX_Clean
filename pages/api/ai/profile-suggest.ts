@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-// pages/api/ai/profile-suggest.ts
+// pages/api/ai/account/profile-suggest.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { LEVELS, PREFS, TIME } from '@/lib/profile-options';
 

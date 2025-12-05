@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
 import { getServerClient } from '@/lib/supabaseServer';
-import { deriveSignalsFromOutcome, refreshLearningProfile } from '@/lib/reco/profile';
+import { deriveSignalsFromOutcome, refreshLearningProfile } from '@/lib/reco/account/profile';
 import type { LearningTask } from '@/types/supabase';
 
 const Body = z.object({

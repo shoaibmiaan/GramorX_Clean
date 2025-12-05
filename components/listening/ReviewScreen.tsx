@@ -1,6 +1,6 @@
+// components/listening/ReviewScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { supabase } from '@/lib/supabaseClient';
 import { Card } from '@/components/design-system/Card';
 import { Alert } from '@/components/design-system/Alert';
 import { EmptyState } from '@/components/design-system/EmptyState';
@@ -13,6 +13,9 @@ import AnswerReview, {
 } from '@/components/listening/AnswerReview';
 import TranscriptReview from '@/components/listening/TranscriptReview';
 import { isCorrect } from '@/lib/answers';
+import { supabaseBrowser } from '@/lib/supabaseBrowser';
+
+const supabase = supabaseBrowser();
 
 type ApiAttempt = {
   id: string;
@@ -92,10 +95,16 @@ function normalizePairs(pairs: any): MatchPair[] {
       }
       return null;
     })
-    .filter((pair): pair is MatchPair => Array.isArray(pair) && pair.every((v) => !Number.isNaN(v)));
+    .filter(
+      (pair): pair is MatchPair =>
+        Array.isArray(pair) && pair.every((v) => !Number.isNaN(v))
+    );
 }
 
-function normalizeAnswerValue(question: ApiQuestion | undefined, value: any): string | MatchPair[] | null {
+function normalizeAnswerValue(
+  question: ApiQuestion | undefined,
+  value: any
+): string | MatchPair[] | null {
   if (value == null) return null;
 
   if (question?.type === 'match') {
@@ -118,13 +127,21 @@ function normalizeAnswerValue(question: ApiQuestion | undefined, value: any): st
   return String(value ?? '');
 }
 
-export default function ReviewScreen({ slug, attemptId }: { slug: string; attemptId?: string | null }) {
+export default function ReviewScreen({
+  slug,
+  attemptId,
+}: {
+  slug: string;
+  attemptId?: string | null;
+}) {
   const [attempt, setAttempt] = useState<ApiAttempt | null>(null);
   const [test, setTest] = useState<ApiTest>(null);
   const [questions, setQuestions] = useState<ApiQuestion[]>([]);
   const [answers, setAnswers] = useState<ApiAnswer[]>([]);
   const [sections, setSections] = useState<ApiSection[]>([]);
-  const [sectionAssignments, setSectionAssignments] = useState<Map<number, number | null>>(new Map());
+  const [sectionAssignments, setSectionAssignments] = useState<
+    Map<number, number | null>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,7 +193,9 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
           return;
         }
 
-        const response = await fetch(`/api/listening/review/${id}`, { credentials: 'include' });
+        const response = await fetch(`/api/listening/review/${id}`, {
+          credentials: 'include',
+        });
         if (!response.ok) {
           let detail = '';
           try {
@@ -206,7 +225,10 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
 
         const assignment = new Map<number, number | null>();
         (payload.questions ?? []).forEach((q) => {
-          assignment.set(q.qno, typeof q.section_order === 'number' ? q.section_order : null);
+          assignment.set(
+            q.qno,
+            typeof q.section_order === 'number' ? q.section_order : null
+          );
         });
         setSectionAssignments(assignment);
       } catch (err: any) {
@@ -263,7 +285,10 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
       } as ReviewQuestion;
     });
 
-    const normalizedAnswers: Array<{ qno: number; answer: string | MatchPair[] | null }> = answers.map((ans) => {
+    const normalizedAnswers: Array<{
+      qno: number;
+      answer: string | MatchPair[] | null;
+    }> = answers.map((ans) => {
       const q = questionMap.get(ans.qno);
       return {
         qno: ans.qno,
@@ -293,14 +318,20 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
         ok = isCorrect(String(userAnswer ?? ''), question.answer_key.text);
       } else {
         const want = question.answer_key.pairs ?? [];
-        const got = Array.isArray(userAnswer) ? (userAnswer as MatchPair[]) : [];
+        const got = Array.isArray(userAnswer)
+          ? (userAnswer as MatchPair[])
+          : [];
         const sort = (pairs: MatchPair[]) =>
-          [...pairs].sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]));
-        ok = want.length > 0 && JSON.stringify(sort(want)) === JSON.stringify(sort(got));
+          [...pairs].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        ok =
+          want.length > 0 &&
+          JSON.stringify(sort(want)) === JSON.stringify(sort(got));
       }
 
       const unanswered =
-        userAnswer == null || (question.type !== 'match' && String(userAnswer).trim().length === 0);
+        userAnswer == null ||
+        (question.type !== 'match' &&
+          String(userAnswer).trim().length === 0);
 
       return { qno: question.qno, ok, unanswered };
     });
@@ -312,28 +343,34 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
     const accuracy = total ? (correct / total) * 100 : 0;
     const rawScore =
       (attempt as any)?.raw_score ?? (attempt as any)?.score ?? correct;
-    const band = (attempt as any)?.band_score ?? attempt?.band ?? Number(((accuracy / 100) * 9).toFixed(1));
+    const band =
+      (attempt as any)?.band_score ??
+      attempt?.band ??
+      Number(((accuracy / 100) * 9).toFixed(1));
     return { total, correct, accuracy, band, rawScore };
   }, [questionResults, attempt]);
 
-  const transcriptSections = useMemo(() => {
-    return sections
-      .map((section) => ({
-        order: section.order_no,
-        title: section.title ?? null,
-        transcript: section.transcript ?? null,
-      }))
-      .filter((section) => typeof section.order === 'number')
-      .sort((a, b) => a.order - b.order);
-  }, [sections]);
+  const transcriptSections = useMemo(
+    () =>
+      sections
+        .map((section) => ({
+          order: section.order_no,
+          title: section.title ?? null,
+          transcript: section.transcript ?? null,
+        }))
+        .filter((section) => typeof section.order === 'number')
+        .sort((a, b) => a.order - b.order),
+    [sections]
+  );
 
   const answersForReview = useMemo<ReviewAnswer[]>(
     () =>
       normalized.answers.map(
-        (ans) => ({
-          qno: ans.qno,
-          answer: ans.answer ?? null,
-        }) as ReviewAnswer
+        (ans) =>
+          ({
+            qno: ans.qno,
+            answer: ans.answer ?? null,
+          }) as ReviewAnswer
       ),
     [normalized.answers]
   );
@@ -370,7 +407,9 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
   }
 
   const testTitle = test?.title || slug;
-  const submittedAt = attempt?.submitted_at ? new Date(attempt.submitted_at) : null;
+  const submittedAt = attempt?.submitted_at
+    ? new Date(attempt.submitted_at)
+    : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -378,25 +417,29 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
         <Card className="card-surface rounded-ds-2xl p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-small uppercase tracking-wide text-muted-foreground">Listening Test</p>
+              <p className="text-small uppercase tracking-wide text-muted-foreground">
+                Listening Test
+              </p>
               <h2 className="text-h3 font-semibold">{testTitle}</h2>
             </div>
             <ScoreCard title="Listening Band" overall={summary.band} />
             <dl className="space-y-2 text-small text-muted-foreground">
               <div className="flex items-center justify-between gap-2">
                 <dt>Raw score</dt>
-                <dd className="text-foreground font-semibold">
+                <dd className="font-semibold text-foreground">
                   {summary.rawScore} / {summary.total || '—'}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <dt>Accuracy</dt>
-                <dd className="text-foreground font-semibold">{Math.round(summary.accuracy)}%</dd>
+                <dd className="font-semibold text-foreground">
+                  {Math.round(summary.accuracy)}%
+                </dd>
               </div>
               {submittedAt ? (
                 <div className="flex items-center justify-between gap-2">
                   <dt>Submitted</dt>
-                  <dd className="text-foreground font-semibold">
+                  <dd className="font-semibold text-foreground">
                     {submittedAt.toLocaleString(undefined, {
                       year: 'numeric',
                       month: 'short',
@@ -410,7 +453,9 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
               {attempt?.id ? (
                 <div className="flex items-center justify-between gap-2">
                   <dt>Attempt ID</dt>
-                  <dd className="text-xs font-mono text-muted-foreground">{attempt.id}</dd>
+                  <dd className="text-xs font-mono text-muted-foreground">
+                    {attempt.id}
+                  </dd>
                 </div>
               ) : null}
             </dl>
@@ -425,9 +470,11 @@ export default function ReviewScreen({ slug, attemptId }: { slug: string; attemp
       </div>
 
       <div className="lg:col-span-2">
-        <AnswerReview questions={normalized.questions} answers={answersForReview} />
+        <AnswerReview
+          questions={normalized.questions}
+          answers={answersForReview}
+        />
       </div>
     </div>
   );
 }
-

@@ -552,7 +552,7 @@ export default function AccountHubPage() {
                             variant="soft"
                             className="flex-1"
                           >
-                            <Link href="/profile/account/billing">
+                            <Link href="/account/billing">
                               Open billing hub
                             </Link>
                           </Button>
@@ -604,7 +604,7 @@ export default function AccountHubPage() {
               <div className="mt-4">
                 <Button
                   variant="soft"
-                  onClick={() => safePush('/settings/language')}
+                  onClick={() => safePush('/account/preferences/language')}
                   className="w-full"
                 >
                   <Globe className="mr-2 h-4 w-4" />
@@ -639,7 +639,7 @@ export default function AccountHubPage() {
                 </div>
                 <Button
                   variant="soft"
-                  onClick={() => safePush('/settings/notifications')}
+                  onClick={() => safePush('/account/preferences/notifications')}
                   className="mt-3 w-full"
                 >
                   <Bell className="mr-2 h-4 w-4" />
@@ -665,7 +665,7 @@ export default function AccountHubPage() {
               </div>
               <Button
                 variant="soft"
-                onClick={() => safePush('/settings/accessibility')}
+                onClick={() => safePush('/account/preferences/accessibility')}
                 className="w-full"
               >
                 <SettingsIcon className="mr-2 h-4 w-4" />
@@ -713,7 +713,7 @@ export default function AccountHubPage() {
                 </Button>
                 <Button
                   variant="soft"
-                  onClick={() => safePush('/settings/security')}
+                  onClick={() => safePush('/account/security')}
                   className="w-full"
                 >
                   <Shield className="mr-2 h-4 w-4" />

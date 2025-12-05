@@ -322,7 +322,7 @@ export default function StudyPlanPage() {
             <p className="text-body text-muted-foreground">{t('studyPlan.page.subtitle', 'Stay on pace toward your IELTS goal with a daily schedule.')}</p>
           </div>
           <div className="flex items-center gap-3">
-            <StreakChip value={streakLoading ? 0 : streak} loading={streakLoading} href="/profile/streak" />
+            <StreakChip value={streakLoading ? 0 : streak} loading={streakLoading} href="/account/progress/streak" />
             <Button variant="soft" tone="info" asChild>
               <Link href="/progress">{t('studyPlan.page.viewProgress', 'View progress')}</Link>
             </Button>

@@ -63,7 +63,6 @@ export default function ListeningTestPage() {
   const router = useRouter();
   const { slug } = router.query as { slug?: string };
 
-  // test + UI state
   const [test, setTest] = useState<ListeningTest | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -72,16 +71,14 @@ export default function ListeningTestPage() {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [pendingSeekMs, setPendingSeekMs] = useState<number | null>(null);
 
-  // answers
   const [answers, setAnswers] = useState<AnswersMap>({});
 
-  // timer
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_SEC);
   const [attemptStarted, setAttemptStarted] = useState(false);
   const [attemptFinished, setAttemptFinished] = useState(false);
   const submittedRef = useRef(false);
 
-  // --- load test from new schema ---
+  // ---- Load test + sections + questions (NEW SCHEMA) ----
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -89,7 +86,7 @@ export default function ListeningTestPage() {
     (async () => {
       setTestError(null);
 
-      // 1) test by slug
+      // 1) Test
       const { data: t, error: tErr } = await supabase
         .from('listening_tests')
         .select('id,slug,title,audio_url')
@@ -104,7 +101,7 @@ export default function ListeningTestPage() {
         return;
       }
 
-      // 2) sections by test_id
+      // 2) Sections by test_id
       const { data: sections, error: sErr } = await supabase
         .from('listening_sections')
         .select('order_no,start_ms,end_ms,audio_url,transcript')
@@ -117,11 +114,20 @@ export default function ListeningTestPage() {
         return;
       }
 
-      // 3) questions by test_id
+      // 3) Questions by test_id
       const { data: questions, error: qErr } = await supabase
         .from('listening_questions')
         .select(
-          'id,question_number,question_type,prompt,options,correct_answer,section_no',
+          `
+          id,
+          question_number,
+          question_type,
+          question_text,
+          prompt,
+          options,
+          correct_answer,
+          section_no
+        `,
         )
         .eq('test_id', t.id)
         .order('question_number', { ascending: true });
@@ -132,20 +138,18 @@ export default function ListeningTestPage() {
         return;
       }
 
-      // Build section map
       const secMap = new Map<number, Section>();
       (sections ?? []).forEach((s) => {
         secMap.set(s.order_no, {
           orderNo: s.order_no,
           startMs: s.start_ms ?? 0,
-          endMs: s.end_ms ?? (s.start_ms ?? 0) + 60_000, // crude fallback 60s
+          endMs: s.end_ms ?? (s.start_ms ?? 0) + 60_000,
           audioUrl: s.audio_url,
           transcript: s.transcript ?? undefined,
           questions: [],
         });
       });
 
-      // Attach questions
       (questions ?? []).forEach((q) => {
         const sec = secMap.get(q.section_no);
         if (!sec) return;
@@ -158,17 +162,22 @@ export default function ListeningTestPage() {
         } else if (Array.isArray(rawCorrect)) {
           correct = rawCorrect[0] ?? '';
         } else if (rawCorrect && typeof rawCorrect === 'object') {
-          // @ts-expect-error loose JSON shape
+          // @ts-expect-error loose JSONB
           correct = (rawCorrect.value as string) ?? '';
         }
+
+        const prompt =
+          (q.prompt as string | null) ??
+          (q.question_text as string | null) ??
+          '';
 
         if (q.question_type === 'mcq') {
           sec.questions.push({
             id: q.id,
             qNo: q.question_number,
             type: 'mcq',
-            prompt: q.prompt ?? '',
-            options: (q.options ?? []) as string[],
+            prompt,
+            options: ((q.options as unknown) ?? []) as string[],
             answer: correct,
           });
         } else {
@@ -176,7 +185,7 @@ export default function ListeningTestPage() {
             id: q.id,
             qNo: q.question_number,
             type: 'gap',
-            prompt: q.prompt ?? '',
+            prompt,
             answer: correct,
           });
         }
@@ -241,7 +250,7 @@ export default function ListeningTestPage() {
         }),
       });
     } catch {
-      // ignore
+      // swallow
     }
 
     router.push(`/listening/${slug}/review`);
@@ -288,7 +297,9 @@ export default function ListeningTestPage() {
 
   const totalSections = test.sections.length;
   const isLastSection = currentIdx === totalSections - 1;
-  const audioSrc = test.masterAudioUrl || currentSection.audioUrl;
+
+  // if section has its own audio_url, use that first; else fall back to master
+  const audioSrc = currentSection.audioUrl || test.masterAudioUrl;
 
   return (
     <>
@@ -357,7 +368,6 @@ export default function ListeningTestPage() {
               onTimeUpdate={(e) => {
                 const audio = e.currentTarget;
                 const ms = audio.currentTime * 1000;
-
                 if (ms > currentSection.endMs && autoPlay) {
                   audio.pause();
                 }

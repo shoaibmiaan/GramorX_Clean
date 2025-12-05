@@ -24,7 +24,7 @@
       "/progress/*",
       "/saved",
       "/notifications",
-      "/profile/*",
+      "/account/*",
       "/account/*"
     ],
     "learning": [

@@ -1,4 +1,4 @@
-// pages/settings/language.tsx 
+// pages/account/preferences/language.tsx 
 import * as React from "react";
 import Head from "next/head";
 import { Container } from "@/components/design-system/Container";

@@ -301,7 +301,7 @@
 | Billing       | /settings/billing       | todo   |
 | Language      | /settings/language      | todo   |
 | Notifications | /settings/notifications | todo   |
-| Security      | /settings/security      | todo   |
+| Security      | /account/security      | todo   |
 
 ### Signup (Progress: 0%)
 

@@ -44,11 +44,11 @@ export function ProfileLayout({ children }: ProfileLayoutProps) {
             Profile
           </div>
           <nav className="space-y-1">
-            <NavItem href="/profile" label="Overview" active={isActive('/profile')} />
+            <NavItem href="/account" label="Overview" active={isActive('/profile')} />
             <NavItem href="/account" label="Account" active={isActive('/profile/account')} />
-            <NavItem href="/profile/security" label="Security" active={isActive('/profile/security')} />
-            <NavItem href="/profile/notifications" label="Notifications" active={isActive('/profile/notifications')} />
-            <NavItem href="/profile/preferences" label="Preferences" active={isActive('/profile/preferences')} />
+            <NavItem href="/account/security" label="Security" active={isActive('/profile/security')} />
+            <NavItem href="/account/preferences/notifications" label="Notifications" active={isActive('/profile/notifications')} />
+            <NavItem href="/account/preferences" label="Preferences" active={isActive('/profile/preferences')} />
           </nav>
         </div>
       </aside>

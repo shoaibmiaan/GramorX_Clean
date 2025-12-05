@@ -7,7 +7,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Input } from '@/components/design-system/Input';
 import { Modal } from '@/components/design-system/Modal';
-import type { Profile } from '@/types/profile';
+import type { Profile } from "@/types/profile";
 
 interface Row {
   id: string;

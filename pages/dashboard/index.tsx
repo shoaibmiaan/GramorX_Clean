@@ -36,7 +36,7 @@ import DailyWeeklyChallenges from '@/components/dashboard/DailyWeeklyChallenges'
 import GapToGoal from '@/components/visa/GapToGoal';
 import GoalRoadmap from '@/components/feature/GoalRoadmap';
 
-import type { Profile, AIPlan } from '@/types/profile';
+import type { Profile, AIPlan } from "@/types/profile";
 import type { SubscriptionTier } from '@/lib/navigation/types';
 
 const StudyCalendar = dynamic(() => import('@/components/feature/StudyCalendar'), {
@@ -542,7 +542,7 @@ const Dashboard: NextPage = () => {
                       It only takes a minute—target band, exam date and study prefs.
                     </div>
                   </div>
-                  <Link href="/profile/setup" className="shrink-0">
+                  <Link href="/account/setup" className="shrink-0">
                     <Button variant="secondary" className="rounded-ds-xl">
                       Continue setup
                     </Button>
@@ -1154,7 +1154,7 @@ const Dashboard: NextPage = () => {
                   </Alert>
                 )}
                 <div className="mt-4">
-                  <Link href="/profile/setup">
+                  <Link href="/account/setup">
                     <Button variant="secondary" className="rounded-ds-xl">
                       Edit Profile
                     </Button>
