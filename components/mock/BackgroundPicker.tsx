@@ -4,7 +4,7 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Card } from '@/components/design-system/Card';
 import { Icon } from '@/components/design-system/Icon';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 export type MockBgTheme =
   | 'clean-light'

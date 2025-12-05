@@ -7,7 +7,7 @@ import { Container } from '@/components/design-system/Container';
 import { Icon } from '@/components/design-system/Icon';
 import { UserMenu } from '@/components/design-system/UserMenu';
 import { useUserContext } from '@/context/UserContext';
-import { cn } from '@/utils/cn';
+import { cn } from '@/lib/utils';
 
 import { BackgroundPicker, type MockBgTheme } from '@/components/mock/BackgroundPicker';
 
