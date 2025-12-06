@@ -13,3 +13,5 @@
 ## Tradeoffs and TODOs
 - Future enhancement: expand analytics with per-question timestamps and audio playback events for deeper insights.
 - Future enhancement: add mobile-friendly refinements to the strict exam layout (e.g., sticky audio controls, larger tap targets).
+- Mock themes: mock portal now supports persistent themes (`default`, `gradient`, `solid`, `dark`, `focus`, `paper`) stored in
+  localStorage with DS-aligned background tokens for the `/mock` surface.
