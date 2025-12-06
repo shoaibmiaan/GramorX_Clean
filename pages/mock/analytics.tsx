@@ -1,5 +1,5 @@
 // TODO: EPIC-6: Wire to real analytics endpoint once ready. Currently using mock data.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { GetServerSideProps, NextPage } from 'next';
 import Link from 'next/link';
 
@@ -9,6 +9,7 @@ import { Card } from '@/components/design-system/Card';
 import { Container } from '@/components/design-system/Container';
 import { Select } from '@/components/design-system/Select';
 import { Separator } from '@/components/design-system/Separator';
+import Skeleton from '@/components/design-system/Skeleton';
 import { BandProgressChart } from '@/components/mock/analytics/BandProgressChart';
 import { ModuleComparisonChart } from '@/components/mock/analytics/ModuleComparisonChart';
 import { mockAnalyticsResponse } from '@/lib/analytics/mockData';
@@ -66,11 +67,39 @@ interface MockAnalyticsPageProps {
 }
 
 const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) => {
+  const [data, setData] = useState<MockAnalyticsResponse | null>(initialData ?? null);
+  const [isFetching, setIsFetching] = useState(!initialData);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('90');
   const [module, setModule] = useState<ModuleFilter>('all');
 
+  useEffect(() => {
+    let active = true;
+    const fetchAnalytics = async () => {
+      setIsFetching(true);
+      setFetchError(null);
+      try {
+        const res = await fetch('/api/mock/analytics');
+        if (!res.ok) throw new Error('Failed to load analytics');
+        const payload = (await res.json()) as MockAnalyticsResponse;
+        if (active) setData(payload);
+      } catch (error) {
+        if (active) setFetchError(error instanceof Error ? error.message : 'Unable to load analytics');
+      } finally {
+        if (active) setIsFetching(false);
+      }
+    };
+
+    fetchAnalytics();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const analytics = data ?? initialData;
+
   const filteredTrajectory = useMemo(() => {
-    const sorted = [...initialData.bandTrajectory].sort(
+    const sorted = [...analytics.bandTrajectory].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
     const scoped = filterModule(sorted, module === 'all' ? 'overall' : module);
@@ -79,22 +108,22 @@ const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) =>
         ? sorted.filter((point) => point.module === 'overall')
         : scoped;
     return filterByRange(scopeAdjusted, timeRange);
-  }, [initialData.bandTrajectory, module, timeRange]);
+  }, [analytics.bandTrajectory, module, timeRange]);
 
   const filteredModules = useMemo(() => {
-    const scopedModules = filterModule(initialData.modules, module);
+    const scopedModules = filterModule(analytics.modules, module);
     return scopedModules;
-  }, [initialData.modules, module]);
+  }, [analytics.modules, module]);
 
   const filteredWeakAreas: WeakAreaInsight[] = useMemo(() => {
-    const scoped = filterModule(initialData.weakAreas, module);
+    const scoped = filterModule(analytics.weakAreas, module);
     return scoped;
-  }, [initialData.weakAreas, module]);
+  }, [analytics.weakAreas, module]);
 
   const filteredAttempts = useMemo(() => {
-    const scoped = filterModule(initialData.recentAttempts, module);
+    const scoped = filterModule(analytics.recentAttempts, module);
     return filterByRange(scoped, timeRange);
-  }, [initialData.recentAttempts, module, timeRange]);
+  }, [analytics.recentAttempts, module, timeRange]);
 
   const overview = useMemo(() => {
     const attemptsWithScores = filteredAttempts.filter((attempt) => attempt.bandScore !== null);
@@ -135,6 +164,79 @@ const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) =>
     };
   }, [filteredModules]);
 
+  const aiInsights = useMemo(() => {
+    const insights: string[] = [];
+    const attemptsCount = filteredAttempts.length;
+    if (filteredTrajectory.length >= 2) {
+      const first = filteredTrajectory[0].bandScore;
+      const last = filteredTrajectory[filteredTrajectory.length - 1].bandScore;
+      const delta = Number((last - first).toFixed(1));
+      insights.push(
+        `${module === 'all' ? 'Overall performance' : moduleLabels[module]} improved by ${delta >= 0 ? '+' : ''}${delta} across your selected range.`,
+      );
+    }
+
+    const weakest = [...filteredWeakAreas].sort((a, b) => a.accuracy - b.accuracy)[0];
+    if (weakest) {
+      insights.push(
+        `${moduleLabels[weakest.module]} is weakest on ${weakest.label} with ${(weakest.accuracy * 100).toFixed(0)}% accuracy.`,
+      );
+    }
+
+    const highVolume = [...filteredModules].sort((a, b) => b.attempts - a.attempts)[0];
+    if (highVolume) {
+      insights.push(
+        `${moduleLabels[highVolume.module]} has the most practice (${highVolume.attempts} attempts); maintain consistency while closing gaps.`,
+      );
+    }
+
+    if (attemptsCount === 0) {
+      insights.push('You have no attempts in this range. Take a full mock to unlock analytics.');
+    }
+
+    return insights;
+  }, [filteredAttempts.length, filteredModules, filteredTrajectory, filteredWeakAreas, module]);
+
+  const suggestedActions = useMemo(
+    () => [
+      { label: 'Take a Listening MCQ drill', href: '/mock/listening/drill/section-1' },
+      { label: 'Practice Reading T/F/NG', href: '/mock/reading/drill/question-type' },
+      { label: 'Attempt a Writing Task 2 with AI feedback', href: '/mock/writing' },
+    ],
+    [],
+  );
+
+  if (!analytics) {
+    return (
+      <Container className="py-8 space-y-6">
+        <Card className="rounded-ds-2xl p-6">
+          <p className="text-sm text-muted-foreground">We could not load your analytics right now.</p>
+        </Card>
+      </Container>
+    );
+  }
+
+  if (analytics.recentAttempts.length === 0) {
+    return (
+      <Container className="py-12">
+        <Card className="space-y-4 rounded-ds-2xl p-8 text-center">
+          <h1 className="text-2xl font-semibold text-foreground">Mock Analytics</h1>
+          <p className="text-sm text-muted-foreground">
+            No mock data yet. Start your first full mock to see analytics here.
+          </p>
+          <div className="flex justify-center gap-3">
+            <Button asChild>
+              <Link href="/mock">Start a mock</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/mock/learning">Explore practice</Link>
+            </Button>
+          </div>
+        </Card>
+      </Container>
+    );
+  }
+
   return (
     <Container className="py-8 space-y-6">
       <div className="space-y-2">
@@ -168,19 +270,49 @@ const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) =>
         </div>
       </div>
 
+      {fetchError && (
+        <Card className="rounded-ds-2xl border-danger/40 bg-danger/5 p-4 text-sm text-danger">
+          We couldn&apos;t refresh analytics. Showing cached data. Error: {fetchError}
+        </Card>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard title="Average band" value={overview.avgBand ? overview.avgBand.toFixed(1) : '—'} />
-        <KpiCard title="Total attempts" value={overview.totalAttempts} />
+        <KpiCard title="Average band" value={overview.avgBand ? overview.avgBand.toFixed(1) : '—'} loading={isFetching} />
+        <KpiCard title="Total attempts" value={overview.totalAttempts} loading={isFetching} />
         <KpiCard
           title="Improvement"
           value={overview.improvement !== null ? `${overview.improvement >= 0 ? '+' : ''}${overview.improvement}` : '—'}
           helper="vs first attempt in range"
+          loading={isFetching}
         />
         <KpiCard
           title="Most attempted"
           value={overview.mostAttemptedModule ? moduleLabels[overview.mostAttemptedModule] : '—'}
+          loading={isFetching}
         />
       </section>
+
+      <Card className="space-y-4 rounded-ds-2xl p-6">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-foreground">AI summary of your performance</h2>
+          <p className="text-sm text-muted-foreground">Quick highlights to guide your next moves.</p>
+        </div>
+        <ul className="space-y-2 text-sm text-foreground">
+          {aiInsights.map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          {suggestedActions.map((action) => (
+            <Button key={action.href} size="sm" variant="secondary" asChild>
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
+          ))}
+        </div>
+      </Card>
 
       <Card className="space-y-4 rounded-ds-2xl p-6">
         <div className="flex items-center justify-between">
@@ -194,7 +326,7 @@ const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) =>
             </Badge>
           )}
         </div>
-        <BandProgressChart data={filteredTrajectory} />
+        {isFetching ? <Skeleton className="h-64 w-full rounded-ds-xl" /> : <BandProgressChart data={filteredTrajectory} />}
       </Card>
 
       <Card className="space-y-4 rounded-ds-2xl p-6">
@@ -202,7 +334,7 @@ const MockAnalyticsPage: NextPage<MockAnalyticsPageProps> = ({ initialData }) =>
           <h2 className="text-lg font-semibold text-foreground">Module comparison</h2>
           <p className="text-sm text-muted-foreground">Average bands and attempt depth per module.</p>
         </div>
-        <ModuleComparisonChart data={filteredModules} />
+        {isFetching ? <Skeleton className="h-64 w-full rounded-ds-xl" /> : <ModuleComparisonChart data={filteredModules} />}
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           {strongestWeakest.strongest && <Badge variant="success">Strongest: {moduleLabels[strongestWeakest.strongest]}</Badge>}
           {strongestWeakest.weakest && <Badge variant="danger">Weakest: {moduleLabels[strongestWeakest.weakest]}</Badge>}
@@ -279,12 +411,17 @@ interface KpiCardProps {
   title: string;
   value: string | number | null;
   helper?: string;
+  loading?: boolean;
 }
 
-const KpiCard = ({ title, value, helper }: KpiCardProps) => (
+const KpiCard = ({ title, value, helper, loading }: KpiCardProps) => (
   <Card className="space-y-2 rounded-ds-2xl p-4">
     <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-    <p className="text-2xl font-semibold text-foreground">{value}</p>
+    {loading ? (
+      <Skeleton className="h-7 w-1/3" />
+    ) : (
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+    )}
     {helper ? <p className="text-xs text-muted-foreground">{helper}</p> : null}
   </Card>
 );
