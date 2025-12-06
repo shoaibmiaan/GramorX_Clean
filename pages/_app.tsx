@@ -41,6 +41,9 @@ import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 // ⭐ NEW BreadcrumbBar V2
 import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
 
+// ⭐ Tooltip Provider
+import { TooltipProvider } from '@/components/design-system/Tooltip';
+
 const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }
@@ -100,6 +103,7 @@ const isListeningMockRoute = (pathname: string) =>
 const isReadingExamRoute = (pathname: string) =>
   // /mock/reading/[slug] → exam room
   /^\/mock\/reading\/[^/]+(\/|$)/.test(pathname);
+
 // ---------- Auth bridge ----------
 function useAuthBridge() {
   const router = useRouter();
@@ -424,17 +428,19 @@ function InnerApp({ Component, pageProps }: AppProps) {
 export default function App(props: AppProps) {
   return (
     <LocaleProvider initialLocale="en">
-      <ToastProvider>
-        <NotificationProvider>
-          <UserProvider>
-            <OrgProvider>
-              <InstalledAppProvider>
-                <InnerApp {...props} />
-              </InstalledAppProvider>
-            </OrgProvider>
-          </UserProvider>
-        </NotificationProvider>
-      </ToastProvider>
+      <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+        <ToastProvider>
+          <NotificationProvider>
+            <UserProvider>
+              <OrgProvider>
+                <InstalledAppProvider>
+                  <InnerApp {...props} />
+                </InstalledAppProvider>
+              </OrgProvider>
+            </UserProvider>
+          </NotificationProvider>
+        </ToastProvider>
+      </TooltipProvider>
     </LocaleProvider>
   );
 }
