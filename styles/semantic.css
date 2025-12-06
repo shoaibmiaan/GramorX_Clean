@@ -9,3 +9,22 @@
   background-repeat: no-repeat;
   background-size: cover;
 }
+
+/* === Mock portal surfaces === */
+.bg-app-mock {
+  background-color: rgb(var(--color-lightBg));
+  color: rgb(var(--color-foreground));
+}
+
+.bg-app-mock-light {
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--color-lightCard)),
+    rgb(var(--color-lightBg))
+  );
+}
+
+.bg-app-mock-dark {
+  background-color: rgb(var(--color-nightMid));
+  color: rgb(var(--color-lightCard));
+}
