@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -8,6 +8,8 @@ import { Icon } from '@/components/design-system/Icon';
 import type { Crumb } from '@/components/design-system/Breadcrumbs';
 
 import { MockBreadcrumbs } from './Breadcrumbs';
+import { ExamLeaveConfirm } from './ExamLeaveConfirm';
+import { isExamRoute } from './mockRoutes';
 
 /**
  * Mock portal theme system
@@ -71,9 +73,15 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
     return typeof raw === 'string' ? raw.split('?')[0] : '/mock';
   }, [pathname, router.asPath, router.pathname]);
 
-  const isExam = normalizedPathname.includes('/exam/');
+  const isExam = isExamRoute(normalizedPathname);
+  const isActiveExam = isExam && !normalizedPathname.includes('/result') && !normalizedPathname.includes('/review');
+  const hideLayoutChrome = isExam;
   const appliedTheme = isExam && theme === 'gradient' ? 'focus' : theme;
   const appliedThemeClass = themeClassMap[appliedTheme];
+  const focusBackgroundClass = isExam ? 'bg-exam-room' : appliedThemeClass;
+
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const leaveTargetRef = useRef<string | null>(null);
 
   const quickActions: Crumb[] = useMemo(
     () => [
@@ -91,10 +99,54 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
     void router.push('/mock');
   };
 
+  useEffect(() => {
+    const handleRouteChangeStart = (url: string) => {
+      if (!isActiveExam) return;
+      if (!router.asPath || url === router.asPath) return;
+
+      if (showLeaveConfirm) {
+        leaveTargetRef.current = url;
+        router.events.emit('routeChangeError');
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
+        throw 'Abort route change. Confirmation pending.';
+      }
+
+      leaveTargetRef.current = url;
+      setShowLeaveConfirm(true);
+
+      router.events.emit('routeChangeError');
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw 'Abort route change. Confirmation pending.';
+    };
+
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+    };
+  }, [isActiveExam, router, showLeaveConfirm]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isActiveExam) return;
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    };
+
+    if (isActiveExam) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+
+    return undefined;
+  }, [isActiveExam]);
+
   return (
-    <div className={`min-h-screen ${appliedThemeClass}`}>
+    <div className={`min-h-screen ${focusBackgroundClass}`}>
       <div className="flex min-h-screen flex-col">
-        {!isExam && (
+        {!hideLayoutChrome && (
           <header className="border-b border-border bg-app-mock-light backdrop-blur">
             <Container className="flex flex-wrap items-center justify-between gap-4 py-4">
               <div className="min-w-0 space-y-2">
@@ -136,7 +188,7 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {!isExam && (
+                  {!hideLayoutChrome && (
                     <label className="flex items-center gap-2 text-xs text-muted-foreground" htmlFor="mock-theme-picker">
                       <span className="hidden sm:inline">Background</span>
                       <select
@@ -179,12 +231,12 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
                   <span>Unified mock experience • Navigation locked to IELTS modules</span>
                 </div>
               </div>
-                <div className={`${appliedThemeClass} px-4 py-6 sm:px-6 sm:py-8`}>{children}</div>
+                <div className={`${focusBackgroundClass} px-4 py-6 sm:px-6 sm:py-8`}>{children}</div>
             </div>
           </Container>
         </main>
 
-        {!isExam && (
+        {!hideLayoutChrome && (
           <footer className="mt-auto border-t border-border bg-app-mock-light">
             <Container className="flex flex-wrap items-center justify-between gap-2 py-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -205,6 +257,23 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
           </footer>
         )}
       </div>
+
+      {showLeaveConfirm && (
+        <ExamLeaveConfirm
+          onStay={() => {
+            leaveTargetRef.current = null;
+            setShowLeaveConfirm(false);
+          }}
+          onLeave={() => {
+            const target = leaveTargetRef.current;
+            leaveTargetRef.current = null;
+            setShowLeaveConfirm(false);
+            if (target) {
+              void router.push(target);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
