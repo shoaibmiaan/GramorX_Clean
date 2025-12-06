@@ -35,11 +35,9 @@ import ResourcesLayout from '@/components/layouts/ResourcesLayout';
 import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
 import SupportLayout from '@/components/layouts/SupportLayout';
 
-// ⭐ NEW — Mock portal layout
-import MockLayout from '@/components/layouts/MockLayout';
-
 // ⭐ NEW — Breadcrumb Bar V2
 import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
+
 
 // -----------------------
 // Error Boundary
@@ -55,13 +53,15 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   if (hasError) {
     return (
-      <Card className="mx-auto mt-8 max-w-md">
+      <Card className="mx-auto max-w-md mt-8">
         <div className="p-4 text-center">
-          <h3 className="mb-2 text-lg font-semibold">Layout Error</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold mb-2">Layout Error</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             There was a problem loading this page layout.
           </p>
-          <Button onClick={() => window.location.reload()}>Reload Page</Button>
+          <Button onClick={() => window.location.reload()}>
+            Reload Page
+          </Button>
         </div>
       </Card>
     );
@@ -69,6 +69,7 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return <>{children}</>;
 };
+
 
 // -----------------------
 // Props
@@ -97,6 +98,7 @@ type AppLayoutManagerProps = {
   showBreadcrumbs?: boolean;
 };
 
+
 // -----------------------
 // Teacher Onboarding Gate
 // -----------------------
@@ -120,23 +122,13 @@ function TeacherOnboardingGate() {
           </p>
           <h2 className="text-h3 font-semibold text-foreground">Complete your profile</h2>
           <p className="text-small text-muted-foreground">
-            Your account is created but not approved yet. Share a quick profile so our team
-            can unlock the teacher workspace for you.
+            Your account is created but not approved yet. Share a quick profile so our team can unlock the teacher workspace for you.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            name="full-name"
-            label="Full name"
-            placeholder="Your name"
-            autoComplete="name"
-          />
-          <Input
-            name="subject"
-            label="Subject / expertise"
-            placeholder="e.g., IELTS Writing"
-          />
+          <Input name="full-name" label="Full name" placeholder="Your name" autoComplete="name" />
+          <Input name="subject" label="Subject / expertise" placeholder="e.g., IELTS Writing" />
         </div>
 
         <Textarea
@@ -159,6 +151,7 @@ function TeacherOnboardingGate() {
   );
 }
 
+
 // -----------------------
 // Teacher Access Helper
 // -----------------------
@@ -174,7 +167,7 @@ const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | nu
       canAccessTeacher,
       isApproved,
       shouldRedirect: isTeacherRoute && role && !canAccessTeacher,
-      showOnboarding: role === 'teacher' && !isApproved,
+      showOnboarding: role === 'teacher' && !isApproved
     };
   }, [role, isTeacherApproved, isTeacherRoute]);
 
@@ -186,6 +179,7 @@ const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | nu
 
   return teacherAccess;
 };
+
 
 // -----------------------
 // Layout Config Type
@@ -201,6 +195,7 @@ type LayoutConfig = {
     guardFallback?: () => ReactNode
   ) => ReactNode;
 };
+
 
 // -----------------------
 // MAIN COMPONENT
@@ -226,11 +221,13 @@ export function AppLayoutManager({
   guardFallback,
   showBreadcrumbs,
 }: AppLayoutManagerProps) {
+
   const router = useRouter();
   const pathname = router.pathname;
   const teacherAccess = useTeacherAccess(role, isTeacherApproved);
   const isTeacherRoute = pathname.startsWith('/teacher');
   const teacherAccessRole = role ?? 'guest';
+
 
   // -----------------------
   // Teacher Content Switch
@@ -255,24 +252,14 @@ export function AppLayoutManager({
     return guardFallback();
   }, [role, teacherAccessRole, teacherAccess.isApproved, children, guardFallback]);
 
+
   // -----------------------
   // Layout Mapping
   // -----------------------
   const layoutConfigs: LayoutConfig[] = useMemo(
     () => [
       { type: 'admin', component: AdminLayout, guard: () => isAdminRoute },
-      {
-        type: 'teacher',
-        component: TeacherLayout,
-        guard: () => isTeacherRoute,
-        getContent: () => getTeacherContent(),
-      },
-      // ⭐ NEW: Mock portal (all /mock pages that still show chrome)
-      {
-        type: 'mock',
-        component: MockLayout,
-        guard: () => pathname.startsWith('/mock'),
-      },
+      { type: 'teacher', component: TeacherLayout, guard: () => isTeacherRoute, getContent: () => getTeacherContent() },
       { type: 'institutions', component: InstitutionsLayout, guard: () => isInstitutionsRoute },
       { type: 'dashboard', component: DashboardLayout, guard: () => isDashboardRoute },
       { type: 'marketplace', component: MarketplaceLayout, guard: () => isMarketplaceRoute },
@@ -280,42 +267,12 @@ export function AppLayoutManager({
       { type: 'community', component: CommunityLayout, guard: () => isCommunityRoute },
       { type: 'reports', component: ReportsLayout, guard: () => isReportsRoute },
       { type: 'marketing', component: PublicMarketingLayout, guard: () => isMarketingRoute },
-      {
-        type: 'profile',
-        component: ProfileLayout,
-        guard: () => pathname.startsWith('/account') || pathname.startsWith('/user'),
-      },
-      {
-        type: 'communication',
-        component: CommunicationLayout,
-        guard: () =>
-          pathname.startsWith('/messages') ||
-          pathname.startsWith('/chat') ||
-          pathname.startsWith('/inbox'),
-      },
-      {
-        type: 'billing',
-        component: BillingLayout,
-        guard: () =>
-          pathname.startsWith('/billing') ||
-          pathname.startsWith('/payment') ||
-          pathname.startsWith('/subscription'),
-      },
-      {
-        type: 'resources',
-        component: ResourcesLayout,
-        guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library'),
-      },
-      {
-        type: 'analytics',
-        component: AnalyticsLayout,
-        guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats'),
-      },
-      {
-        type: 'support',
-        component: SupportLayout,
-        guard: () => pathname.startsWith('/support') || pathname.startsWith('/help'),
-      },
+      { type: 'profile', component: ProfileLayout, guard: () => pathname.startsWith('/account') || pathname.startsWith('/user') },
+      { type: 'communication', component: CommunicationLayout, guard: () => pathname.startsWith('/messages') || pathname.startsWith('/chat') || pathname.startsWith('/inbox') },
+      { type: 'billing', component: BillingLayout, guard: () => pathname.startsWith('/billing') || pathname.startsWith('/payment') || pathname.startsWith('/subscription') },
+      { type: 'resources', component: ResourcesLayout, guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library') },
+      { type: 'analytics', component: AnalyticsLayout, guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats') },
+      { type: 'support', component: SupportLayout, guard: () => pathname.startsWith('/support') || pathname.startsWith('/help') },
     ],
     [
       isAdminRoute,
@@ -332,6 +289,7 @@ export function AppLayoutManager({
     ]
   );
 
+
   // -----------------------
   // Which Layout Active?
   // -----------------------
@@ -340,10 +298,15 @@ export function AppLayoutManager({
     [layoutConfigs, role, isTeacherApproved]
   );
 
+
   // -----------------------
   // Apply Wrappers
   // -----------------------
-  const getNakedContent = (auth: boolean, proctoring: boolean, content: ReactNode) => {
+  const getNakedContent = (
+    auth: boolean,
+    proctoring: boolean,
+    content: ReactNode
+  ) => {
     if (auth) return <AuthLayout>{content}</AuthLayout>;
     if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
     return content;
@@ -374,6 +337,7 @@ export function AppLayoutManager({
     children,
     guardFallback,
   ]);
+
 
   // -----------------------
   // Final Layout Wrap
