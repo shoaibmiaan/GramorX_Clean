@@ -10,14 +10,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import { supabase } from '@/lib/supabaseClient';
-import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Input } from '@/components/design-system/Input';
 import FocusGuard from '@/components/exam/FocusGuard';
-import { Timer } from '@/components/design-system/Timer';
 import Icon from '@/components/design-system/Icon';
+import { MockExamRoomLayout } from '@/components/exam/MockExamRoomLayout';
+import { ExamHeader } from '@/components/exam/ExamHeader';
+import { ExamTimer } from '@/components/exam/ExamTimer';
+import { ExamSidebar } from '@/components/exam/ExamSidebar';
+import { ExamContent } from '@/components/exam/ExamContent';
+import { cn } from '@/lib/utils';
 
 type MCQ = {
   id: string;
@@ -261,37 +265,41 @@ export default function ListeningTestPage() {
   // error UI
   if (testError) {
     return (
-      <main className="py-10">
-        <Container>
-          <Card className="rounded-ds-2xl bg-amber-50 border border-amber-200 p-6">
-            <h1 className="font-slab text-h3 text-amber-900 mb-2">Something went wrong</h1>
+      <MockExamRoomLayout
+        header={<ExamHeader title="Listening mock" subtitle="Error" iconName="AlertTriangle" />}
+      >
+        <ExamContent>
+          <Card className="border border-amber-200 bg-amber-50 p-6 text-amber-900">
+            <h1 className="mb-2 text-lg font-semibold">Something went wrong</h1>
             <p className="text-sm text-amber-800">{testError}</p>
             <div className="mt-4">
               <Button asChild size="sm" variant="primary" className="rounded-ds-xl">
-                <Link href="/listening">Back to Listening tests</Link>
+                <Link href="/mock/listening">Back to Listening tests</Link>
               </Button>
             </div>
           </Card>
-        </Container>
-      </main>
+        </ExamContent>
+      </MockExamRoomLayout>
     );
   }
 
   if (!test || !currentSection) {
     return (
-      <main className="py-10">
-        <Container>
-          <Card className="p-6 rounded-ds-2xl">
-            <div className="animate-pulse h-5 w-40 bg-muted rounded mb-2" />
-            <div className="animate-pulse h-4 w-64 bg-muted rounded" />
+      <MockExamRoomLayout
+        header={<ExamHeader title="Loading Listening mock" subtitle="Preparing exam" iconName="Loader2" />}
+      >
+        <ExamContent>
+          <Card className="rounded-ds-2xl p-6">
+            <div className="mb-2 h-5 w-40 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-64 animate-pulse rounded bg-muted" />
             <div className="mt-4 space-y-2">
-              <div className="animate-pulse h-4 w-full bg-muted rounded" />
-              <div className="animate-pulse h-4 w-full bg-muted rounded" />
-              <div className="animate-pulse h-4 w-3/4 bg-muted rounded" />
+              <div className="h-4 w-full animate-pulse rounded bg-muted" />
+              <div className="h-4 w-full animate-pulse rounded bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
             </div>
           </Card>
-        </Container>
-      </main>
+        </ExamContent>
+      </MockExamRoomLayout>
     );
   }
 
@@ -300,6 +308,45 @@ export default function ListeningTestPage() {
 
   // if section has its own audio_url, use that first; else fall back to master
   const audioSrc = currentSection.audioUrl || test.masterAudioUrl;
+
+  const sidebar = (
+    <ExamSidebar title="Sections">
+      <div className="flex flex-col gap-2">
+        {test.sections.map((section, idx) => {
+          const answered = section.questions.filter(
+            (q) => (answers[q.id] ?? '').trim().length > 0,
+          ).length;
+          const isActive = idx === currentIdx;
+
+          return (
+            <button
+              key={section.orderNo}
+              type="button"
+              onClick={() => setCurrentIdx(idx)}
+              className={cn(
+                'flex w-full items-center justify-between rounded-ds-xl border px-3 py-2 text-left transition hover:border-primary/60 hover:text-foreground',
+                isActive
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-surface-subtle text-muted-foreground',
+              )}
+            >
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-foreground">
+                  Section {section.orderNo}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {section.questions.length} questions
+                </span>
+              </div>
+              <Badge size="xs" variant={answered === section.questions.length ? 'success' : 'neutral'}>
+                {answered}/{section.questions.length}
+              </Badge>
+            </button>
+          );
+        })}
+      </div>
+    </ExamSidebar>
+  );
 
   return (
     <>
@@ -310,49 +357,36 @@ export default function ListeningTestPage() {
         onFullscreenExit={() => setAttemptStarted(false)}
       />
 
-      <main className="py-6">
-        <Container className="space-y-4">
-          {/* Top bar */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button
-                asChild
-                size="sm"
-                variant="ghost"
-                className="rounded-ds-full px-3 text-xs text-muted-foreground"
-              >
-                <Link href="/listening">
-                  <Icon name="ArrowLeft" size={14} />
-                  Exit Listening test
-                </Link>
-              </Button>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary">
-                  IELTS Listening
-                </p>
-                <h1 className="font-slab text-h4">{test.title}</h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Timer
-                initialSeconds={TOTAL_TIME_SEC}
+      <MockExamRoomLayout
+        header={
+          <ExamHeader
+            title={test.title}
+            subtitle="IELTS Listening"
+            iconName="Headphones"
+            meta={
+              <Badge variant="neutral" size="sm">
+                Section {currentSection.orderNo} of {totalSections}
+              </Badge>
+            }
+            timer={
+              <ExamTimer
+                durationSeconds={TOTAL_TIME_SEC}
                 onTick={(secLeft) => {
                   setTimeLeft(secLeft);
                   if (!attemptStarted && secLeft < TOTAL_TIME_SEC) {
                     setAttemptStarted(true);
                   }
                 }}
-                onComplete={handleSubmit}
+                onExpire={handleSubmit}
               />
-              <Badge variant="neutral" size="sm">
-                Section {currentSection.orderNo} of {totalSections}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Audio + transcript */}
-          <Card className="p-4 rounded-ds-2xl flex flex-col gap-3">
+            }
+            onExit={() => router.push('/mock/listening')}
+          />
+        }
+        sidebar={sidebar}
+      >
+        <ExamContent>
+          <Card className="flex flex-col gap-3 rounded-ds-2xl p-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Icon name="Headphones" size={16} className="text-primary" />
@@ -419,7 +453,7 @@ export default function ListeningTestPage() {
             </div>
 
             {transcriptOpen && currentSection.transcript && (
-              <div className="mt-2 rounded-ds-xl bg-muted px-3 py-2 text-xs text-muted-foreground max-h-56 overflow-y-auto">
+              <div className="max-h-56 overflow-y-auto rounded-ds-xl bg-muted px-3 py-2 text-xs text-muted-foreground">
                 {currentSection.transcript.split('\n').map((line, idx) => (
                   <p key={idx} className="mb-1">
                     {line}
@@ -429,8 +463,7 @@ export default function ListeningTestPage() {
             )}
           </Card>
 
-          {/* Questions */}
-          <Card className="p-5 rounded-ds-2xl space-y-4">
+          <Card className="space-y-4 rounded-ds-2xl p-5">
             {currentSection.questions.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 No questions found for this section. Check your seeding for{' '}
@@ -454,7 +487,7 @@ export default function ListeningTestPage() {
                   key={q.id}
                   className="border-b border-border/60 pb-4 last:border-b-0 last:pb-0"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-foreground">
                       Q{q.qNo}. {q.prompt}
                     </p>
@@ -507,7 +540,6 @@ export default function ListeningTestPage() {
             })}
           </Card>
 
-          {/* Bottom controls */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Button
@@ -515,9 +547,7 @@ export default function ListeningTestPage() {
                 variant="secondary"
                 className="rounded-ds-full"
                 disabled={currentIdx === 0}
-                onClick={() =>
-                  setCurrentIdx((prev) => Math.max(0, prev - 1))
-                }
+                onClick={() => setCurrentIdx((prev) => Math.max(0, prev - 1))}
               >
                 <Icon name="ArrowLeft" size={14} />
                 Previous section
@@ -527,9 +557,7 @@ export default function ListeningTestPage() {
                 variant="secondary"
                 className="rounded-ds-full"
                 disabled={isLastSection}
-                onClick={() =>
-                  setCurrentIdx((prev) => prev + 1)
-                }
+                onClick={() => setCurrentIdx((prev) => prev + 1)}
               >
                 Next section
                 <Icon name="ArrowRight" size={14} />
@@ -557,8 +585,8 @@ export default function ListeningTestPage() {
               </Button>
             </div>
           </div>
-        </Container>
-      </main>
+        </ExamContent>
+      </MockExamRoomLayout>
     </>
   );
 }

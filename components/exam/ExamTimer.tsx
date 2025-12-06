@@ -15,6 +15,7 @@ export type ExamTimerProps = {
   durationSeconds: number;
   isRunning?: boolean;
   onExpire?: () => void;
+  onTick?: (remainingSeconds: number) => void;
   className?: string;
 };
 
@@ -22,6 +23,7 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
   durationSeconds,
   isRunning = true,
   onExpire,
+  onTick,
   className,
 }) => {
   const [remaining, setRemaining] = React.useState(durationSeconds);
@@ -45,6 +47,12 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
 
     return () => window.clearInterval(timer);
   }, [isRunning, hasExpired]);
+
+  React.useEffect(() => {
+    if (onTick) {
+      onTick(remaining);
+    }
+  }, [onTick, remaining]);
 
   React.useEffect(() => {
     if (hasExpired && onExpire) {
