@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -8,6 +8,8 @@ import { Icon } from '@/components/design-system/Icon';
 import type { Crumb } from '@/components/design-system/Breadcrumbs';
 
 import { MockBreadcrumbs } from './Breadcrumbs';
+import { ExamLeaveConfirm } from './ExamLeaveConfirm';
+import { isExamRoute } from './mockRoutes';
 
 /**
  * Mock portal theme system
@@ -71,9 +73,13 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
     return typeof raw === 'string' ? raw.split('?')[0] : '/mock';
   }, [pathname, router.asPath, router.pathname]);
 
-  const isExam = normalizedPathname.includes('/exam/');
+  const isExam = isExamRoute(normalizedPathname);
+  const isActiveExam = isExam && !normalizedPathname.includes('/result') && !normalizedPathname.includes('/review');
   const appliedTheme = isExam && theme === 'gradient' ? 'focus' : theme;
   const appliedThemeClass = themeClassMap[appliedTheme];
+
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const leaveTargetRef = useRef<string | null>(null);
 
   const quickActions: Crumb[] = useMemo(
     () => [
@@ -90,6 +96,50 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
     }
     void router.push('/mock');
   };
+
+  useEffect(() => {
+    const handleRouteChangeStart = (url: string) => {
+      if (!isActiveExam) return;
+      if (!router.asPath || url === router.asPath) return;
+
+      if (showLeaveConfirm) {
+        leaveTargetRef.current = url;
+        router.events.emit('routeChangeError');
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
+        throw 'Abort route change. Confirmation pending.';
+      }
+
+      leaveTargetRef.current = url;
+      setShowLeaveConfirm(true);
+
+      router.events.emit('routeChangeError');
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw 'Abort route change. Confirmation pending.';
+    };
+
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+    };
+  }, [isActiveExam, router, showLeaveConfirm]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isActiveExam) return;
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    };
+
+    if (isActiveExam) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+
+    return undefined;
+  }, [isActiveExam]);
 
   return (
     <div className={`min-h-screen ${appliedThemeClass}`}>
@@ -205,6 +255,23 @@ export const MockPortalLayout: React.FC<MockPortalLayoutProps> = ({
           </footer>
         )}
       </div>
+
+      {showLeaveConfirm && (
+        <ExamLeaveConfirm
+          onStay={() => {
+            leaveTargetRef.current = null;
+            setShowLeaveConfirm(false);
+          }}
+          onLeave={() => {
+            const target = leaveTargetRef.current;
+            leaveTargetRef.current = null;
+            setShowLeaveConfirm(false);
+            if (target) {
+              void router.push(target);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
