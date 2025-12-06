@@ -9,3 +9,56 @@
   background-repeat: no-repeat;
   background-size: cover;
 }
+
+/* === Mock portal surfaces === */
+.bg-app-mock {
+  background-color: rgb(var(--color-lightBg));
+  color: rgb(var(--color-foreground));
+}
+
+.bg-app-mock-light {
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--color-lightCard)),
+    rgb(var(--color-lightBg))
+  );
+}
+
+.bg-app-mock-dark {
+  background-color: rgb(var(--color-nightMid));
+  color: rgb(var(--color-lightCard));
+}
+
+.bg-mock-default {
+  background-color: rgb(var(--color-lightBg));
+  color: rgb(var(--color-foreground));
+}
+
+.bg-mock-gradient {
+  --mock-g1: radial-gradient(70rem 30rem at 10% 0%, rgb(var(--color-electricBlue) / 0.14), transparent 55%);
+  --mock-g2: radial-gradient(60rem 25rem at 90% 10%, rgb(var(--color-vibrantPurple) / 0.14), transparent 55%);
+  background-image: var(--mock-g1), var(--mock-g2), linear-gradient(180deg, rgb(var(--background)), rgb(var(--lightBg)));
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: rgb(var(--color-foreground));
+}
+
+.bg-mock-solid {
+  background-color: rgb(var(--color-card));
+  color: rgb(var(--color-foreground));
+}
+
+.bg-mock-dark {
+  background-color: rgb(var(--color-nightBg));
+  color: rgb(var(--color-lightCard));
+}
+
+.bg-mock-focus {
+  background-color: rgb(var(--color-surfaceAlt));
+  color: rgb(var(--color-foreground));
+}
+
+.bg-mock-paper {
+  background-image: linear-gradient(180deg, rgb(var(--color-card)), rgb(var(--color-lightBg)) 50%, rgb(var(--color-card)));
+  color: rgb(var(--color-foreground));
+}
