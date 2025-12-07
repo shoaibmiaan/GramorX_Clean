@@ -114,51 +114,34 @@ export default function LoginWithEmail() {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmedEmail, password: pw }),
+      const { data, error } = await supabaseBrowser.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: pw,
       });
-      const body = await res.json().catch(() => ({}));
-      setLoading(false);
 
-      if (!res.ok || !body.session) {
-        const msg =
-          typeof body.error === 'string'
-            ? body.error
-            : getAuthErrorMessage(body.error) ?? 'Unable to sign in. Please try again.';
+      if (error || !data.session) {
+        const msg = getAuthErrorMessage(error) ?? error?.message ?? 'Unable to sign in. Please try again.';
         setErr(msg);
+        setLoading(false);
         return;
       }
 
-      // If login is successful, set session and proceed
-      await supabaseBrowser.auth
-        .setSession({
-          access_token: body.session.access_token,
-          refresh_token: body.session.refresh_token,
-        })
-        .catch(err => console.error('Set session failed:', err));
+      const session = data.session;
+      const user = data.user ?? session.user ?? null;
 
-      const serverSynced = await syncServerSession(body.session);
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabaseBrowser.auth.getUser();
-      if (userError) console.error('Get user failed:', userError);
+      const serverSynced = await syncServerSession(session);
+      await recordLoginEvent(session);
 
       // Skip OTP if both email and password are provided
-      if (!body.mfaRequired) {
+      if (!otpSent) {
         if (!serverSynced) {
-          await syncServerSession(body.session);
+          await syncServerSession(session);
         }
-
-        await recordLoginEvent(body.session);
 
         const rawNext = typeof router.query.next === 'string' ? router.query.next : '';
         const safeNext = rawNext && rawNext.startsWith('/') && rawNext !== '/login' ? rawNext : null;
 
-        const fallback = user ? destinationByRole(user) : '/dashboard';
+        const fallback = user ? destinationByRole(user) : '/mock';
         const target = safeNext ?? fallback;
 
         try {
@@ -169,6 +152,8 @@ export default function LoginWithEmail() {
         }
         return;
       }
+
+      setLoading(false);
 
       // If MFA (OTP) is required, trigger the challenge
       const challenged = await createChallenge(user).catch(err => console.error('Create challenge failed:', err));
@@ -217,7 +202,7 @@ export default function LoginWithEmail() {
             required
           />
           <Button type="submit" variant="primary" className="rounded-ds-xl" fullWidth disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing you in…' : 'Sign in'}
           </Button>
           <Button asChild variant="link" className="mt-2" fullWidth>
             <Link href="/forgot-password">Forgot password?</Link>
