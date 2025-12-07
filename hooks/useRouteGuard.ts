@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabaseClient'; // Replaced supabaseBrowser
 import { useLocale } from '@/lib/locale';
@@ -42,6 +42,7 @@ export function useRouteGuard() {
     user: null,
     role: null,
   });
+  const hasRedirected = useRef(false); // prevent double redirects in StrictMode/dev
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -65,6 +66,7 @@ export function useRouteGuard() {
         if (!mounted) return;
 
         resolved = true;
+
         if (error) {
           setAuthStatus('unauthenticated');
           setSessionUser({ user: null, role: null });
@@ -76,6 +78,7 @@ export function useRouteGuard() {
         setAuthStatus(session ? 'authenticated' : 'unauthenticated');
       } catch (error) {
         if (mounted) {
+          resolved = true;
           setAuthStatus('unauthenticated');
           setSessionUser({ user: null, role: null });
         }
@@ -128,10 +131,14 @@ export function useRouteGuard() {
 
     void hydrateLocale();
 
+    if (hasRedirected.current) return;
+
     (async () => {
       // Guest-only routes (e.g., /login, /signup): if authed, go away
       if (guestOnlyR) {
         if (authed) {
+          hasRedirected.current = true;
+
           const target = safeNext(router.query.next) || '/welcome';
           if (target && router.asPath !== target) {
             try {
@@ -139,9 +146,7 @@ export function useRouteGuard() {
             } catch (err: any) {
               if (
                 typeof err?.message === 'string' &&
-                err.message.includes(
-                  'attempted to hard navigate to the same URL'
-                )
+                err.message.includes('attempted to hard navigate to the same URL')
               ) {
                 // dev-only invariant – ignore
               } else {
@@ -160,10 +165,10 @@ export function useRouteGuard() {
 
       // Protected routes begin here
       if (!authed) {
+        hasRedirected.current = true;
+
         const targetQuery = { next: router.asPath };
-        const targetAsPath = `/login?${new URLSearchParams(
-          targetQuery
-        ).toString()}`;
+        const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
 
         if (router.asPath !== targetAsPath) {
           try {
@@ -174,9 +179,7 @@ export function useRouteGuard() {
           } catch (err: any) {
             if (
               typeof err?.message === 'string' &&
-              err.message.includes(
-                'attempted to hard navigate to the same URL'
-              )
+              err.message.includes('attempted to hard navigate to the same URL')
             ) {
               // dev-only invariant – ignore
             } else {
@@ -190,14 +193,14 @@ export function useRouteGuard() {
       // Role-guarded routes
       if (!canAccess(pathname, role)) {
         const need = requiredRolesFor(pathname);
+        hasRedirected.current = true;
+
         if (!role) {
           const targetQuery = {
             next: router.asPath,
             need: Array.isArray(need) ? need.join(',') : need ?? '',
           };
-          const targetAsPath = `/login?${new URLSearchParams(
-            targetQuery
-          ).toString()}`;
+          const targetAsPath = `/login?${new URLSearchParams(targetQuery).toString()}`;
 
           if (router.asPath !== targetAsPath) {
             try {
@@ -208,9 +211,7 @@ export function useRouteGuard() {
             } catch (err: any) {
               if (
                 typeof err?.message === 'string' &&
-                err.message.includes(
-                  'attempted to hard navigate to the same URL'
-                )
+                err.message.includes('attempted to hard navigate to the same URL')
               ) {
                 // dev-only invariant – ignore
               } else {
@@ -226,9 +227,7 @@ export function useRouteGuard() {
             } catch (err: any) {
               if (
                 typeof err?.message === 'string' &&
-                err.message.includes(
-                  'attempted to hard navigate to the same URL'
-                )
+                err.message.includes('attempted to hard navigate to the same URL')
               ) {
                 // ignore
               } else {
