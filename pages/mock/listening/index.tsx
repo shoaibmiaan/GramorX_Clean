@@ -13,6 +13,10 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 
+import { ModuleHero } from '@/components/mock/ModuleHero';
+import { SidebarMetrics } from '@/components/mock/SidebarMetrics';
+import { SidebarTools } from '@/components/mock/SidebarTools';
+
 // -----------------------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------------------
@@ -106,63 +110,23 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90">
-        {/* ------------------------------------------------------------- */}
-        {/* TOP HERO COMMAND BAR */}
-        {/* ------------------------------------------------------------- */}
-        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
-          <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Left side */}
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="Headphones" size={14} />
-                  <span>Listening Mock Suite</span>
-                </div>
-
-                <h1 className="font-slab text-h2 leading-tight">
-                  Your Listening Mock Command Center.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Four sections. Forty questions. Single continuous audio — strict IELTS
-                  computer-based environment with exam-room layout and band tracking.
-                </p>
-
-                <div className="text-xs text-muted-foreground">{helperText}</div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
-                    <Link href="#tests-list">Start a Listening Mock</Link>
-                  </Button>
-                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
-                    <Link href="/mock">Back to Mock Hub</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Right side quick stats */}
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Listening Quick Stats
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </Container>
-        </section>
+        <ModuleHero
+          title="Your Listening Mock Command Center."
+          subtitle="Four sections. Forty questions. Single continuous audio — strict IELTS computer-based environment with exam-room layout and band tracking."
+          icon="Headphones"
+          eyebrow="Listening Mock Suite"
+          helperText={helperText}
+          actions={[
+            { label: 'Start a Listening Mock', href: '#tests-list', variant: 'primary' },
+            { label: 'Back to Mock Hub', href: '/mock', variant: 'secondary' },
+          ]}
+          statsTitle="Listening Quick Stats"
+          stats={[
+            { label: 'Best', value: stats.bestBand ?? '--' },
+            { label: 'Avg', value: stats.avgBand ?? '--' },
+            { label: 'Attempts', value: stats.totalAttempts },
+          ]}
+        />
 
         {/* ------------------------------------------------------------- */}
         {/* GRID LAYOUT */}
@@ -255,44 +219,42 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
 
               {/* ------------------ RIGHT RAIL ------------------ */}
               <div className="space-y-6">
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Listening Metrics
-                  </p>
+                <SidebarMetrics
+                  title="Listening Metrics"
+                  metrics={[
+                    { label: 'Mocks available', value: tests.length },
+                    { label: 'Mocks attempted', value: stats.totalTestsAttempted },
+                    { label: 'Best band', value: stats.bestBand ?? '--' },
+                    { label: 'Avg band', value: stats.avgBand ?? '--' },
+                  ]}
+                  lastAttempt={stats.lastAttemptAt}
+                />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Info label="Mocks available" value={tests.length} />
-                    <Info label="Mocks attempted" value={stats.totalTestsAttempted} />
-                    <Info label="Best band" value={stats.bestBand ?? '--'} />
-                    <Info label="Avg band" value={stats.avgBand ?? '--'} />
-                  </div>
-
-                  {stats.lastAttemptAt && (
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Last attempt:{' '}
-                      {new Date(stats.lastAttemptAt).toLocaleDateString()}
-                    </p>
-                  )}
-                </Card>
-
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Power Tools (Listening)
-                  </p>
-
-                  <Tool href="/mock/listening/drill/section" icon="Waveform">
-                    Section-wise practice
-                  </Tool>
-                  <Tool href="/mock/listening/drill/question-type" icon="Target">
-                    Question-type drills
-                  </Tool>
-                  <Tool href="/mock/listening/analytics" icon="Activity">
-                    Analytics & Weaknesses
-                  </Tool>
-                  <Tool href="/mock/listening/techniques" icon="BookOpen">
-                    Techniques trainer
-                  </Tool>
-                </Card>
+                <SidebarTools
+                  title="Power Tools (Listening)"
+                  tools={[
+                    {
+                      label: 'Section-wise practice',
+                      href: '/mock/listening/drill/section',
+                      icon: 'Waveform',
+                    },
+                    {
+                      label: 'Question-type drills',
+                      href: '/mock/listening/drill/question-type',
+                      icon: 'Target',
+                    },
+                    {
+                      label: 'Analytics & Weaknesses',
+                      href: '/mock/listening/analytics',
+                      icon: 'Activity',
+                    },
+                    {
+                      label: 'Techniques trainer',
+                      href: '/mock/listening/techniques',
+                      icon: 'BookOpen',
+                    },
+                  ]}
+                />
               </div>
             </div>
           </Container>
@@ -301,35 +263,6 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
     </>
   );
 };
-
-// -----------------------------------------------------------------------------
-// Helper Components
-// -----------------------------------------------------------------------------
-
-const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between text-xs">
-    <span className="text-muted-foreground">{label}</span>
-    <span className="font-semibold">{value}</span>
-  </div>
-);
-
-const Tool = ({
-  href,
-  icon,
-  children,
-}: {
-  href: string;
-  icon: string;
-  children: React.ReactNode;
-}) => (
-  <Link
-    href={href}
-    className="flex justify-between items-center px-3 py-2 rounded-md border hover:bg-muted/70 transition-colors"
-  >
-    <span>{children}</span>
-    <Icon name={icon} className="h-4 w-4" />
-  </Link>
-);
 
 // -----------------------------------------------------------------------------
 // SSR

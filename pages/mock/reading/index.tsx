@@ -13,6 +13,10 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 
+import { ModuleHero } from '@/components/mock/ModuleHero';
+import { SidebarMetrics } from '@/components/mock/SidebarMetrics';
+import { SidebarTools } from '@/components/mock/SidebarTools';
+
 import { ReadingForecastPanel } from '@/components/reading/ReadingForecastPanel';
 import { AISummaryCard } from '@/components/reading/AISummaryCard';
 import { DailyChallengeBanner } from '@/components/reading/daily/DailyChallengeBanner';
@@ -107,61 +111,27 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
       </Head>
 
       <main className="bg-lightBg dark:bg-dark/90">
-        {/* ------------------------------------------------------------- */}
-        {/* TOP HERO COMMAND BAR */}
-        {/* ------------------------------------------------------------- */}
-        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
-          <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="BookOpen" size={14} />
-                  <span>Reading Mock Suite</span>
-                </div>
-
-                <h1 className="font-slab text-h2 leading-tight">
-                  Your Reading Mock Command Center.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Three passages. Forty questions. Strict timing. Cambridge-style academic
-                  design with AI summaries, speed metrics, band prediction & attempt analytics.
-                </p>
-
-                <div className="text-xs text-muted-foreground">{helperText}</div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
-                    <Link href="#tests-list">Start a Reading Mock</Link>
-                  </Button>
-                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
-                    <Link href="/mock/reading/daily">Daily Reading Challenge</Link>
-                  </Button>
-                </div>
-              </div>
-
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Quick Stats
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </Container>
-        </section>
+        <ModuleHero
+          title="Your Reading Mock Command Center."
+          subtitle="Three passages. Forty questions. Strict timing. Cambridge-style academic design with AI summaries, speed metrics, band prediction & attempt analytics."
+          icon="BookOpen"
+          eyebrow="Reading Mock Suite"
+          helperText={helperText}
+          actions={[
+            { label: 'Start a Reading Mock', href: '#tests-list', variant: 'primary' },
+            {
+              label: 'Daily Reading Challenge',
+              href: '/mock/reading/daily',
+              variant: 'secondary',
+            },
+          ]}
+          statsTitle="Reading Quick Stats"
+          stats={[
+            { label: 'Best', value: stats.bestBand ?? '--' },
+            { label: 'Avg', value: stats.avgBand ?? '--' },
+            { label: 'Attempts', value: stats.totalAttempts },
+          ]}
+        />
 
         {/* ------------------------------------------------------------- */}
         {/* DAILY CHALLENGE */}
@@ -278,47 +248,46 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
               <div className="space-y-6">
                 <BandPredictorCard attempts={attemptSummaries} />
 
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Reading Metrics
-                  </p>
+                <SidebarMetrics
+                  title="Reading Metrics"
+                  metrics={[
+                    { label: 'Mocks available', value: tests.length },
+                    { label: 'Mocks attempted', value: stats.totalTestsAttempted },
+                    { label: 'Best band', value: stats.bestBand ?? '--' },
+                    { label: 'Avg band', value: stats.avgBand ?? '--' },
+                  ]}
+                  lastAttempt={stats.lastAttemptAt}
+                />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Info label="Mocks available" value={tests.length} />
-                    <Info label="Mocks attempted" value={stats.totalTestsAttempted} />
-                    <Info label="Best band" value={stats.bestBand ?? '--'} />
-                    <Info label="Avg band" value={stats.avgBand ?? '--'} />
-                  </div>
-
-                  {stats.lastAttemptAt && (
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Last attempt:{' '}
-                      {new Date(stats.lastAttemptAt).toLocaleDateString()}
-                    </p>
-                  )}
-                </Card>
-
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Power Tools
-                  </p>
-
-                  <Tool href="/mock/reading/drill/question-type?type=TFNG" icon="Target">
-                    Question-type drills
-                  </Tool>
-                  <Tool href="/mock/reading/drill/passage?test=any&p=1" icon="FileText">
-                    Single-passage practice
-                  </Tool>
-                  <Tool href="/mock/reading/drill/speed" icon="Zap">
-                    Speed training
-                  </Tool>
-                  <Tool href="/mock/reading/techniques" icon="BookOpen">
-                    Techniques trainer
-                  </Tool>
-                  <Tool href="/mock/reading/analytics" icon="Activity">
-                    Analytics & Weaknesses
-                  </Tool>
-                </Card>
+                <SidebarTools
+                  tools={[
+                    {
+                      label: 'Question-type drills',
+                      href: '/mock/reading/drill/question-type?type=TFNG',
+                      icon: 'Target',
+                    },
+                    {
+                      label: 'Single-passage practice',
+                      href: '/mock/reading/drill/passage?test=any&p=1',
+                      icon: 'FileText',
+                    },
+                    {
+                      label: 'Speed training',
+                      href: '/mock/reading/drill/speed',
+                      icon: 'Zap',
+                    },
+                    {
+                      label: 'Techniques trainer',
+                      href: '/mock/reading/techniques',
+                      icon: 'BookOpen',
+                    },
+                    {
+                      label: 'Analytics & Weaknesses',
+                      href: '/mock/reading/analytics',
+                      icon: 'Activity',
+                    },
+                  ]}
+                />
 
                 <ReadingForecastPanel />
                 <AISummaryCard />
@@ -330,14 +299,6 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
     </>
   );
 };
-
-/* Helper Components */
-const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between text-xs">
-    <span className="text-muted-foreground">{label}</span>
-    <span className="font-semibold">{value}</span>
-  </div>
-);
 
 const Tool = ({
   href,

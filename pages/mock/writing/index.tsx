@@ -9,6 +9,8 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 
+import { ModuleHero } from '@/components/mock/ModuleHero';
+
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
 type QuickWritingAction = {
@@ -134,36 +136,22 @@ const WritingMockHomePage: React.FC = () => {
       </Head>
 
       <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-
-        {/* HERO */}
-        <section className="pb-10 pt-10 md:pt-14">
-          <Container>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name="PenSquare" size={14} />
-                  </span>
-                  <span>Writing Mock Room · Task 1 + Task 2</span>
-                </div>
-
-                <h1 className="font-slab text-display text-gradient-primary">
-                  Writing mocks that show your real band.
-                </h1>
-
-                <p className="max-w-2xl text-small text-grayish">
-                  Real prompts, strict timers, and AI feedback so you stop guessing and
-                  actually improve.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
-                <Badge variant="neutral" size="sm">1 Task 2 essay/day recommended</Badge>
-                <p>Your progress depends on consistency, not luck.</p>
-              </div>
+        <ModuleHero
+          title="Writing mocks that show your real band."
+          subtitle="Real prompts, strict timers, and AI feedback so you stop guessing and actually improve."
+          icon="PenSquare"
+          eyebrow="Writing Mock Room · Task 1 + Task 2"
+          rightSlot={
+            <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
+              <Badge variant="neutral" size="sm">1 Task 2 essay/day recommended</Badge>
+              <p>Your progress depends on consistency, not luck.</p>
             </div>
+          }
+        />
 
-            {/* START / RESUME BLOCK */}
+        {/* START / RESUME BLOCK */}
+        <section className="pb-10">
+          <Container>
             <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
 
               <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">

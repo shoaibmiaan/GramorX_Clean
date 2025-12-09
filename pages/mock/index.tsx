@@ -10,6 +10,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 import { getServerClient } from '@/lib/supabaseServer';
+import { ModuleHero } from '@/components/mock/ModuleHero';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -196,35 +197,24 @@ const MockHomePage: NextPage<PageProps> = ({
       </Head>
 
       <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
-        {/* HERO / CONTROL STRIP */}
-        <section className="pb-10 pt-10 md:pt-14">
-          <Container>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon name="Timer" size={14} />
-                  </span>
-                  <span>Mock Mission Control · Strict IELTS-style exams</span>
-                </div>
-                <h1 className="font-slab text-display text-gradient-primary">
-                  Full IELTS mocks, one control room.
-                </h1>
-                <p className="max-w-2xl text-small text-grayish">
-                  Start or resume serious, timed mocks for all four modules. No fluff —
-                  just exam rooms, timers, and post-test analytics.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
-                <Badge variant="neutral" size="sm">
-                  Recommended: 1 full mock / week
-                </Badge>
-                <p>Use mocks to measure. Fix mistakes in AI Lab, not inside the exam.</p>
-              </div>
+        <ModuleHero
+          title="Full IELTS mocks, one control room."
+          subtitle="Start or resume serious, timed mocks for all four modules. No fluff — just exam rooms, timers, and post-test analytics."
+          icon="Timer"
+          eyebrow="Mock Mission Control · Strict IELTS-style exams"
+          rightSlot={
+            <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
+              <Badge variant="neutral" size="sm">
+                Recommended: 1 full mock / week
+              </Badge>
+              <p>Use mocks to measure. Fix mistakes in AI Lab, not inside the exam.</p>
             </div>
+          }
+        />
 
-            {/* PRIMARY STRIP: CONTINUE + SNAPSHOT */}
+        {/* PRIMARY STRIP: CONTINUE + SNAPSHOT */}
+        <section className="pb-10 pt-2">
+          <Container>
             <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)]">
               <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
