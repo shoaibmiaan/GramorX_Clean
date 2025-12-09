@@ -142,8 +142,8 @@ const MockHomePage: NextPage<PageProps> = ({
     },
     {
       id: 'resume-latest',
-      label: 'Resume latest mock',
-      description: 'Jump back into your last unfinished attempt.',
+      label: 'Open mock history',
+      description: 'Review past mocks and resume from your history.',
       href: '/mock/history',
       icon: 'PlayCircle',
     },

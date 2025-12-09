@@ -9,7 +9,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 
-import { speakingPracticeList } from '@/data/speaking'; // :contentReference[oaicite:3]{index=3}
+import { speakingPracticeList } from '@/data/speaking';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 

@@ -49,7 +49,7 @@ const sectionMeta: Record<SectionKey, { title: string; description: string; prac
   writing: {
     title: 'Writing',
     description: 'Tasks 1 & 2 · AI scoring with coherence and lexical feedback.',
-    practiceHref: '/writing/mock',
+    practiceHref: '/mock/writing',
   },
   speaking: {
     title: 'Speaking',
@@ -67,6 +67,12 @@ function formatAttemptDate(iso: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(iso));
+}
+
+function formatDuration(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 function generateAiFeedback(summary: FullSummary) {
@@ -330,7 +336,7 @@ export default function FullTestPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">Time on task</dt>
-                      <dd className="font-medium">{section.timeTaken}s</dd>
+                      <dd className="font-medium">{formatDuration(section.timeTaken)}</dd>
                     </div>
                   </dl>
                 </Card>

@@ -175,7 +175,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
         {/* ------------------------------------------------------------- */}
         {/* GRID LAYOUT */}
         {/* ------------------------------------------------------------- */}
-ingos        <section className="pb-20">
+        <section className="pb-20">
           <Container>
             <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
               {/* ------------------ LEFT: MOCK LIST ------------------ */}
