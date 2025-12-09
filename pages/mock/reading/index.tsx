@@ -110,7 +110,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
         <title>IELTS Reading Mock Command Center</title>
       </Head>
 
-      <main className="bg-lightBg dark:bg-dark/90">
+      <main className="min-h-screen bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95">
         <ModuleHero
           title="Your Reading Mock Command Center."
           subtitle="Three passages. Forty questions. Strict timing. Cambridge-style academic design with AI summaries, speed metrics, band prediction & attempt analytics."

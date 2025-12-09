@@ -135,7 +135,7 @@ const WritingMockHomePage: React.FC = () => {
         />
       </Head>
 
-      <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <main className="min-h-screen bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95">
         <ModuleHero
           title="Writing mocks that show your real band."
           subtitle="Real prompts, strict timers, and AI feedback so you stop guessing and actually improve."

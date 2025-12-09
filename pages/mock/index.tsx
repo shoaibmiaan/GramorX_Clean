@@ -196,7 +196,7 @@ const MockHomePage: NextPage<PageProps> = ({
         />
       </Head>
 
-      <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+      <main className="min-h-screen bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95">
         <ModuleHero
           title="Full IELTS mocks, one control room."
           subtitle="Start or resume serious, timed mocks for all four modules. No fluff — just exam rooms, timers, and post-test analytics."

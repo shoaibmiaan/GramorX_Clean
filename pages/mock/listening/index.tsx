@@ -109,7 +109,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
         <title>IELTS Listening Mock Command Center</title>
       </Head>
 
-      <main className="bg-lightBg dark:bg-dark/90">
+      <main className="min-h-screen bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95">
         <ModuleHero
           title="Your Listening Mock Command Center."
           subtitle="Four sections. Forty questions. Single continuous audio — strict IELTS computer-based environment with exam-room layout and band tracking."

@@ -85,7 +85,7 @@ const SpeakingMockIndexPage: React.FC = () => {
         />
       </Head>
 
-      <main className="bg-lightBg dark:bg-dark/90">
+      <main className="min-h-screen bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95">
         <ModuleHero
           title="Full Speaking mocks with transcripts + AI feedback."
           subtitle="Simulate the real interview: Part 1 warm-up, Part 2 cue card, Part 3 follow-ups. AI gives instant transcripts, filler detection, pacing metrics, and personalised improvement steps."

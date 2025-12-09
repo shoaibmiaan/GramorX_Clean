@@ -32,6 +32,7 @@ export type ModuleHeroProps = {
   statsTitle?: string;
   rightSlot?: React.ReactNode;
   className?: string;
+  tone?: 'muted' | 'card' | 'plain';
 };
 
 export const ModuleHero: React.FC<ModuleHeroProps> = ({
@@ -45,14 +46,25 @@ export const ModuleHero: React.FC<ModuleHeroProps> = ({
   statsTitle = 'Quick stats',
   rightSlot,
   className = '',
+  tone = 'muted',
 }) => {
+  const toneClassName = {
+    muted:
+      'bg-gradient-to-b from-lightBg via-white to-white dark:from-dark/80 dark:via-dark/90 dark:to-dark/95 border-b border-border/50',
+    card: 'bg-card/70 backdrop-blur border-b border-border/60',
+    plain: '',
+  }[tone];
+
   const aside =
     stats && stats.length > 0 ? (
-      <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
+      <Card className="w-full max-w-xl rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm">
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
           {statsTitle}
         </p>
-        <div className="grid grid-cols-3 gap-3 text-center">
+        <div
+          className="grid gap-3 text-center"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}
+        >
           {stats.map((stat) => (
             <div key={stat.label}>
               <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -71,10 +83,10 @@ export const ModuleHero: React.FC<ModuleHeroProps> = ({
     );
 
   return (
-    <section className={`border-b border-border/50 bg-card/70 backdrop-blur py-8 ${className}`}>
+    <section className={`${toneClassName} py-10 ${className}`}>
       <Container>
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <Icon name={icon} size={14} />
               <span>{eyebrow ?? `${title} suite`}</span>
@@ -110,7 +122,7 @@ export const ModuleHero: React.FC<ModuleHeroProps> = ({
             )}
           </div>
 
-          {aside}
+          {aside ? <div className="lg:min-w-[320px] lg:max-w-sm">{aside}</div> : null}
         </div>
       </Container>
     </section>
