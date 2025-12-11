@@ -2,14 +2,13 @@
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import type { GetServerSideProps, NextPage } from 'next';
+import type { NextPage } from 'next';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
-import { getServerClient } from '@/lib/supabaseServer';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -37,14 +36,6 @@ type StatHighlight = {
   value: string;
   helper?: string;
   icon: IconName;
-};
-
-type PageProps = {
-  listeningStartHref: string;
-  listeningAttemptCount: number;
-  listeningLastBand: number | null;
-  listeningLastAttemptId: string | null;
-  listeningLastAttemptAt: string | null;
 };
 
 type TodayTask = {
@@ -118,73 +109,69 @@ const todayTasks: TodayTask[] = [
   },
 ];
 
-const MockHomePage: NextPage<PageProps> = ({
-  listeningAttemptCount,
-  listeningLastBand,
-  listeningLastAttemptAt,
-  listeningLastAttemptId,
-  listeningStartHref,
-}) => {
-  const quickActions: QuickAction[] = [
-    {
-      id: 'full-mock',
-      label: 'Start full IELTS mock',
-      description: 'All four modules, strict timer, one continuous flow.',
-      href: '/mock/full',
-      icon: 'Timer',
-    },
-    {
-      id: 'listening-mock',
-      label: 'Start Listening mock',
-      description: 'Jump straight into a Listening exam with real audio.',
-      href: listeningStartHref,
-      icon: 'Headphones',
-    },
-    {
-      id: 'resume-latest',
-      label: 'Resume latest mock',
-      description: 'Jump back into your last unfinished attempt.',
-      href: '/mock/history',
-      icon: 'PlayCircle',
-    },
-    {
-      id: 'view-results',
-      label: 'View my mock results',
-      description: 'See bands, mistakes, and progress over time.',
-      href: '/mock/history',
-      icon: 'BarChart3',
-    },
-  ];
+const statHighlights: StatHighlight[] = [
+  {
+    id: 'mocks-completed',
+    label: 'Mocks completed',
+    value: '—',
+    helper: 'Will show completed mocks across all modules.',
+    icon: 'Activity',
+  },
+  {
+    id: 'best-band',
+    label: 'Best estimated band',
+    value: '—',
+    helper: 'AI-estimated band from your best attempt.',
+    icon: 'Medal',
+  },
+  {
+    id: 'mock-streak',
+    label: 'Mock streak',
+    value: '—',
+    helper: 'Consecutive days with at least one serious attempt.',
+    icon: 'Flame',
+  },
+];
 
-  const statHighlights: StatHighlight[] = [
-    {
-      id: 'listening-last-band',
-      label: 'Last Listening band',
-      value: listeningLastBand != null ? listeningLastBand.toFixed(1) : '—',
-      helper: 'Latest completed Listening mock',
-      icon: 'Medal',
-    },
-    {
-      id: 'listening-attempts',
-      label: 'Listening mocks taken',
-      value: `${listeningAttemptCount}`,
-      helper: 'Strict exam attempts',
-      icon: 'Activity',
-    },
-    {
-      id: 'listening-last-activity',
-      label: 'Last Listening activity',
-      value: listeningLastAttemptAt
-        ? new Date(listeningLastAttemptAt).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-          })
-        : '—',
-      helper: listeningLastAttemptAt ? 'Most recent attempt' : 'No attempts yet',
-      icon: 'Clock',
-    },
-  ];
+const quickActions: QuickAction[] = [
+  {
+    id: 'full-mock',
+    label: 'Start full IELTS mock',
+    description: 'All four modules, strict timer, one continuous flow.',
+    href: '/mock/full',
+    icon: 'Timer',
+  },
+  {
+    id: 'listening-mock',
+    label: 'Start Listening mock',
+    description: 'Jump straight into a Listening exam with real audio.',
+    href: '/mock/listening',
+    icon: 'Headphones',
+  },
+  {
+    id: 'writing-mock',
+    label: 'Start Writing mock',
+    description: 'Go directly to the Writing mock home and pick a test.',
+    href: '/mock/writing',
+    icon: 'PenSquare',
+  },
+  {
+    id: 'resume-latest',
+    label: 'Resume latest mock',
+    description: 'Jump back into your last unfinished attempt.',
+    href: '/mock/history',
+    icon: 'PlayCircle',
+  },
+  {
+    id: 'view-results',
+    label: 'View my mock results',
+    description: 'See bands, mistakes, and progress over time.',
+    href: '/mock/history',
+    icon: 'BarChart3',
+  },
+];
 
+const MockHomePage: NextPage = () => {
   return (
     <>
       <Head>
@@ -211,8 +198,8 @@ const MockHomePage: NextPage<PageProps> = ({
                   Full IELTS mocks, one control room.
                 </h1>
                 <p className="max-w-2xl text-small text-grayish">
-                  Start or resume serious, timed mocks for all four modules. No fluff —
-                  just exam rooms, timers, and post-test analytics.
+                  Start or resume serious, timed mocks for all four modules. No fluff — just
+                  exam rooms, timers, and post-test analytics.
                 </p>
               </div>
 
@@ -244,41 +231,32 @@ const MockHomePage: NextPage<PageProps> = ({
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Button
-                    asChild
+                    as={Link}
+                    href="/mock/full"
                     variant="primary"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    <Link href="/mock/full">Start full IELTS mock</Link>
+                    Start full IELTS mock
                   </Button>
                   <Button
-                    asChild
+                    as={Link}
+                    href="/mock/listening"
                     variant="accent"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    <Link href={listeningStartHref}>Start Listening mock</Link>
+                    Start Listening mock
                   </Button>
                   <Button
-                    asChild
+                    as={Link}
+                    href="/mock/history"
                     variant="secondary"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    <Link href="/mock/history">Resume / view attempts</Link>
+                    Resume / view attempts
                   </Button>
-                  {listeningLastAttemptId ? (
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="md"
-                      className="rounded-ds-xl px-5"
-                    >
-                      <Link href={`/mock/listening/result/${listeningLastAttemptId}`}>
-                        View last Listening result
-                      </Link>
-                    </Button>
-                  ) : null}
                 </div>
               </Card>
 
@@ -424,12 +402,13 @@ const MockHomePage: NextPage<PageProps> = ({
 
                   <div className="pt-4">
                     <Button
-                      asChild
+                      as={Link}
+                      href={mod.href}
                       size="sm"
                       variant="secondary"
                       className="w-full rounded-ds-xl"
                     >
-                      <Link href={mod.href}>Open {mod.title}</Link>
+                      Open {mod.title}
                     </Button>
                   </div>
                 </Card>
@@ -484,16 +463,19 @@ const MockHomePage: NextPage<PageProps> = ({
                         {task.estimate}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">{task.label}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {task.label}
+                    </p>
                   </div>
                   <div className="pt-3">
                     <Button
-                      asChild
+                      as={Link}
+                      href={task.href}
                       size="sm"
                       variant="primary"
                       className="w-full rounded-ds-xl"
                     >
-                      <Link href={task.href}>Start now</Link>
+                      Start now
                     </Button>
                   </div>
                 </Card>
@@ -532,12 +514,13 @@ const MockHomePage: NextPage<PageProps> = ({
                     <li>4. Fix weaknesses → come back here for the next mock.</li>
                   </ol>
                   <Button
-                    asChild
+                    as={Link}
+                    href="/ai"
                     size="sm"
                     variant="secondary"
                     className="mt-2 w-full rounded-ds-xl"
                   >
-                    <Link href="/ai">Open AI Lab</Link>
+                    Open AI Lab
                   </Button>
                 </div>
               </div>
@@ -547,63 +530,6 @@ const MockHomePage: NextPage<PageProps> = ({
       </main>
     </>
   );
-};
-
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
-
-  const { data: tests } = await supabase
-    .from('listening_tests')
-    .select('slug')
-    .eq('is_mock', true)
-    .eq('is_published', true);
-
-  let listeningStartHref = '/mock/listening';
-  let listeningAttemptCount = 0;
-  let listeningLastBand: number | null = null;
-  let listeningLastAttemptId: string | null = null;
-  let listeningLastAttemptAt: string | null = null;
-
-  if (tests && tests.length > 0) {
-    const randomIndex = Math.floor(Math.random() * tests.length);
-    const slug = tests[randomIndex]?.slug;
-    listeningStartHref = slug
-      ? `/mock/listening/exam/${encodeURIComponent(slug)}`
-      : listeningStartHref;
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    const { data: attempts } = await supabase
-      .from('listening_attempts')
-      .select('id, band_score, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    listeningAttemptCount = attempts?.length ?? 0;
-
-    if (attempts && attempts.length > 0) {
-      const latest = attempts[0];
-      const bandValue = (latest as any).band_score;
-      listeningLastBand = bandValue != null ? Number(bandValue) : null;
-      listeningLastAttemptId = latest.id as string;
-      listeningLastAttemptAt = latest.created_at as string;
-    }
-  }
-
-  return {
-    props: {
-      listeningStartHref,
-      listeningAttemptCount,
-      listeningLastBand,
-      listeningLastAttemptId,
-      listeningLastAttemptAt,
-    },
-  };
 };
 
 export default MockHomePage;

@@ -1,176 +1,142 @@
 // pages/api/mock/writing/submit.ts
-// Finalises a writing attempt and triggers local scoring.
-
 import type { NextApiRequest, NextApiResponse } from 'next';
-
+import { z } from 'zod';
 import { getServerClient } from '@/lib/supabaseServer';
-import { normalizeScorePayload } from '@/lib/writing/scoring';
-import { evaluateEssayWithAi } from '@/lib/writing/ai-evaluator';
-import { writingSubmitSchema } from '@/lib/validation/writing';
-import type { WritingTaskType } from '@/types/writing';
 
-const TASKS: WritingTaskType[] = ['task1', 'task2'];
+const Body = z.object({
+  testSlug: z.string().min(1), // we'll save this into attempts_writing.prompt_id
+  durationSeconds: z.number().int().nonnegative(),
+  task1: z.object({
+    text: z.string().min(1),
+    wordCount: z.number().int().nonnegative(),
+  }),
+  task2: z.object({
+    text: z.string().min(1),
+    wordCount: z.number().int().nonnegative(),
+  }),
+});
+
+type BodyType = z.infer<typeof Body>;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const parse = Body.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({
+      error: 'Invalid body',
+      details: parse.error.flatten(),
+    });
+  }
+
+  const body: BodyType = parse.data;
+
   const supabase = getServerClient(req, res);
+
   const {
     data: { user },
-    error: authError,
+    error: userError,
   } = await supabase.auth.getUser();
-  if (authError || !user) {
+
+  if (userError) {
+    return res.status(500).json({
+      error: 'Failed to fetch user',
+      details: userError.message,
+    });
+  }
+
+  if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const parsed = writingSubmitSchema.safeParse(req.body ?? {});
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', issues: parsed.error.flatten() });
-  }
-
-  const { attemptId, tasks, durationSeconds } = parsed.data;
-  if (!tasks.task1 && !tasks.task2) {
-    return res.status(400).json({ error: 'At least one task response is required' });
-  }
-
-  const { data: attempt, error: attemptError } = await supabase
-    .from('exam_attempts')
-    .select('*')
-    .eq('id', attemptId)
+  // Optional sanity check: make sure the writing test exists
+  const { data: test, error: testError } = await supabase
+    .from('writing_tests')
+    .select('id')
+    .eq('slug', body.testSlug)
+    .eq('is_active', true)
     .maybeSingle();
-  if (attemptError || !attempt) {
-    return res.status(404).json({ error: 'Attempt not found' });
-  }
-  if (attempt.user_id !== user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
 
-  const results: Record<WritingTaskType, ReturnType<typeof normalizeScorePayload> | undefined> = {
-    task1: undefined,
-    task2: undefined,
-  };
-
-  for (const task of TASKS) {
-    const submission = tasks[task];
-    if (!submission) continue;
-
-    let wordTarget: number | undefined;
-    let promptRow: any = null;
-    if (submission.promptId) {
-      const { data: promptData } = await supabase
-        .from('writing_prompts')
-        .select('id, title, topic, prompt_text, module, difficulty, word_target')
-        .eq('id', submission.promptId)
-        .maybeSingle();
-      if (promptData) {
-        promptRow = promptData;
-      }
-      if (promptData?.word_target) wordTarget = promptData.word_target;
-    }
-
-    const evaluation = await evaluateEssayWithAi({
-      essay: submission.essay,
-      task,
-      wordTarget,
-      durationSeconds,
-      prompt: promptRow
-        ? {
-            title: typeof promptRow.title === 'string' && promptRow.title
-              ? promptRow.title
-              : typeof promptRow.topic === 'string'
-                ? promptRow.topic
-                : null,
-            promptText: typeof promptRow.prompt_text === 'string' ? promptRow.prompt_text : null,
-            module: typeof promptRow.module === 'string' ? promptRow.module : null,
-            difficulty: typeof promptRow.difficulty === 'string' ? promptRow.difficulty : null,
-          }
-        : undefined,
+  if (testError) {
+    // don't hard fail if you want, but better to be strict
+    return res.status(500).json({
+      error: 'Failed to load writing test',
+      details: testError.message,
     });
-
-    const responsePayload = {
-      user_id: user.id,
-      exam_attempt_id: attemptId,
-      prompt_id: submission.promptId ?? null,
-      task,
-      task_type: task,
-      answer_text: submission.essay,
-      word_count: evaluation.score.wordCount,
-      duration_seconds: evaluation.score.durationSeconds ?? durationSeconds ?? null,
-      evaluation_version: evaluation.score.version,
-      band_scores: evaluation.score.bandScores,
-      feedback: evaluation.score.feedback,
-      overall_band: evaluation.score.overallBand,
-      task_response_band: evaluation.score.bandScores.task_response,
-      coherence_band: evaluation.score.bandScores.coherence_and_cohesion,
-      lexical_band: evaluation.score.bandScores.lexical_resource,
-      grammar_band: evaluation.score.bandScores.grammatical_range,
-      tokens_used: evaluation.score.tokensUsed ?? null,
-      submitted_at: new Date().toISOString(),
-    };
-
-    const { data: responseRows, error: upsertError } = await supabase
-      .from('writing_responses')
-      .upsert(responsePayload, { onConflict: 'exam_attempt_id,task' })
-      .select('id');
-
-    if (upsertError) {
-      console.error('[writing/submit] upsert failed', upsertError);
-    }
-
-    let responseId: string | null = null;
-    if (Array.isArray(responseRows) && responseRows.length > 0) {
-      responseId = responseRows[0]?.id ?? null;
-    } else if (responseRows && typeof responseRows === 'object' && 'id' in responseRows) {
-      responseId = (responseRows as { id?: string }).id ?? null;
-    }
-
-    if (!responseId) {
-      const { data: existingRow } = await supabase
-        .from('writing_responses')
-        .select('id')
-        .eq('exam_attempt_id', attemptId)
-        .eq('task', task)
-        .maybeSingle();
-      responseId = existingRow?.id ?? null;
-    }
-
-    if (responseId) {
-      await supabase
-        .from('writing_feedback')
-        .upsert(
-          {
-            attempt_id: responseId,
-            band9_rewrite: evaluation.extras.band9Rewrite ?? null,
-            errors: evaluation.extras.errors ?? [],
-            blocks: evaluation.extras.blocks ?? [],
-          },
-          { onConflict: 'attempt_id' },
-        );
-    }
-
-    results[task] = normalizeScorePayload(evaluation.score);
   }
 
-  await supabase
-    .from('exam_attempts')
-    .update({
-      status: 'submitted',
+  if (!test) {
+    return res.status(404).json({ error: 'Writing test not found' });
+  }
+
+  // 1) Create attempt in attempts_writing
+  // prompt_id is TEXT in your schema, we store the test slug there.
+  const { data: attemptInsert, error: attemptError } = await supabase
+    .from('attempts_writing')
+    .insert({
+      user_id: user.id,
+      prompt_id: body.testSlug,
+      // started_at uses DEFAULT now(); we just set submitted_at explicitly.
       submitted_at: new Date().toISOString(),
-      duration_seconds: durationSeconds ?? attempt.duration_seconds ?? null,
+      // content_text is TEXT, nullable with default ''; we pack both answers as JSON string.
+      content_text: JSON.stringify({
+        durationSeconds: body.durationSeconds,
+        task1: {
+          text: body.task1.text,
+          wordCount: body.task1.wordCount,
+        },
+        task2: {
+          text: body.task2.text,
+          wordCount: body.task2.wordCount,
+        },
+      }),
+      // score_json & ai_feedback_json have default '{}', so no need to touch them now.
     })
-    .eq('id', attemptId);
+    .select('id')
+    .single();
 
-  await supabase.from('exam_events').insert({
-    attempt_id: attemptId,
-    user_id: user.id,
-    event_type: 'submit',
-    payload: {
-      durationSeconds,
-    },
+  if (attemptError || !attemptInsert) {
+    return res.status(500).json({
+      error: 'Failed to create writing attempt',
+      details: attemptError?.message,
+    });
+  }
+
+  const attemptId = attemptInsert.id;
+
+  // 2) Insert per-task answers into attempts_writing_answers
+  const { error: answersError } = await supabase
+    .from('attempts_writing_answers')
+    .insert([
+      {
+        attempt_id: attemptId,
+        task_number: 1,
+        answer_text: body.task1.text,
+        word_count: body.task1.wordCount,
+        ai_feedback: null, // fill later when AI scores
+      },
+      {
+        attempt_id: attemptId,
+        task_number: 2,
+        answer_text: body.task2.text,
+        word_count: body.task2.wordCount,
+        ai_feedback: null,
+      },
+    ]);
+
+  if (answersError) {
+    return res.status(500).json({
+      error: 'Failed to save writing answers',
+      details: answersError.message,
+    });
+  }
+
+  // TODO: later → enqueue AI scoring job and populate score_json / ai_feedback_json
+
+  return res.status(200).json({
+    ok: true,
+    attemptId,
   });
-
-  return res.status(200).json({ ok: true, attemptId, results });
 }

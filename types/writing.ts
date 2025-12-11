@@ -2,6 +2,7 @@
 // Shared writing module types consumed by API routes and components.
 
 export type WritingTaskType = 'task1' | 'task2';
+export type WritingModule = 'academic' | 'general_training';
 
 export type WritingCriterion =
   | 'task_response'
@@ -15,12 +16,12 @@ export interface WritingPrompt {
   title: string;
   promptText: string;
   taskType: WritingTaskType;
-  module: 'academic' | 'general_training';
-  difficulty: 'easy' | 'medium' | 'hard';
-  source?: string;
-  tags?: string[];
-  estimatedMinutes?: number;
-  wordTarget?: number;
+  module: WritingModule;
+  difficulty?: 'easy' | 'medium' | 'hard' | null;
+  source?: string | null;
+  tags?: string[] | null;
+  estimatedMinutes?: number | null;
+  wordTarget?: number | null;
   metadata?: Record<string, any> | null;
 }
 

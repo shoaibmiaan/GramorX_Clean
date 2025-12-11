@@ -1,271 +1,289 @@
 // pages/mock/writing/result/[attemptId].tsx
-import * as React from "react";
-import Head from "next/head";
-import Link from "next/link";
-import type { GetServerSideProps, NextPage } from "next";
+import * as React from 'react';
+import Head from 'next/head';
+import type { GetServerSideProps, NextPage } from 'next';
+import Link from 'next/link';
 
-import { Container } from "@/components/design-system/Container";
-import { Card } from "@/components/design-system/Card";
-import { Badge } from "@/components/design-system/Badge";
-import { Button } from "@/components/design-system/Button";
-import { Icon } from "@/components/design-system/Icon";
+import { getServerClient } from '@/lib/supabaseServer';
+import type { Database } from '@/lib/database.types';
 
-import { getServerClient } from "@/lib/supabaseServer";
-
-type WritingTaskResult = {
-  taskType: "task1" | "task2";
-  prompt: string | null;
-  bandScore: number | null;
-  wordCount: number | null;
-};
-
-type AttemptSummary = {
-  id: string;
-  createdAt: string;
-  durationSeconds: number | null;
-};
+import { Container } from '@/components/design-system/Container';
+import { Card } from '@/components/design-system/Card';
+import { Badge } from '@/components/design-system/Badge';
+import { Button } from '@/components/design-system/Button';
+import { Icon } from '@/components/design-system/Icon';
+import { Alert } from '@/components/design-system/Alert';
 
 type PageProps = {
-  attempt: AttemptSummary;
-  task1: WritingTaskResult | null;
-  task2: WritingTaskResult | null;
+  ok: boolean;
+  error?: string;
+  attempt?: {
+    id: string;
+    createdAt: string;
+    testId: string;
+    overallBand: number | null;
+    task1Band: number | null;
+    task2Band: number | null;
+    totalWords: number | null;
+  };
+  test?: {
+    id: string;
+    slug: string;
+    title: string;
+    taskType: string | null;
+    durationMinutes: number | null;
+  };
 };
 
-const WritingResultPage: NextPage<PageProps> = ({ attempt, task1, task2 }) => {
-  const hasBoth = task1 && task2;
+const WritingResultPage: NextPage<PageProps> = ({ ok, error, attempt, test }) => {
+  if (!ok || !attempt || !test) {
+    return (
+      <Container className="py-10">
+        <Alert tone="danger" title="Result not available">
+          {error ?? 'We could not find this Writing attempt or you do not have access.'}
+        </Alert>
+        <div className="mt-4">
+          <Button as={Link} href="/mock/writing" size="sm">
+            <Icon name="ArrowLeft" className="mr-1.5 h-4 w-4" />
+            Back to Writing mocks
+          </Button>
+        </div>
+      </Container>
+    );
+  }
+
+  const formattedDate = new Date(attempt.createdAt).toLocaleString();
 
   return (
     <>
       <Head>
-        <title>Writing Result · GramorX</title>
+        <title>
+          Writing result · {test.title} | GramorX
+        </title>
       </Head>
 
-      <main className="bg-lightBg dark:bg-dark/90 pb-20">
-
-        {/* HEADER */}
-        <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
-          <Container className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Icon name="PenSquare" size={14} />
-              <span>Writing Result</span>
+      <Container className="py-8 lg:py-10 space-y-6">
+        {/* Top header */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+              <Icon name="CheckCircle2" className="h-3.5 w-3.5" />
+              <span>Writing mock completed</span>
             </div>
-
-            <h1 className="font-slab text-h2">Your Writing Score Breakdown</h1>
-
-            <p className="text-sm text-muted-foreground max-w-xl">
-              Task 1 + Task 2 bands, word counts, and next-step recommendations.
+            <h1 className="text-xl font-semibold tracking-tight lg:text-2xl">
+              Result – {test.title}
+            </h1>
+            <p className="text-xs text-muted-foreground lg:text-sm">
+              Attempt ID {attempt.id.slice(0, 8)} · {formattedDate}
             </p>
+          </div>
 
-            <div className="flex gap-3 pt-3">
-              <Button asChild variant="primary" size="md" className="rounded-ds-xl">
-                <Link href="/mock/writing">Start new Writing mock</Link>
-              </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button as={Link} href="/mock/writing/review" size="sm" tone="neutral" variant="outline">
+              <Icon name="Eye" className="mr-1.5 h-4 w-4" />
+              Review this attempt
+            </Button>
+            <Button as={Link} href="/mock/writing" size="sm">
+              <Icon name="RefreshCw" className="mr-1.5 h-4 w-4" />
+              Try another mock
+            </Button>
+          </div>
+        </div>
 
-              <Button asChild variant="secondary" size="md" className="rounded-ds-xl">
-                <Link href="/mock/writing/history">View history</Link>
-              </Button>
-
-              <Button asChild variant="ghost" size="md" className="rounded-ds-xl">
-                <Link href={`/mock/writing/review/${attempt.id}`}>Review answers</Link>
-              </Button>
+        {/* Score cards */}
+        <div className="grid gap-3 md:grid-cols-3">
+          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Overall band
             </div>
-          </Container>
-        </section>
+            <div className="text-3xl font-semibold">
+              {attempt.overallBand ?? '—'}
+            </div>
+            <div className="text-xs text-muted-foreground">Estimated Writing band</div>
+          </Card>
 
-        {/* SUMMARY ROW */}
-        <section className="py-12">
-          <Container>
-            <Card className="rounded-ds-2xl p-6 border border-border/60 bg-card/80">
-              <div className="grid md:grid-cols-3 gap-6 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                  <p className="text-lg font-semibold mt-1">
-                    {new Date(attempt.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Task 1 band
+            </div>
+            <div className="text-2xl font-semibold">
+              {attempt.task1Band ?? '—'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Based on your Task 1 response
+            </div>
+          </Card>
 
-                <div>
-                  <p className="text-xs text-muted-foreground">Tasks included</p>
-                  <p className="text-lg font-semibold mt-1">
-                    {hasBoth ? "Task 1 & Task 2" : task2 ? "Task 2" : "Task 1"}
-                  </p>
-                </div>
+          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Task 2 band
+            </div>
+            <div className="text-2xl font-semibold">
+              {attempt.task2Band ?? '—'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Based on your Task 2 response
+            </div>
+          </Card>
+        </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground">Duration</p>
-                  <p className="text-lg font-semibold mt-1">
-                    {attempt.durationSeconds
-                      ? `${Math.round(attempt.durationSeconds / 60)} mins`
-                      : "—"}
-                  </p>
-                </div>
+        {/* Meta + AI coach hook */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="md:col-span-2 space-y-2 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon name="FileText" className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Mock details</h2>
               </div>
-            </Card>
-          </Container>
-        </section>
-
-        {/* BAND SCORE CARDS */}
-        <section className="pb-12">
-          <Container className="grid gap-6 md:grid-cols-2">
-            {/* TASK 1 */}
-            {task1 && (
-              <Card className="rounded-ds-2xl p-6 border border-border/60 bg-card/80">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-slab text-h4">Task 1 Score</h2>
-                  <Badge size="sm" variant="info">
-                    Task 1
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Band</p>
-                    <p className="text-3xl font-bold">{task1.bandScore ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Word count</p>
-                    <p className="text-3xl font-bold">{task1.wordCount ?? "—"}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs text-muted-foreground">
-                  <p>{task1.prompt}</p>
-                </div>
-              </Card>
-            )}
-
-            {/* TASK 2 */}
-            {task2 && (
-              <Card className="rounded-ds-2xl p-6 border border-border/60 bg-card/80">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-slab text-h4">Task 2 Score</h2>
-                  <Badge size="sm" variant="danger">
-                    Task 2
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Band</p>
-                    <p className="text-3xl font-bold">{task2.bandScore ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Word count</p>
-                    <p className="text-3xl font-bold">{task2.wordCount ?? "—"}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs text-muted-foreground">
-                  <p>{task2.prompt}</p>
-                </div>
-              </Card>
-            )}
-          </Container>
-        </section>
-
-        {/* AI LAB CTA */}
-        <section className="bg-muted/40 py-14">
-          <Container>
-            <Card className="rounded-ds-2xl p-6 bg-card/90 border border-border/60 max-w-4xl mx-auto">
-              <div className="grid md:grid-cols-2 gap-6">
-
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-primary font-semibold">
-                    Next smart move
-                  </p>
-
-                  <h3 className="font-slab text-h3">
-                    Send this Writing attempt to AI Lab.
-                  </h3>
-
-                  <p className="text-sm text-muted-foreground">
-                    AI will rewrite your essay, find grammar issues, expand ideas,
-                    fix cohesion, polish vocabulary, and show side-by-side improvements.
-                  </p>
-                </div>
-
-                <div className="bg-muted rounded-ds-2xl p-4 text-sm space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                    <Icon name="Sparkles" size={14} />
-                    <span>Recommended flow</span>
-                  </div>
-
-                  <ol className="text-xs text-muted-foreground space-y-2">
-                    <li>1. Check your band + word count above.</li>
-                    <li>2. Send attempt to AI Lab for rewriting + scoring.</li>
-                    <li>3. Compare versions and improve structure.</li>
-                    <li>4. Retake a fresh Writing mock.</li>
-                  </ol>
-
-                  <div className="flex gap-2">
-                    <Button
-                      asChild
-                      variant="secondary"
-                      size="sm"
-                      className="rounded-ds-xl w-full"
-                    >
-                      <Link href={`/ai?writingAttempt=${attempt.id}`}>
-                        Open AI Lab
-                      </Link>
-                    </Button>
-
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-ds-xl w-full"
-                    >
-                      <Link href="/mock/writing/history">Back to history</Link>
-                    </Button>
-                  </div>
-                </div>
-
+              <Badge size="xs" tone="info">
+                {test.taskType ?? 'writing'}
+              </Badge>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
+              <div>
+                <dt className="font-medium">Test title</dt>
+                <dd className="truncate">{test.title}</dd>
               </div>
-            </Card>
-          </Container>
-        </section>
+              <div>
+                <dt className="font-medium">Duration</dt>
+                <dd>{test.durationMinutes ?? 60} minutes</dd>
+              </div>
+              <div>
+                <dt className="font-medium">Attempted on</dt>
+                <dd>{formattedDate}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">Total words (approx.)</dt>
+                <dd>{attempt.totalWords ?? '—'}</dd>
+              </div>
+            </dl>
+          </Card>
 
-      </main>
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center gap-2">
+              <Icon name="Brain" className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">AI Coach summary</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This card is ready for your AI evaluation output. Once your scoring
+              pipeline is wired, show key strengths, weaknesses, and next steps
+              for the candidate here.
+            </p>
+            <Button
+              as={Link}
+              href={`/mock/writing/review/${attempt.id}`}
+              size="sm"
+              tone="primary"
+              variant="outline"
+            >
+              <Icon name="Sparkles" className="mr-1.5 h-4 w-4" />
+              Open detailed feedback
+            </Button>
+          </Card>
+        </div>
+      </Container>
     </>
   );
 };
 
-export default WritingResultPage;
-
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
-  const attemptId = ctx.params?.attemptId as string;
+  const supabase = getServerClient(ctx);
+  const attemptId = ctx.params?.attemptId as string | undefined;
 
-  const { data: attemptRow } = await supabase
-    .from("writing_attempts")
-    .select("*")
-    .eq("id", attemptId)
-    .single();
+  if (!attemptId) {
+    return {
+      props: {
+        ok: false,
+        error: 'Missing attempt id in URL.',
+      },
+    };
+  }
 
-  const { data: answers } = await supabase
-    .from("writing_attempt_answers")
-    .select("*")
-    .eq("attempt_id", attemptId);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const convert = (row: any): WritingTaskResult => ({
-    taskType: row.task_type,
-    prompt: row.prompt,
-    bandScore: row.band_score,
-    wordCount: row.word_count,
-  });
+  if (!user) {
+    return {
+      redirect: {
+        destination: `/login?next=/mock/writing/result/${encodeURIComponent(
+          attemptId
+        )}`,
+        permanent: false,
+      },
+    };
+  }
 
-  const t1 = answers?.find((a: any) => a.task_type === "task1") ?? null;
-  const t2 = answers?.find((a: any) => a.task_type === "task2") ?? null;
+  type AttemptsWritingRow =
+    Database['public']['Tables']['attempts_writing']['Row'];
+  type WritingTestsRow =
+    Database['public']['Tables']['writing_tests']['Row'];
+
+  const { data: attemptRow, error: attemptError } = await supabase
+    .from('attempts_writing')
+    .select(
+      'id, user_id, test_id, created_at, overall_band, task1_band, task2_band, total_words'
+    )
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptError) {
+    console.error('[mock/writing/result/[attemptId]] attempt error', attemptError);
+  }
+
+  if (!attemptRow || attemptRow.user_id !== user.id) {
+    return {
+      props: {
+        ok: false,
+        error: 'Attempt not found or you do not have access.',
+      },
+    };
+  }
+
+  const { data: testRow, error: testError } = await supabase
+    .from('writing_tests')
+    .select('id, slug, title, task_type, duration_minutes')
+    .eq('id', attemptRow.test_id)
+    .maybeSingle();
+
+  if (testError) {
+    console.error('[mock/writing/result/[attemptId]] test error', testError);
+  }
+
+  if (!testRow) {
+    return {
+      props: {
+        ok: false,
+        error: 'Test for this attempt no longer exists.',
+      },
+    };
+  }
+
+  const attempt: PageProps['attempt'] = {
+    id: attemptRow.id,
+    createdAt: attemptRow.created_at,
+    testId: attemptRow.test_id ?? '',
+    overallBand: (attemptRow as any).overall_band ?? null,
+    task1Band: (attemptRow as any).task1_band ?? null,
+    task2Band: (attemptRow as any).task2_band ?? null,
+    totalWords: (attemptRow as any).total_words ?? null,
+  };
+
+  const test: PageProps['test'] = {
+    id: testRow.id,
+    slug: testRow.slug,
+    title: testRow.title,
+    taskType: (testRow as any).task_type ?? null,
+    durationMinutes: (testRow as any).duration_minutes ?? null,
+  };
 
   return {
     props: {
-      attempt: {
-        id: attemptRow.id,
-        createdAt: attemptRow.created_at,
-        durationSeconds: attemptRow.duration_seconds,
-      },
-      task1: t1 ? convert(t1) : null,
-      task2: t2 ? convert(t2) : null,
+      ok: true,
+      attempt,
+      test,
     },
   };
 };
+
+export default WritingResultPage;

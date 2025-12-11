@@ -38,7 +38,7 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
-// ⭐ NEW BreadcrumbBar V2
+// ⭐ NEW BreadcrumbBar V2 (used inside AppLayoutManager)
 import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
 
 const PricingReasonBanner = dynamic(
@@ -92,14 +92,22 @@ const isMockTestsFlowRoute = (pathname: string) => {
   return isMockAttempt || isWritingAttempt;
 };
 
-// ❗ treat ALL /mock/listening paths as exam-room (no chrome)
+// treat ALL /mock/listening paths as exam-room (no chrome)
 const isListeningMockRoute = (pathname: string) =>
   pathname.startsWith('/mock/listening');
 
-// ❗ NEW: treat ALL Reading test exam-room routes as no-chrome
+// Reading exam only: /mock/reading/[slug] (actual test room)
 const isReadingExamRoute = (pathname: string) =>
-  // /mock/reading/[slug] → exam room
-  /^\/mock\/reading\/[^/]+(\/|$)/.test(pathname);
+  /^\/mock\/reading\/[^/]+\/?$/.test(pathname);
+
+// Reading result: /mock/reading/[slug]/result[/...]
+const isReadingResultRoute = (pathname: string) =>
+  /^\/mock\/reading\/[^/]+\/result(\/|$)/.test(pathname);
+
+// Reading review: /mock/reading/review/[attemptId]
+const isReadingReviewRoute = (pathname: string) =>
+  /^\/mock\/reading\/review\/[^/]+(\/|$)/.test(pathname);
+
 // ---------- Auth bridge ----------
 function useAuthBridge() {
   const router = useRouter();
@@ -213,17 +221,21 @@ function useRouteConfiguration(pathname: string) {
     const isAttempt = isAttemptPath(pathname);
     const listeningMock = isListeningMockRoute(pathname);
     const readingExam = isReadingExamRoute(pathname);
+    const readingResult = isReadingResultRoute(pathname);
+    const readingReview = isReadingReviewRoute(pathname);
 
     const isNoChromeRoute =
       derivedIsAuth ||
       routeConfig.layout === 'proctoring' ||
       pathname.startsWith('/premium') ||
       /\/focus-mode(\/|$)/.test(pathname) ||
-      routeConfig.showChrome === false ||
+      // allow chrome for reading result & review even if map says false
+      (routeConfig.showChrome === false && !readingResult && !readingReview) ||
       isAttempt ||
-      isMockTestsFlowRoute(pathname) ||
+      // keep mock run/review chrome-less, but NOT reading review page
+      (isMockTestsFlowRoute(pathname) && !readingReview) ||
       listeningMock ||
-      readingExam; // ❗ hide header/footer for ALL reading exam routes
+      readingExam;
 
     const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
 
@@ -367,15 +379,19 @@ function InnerApp({ Component, pageProps }: AppProps) {
     );
 
   // ⭐ Decide when to show breadcrumb bar
+  const isReadingReview = isReadingReviewRoute(pathname);
+
   const showBreadcrumbs =
     !routeConfiguration.isAuthPage &&
     !routeConfiguration.isProctoringRoute &&
     !routeConfiguration.isPremiumRoute &&
-    !isMockTestsFlowRoute(pathname) &&
+    // allow breadcrumbs on reading review, but keep off for other mock run/review
+    (!isMockTestsFlowRoute(pathname) || isReadingReview) &&
     !isListeningMockRoute(pathname) &&
     !isReadingExamRoute(pathname) &&
     !pathname.includes('/run') &&
-    !pathname.includes('/review') &&
+    // allow /review only for reading review page
+    (!pathname.includes('/review') || isReadingReview) &&
     !routeConfiguration.isNoChromeRoute;
 
   return (

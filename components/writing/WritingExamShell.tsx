@@ -1,325 +1,391 @@
 // components/writing/WritingExamShell.tsx
 import * as React from 'react';
+import clsx from 'clsx';
 
-import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
-import { Textarea } from '@/components/design-system/Textarea';
-import { Icon } from '@/components/design-system/Icon';
-import { cn } from '@/lib/utils';
+import { Alert } from '@/components/design-system/Alert';
+import { ExamBreadcrumbs } from '@/components/exam/ExamBreadcrumbs';
+import TextareaAutosize from '@/components/design-system/TextareaAutosize';
+import { useExamTimer } from '@/lib/hooks/useExamTimer';
 
 type ExamType = 'Academic' | 'General Training';
 
-type WritingTaskDescriptor = {
+export type WritingTaskConfig = {
   id: string;
   label: 'Task 1' | 'Task 2';
-  title: string;
-  prompt: string;
-  minimumWords: number;
-  recommendedMinutes: number;
+  heading: string;
+  body: string;
+  recommendedMinutes: number | null;
+  minWords: number | null;
 };
 
-type WritingExamShellProps = {
+export type WritingExamShellSubmitPayload = {
+  answers: {
+    taskId: string;
+    label: 'Task 1' | 'Task 2';
+    text: string;
+    wordCount: number;
+  }[];
+};
+
+type Props = {
   testTitle: string;
   examType: ExamType;
-  totalDurationMinutes: number;
-  tasks: WritingTaskDescriptor[];
-  initialAnswers?: Record<string, string | null>;
-  onSubmit: (payload: {
-    answers: {
-      taskId: string;
-      label: 'Task 1' | 'Task 2';
+  durationMinutes: number;
+  tasks: WritingTaskConfig[];
+  initialDrafts?: Record<
+    string,
+    {
       text: string;
-      wordCount: number;
-    }[];
-  }) => Promise<void> | void;
+    }
+  >;
+  onSubmit: (payload: WritingExamShellSubmitPayload) => Promise<void> | void;
   isSubmitting?: boolean;
-  disabled?: boolean;
 };
 
-export const WritingExamShell: React.FC<WritingExamShellProps> = ({
+const countWords = (text: string): number => {
+  if (!text) return 0;
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+};
+
+const formatSeconds = (seconds: number): string => {
+  const safe = Math.max(0, Math.floor(seconds));
+  const min = Math.floor(safe / 60);
+  const sec = safe % 60;
+  return `${min.toString().padStart(2, '0')}:${sec
+    .toString()
+    .padStart(2, '0')}`;
+};
+
+export const WritingExamShell: React.FC<Props> = ({
   testTitle,
   examType,
-  totalDurationMinutes,
+  durationMinutes,
   tasks,
-  initialAnswers,
+  initialDrafts,
   onSubmit,
-  isSubmitting,
-  disabled,
+  isSubmitting = false,
 }) => {
-  const [activeTaskId, setActiveTaskId] = React.useState(
-    () => tasks[0]?.id ?? '',
+  const [activeTaskId, setActiveTaskId] = React.useState<string>(
+    tasks[0]?.id ?? '',
   );
 
-  const [answers, setAnswers] = React.useState<Record<string, string>>(() => {
-    const base: Record<string, string> = {};
-    for (const t of tasks) {
-      base[t.id] = (initialAnswers?.[t.id] ?? '').toString();
-    }
+  const [drafts, setDrafts] = React.useState<
+    Record<
+      string,
+      {
+        text: string;
+      }
+    >
+  >(() => {
+    const base: Record<string, { text: string }> = {};
+    tasks.forEach((t) => {
+      base[t.id] = {
+        text: initialDrafts?.[t.id]?.text ?? '',
+      };
+    });
     return base;
   });
 
-  const [remainingSeconds, setRemainingSeconds] = React.useState(
-    totalDurationMinutes * 60,
-  );
-  const [hasExpired, setHasExpired] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
-  // Timer
-  React.useEffect(() => {
-    if (remainingSeconds <= 0) {
-      setHasExpired(true);
-      return;
-    }
+  const { secondsRemaining, isExpired, underTimeWarning } = useExamTimer({
+    totalSeconds: (durationMinutes || 60) * 60,
+  });
 
-    const id = window.setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(id);
-          setHasExpired(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  const activeTask =
+    tasks.find((t) => t.id === activeTaskId) ?? tasks[0] ?? null;
+  const activeText = activeTask ? drafts[activeTask.id]?.text ?? '' : '';
+  const wordCount = countWords(activeText);
+  const minWords = activeTask?.minWords ?? null;
+  const belowMinWords =
+    typeof minWords === 'number' && wordCount > 0 && wordCount < minWords;
 
-    return () => window.clearInterval(id);
-  }, [remainingSeconds]);
+  const formattedRemaining = formatSeconds(secondsRemaining);
 
-  const activeTask = tasks.find((t) => t.id === activeTaskId) ?? tasks[0];
-
-  const handleChange = (taskId: string, value: string) => {
-    setAnswers((prev) => ({
+  const handleChangeTaskText = (taskId: string, value: string) => {
+    setDrafts((prev) => ({
       ...prev,
-      [taskId]: value,
+      [taskId]: {
+        text: value,
+      },
     }));
   };
 
-  const wordCount = (text: string) => {
-    const normalized = text
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!normalized) return 0;
-    return normalized.split(' ').length;
-  };
-
-  const activeWordCount = activeTask ? wordCount(answers[activeTask.id] ?? '') : 0;
-  const timerMinutes = Math.floor(remainingSeconds / 60);
-  const timerSeconds = remainingSeconds % 60;
-
   const handleSubmit = async () => {
-    const payload = tasks.map((t) => {
-      const text = answers[t.id] ?? '';
+    if (!tasks.length) return;
+
+    const hasEmptyTask = tasks.some((t) => !drafts[t.id]?.text?.trim());
+
+    if (hasEmptyTask) {
+      setSubmitError(
+        'You must attempt both Task 1 and Task 2 before finishing the test.',
+      );
+      return;
+    }
+
+    setSubmitError(null);
+
+    const answers: WritingExamShellSubmitPayload['answers'] = tasks.map((t) => {
+      const raw = drafts[t.id]?.text ?? '';
+      const trimmed = raw.trim();
       return {
         taskId: t.id,
         label: t.label,
-        text,
-        wordCount: wordCount(text),
+        text: trimmed,
+        wordCount: countWords(trimmed),
       };
     });
 
-    await onSubmit({ answers: payload });
+    await onSubmit({ answers });
   };
 
-  const canSubmit = !disabled && !isSubmitting;
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* TOP BAR: test meta + timer + exam info */}
-      <Card className="rounded-ds-2xl border border-border/60 bg-card/90 px-4 py-3 md:px-5 md:py-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex min-h-screen flex-col bg-lightBg">
+      {/* EXAM HEADER */}
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-slab text-base md:text-lg font-semibold">
-                {testTitle}
-              </h1>
-              <Badge size="xs" variant="info">
-                {examType} · Writing
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Finish both tasks within the total time. No autosave excuses later.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 md:justify-end">
-            <div className="flex items-center gap-2 rounded-ds-full bg-muted px-3 py-1">
-              <Icon
-                name={hasExpired ? 'AlertTriangle' : 'Timer'}
-                size={14}
-                className={cn(
-                  'shrink-0',
-                  hasExpired ? 'text-danger' : 'text-primary',
-                )}
-              />
-              <span
-                className={cn(
-                  'tabular-nums text-xs font-medium',
-                  hasExpired ? 'text-danger' : 'text-foreground',
-                )}
-              >
-                {timerMinutes.toString().padStart(2, '0')}:
-                {timerSeconds.toString().padStart(2, '0')}
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-[2px] font-medium uppercase tracking-[0.16em]">
+                IELTS {examType} • Writing
               </span>
             </div>
-            <div className="flex flex-col items-end text-[11px] text-muted-foreground">
-              <span>Total time: {totalDurationMinutes} minutes</span>
-              <span>Tasks: {tasks.length}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {testTitle}
+              </p>
             </div>
+            <ExamBreadcrumbs
+              className="mt-1"
+              items={[
+                { label: 'Full Mock Tests', href: '/mock' },
+                { label: 'Writing', href: '/mock/writing' },
+                { label: testTitle, active: true },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                Time remaining
+              </span>
+              <Badge
+                variant={
+                  isExpired
+                    ? 'destructive'
+                    : underTimeWarning
+                    ? 'accent'
+                    : 'neutral'
+                }
+                size="sm"
+              >
+                {formattedRemaining}
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Total time: {durationMinutes} minutes
+            </p>
           </div>
         </div>
-      </Card>
+      </header>
 
-      {/* TASK TABS */}
-      <Card className="rounded-ds-2xl border border-border/60 bg-card/90 px-3 py-2 md:px-4 md:py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
-            {tasks.map((t) => {
-              const isActive = t.id === activeTask.id;
+      {/* EXAM BODY */}
+      <main className="flex-1">
+        <div className="mx-auto max-w-6xl space-y-3 px-4 py-4">
+          {/* Time alerts */}
+          {isExpired && (
+            <Alert tone="destructive" className="text-xs">
+              Time is over. Your answers will be submitted automatically.
+            </Alert>
+          )}
+
+          {underTimeWarning && !isExpired && (
+            <Alert tone="info" className="text-xs">
+              Last few minutes. Make sure both Task 1 and Task 2 have complete answers.
+            </Alert>
+          )}
+
+          {/* Task selector chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            {tasks.map((task) => {
+              const text = drafts[task.id]?.text ?? '';
+              const wc = countWords(text);
+              const belowMin =
+                typeof task.minWords === 'number' && wc < task.minWords;
+
               return (
                 <button
-                  key={t.id}
+                  key={task.id}
                   type="button"
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-ds-full px-3 py-1.5 text-xs font-medium transition',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                  onClick={() => setActiveTaskId(task.id)}
+                  className={clsx(
+                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition',
+                    activeTaskId === task.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted',
                   )}
-                  onClick={() => setActiveTaskId(t.id)}
                 >
-                  <span>{t.label}</span>
-                  <span className="h-4 w-px bg-border/60" />
-                  <span>{t.minimumWords}+ words</span>
+                  <span className="font-semibold">{task.label}</span>
+                  <span className="h-1 w-1 rounded-full bg-border" />
+                  <span className="text-[11px]">
+                    {wc} words
+                    {belowMin && typeof task.minWords === 'number'
+                      ? ` / ${task.minWords}+`
+                      : ''}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {activeTask && (
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <Icon name="Clock" size={12} />
-              <span>Recommended: {activeTask.recommendedMinutes} minutes</span>
-            </div>
+          {/* Two-pane exam layout */}
+          <div className="grid gap-4 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
+            {/* LEFT: PROMPT PANE */}
+            <section className="flex flex-col rounded-ds-xl border border-border bg-card">
+              <header className="border-b border-border px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {activeTask?.label}
+                </p>
+                {typeof activeTask?.recommendedMinutes === 'number' && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Recommended time:{' '}
+                    <span className="font-medium">
+                      {activeTask.recommendedMinutes} minutes
+                    </span>
+                  </p>
+                )}
+                {typeof minWords === 'number' && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Minimum words:{' '}
+                    <span className="font-medium">{minWords} words</span>
+                  </p>
+                )}
+              </header>
+
+              <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/70 flex-1 overflow-auto px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+                {activeTask?.heading && (
+                  <p className="mb-2 font-medium text-foreground">
+                    {activeTask.heading}
+                  </p>
+                )}
+                {activeTask?.body
+                  ?.split('\n')
+                  .filter(Boolean)
+                  .map((line) => (
+                    <p key={line} className="mb-2 last:mb-0">
+                      {line}
+                    </p>
+                  ))}
+              </div>
+            </section>
+
+            {/* RIGHT: ANSWER PANE */}
+            <section className="flex min-h-[420px] flex-col rounded-ds-xl border border-border bg-card">
+              <header className="border-b border-border px-4 pt-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Answer area
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Type your answer exactly as you would in the official exam. Do not
+                      copy-paste from outside sources.
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-0.5 text-[11px] text-muted-foreground">
+                    <span>
+                      Current task:{' '}
+                      <span
+                        className={clsx(
+                          'font-semibold',
+                          belowMinWords
+                            ? 'text-destructive'
+                            : 'text-foreground',
+                        )}
+                      >
+                        {wordCount}
+                      </span>
+                      {typeof minWords === 'number' && (
+                        <span> / {minWords}+ recommended</span>
+                      )}
+                    </span>
+                    {belowMinWords && (
+                      <span className="rounded-full bg-destructive/10 px-2 py-[1px] text-[10px] text-destructive">
+                        Below minimum word count
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </header>
+
+              <div className="flex-1 px-4 py-3">
+                <TextareaAutosize
+                  minRows={12}
+                  maxRows={18}
+                  className="w-full resize-none rounded-ds-md border border-border bg-background px-3 py-2 text-sm leading-relaxed shadow-sm"
+                  value={activeText}
+                  onChange={(e) =>
+                    activeTask &&
+                    handleChangeTaskText(activeTask.id, e.target.value)
+                  }
+                />
+              </div>
+
+              <footer className="flex items-center justify-between border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span>
+                    Answers are auto-saved frequently while you type, similar to the real
+                    computer-based test.
+                  </span>
+                </div>
+                <span>
+                  {examType} Writing • {activeTask?.label}
+                </span>
+              </footer>
+            </section>
+          </div>
+
+          {/* SUBMIT ERRORS */}
+          {submitError && (
+            <Alert tone="destructive" className="text-xs">
+              {submitError}
+            </Alert>
           )}
         </div>
-      </Card>
+      </main>
 
-      {/* MAIN EXAM GRID */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
-        {/* PROMPT PANEL */}
-        <Card className="rounded-ds-2xl border border-border/60 bg-card/90 p-4 md:p-5 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Badge size="xs" variant="neutral">
-                {activeTask?.label ?? 'Task'}
-              </Badge>
-              <p className="text-xs text-muted-foreground">
-                Respond to all parts of the task clearly.
-              </p>
-            </div>
+      {/* EXAM FOOTER */}
+      <footer className="border-t border-border bg-card/95">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <div className="text-[11px] text-muted-foreground">
+            Make sure you have answered <span className="font-semibold">both</span> tasks
+            before finishing the test.
           </div>
-
-          <div className="rounded-ds-xl bg-muted px-3 py-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap">
-            {activeTask?.prompt ?? 'No prompt available.'}
-          </div>
-
-          <p className="text-[11px] text-muted-foreground">
-            Use the right tone ({examType === 'Academic' ? 'formal' : 'semi-formal'})
-            and keep ideas logical. No story-writing.
-          </p>
-        </Card>
-
-        {/* ANSWER PANEL */}
-        <Card className="rounded-ds-2xl border border-border/60 bg-card/90 p-4 md:p-5 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-muted-foreground">
-              Your answer
-            </p>
-
-            {activeTask && (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <Icon name="ListChecks" size={12} />
-                <span>
-                  {activeWordCount} / {activeTask.minimumWords} words
-                </span>
-                {activeWordCount < activeTask.minimumWords ? (
-                  <Badge size="xs" variant="danger">
-                    Below minimum
-                  </Badge>
-                ) : (
-                  <Badge size="xs" variant="success">
-                    OK
-                  </Badge>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <Textarea
-              value={activeTask ? answers[activeTask.id] ?? '' : ''}
-              onChange={(e) =>
-                activeTask && handleChange(activeTask.id, e.target.value)
-              }
-              className="h-[320px] resize-none text-sm"
-              placeholder="Start writing your response here..."
-              disabled={disabled || hasExpired || isSubmitting}
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-[11px] text-muted-foreground">
-              No bullet points. Use clear paragraphs. Spelling mistakes count.
-            </p>
-            <p className="text-[11px] text-muted-foreground tabular-nums">
-              Auto word count · {activeWordCount} words
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* SUBMIT FOOTER */}
-      <div className="sticky bottom-0 z-20 mt-4 border-t border-border/60 bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-2 py-3 md:px-0 md:py-3">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col text-[11px] text-muted-foreground">
-              <span>
-                Once you submit, this attempt will be locked and sent for
-                scoring/feedback.
+          <div className="flex items-center gap-2">
+            {isExpired && (
+              <span className="text-[11px] text-muted-foreground">
+                Time over. Finish to send your final answers.
               </span>
-              {hasExpired && (
-                <span className="text-danger">
-                  Time is up. You can still submit, but this will be treated as
-                  late in analytics.
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 md:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="rounded-ds-xl"
-                asChild
-              >
-                <Link href="/mock/writing">Exit without submitting</Link>
-              </Button>
-
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                className="rounded-ds-xl"
-                disabled={!canSubmit}
-                onClick={handleSubmit}
-              >
-                {isSubmitting ? 'Submitting…' : 'Submit Writing attempt'}
-              </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting…' : 'Finish Writing test'}
+            </Button>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

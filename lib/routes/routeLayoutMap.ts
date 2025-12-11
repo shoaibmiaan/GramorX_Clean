@@ -42,9 +42,14 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/mock': { layout: 'default', showChrome: true },
   '/mock/index': { layout: 'default', showChrome: true },
   '/mock/[section]': { layout: 'default', showChrome: true },
+
+  // Reading exam:
+  // - /mock/reading/[slug]         → exam room (no chrome)
+  // - /mock/reading/[slug]/result  → result page (WITH chrome)
+  // - /mock/reading/review/[id]    → review page (WITH chrome)
   '/mock/reading/[slug]': { layout: 'default', showChrome: false },
-  '/mock/reading/[slug]/result': { layout: 'default', showChrome: false },
-  '/mock/reading/review/[attemptId]': { layout: 'default', showChrome: false },
+  '/mock/reading/[slug]/result': { layout: 'default', showChrome: true },
+  '/mock/reading/review/[attemptId]': { layout: 'default', showChrome: true },
 
   '/writing/mock': { layout: 'default', showChrome: true },
   '/writing/mock/[id]': { layout: 'default', showChrome: false },
@@ -52,7 +57,6 @@ export const ROUTE_LAYOUT_MAP: Record<string, RouteConfig> = {
   '/writing/mock/[mockId]/workspace': { layout: 'default', showChrome: false },
 
   '/learn/listening': { layout: 'default', showChrome: true },
-
 
   // Writing resources (ensure _app wraps with default layout + chrome)
   '/writing/resources': { layout: 'default', showChrome: true },

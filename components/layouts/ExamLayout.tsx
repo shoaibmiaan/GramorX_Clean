@@ -72,7 +72,9 @@ export default function ExamLayout({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="leading-tight">
                 {attemptId && (
-                  <div className="text-small text-muted-foreground dark:text-gray-400">Attempt {attemptId}</div>
+                  <div className="text-small text-muted-foreground dark:text-gray-400">
+                    Attempt {attemptId}
+                  </div>
                 )}
                 <h1 className="font-semibold">{title}</h1>
               </div>
@@ -85,15 +87,25 @@ export default function ExamLayout({
         </header>
 
         <main id={mainId} className="flex-1" tabIndex={-1}>
-          <Container className="flex flex-col gap-6 py-6 sm:py-8 md:flex-row md:gap-4">
+          {/* tightened + centered */}
+          <Container className="flex flex-col gap-6 py-6 sm:py-8 md:flex-row md:gap-4 max-w-6xl">
             {questionPalette && (
-              <aside className="hidden w-60 shrink-0 md:block" aria-label="Question navigation">
+              <aside
+                className="hidden w-60 shrink-0 md:block"
+                aria-label="Question navigation"
+              >
                 <div className="card-surface sticky top-[calc(6.5rem+env(safe-area-inset-top,0px))] rounded-ds-xl p-3">
                   {questionPalette}
                 </div>
               </aside>
             )}
-            <section className="flex-1 min-w-0">{children}</section>
+
+            {/* centered exam content */}
+            <section className="flex-1 min-w-0 flex justify-center">
+              <div className="w-full max-w-4xl">
+                {children}
+              </div>
+            </section>
           </Container>
         </main>
       </div>

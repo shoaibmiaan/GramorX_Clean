@@ -67,7 +67,10 @@ export default function ExamShell({
             <div className="ml-auto flex items-center gap-2">
               {planLabel && <Badge tone="purple">{planLabel}</Badge>}
               {headerPills.map((p) => (
-                <span key={p.id} className={`rounded-full px-2.5 py-1 text-xs ${toneClass(p.tone)}`}>
+                <span
+                  key={p.id}
+                  className={`rounded-full px-2.5 py-1 text-xs ${toneClass(p.tone)}`}
+                >
                   {p.label}
                 </span>
               ))}
@@ -81,7 +84,7 @@ export default function ExamShell({
       </header>
 
       {/* Body */}
-      <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4">
+      <div className="mx-auto grid max-w-5xl grid-cols-12 gap-4 px-4 py-4">
         {/* Left rail */}
         <aside className="col-span-12 h-full rounded-2xl border border-border/40 bg-elevated p-3 md:sticky md:top-16 md:col-span-3 md:self-start">
           <div className="mb-2 text-sm font-medium text-muted-foreground">Tasks</div>
@@ -96,7 +99,9 @@ export default function ExamShell({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm">{item.label}</span>
-                  {item.meta && <span className="text-xs text-muted-foreground">{item.meta}</span>}
+                  {item.meta && (
+                    <span className="text-xs text-muted-foreground">{item.meta}</span>
+                  )}
                 </div>
               </button>
             ))}
@@ -108,7 +113,11 @@ export default function ExamShell({
         </aside>
 
         {/* Main */}
-        <main className="col-span-12 md:col-span-6">{children}</main>
+        <main className="col-span-12 md:col-span-6 flex justify-center">
+          <div className="w-full max-w-3xl">
+            {children}
+          </div>
+        </main>
 
         {/* Right rail */}
         <aside className="col-span-12 md:sticky md:top-16 md:col-span-3 md:self-start">
@@ -119,11 +128,19 @@ export default function ExamShell({
       {/* Footer */}
       <footer className="sticky bottom-0 z-40 border-t border-border/40 bg-elevated/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3">
-          <div className="hidden text-sm text-muted-foreground md:block">{footerNote}</div>
+          <div className="hidden text-sm text-muted-foreground md:block">
+            {footerNote}
+          </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" onClick={onExit}>Exit</Button>
-            <Button variant="secondary" onClick={onSave}>Save draft</Button>
-            <Button variant="primary" onClick={onSubmit}>Submit</Button>
+            <Button variant="ghost" onClick={onExit}>
+              Exit
+            </Button>
+            <Button variant="secondary" onClick={onSave}>
+              Save draft
+            </Button>
+            <Button variant="primary" onClick={onSubmit}>
+              Submit
+            </Button>
           </div>
         </div>
       </footer>
