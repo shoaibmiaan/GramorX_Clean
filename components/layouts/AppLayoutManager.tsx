@@ -34,6 +34,7 @@ import BillingLayout from '@/components/layouts/BillingLayout';
 import ResourcesLayout from '@/components/layouts/ResourcesLayout';
 import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
 import SupportLayout from '@/components/layouts/SupportLayout';
+import { MockPortalLayout } from '@/components/mock';
 
 // ⭐ NEW — Breadcrumb Bar V2
 import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
@@ -224,6 +225,8 @@ export function AppLayoutManager({
 
   const router = useRouter();
   const pathname = router.pathname;
+  const isMockRoute = pathname.startsWith('/mock');
+  const mockPathname = (router.asPath ?? pathname).split('?')[0];
   const teacherAccess = useTeacherAccess(role, isTeacherApproved);
   const isTeacherRoute = pathname.startsWith('/teacher');
   const teacherAccessRole = role ?? 'guest';
@@ -344,25 +347,32 @@ export function AppLayoutManager({
   // -----------------------
   const shouldWrapInMainLayout = forceLayoutOnAuthPage || showLayout;
 
+  const renderedContent = isMockRoute ? (
+    <>
+      <ImpersonationBanner />
+      <MockPortalLayout pathname={mockPathname}>{content}</MockPortalLayout>
+    </>
+  ) : shouldWrapInMainLayout ? (
+    <Layout>
+      <ImpersonationBanner />
+
+      {/* ⭐ Breadcrumb Bar V2 — inserted globally under header chrome */}
+      {showBreadcrumbs && <BreadcrumbBar />}
+
+      {content}
+    </Layout>
+  ) : (
+    <>
+      <ImpersonationBanner />
+      {content}
+    </>
+  );
+
   return (
     <LayoutErrorBoundary>
       <GlobalPlanGuard />
 
-      {shouldWrapInMainLayout ? (
-        <Layout>
-          <ImpersonationBanner />
-
-          {/* ⭐ Breadcrumb Bar V2 — inserted globally under header chrome */}
-          {showBreadcrumbs && <BreadcrumbBar />}
-
-          {content}
-        </Layout>
-      ) : (
-        <>
-          <ImpersonationBanner />
-          {content}
-        </>
-      )}
+      {renderedContent}
 
       <AuthAssistant />
       <SidebarAI />

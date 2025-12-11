@@ -33,6 +33,8 @@ const STEP_ROUTES: Record<OnboardingStepId, string> = {
 
 type ChannelId = 'email' | 'whatsapp' | 'in-app';
 
+type NotificationTime = '08:00' | '12:00' | '18:00' | '21:00';
+
 interface ChannelOption {
   id: ChannelId;
   label: string;
@@ -59,12 +61,20 @@ const CHANNEL_OPTIONS: ChannelOption[] = [
   },
 ];
 
+const NOTIFICATION_TIME_OPTIONS: { value: NotificationTime; label: string }[] = [
+  { value: '08:00', label: 'Morning · 8:00 AM' },
+  { value: '12:00', label: 'Midday · 12:00 PM' },
+  { value: '18:00', label: 'Evening · 6:00 PM' },
+  { value: '21:00', label: 'Night · 9:00 PM' },
+];
+
 const OnboardingNotificationsPage: NextPage = () => {
   const router = useRouter();
 
   const [selectedChannels, setSelectedChannels] = useState<ChannelId[]>([
     'email',
   ]);
+  const [preferredTime, setPreferredTime] = useState<NotificationTime>('18:00');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,12 +131,12 @@ const OnboardingNotificationsPage: NextPage = () => {
     try {
       setSubmitting(true);
 
-      const res = await fetch('/api/onboarding/complete', {
+      const res = await fetch('/api/onboarding/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          step: 5,
           channels: selectedChannels,
+          preferredTime,
         }),
       });
 
@@ -201,6 +211,35 @@ const OnboardingNotificationsPage: NextPage = () => {
                 onToggle={() => toggleChannel(option.id)}
               />
             ))}
+          </div>
+
+          {/* Delivery time */}
+          <div className="mt-6 grid gap-2 sm:grid-cols-[240px_1fr] sm:items-center">
+            <div>
+              <p className="text-sm font-semibold">Quiet, predictable timing</p>
+              <p className="text-xs text-muted-foreground">
+                Pick when nudges land. We batch reminders to avoid interrupting classes and commutes.
+              </p>
+            </div>
+
+            <div className="flex gap-3 rounded-2xl border border-border bg-muted/30 p-3">
+              <Icon name="clock" className="mt-1 h-4 w-4 text-muted-foreground" />
+              <label className="flex grow flex-col gap-1 text-sm text-foreground">
+                Preferred time
+                <select
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  value={preferredTime}
+                  onChange={(e) => setPreferredTime(e.target.value as NotificationTime)}
+                  aria-label="Preferred notification time"
+                >
+                  {NOTIFICATION_TIME_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
 
           {error && (

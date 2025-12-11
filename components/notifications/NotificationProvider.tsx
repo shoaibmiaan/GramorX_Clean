@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/design-system/Toaster';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
@@ -21,7 +21,7 @@ const NotificationCtx = createContext<Ctx | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [hasSession, setHasSession] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -31,13 +31,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!cancelled) setHasSession(!!session);
+      if (!cancelled) setSession(session);
     })();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      setHasSession(!!session);
+      setSession(session);
       if (!session) setNotifications([]);
     });
 
@@ -48,18 +48,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!hasSession) return;
+    if (!session) return;
     let active = true;
+    const controller = new AbortController();
 
     const fetchNotifications = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.warn('No session for fetching notifications');
-          return;
-        }
+        const accessToken = session?.access_token;
+        if (!accessToken) return;
         const res = await fetch('/api/notifications', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         const data = await res.json();
@@ -75,17 +74,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [hasSession, toast]);
+  }, [session, toast]);
 
   useEffect(() => {
-    if (!hasSession) return;
+    if (!session?.user?.id) return;
 
-    const channel = supabase
-      .channel('notifications')
+    const channel = supabase.channel('notifications-onboarding')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`,
+        },
         (payload: { new: Notification }) => {
           const n = payload.new;
           setNotifications(prev => [n, ...prev]);
@@ -101,28 +105,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [hasSession, toast]);
+  }, [session, toast]);
 
   const markRead = useCallback(async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('No session for marking notification read');
-        return;
-      }
-      await fetch(`/api/notifications/${id}`, {
+      const accessToken = session?.access_token;
+      if (!accessToken) return;
+      const res = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-    } catch {
-      /* noop */
+
+      if (!res.ok) throw new Error(`Failed to mark ${id} as read`);
+    } catch (error) {
+      console.error(error);
+      // Revert optimistic update
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)));
+      toast.error('Could not update notification. Please retry.');
     }
-  }, []);
+  }, [session?.access_token, toast]);
 
-  const unread = notifications.filter((n) => !n.read).length;
+  const unread = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
-  const value = { notifications, unread, markRead };
+  const value = useMemo(() => ({ notifications, unread, markRead }), [notifications, unread, markRead]);
 
   return <NotificationCtx.Provider value={value}>{children}</NotificationCtx.Provider>;
 }
