@@ -50,14 +50,21 @@ const createSupabaseBrowserClient = () =>
     ...(isConfigured ? {} : { global: { fetch: noopFetch } }),
   });
 
-export const supabaseBrowser: SupabaseClient<Database> =
+const supabaseBrowserClient: SupabaseClient<Database> =
   shouldCacheClient && globalScope.__supabaseBrowser
     ? globalScope.__supabaseBrowser
     : createSupabaseBrowserClient();
 
 if (shouldCacheClient) {
-  globalScope.__supabaseBrowser = supabaseBrowser;
+  globalScope.__supabaseBrowser = supabaseBrowserClient;
 }
+
+type SupabaseBrowserFactory = (() => SupabaseClient<Database>) & SupabaseClient<Database>;
+
+export const supabaseBrowser: SupabaseBrowserFactory = Object.assign(
+  () => supabaseBrowserClient,
+  supabaseBrowserClient,
+);
 
 export const authHeaders = async (extra: Record<string, string> = {}) => {
   const {
