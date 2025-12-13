@@ -900,6 +900,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       },
     };
   } catch (err: any) {
+    console.error('Failed to load Reading mocks', err);
     return {
       props: {
         tests: [],

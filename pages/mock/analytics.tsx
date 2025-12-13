@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import type { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 
 import { Container } from "@/components/design-system/Container";
 import { Card } from "@/components/design-system/Card";
-import { supabaseBrowser } from "@/lib/supabaseBrowser";
 import { Badge } from "@/components/design-system/Badge";
+import { getServerClient } from "@/lib/supabaseServer";
+import type { Database } from "@/lib/database.types";
 
 interface ResultRow {
   created_at: string;
@@ -23,33 +23,28 @@ interface SectionStat {
   attempts: number;
 }
 
-export default function MockTestAnalytics() {
-  const router = useRouter();
-  const [results, setResults] = useState<ResultRow[]>([]);
+type PageProps = {
+  results: ResultRow[];
+  error?: string;
+};
 
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      const { data: { session } } = await supabaseBrowser.auth.getSession();
-      if (!session?.user) {
-        router.replace("/login");
-        return;
-      }
-
-      const { data } = await supabaseBrowser
-        .from("mock_test_results")
-        .select("created_at,section,band,time_taken,correct,total")
-        .eq("user_id", session.user.id)
-        .order("created_at");
-
-      if (mounted) setResults((data as ResultRow[]) || []);
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
+const MockTestAnalytics: NextPage<PageProps> = ({ results, error }) => {
+  if (error) {
+    return (
+      <section className="py-10">
+        <Container className="max-w-3xl">
+          <Card className="p-6 rounded-ds-2xl border border-border/60 bg-card/70 space-y-3">
+            <h1 className="text-xl font-semibold">Unable to load Mock analytics</h1>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <div className="flex gap-2">
+              <Link href="/mock" className="text-primary text-sm underline">Back to Mock hub</Link>
+              <Link href="/mock/analytics" className="text-sm text-muted-foreground underline">Retry</Link>
+            </div>
+          </Card>
+        </Container>
+      </section>
+    );
+  }
 
   const trendData = groupByDate(results);
   const sectionStats = computeSectionStats(results);
@@ -126,7 +121,53 @@ export default function MockTestAnalytics() {
       </Container>
     </section>
   );
-}
+};
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+  try {
+    const supabase = getServerClient<Database>(ctx.req, ctx.res);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        redirect: {
+          destination: `/login?next=/mock/analytics`,
+          permanent: false,
+        },
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("mock_test_results")
+      .select("created_at,section,band,time_taken,correct,total")
+      .eq("user_id", user.id)
+      .order("created_at");
+
+    if (error) throw error;
+
+    return {
+      props: {
+        results: (data as ResultRow[]) ?? [],
+      },
+    };
+  } catch (err: unknown) {
+    console.error("Failed to load mock analytics", err);
+    const message =
+      err instanceof Error ? err.message : "Failed to load mock analytics.";
+
+    return {
+      props: {
+        results: [],
+        error: message,
+      },
+    };
+  }
+};
+
+export default MockTestAnalytics;
 
 function KPI({ title, value }) {
   return (

@@ -13,7 +13,7 @@ import Icon from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
-import withPlan from '@/lib/withPlan';
+import { withPlan } from '@/lib/withPlan';
 import { mapPlanIdToTier, type PlanTier } from '@/lib/plans';
 import { carryAttemptCtx } from '@/lib/reading/attemptNav';
 
@@ -503,6 +503,8 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                       title="Explanations"
                       description="See why each answer is correct with expert rationales and traps to avoid."
                       ctaLabel="Unlock Explanations"
+                      secondaryCtaHref="/pricing"
+                      secondaryCtaLabel="See plans"
                       ctaFullWidth
                     >
                       <div className="rounded-ds-xl border border-border/60 bg-background/70 p-4 space-y-2 text-xs text-muted-foreground">

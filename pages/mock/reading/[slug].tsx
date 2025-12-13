@@ -17,6 +17,7 @@ import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 import { ReadingExamShell } from '@/components/reading/ReadingExamShell';
+import FocusGuard from '@/components/exam/FocusGuard';
 
 type PageProps = {
   test: ReadingTestType | null;
@@ -61,6 +62,7 @@ const ReadingMockRunPage: NextPage<PageProps> = ({ test, passages, questions }) 
       </Head>
       {/* One-page full-screen exam room. No Container, no extra layout. */}
       <main className="min-h-[100dvh] w-full bg-background">
+        <FocusGuard exam="reading" slug={test.slug} active />
         <ReadingExamShell test={test} passages={passages} questions={questions} />
       </main>
     </>
@@ -116,6 +118,43 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .eq('test_id', testRow.id)
     .order('question_order', { ascending: true });
 
+  const allowedQuestionTypes = new Set([
+    'tfng',
+    'true_false_not_given',
+    'yynn',
+    'yes_no_not_given',
+    'mcq',
+    'mcq_single',
+    'mcq_multiple',
+    'gap',
+    'gap_fill',
+    'gapfill',
+    'blank',
+    'fill_blank',
+    'summary_completion',
+    'matching',
+    'match',
+    'short_answer',
+    'sentence_completion',
+  ]);
+
+  const sanitizeCorrectAnswer = (
+    value: unknown,
+  ): ReadingQuestionType['correctAnswer'] => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.map((v) => String(v));
+    if (typeof value === 'object') return value as Record<string, unknown>;
+    return null;
+  };
+
+  const sanitizeConstraints = (value: unknown): Record<string, unknown> => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return {};
+  };
+
   const test: ReadingTestType = {
     id: testRow.id,
     slug: testRow.slug,
@@ -140,21 +179,33 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       updatedAt: row.updated_at,
     })) ?? [];
 
-  const questions: ReadingQuestionType[] =
-    (questionRows ?? []).map((row: QuestionRow) => ({
+  const questions: ReadingQuestionType[] = [];
+
+  (questionRows ?? []).forEach((row: QuestionRow) => {
+    const typeIdRaw = row.question_type_id ?? '';
+    const typeKey = String(typeIdRaw).toLowerCase();
+
+    if (!allowedQuestionTypes.has(typeKey)) {
+      // eslint-disable-next-line no-console
+      console.warn('Skipping unsupported reading question type', typeKey);
+      return;
+    }
+
+    questions.push({
       id: row.id,
       testId: row.test_id,
       passageId: row.passage_id,
       questionOrder: row.question_order,
-      questionTypeId: row.question_type_id as any,
+      questionTypeId: String(typeIdRaw),
       prompt: row.prompt,
       instruction: row.instruction,
-      correctAnswer: row.correct_answer as any,
-      constraintsJson: (row.constraints_json ?? {}) as Record<string, unknown>,
+      correctAnswer: sanitizeCorrectAnswer(row.correct_answer),
+      constraintsJson: sanitizeConstraints(row.constraints_json ?? {}),
       tags: row.tags ?? [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    })) ?? [];
+    });
+  });
 
   return {
     props: {
