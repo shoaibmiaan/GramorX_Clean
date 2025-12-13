@@ -23,19 +23,21 @@ type SessionRecordingSummary = {
   createdAt: string;
 };
 
+type SessionDetails = {
+  id: string;
+  type: LiveSessionType;
+  status: LiveSessionStatus;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  metadata: Record<string, unknown>;
+  recordings: SessionRecordingSummary[];
+  hostUserId: string;
+  participantUserId: string | null;
+};
+
 type SessionPageProps = {
-  session: {
-    id: string;
-    type: LiveSessionType;
-    status: LiveSessionStatus;
-    scheduledAt: string | null;
-    startedAt: string | null;
-    endedAt: string | null;
-    metadata: Record<string, unknown>;
-    recordings: SessionRecordingSummary[];
-    hostUserId: string;
-    participantUserId: string | null;
-  };
+  session: SessionDetails | null;
   viewer: {
     id: string;
     role: string | null;
@@ -65,6 +67,17 @@ function formatIso(value: string | null): string {
 }
 
 const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer }) => {
+  if (!session) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto max-w-2xl p-6">
+          <p className="text-lg font-semibold">Session unavailable</p>
+          <p className="text-small text-mutedText">The speaking session could not be found.</p>
+        </div>
+      </main>
+    );
+  }
+
   const { connectionState, connected, error, connect, disconnect, startRecording, stopRecording, isRecording, recordingDurationSeconds } =
     useLiveSession({ sessionId: session.id, token, autoConnect: session.status === 'active', onConnectionChange: undefined });
 

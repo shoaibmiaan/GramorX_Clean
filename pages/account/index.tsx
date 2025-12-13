@@ -26,7 +26,7 @@ import { getPlan, isPaidPlan, type PlanId } from '@/types/pricing';
 
 // Icons from lucide-react – import only what we need
 import {
-  Timeline,
+  Clock,
   History,
   Settings as SettingsIcon,
   Shield,
@@ -313,7 +313,7 @@ export default function AccountHubPage() {
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                    <Timeline className="h-5 w-5" />
+                    <Clock className="h-5 w-5" />
                   </div>
                   <div>
                     <h2 className="text-small font-medium text-foreground">Activity log</h2>
@@ -340,7 +340,7 @@ export default function AccountHubPage() {
                   <div className="flex flex-wrap gap-2">
                     <Button asChild variant="soft" size="sm" className="min-w-[120px] flex-1">
                       <Link href="/account/activity">
-                        <Timeline className="mr-2 h-3 w-3" /> View timeline
+                        <Clock className="mr-2 h-3 w-3" /> View timeline
                       </Link>
                     </Button>
                     <Button asChild variant="soft" size="sm" className="min-w-[120px] flex-1">

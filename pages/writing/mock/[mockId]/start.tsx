@@ -8,7 +8,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
-import { toast } from '@/components/design-system/Toaster';
+import { useToast } from '@/components/design-system/Toaster';
 
 import { writingExamSummaries, type WritingExamSummary } from '@/data/writing/exam-index';
 import { getServerClient } from '@/lib/supabaseServer';
@@ -55,6 +55,7 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleBegin = useCallback(async () => {
     setLoading(true);
@@ -73,11 +74,13 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
         const remaining = (e.meta?.remaining ?? 0) as number;
         const resetAtISO = (e.meta?.resetAt as string | undefined) || null;
 
-        toast.error(`No ${moduleName} attempts left.`, {
+        toast({
+          title: `No ${moduleName} attempts left.`,
           description: resetAtISO
             ? `Quota resets ${new Date(resetAtISO).toLocaleString()}.`
             : 'Upgrade to continue.',
           duration: 5000,
+          intent: 'error',
         });
 
         // NEW: route to quota+subscription overview with context
