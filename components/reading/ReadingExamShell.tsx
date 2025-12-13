@@ -7,11 +7,7 @@ import { ReadingPassagePane } from './ReadingPassagePane';
 import { ReadingQuestionItem } from './ReadingQuestionItem';
 import { QuestionNav } from './QuestionNav';
 
-import type {
-  ReadingTest,
-  ReadingPassage,
-  ReadingQuestion,
-} from '@/lib/reading/types';
+import type { ReadingTest, ReadingPassage, ReadingQuestion } from '@/lib/reading/types';
 
 import { supabase } from '@/lib/supabaseClient';
 import { readingBandFromRaw } from '@/lib/reading/band';
@@ -26,11 +22,22 @@ import { ExamExitPopup } from '@/components/exam/ExamExitPopup';
 import { ExamTimeWarningPopup } from '@/components/exam/ExamTimeWarningPopup';
 
 type Props = {
-  test: ReadingTest;
+  // ✅ normalize: allow null so the shell never explodes
+  test: ReadingTest | null;
   passages: ReadingPassage[];
   questions: ReadingQuestion[];
+
   /** Optional: if true, disables submit + instructions (for future review mode) */
   readOnly?: boolean;
+
+  /** NEW: run mode (mock vs drill) */
+  mode?: 'mock' | 'speed';
+
+  /** NEW: where “Finish drill” should go (fallback only) */
+  finishHref?: string;
+
+  /** Optional: passed by drill pages, safe to ignore here */
+  speedLevels?: any;
 };
 
 type AnswerValue = string | string[] | Record<string, any> | null;
@@ -74,11 +81,30 @@ const isAnswered = (value: AnswerValue) => {
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'object') {
-    return Object.values(value).some(
-      (v) => (v ?? '').toString().trim() !== '',
-    );
+    return Object.values(value).some((v) => (v ?? '').toString().trim() !== '');
   }
   return false;
+};
+
+const isUuid = (v: unknown): v is string =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
+// ✅ normalize + provide safe defaults for UI
+const normalizeTest = (test: ReadingTest | null) => {
+  const durationSeconds =
+    typeof test?.durationSeconds === 'number' && Number.isFinite(test.durationSeconds)
+      ? test.durationSeconds
+      : 3600;
+
+  const examType = (test as any)?.examType === 'gt' ? 'gt' : 'ac';
+
+  return {
+    id: test?.id ?? null,
+    title: test?.title ?? 'Reading Mock',
+    examType,
+    durationSeconds,
+  };
 };
 
 const ReadingExamShellInner: React.FC<Props> = ({
@@ -86,8 +112,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
   passages,
   questions,
   readOnly = false,
+  mode = 'mock',
+  finishHref = '/mock/reading/drill',
 }) => {
   const toast = useToast();
+  const t = React.useMemo(() => normalizeTest(test), [test]);
+
+  const isDrill = mode === 'speed';
 
   // ===== THEME / SYSTEM DARK =====
   const [theme, setTheme] = React.useState<Theme>('system');
@@ -96,17 +127,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
-    if (saved && ['light', 'dark', 'system'].includes(saved)) {
-      setTheme(saved);
-    }
+    if (saved && ['light', 'dark', 'system'].includes(saved)) setTheme(saved);
   }, []);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (event: MediaQueryListEvent) => {
-      setSystemPrefersDark(event.matches);
-    };
+    const handler = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
     setSystemPrefersDark(mq.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -116,54 +143,35 @@ const ReadingExamShellInner: React.FC<Props> = ({
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
-    const effectiveDark =
-      theme === 'dark' || (theme === 'system' && systemPrefersDark);
+    const effectiveDark = theme === 'dark' || (theme === 'system' && systemPrefersDark);
     root.classList.add(effectiveDark ? 'dark' : 'light');
     window.localStorage.setItem(THEME_KEY, theme);
   }, [theme, systemPrefersDark]);
 
   const toggleTheme = () => {
-    setTheme((prev) =>
-      prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light',
-    );
+    setTheme((prev) => (prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light'));
   };
 
-  const isDark =
-    theme === 'dark' || (theme === 'system' && systemPrefersDark);
+  const isDark = theme === 'dark' || (theme === 'system' && systemPrefersDark);
 
-  if (!questions.length || !passages.length) {
-    return (
-      <Card className="p-6 text-sm text-muted-foreground">
-        This Reading test does not have passages or questions configured yet.
-      </Card>
-    );
-  }
-
-  // ===== CORE STATE =====
+  // ===== CORE STATE (MUST BE BEFORE ANY CONDITIONAL UI) =====
   const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>({});
   const [flags, setFlags] = React.useState<Record<string, boolean>>({});
 
-  const [statusFilter, setStatusFilter] =
-    React.useState<FilterStatus>('all');
+  const [statusFilter, setStatusFilter] = React.useState<FilterStatus>('all');
   const [typeFilter, setTypeFilter] = React.useState<FilterType>('all');
 
   const [currentPassageIdx, setCurrentPassageIdx] = React.useState(0);
-  const [currentQuestionId, setCurrentQuestionId] = React.useState(
-    questions[0]?.id ?? null,
-  );
+  const [currentQuestionId, setCurrentQuestionId] = React.useState<string | null>(null);
 
   const [focusMode, setFocusMode] = React.useState(false);
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
 
-  const [highlightsByPassage, setHighlightsByPassage] = React.useState<
-    Record<string, string[]>
-  >({});
+  const [highlightsByPassage, setHighlightsByPassage] = React.useState<Record<string, string[]>>({});
 
   const [started, setStarted] = React.useState(readOnly);
 
-  const questionRefs =
-    React.useRef<Record<string, HTMLDivElement | null>>({});
-
+  const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const startTimeRef = React.useRef<number | null>(null);
   const submitting = React.useRef(false);
 
@@ -173,28 +181,37 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [showTimeWarning, setShowTimeWarning] = React.useState(false);
   const [timeWarningShown, setTimeWarningShown] = React.useState(false);
 
-  // timer tracking for warning popup (does NOT control TimerProgress)
-  // @ts-expect-error reading type shape
-  const durationSeconds = (test.durationSeconds ?? 3600) as number;
-  const [remainingSeconds, setRemainingSeconds] =
-    React.useState<number>(durationSeconds);
+  // ✅ FIX: never read from test directly; use normalized
+  const durationSeconds = t.durationSeconds;
+  const [remainingSeconds, setRemainingSeconds] = React.useState<number>(durationSeconds);
+
+  React.useEffect(() => {
+    setRemainingSeconds(durationSeconds);
+  }, [durationSeconds]);
+
+  // ✅ set initial currentQuestionId when questions arrive
+  React.useEffect(() => {
+    if (!currentQuestionId && questions.length > 0) {
+      setCurrentQuestionId(questions[0].id);
+    }
+  }, [currentQuestionId, questions]);
+
+  // ✅ content guard (NO early return; we render fallback UI later)
+  const hasContent = questions.length > 0 && passages.length > 0;
 
   // ===== SPLIT LAYOUT STATE (DRAGGABLE) =====
-  const [splitStep, setSplitStep] = React.useState<number>(3); // 0..6, 3 ≈ balanced
+  // IMPORTANT: must be before any conditional return (we have none now)
+  const [splitStep, setSplitStep] = React.useState<number>(3);
   const layoutContainerRef = React.useRef<HTMLDivElement | null>(null);
   const splitDragActiveRef = React.useRef(false);
-  const splitBoundsRef = React.useRef<{ left: number; width: number } | null>(
-    null,
-  );
+  const splitBoundsRef = React.useRef<{ left: number; width: number } | null>(null);
 
-  // hydrate saved split step
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const raw = window.localStorage.getItem(SPLIT_KEY);
     if (!raw) return;
     const parsed = Number(raw);
-    if (Number.isNaN(parsed)) return;
-    if (parsed >= 0 && parsed < SPLIT_LAYOUT_CLASSES.length) {
+    if (!Number.isNaN(parsed) && parsed >= 0 && parsed < SPLIT_LAYOUT_CLASSES.length) {
       setSplitStep(parsed);
     }
   }, []);
@@ -207,14 +224,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
     const relativeX = event.clientX - bounds.left;
     if (relativeX <= 0 || relativeX >= bounds.width) return;
 
-    const ratio = relativeX / bounds.width; // 0..1
+    const ratio = relativeX / bounds.width;
     const step = splitStepFromRatio(ratio);
 
     setSplitStep((prev) => {
       if (prev === step) return prev;
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(SPLIT_KEY, String(step));
-      }
+      if (typeof window !== 'undefined') window.localStorage.setItem(SPLIT_KEY, String(step));
       return step;
     });
   };
@@ -228,9 +243,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
     }
   };
 
-  const handleSplitMouseDown = (
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
+  const handleSplitMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (typeof window === 'undefined') return;
     if (!layoutContainerRef.current) return;
 
@@ -245,7 +258,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   React.useEffect(() => {
-    // safety cleanup on unmount
     return () => {
       if (typeof window === 'undefined') return;
       window.removeEventListener('mousemove', handleSplitMouseMove);
@@ -261,29 +273,21 @@ const ReadingExamShellInner: React.FC<Props> = ({
     const focusRaw = window.localStorage.getItem(FOCUS_KEY);
     if (focusRaw === '1') setFocusMode(true);
 
-    const zoomRaw = window.localStorage.getItem(ZOOM_KEY) as
-      | ZoomLevel
-      | null;
-    if (zoomRaw === 'sm' || zoomRaw === 'md' || zoomRaw === 'lg') {
-      setZoom(zoomRaw);
-    }
+    const zoomRaw = window.localStorage.getItem(ZOOM_KEY) as ZoomLevel | null;
+    if (zoomRaw === 'sm' || zoomRaw === 'md' || zoomRaw === 'lg') setZoom(zoomRaw);
   }, []);
 
   const toggleFocus = () => {
     setFocusMode((prev) => {
       const next = !prev;
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(FOCUS_KEY, next ? '1' : '0');
-      }
+      if (typeof window !== 'undefined') window.localStorage.setItem(FOCUS_KEY, next ? '1' : '0');
       return next;
     });
   };
 
   const changeZoom = (level: ZoomLevel) => {
     setZoom(level);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(ZOOM_KEY, level);
-    }
+    if (typeof window !== 'undefined') window.localStorage.setItem(ZOOM_KEY, level);
   };
 
   // internal countdown for time warning popup
@@ -311,8 +315,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const passageIndexById = React.useMemo(() => {
     const m: Record<string, number> = {};
     passages.forEach((p, idx) => {
-      // @ts-expect-error reading type shape
-      m[p.id as string] = idx;
+      m[(p as any).id as string] = idx;
     });
     return m;
   }, [passages]);
@@ -325,31 +328,32 @@ const ReadingExamShellInner: React.FC<Props> = ({
     return m;
   }, [questions]);
 
-  const currentPassage = passages[currentPassageIdx];
+  // ✅ SAFE current passage + id
+  const currentPassage = passages[currentPassageIdx] ?? passages[0] ?? null;
+  const currentPassageId = isUuid((currentPassage as any)?.id) ? ((currentPassage as any).id as string) : null;
 
   // ===== COUNTERS =====
   const total = questions.length;
+
   const answeredCount = React.useMemo(
     () => questions.filter((q) => isAnswered(answers[q.id])).length,
     [questions, answers],
   );
   const unansweredCount = total - answeredCount;
 
-  const flaggedCount = React.useMemo(
-    () => Object.values(flags).filter(Boolean).length,
-    [flags],
-  );
+  const flaggedCount = React.useMemo(() => Object.values(flags).filter(Boolean).length, [flags]);
 
   // ===== FILTERED QUESTIONS =====
   const visibleQuestions = React.useMemo(() => {
+    // If we have no current passage, show nothing (safe)
+    if (!currentPassageId) return [];
+
     return questions.filter((q) => {
       // only show current passage
-      // @ts-expect-error reading type
-      if (q.passageId && q.passageId !== currentPassage.id) return false;
+      if ((q as any).passageId && (q as any).passageId !== currentPassageId) return false;
 
       // type filter
-      // @ts-expect-error reading type
-      const type = (q.questionTypeId ?? 'all') as FilterType;
+      const type = ((q as any).questionTypeId ?? 'all') as FilterType;
       if (typeFilter !== 'all' && type !== typeFilter) return false;
 
       const val = answers[q.id];
@@ -361,43 +365,25 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
       return true;
     });
-  }, [
-    questions,
-    currentPassage,
-    answers,
-    flags,
-    statusFilter,
-    typeFilter,
-  ]);
+  }, [questions, currentPassageId, answers, flags, statusFilter, typeFilter]);
 
   // ===== JUMP / NAV =====
   const handleJump = (id: string) => {
     setCurrentQuestionId(id);
     const q = questionsById[id];
 
-    // passage sync
-    // @ts-expect-error reading type
-    if (q && q.passageId) {
-      // @ts-expect-error reading type
-      const idx = passageIndexById[q.passageId as string];
+    if (q && (q as any).passageId) {
+      const idx = passageIndexById[(q as any).passageId as string];
       if (typeof idx === 'number') setCurrentPassageIdx(idx);
     }
 
     const el = questionRefs.current[id];
-    if (el && typeof window !== 'undefined') {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (el && typeof window !== 'undefined') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const goNextPassage = () => {
-    setCurrentPassageIdx((idx) =>
-      idx + 1 < passages.length ? idx + 1 : idx,
-    );
-  };
-
-  const goPrevPassage = () => {
-    setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
-  };
+  const goNextPassage = () =>
+    setCurrentPassageIdx((idx) => (idx + 1 < passages.length ? idx + 1 : idx));
+  const goPrevPassage = () => setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
 
   const handleAnswerChange = (questionId: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -408,32 +394,45 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   // ===== HIGHLIGHTS =====
-  const currentHighlights =
-    highlightsByPassage[currentPassage.id] ?? [];
+  const currentHighlights = currentPassageId ? highlightsByPassage[currentPassageId] ?? [] : [];
 
   const handleAddHighlight = (passageId: string, text: string) => {
     if (!text.trim()) return;
     setHighlightsByPassage((prev) => {
       const existing = prev[passageId] ?? [];
       if (existing.includes(text)) return prev;
-      return {
-        ...prev,
-        [passageId]: [...existing, text],
-      };
+      return { ...prev, [passageId]: [...existing, text] };
     });
   };
 
   const handleClearHighlights = (passageId: string) => {
-    setHighlightsByPassage((prev) => ({
-      ...prev,
-      [passageId]: [],
-    }));
+    setHighlightsByPassage((prev) => ({ ...prev, [passageId]: [] }));
+  };
+
+  const computeScore = () => {
+    let correct = 0;
+
+    for (const q of questions) {
+      const userA = answers[q.id];
+      const correctA = (q as any).correctAnswer;
+
+      let ok = false;
+      if (typeof correctA === 'string') ok = userA === correctA;
+      else if (Array.isArray(correctA)) {
+        ok = Array.isArray(userA) && correctA.every((x) => (userA as string[]).includes(x));
+      }
+      if (ok) correct++;
+    }
+
+    const accuracy = total > 0 ? Number(((correct / total) * 100).toFixed(2)) : 0;
+    return { correct, accuracy };
   };
 
   // ===== SUBMIT (CORE) =====
   const submitToServer = async () => {
     if (readOnly) return;
     if (submitting.current) return;
+
     submitting.current = true;
 
     try {
@@ -442,63 +441,110 @@ const ReadingExamShellInner: React.FC<Props> = ({
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch user', userError);
-      }
+      if (userError) console.error('Failed to fetch user', userError);
+
       if (!user) {
         toast({
           variant: 'destructive',
           title: 'Not signed in',
-          description: 'You must be logged in to submit this mock.',
+          description: 'You must be logged in to submit.',
         });
         submitting.current = false;
         return;
       }
 
-      let correct = 0;
-      for (const q of questions) {
-        const userA = answers[q.id];
-        // @ts-expect-error reading type
-        const correctA = q.correctAnswer;
+      const startedAt = startTimeRef.current ?? Date.now();
+      const durationSec = Math.floor((Date.now() - startedAt) / 1000);
 
-        let ok = false;
-        if (typeof correctA === 'string') {
-          ok = userA === correctA;
-        } else if (Array.isArray(correctA)) {
-          ok =
-            Array.isArray(userA) &&
-            correctA.every((x) => (userA as string[]).includes(x));
+      const { correct, accuracy } = computeScore();
+
+      // ✅ DRILL SAVE (separate table)
+      if (isDrill) {
+        const baseTestId = isUuid(t.id) ? t.id : null;
+        const passageId = isUuid(currentPassageId) ? currentPassageId : null;
+
+        const { data: drillRow, error: drillError } = await supabase
+          .from('reading_drill_attempts')
+          .insert({
+            user_id: user.id,
+            drill_type: 'speed',
+            base_test_id: baseTestId,
+            passage_id: passageId,
+            question_count: total,
+            duration_seconds: durationSec,
+            raw_score: correct,
+            accuracy,
+            status: 'submitted',
+            meta: {
+              flags,
+              answers,
+              highlights: highlightsByPassage,
+              mode: 'speed',
+              duration_seconds_config: durationSeconds,
+              finished_at: new Date().toISOString(),
+            },
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (drillError || !drillRow) {
+          console.error('Failed to insert reading_drill_attempts', drillError);
+          toast({
+            variant: 'destructive',
+            title: 'Failed to save drill result',
+            description: drillError?.message || 'Your drill finished but result could not be saved.',
+          });
+
+          if (typeof window !== 'undefined') window.location.href = finishHref;
+          submitting.current = false;
+          return;
         }
-        if (ok) correct++;
+
+        const drillAttemptId = (drillRow as any).id as string;
+
+        toast({
+          variant: 'default',
+          title: 'Speed drill saved',
+          description: `Score: ${correct}/${total} • Accuracy: ${accuracy}%`,
+        });
+
+        if (typeof window !== 'undefined') {
+          window.location.href = `/mock/reading/drill/result/${drillAttemptId}`;
+        }
+
+        submitting.current = false;
+        return;
+      }
+
+      // ✅ MOCK SAVE (existing table)
+      if (!t.id) {
+        toast({
+          variant: 'destructive',
+          title: 'Missing test data',
+          description: 'This run is missing its test payload. Go back and start the mock again.',
+        });
+        submitting.current = false;
+        return;
       }
 
       const band = readingBandFromRaw(correct, total);
-      const startedAt = startTimeRef.current ?? Date.now();
-      const durationSec = Math.floor((Date.now() - startedAt) / 1000);
 
       const { data: attemptRow, error: attemptError } = await supabase
         .from('reading_attempts')
         .insert({
           user_id: user.id,
-          // @ts-expect-error reading type
-          test_id: test.id,
+          test_id: t.id,
           status: 'submitted',
           duration_seconds: durationSec,
           raw_score: correct,
           band_score: band,
           section_stats: {},
-          meta: {
-            flags,
-            answers,
-            highlights: highlightsByPassage,
-          },
+          meta: { flags, answers, highlights: highlightsByPassage },
         })
         .select()
         .maybeSingle();
 
       if (attemptError || !attemptRow) {
-        // eslint-disable-next-line no-console
         console.error('Failed to insert reading_attempt', attemptError);
         const message = attemptError?.message ?? '';
 
@@ -513,9 +559,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
           toast({
             variant: 'destructive',
             title: 'Failed to submit attempt',
-            description:
-              message ||
-              'Something went wrong while saving your attempt. Please try again.',
+            description: message || 'Something went wrong while saving your attempt. Please try again.',
           });
         }
 
@@ -524,18 +568,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
       }
 
       const attemptId: string = (attemptRow as any).id;
-      if (typeof window !== 'undefined') {
-        window.location.href = `/mock/reading/result/${attemptId}`;
-      }
+      if (typeof window !== 'undefined') window.location.href = `/mock/reading/result/${attemptId}`;
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.error('Unexpected error during reading submit', err);
       toast({
         variant: 'destructive',
         title: 'Unexpected error',
-        description:
-          err?.message ??
-          'An unexpected error occurred while submitting your attempt.',
+        description: err?.message ?? 'An unexpected error occurred while submitting.',
       });
     } finally {
       submitting.current = false;
@@ -546,26 +585,28 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const handleSubmitClick = () => {
     if (readOnly) return;
 
-    if (answeredCount === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Cannot submit yet',
-        description: 'Answer at least one question before submitting.',
-      });
-      return;
-    }
+    // Drill can be finished even with unanswered – still saves what you did
+    if (!isDrill) {
+      if (answeredCount === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Cannot submit yet',
+          description: 'Answer at least one question before submitting.',
+        });
+        return;
+      }
 
-    if (unansweredCount > 0) {
-      setShowSubmitConfirm(true);
-      return;
+      if (unansweredCount > 0) {
+        setShowSubmitConfirm(true);
+        return;
+      }
     }
 
     void submitToServer();
   };
 
   // ===== NAV helpers =====
-  const currentIndex =
-    questions.findIndex((q) => q.id === currentQuestionId) ?? 0;
+  const currentIndex = Math.max(0, questions.findIndex((q) => q.id === currentQuestionId));
 
   const goPrevQuestion = () => {
     if (currentIndex <= 0) return;
@@ -583,28 +624,31 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   const handleExit = () => {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/mock/reading';
-    }
+    if (typeof window !== 'undefined') window.location.href = isDrill ? finishHref : '/mock/reading';
   };
 
   // ===== LABELS =====
   const examTypeLabel =
-    // @ts-expect-error reading type
-    test.examType === 'gt'
-      ? 'IELTS Reading · General Training'
-      : 'IELTS Reading · Academic';
+    t.examType === 'gt' ? 'IELTS Reading · General Training' : 'IELTS Reading · Academic';
 
   const durationMinutes = Math.round(durationSeconds / 60);
-  const remainingMinutesSafe = Math.max(
-    0,
-    Math.floor(remainingSeconds / 60),
-  );
+  const remainingMinutesSafe = Math.max(0, Math.floor(remainingSeconds / 60));
+
+  // ✅ When no content, render a safe “empty state” inside the shell
+  if (!hasContent) {
+    return (
+      <div className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex items-center justify-center p-4">
+        <Card className="p-6 text-sm text-muted-foreground max-w-xl w-full">
+          This Reading test does not have passages or questions configured yet.
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
-          'h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col overflow-hidden',
+        'h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col overflow-hidden',
         focusMode && 'ring-2 ring-primary/40',
       )}
     >
@@ -622,7 +666,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
           <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-primary/80">
             <span className="inline-flex items-center gap-1">
               <Icon name="BookOpen" className="h-3.5 w-3.5" />
-              {examTypeLabel}
+              {isDrill ? 'Reading Drill · Speed' : examTypeLabel}
             </span>
             <span className="hidden sm:inline">•</span>
             <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -640,9 +684,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="line-clamp-1 font-medium text-foreground">
-              {test.title}
-            </span>
+            <span className="line-clamp-1 font-medium text-foreground">{t.title}</span>
             <span className="hidden sm:inline">•</span>
             <span className="inline-flex items-center gap-1">
               <Icon name="CheckCircle2" className="h-3.5 w-3.5" />
@@ -657,9 +699,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
         {/* Right: controls + timer */}
         <div className="flex flex-col items-end gap-2">
-          {/* Controls row */}
           <div className="flex items-center gap-2">
-            {/* Exit */}
             <Button
               size="xs"
               variant="outline"
@@ -671,20 +711,10 @@ const ReadingExamShellInner: React.FC<Props> = ({
               Exit
             </Button>
 
-            {/* Theme toggle */}
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={toggleTheme}
-              className="h-7 w-7"
-            >
-              <Icon
-                name={isDark ? 'Moon' : 'Sun'}
-                className="h-4 w-4"
-              />
+            <Button size="xs" variant="ghost" onClick={toggleTheme} className="h-7 w-7">
+              <Icon name={isDark ? 'Moon' : 'Sun'} className="h-4 w-4" />
             </Button>
 
-            {/* Zoom + focus pill */}
             <div className="flex items-center gap-1 rounded-full border border-primary/50 bg-background/80 px-2 py-0.5 shadow-sm">
               <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Zoom
@@ -727,7 +757,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Timer */}
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-semibold tracking-wide text-primary/80 uppercase">
@@ -746,7 +775,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
       {/* BODY AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* DESKTOP LAYOUT WITH DRAGGABLE SPLIT */}
         <div
           ref={layoutContainerRef}
           className={cn(
@@ -754,24 +782,18 @@ const ReadingExamShellInner: React.FC<Props> = ({
             SPLIT_LAYOUT_CLASSES[splitStep],
           )}
         >
-          {/* Passage side */}
           <ReadingPassagePane
-            passage={currentPassage}
+            passage={currentPassage as any}
             totalPassages={passages.length}
             currentPassageIndex={currentPassageIdx}
             onPrev={goPrevPassage}
             onNext={goNextPassage}
             highlights={currentHighlights}
-            onAddHighlight={(text) =>
-              handleAddHighlight(currentPassage.id, text)
-            }
-            onClearHighlights={() =>
-              handleClearHighlights(currentPassage.id)
-            }
+            onAddHighlight={(text) => currentPassageId && handleAddHighlight(currentPassageId, text)}
+            onClearHighlights={() => currentPassageId && handleClearHighlights(currentPassageId)}
             zoom={zoom}
           />
 
-          {/* Drag handle */}
           <div
             className="hidden lg:flex items-center justify-center cursor-col-resize select-none"
             onMouseDown={handleSplitMouseDown}
@@ -779,15 +801,11 @@ const ReadingExamShellInner: React.FC<Props> = ({
           >
             <div className="relative h-[80%] w-px bg-border/60">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border/70 bg-background/90 px-1.5 py-2 shadow-sm flex items-center justify-center">
-                <Icon
-                  name="GripVertical"
-                  className="h-3 w-3 text-muted-foreground"
-                />
+                <Icon name="GripVertical" className="h-3 w-3 text-muted-foreground" />
               </div>
             </div>
           </div>
 
-          {/* Questions side */}
           <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
             <div id="reading-question-nav">
               <QuestionNav
@@ -855,25 +873,18 @@ const ReadingExamShellInner: React.FC<Props> = ({
         {/* MOBILE / TABLET STACKED */}
         <div className="flex flex-col gap-4 px-4 py-3 lg:hidden overflow-y-auto">
           <ReadingPassagePane
-            passage={currentPassage}
+            passage={currentPassage as any}
             totalPassages={passages.length}
             currentPassageIndex={currentPassageIdx}
             onPrev={goPrevPassage}
             onNext={goNextPassage}
             highlights={currentHighlights}
-            onAddHighlight={(text) =>
-              handleAddHighlight(currentPassage.id, text)
-            }
-            onClearHighlights={() =>
-              handleClearHighlights(currentPassage.id)
-            }
+            onAddHighlight={(text) => currentPassageId && handleAddHighlight(currentPassageId, text)}
+            onClearHighlights={() => currentPassageId && handleClearHighlights(currentPassageId)}
             zoom={zoom}
           />
 
-          <Card
-            className="p-3 border-border/70 bg-card/95 shadow-sm"
-            id="reading-question-nav"
-          >
+          <Card className="p-3 border-border/70 bg-card/95 shadow-sm" id="reading-question-nav">
             <QuestionNav
               questions={questions}
               answers={answers}
@@ -954,44 +965,38 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center gap-2 justify-end">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={currentIndex <= 0}
-            onClick={goPrevQuestion}
-          >
+          <Button size="sm" variant="secondary" disabled={currentIndex <= 0} onClick={goPrevQuestion}>
             <Icon name="ArrowLeft" className="mr-1 h-4 w-4" />
             Previous
           </Button>
-          <Button
-            size="sm"
-            variant={readOnly ? 'secondary' : 'primary'}
-            disabled={readOnly}
-            onClick={readOnly ? undefined : handleSubmitClick}
-          >
-            {readOnly ? 'Review only' : 'Submit attempt'}
-          </Button>
+
+          {readOnly ? (
+            <Button size="sm" variant="secondary" disabled>
+              Review only
+            </Button>
+          ) : (
+            <Button size="sm" variant="primary" onClick={handleSubmitClick}>
+              {isDrill ? 'Finish drill' : 'Submit attempt'}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* STRICT MODE POPUP */}
-      {!readOnly && (
-        <ExamStrictModePopup
-          open={!started}
-          onAcknowledge={handleStartTest}
+      {!readOnly && <ExamStrictModePopup open={!started} onAcknowledge={handleStartTest} />}
+
+      {/* SUBMIT CONFIRM POPUP (mock only) */}
+      {!isDrill && (
+        <ExamConfirmPopup
+          open={showSubmitConfirm}
+          unanswered={unansweredCount}
+          onCancel={() => setShowSubmitConfirm(false)}
+          onConfirm={() => {
+            setShowSubmitConfirm(false);
+            void submitToServer();
+          }}
         />
       )}
-
-      {/* SUBMIT CONFIRM POPUP */}
-      <ExamConfirmPopup
-        open={showSubmitConfirm}
-        unanswered={unansweredCount}
-        onCancel={() => setShowSubmitConfirm(false)}
-        onConfirm={() => {
-          setShowSubmitConfirm(false);
-          void submitToServer();
-        }}
-      />
 
       {/* EXIT TEST POPUP */}
       <ExamExitPopup
@@ -1009,9 +1014,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         onJumpToNav={() => {
           if (typeof document !== 'undefined') {
             const el = document.getElementById('reading-question-nav');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }}
       />

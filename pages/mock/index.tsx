@@ -192,7 +192,7 @@ const MockHomePage: NextPage = () => {
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Icon name="Timer" size={14} />
                   </span>
-                  <span>Mock Mission Control · Strict IELTS-style exams</span>
+                  <span>IELTS Mock Control Center · Strict computer-based exams</span>
                 </div>
                 <h1 className="font-slab text-display text-gradient-primary">
                   Full IELTS mocks, one control room.
@@ -231,31 +231,28 @@ const MockHomePage: NextPage = () => {
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Button
-                    as={Link}
-                    href="/mock/full"
+                    asChild
                     variant="primary"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    Start full IELTS mock
+                    <Link href="/mock/full">Start full IELTS mock</Link>
                   </Button>
                   <Button
-                    as={Link}
-                    href="/mock/listening"
+                    asChild
                     variant="accent"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    Start Listening mock
+                    <Link href="/mock/listening">Start Listening mock</Link>
                   </Button>
                   <Button
-                    as={Link}
-                    href="/mock/history"
+                    asChild
                     variant="secondary"
                     size="md"
                     className="rounded-ds-xl px-5"
                   >
-                    Resume / view attempts
+                    <Link href="/mock/history">Resume / view attempts</Link>
                   </Button>
                 </div>
               </Card>
@@ -314,30 +311,35 @@ const MockHomePage: NextPage = () => {
 
             <div className="grid gap-4 md:grid-cols-3">
               {quickActions.map((action) => (
-                <Card
+                <Link
                   key={action.id}
-                  className="group flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4 transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
+                  href={action.href}
+                  className="block h-full"
                 >
-                  <Link href={action.href} className="flex h-full flex-col gap-3">
-                    <div className="flex items-start gap-3">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Icon name={action.icon} size={18} />
-                      </span>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
-                          {action.label}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {action.description}
-                        </p>
+                  <Card
+                    className="group flex h-full cursor-pointer flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4 transition hover:-translate-y-1 hover:bg-card/90 hover:shadow-lg"
+                  >
+                    <div className="flex h-full flex-col gap-3">
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Icon name={action.icon} size={18} />
+                        </span>
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground">
+                            {action.label}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {action.description}
+                          </p>
+                        </div>
                       </div>
+                      <span className="mt-auto inline-flex items-center text-xs font-medium text-primary group-hover:underline">
+                        Open
+                        <Icon name="ArrowRight" size={14} className="ml-1" />
+                      </span>
                     </div>
-                    <span className="mt-auto inline-flex items-center text-xs font-medium text-primary group-hover:underline">
-                      Open
-                      <Icon name="ArrowRight" size={14} className="ml-1" />
-                    </span>
-                  </Link>
-                </Card>
+                  </Card>
+                </Link>
               ))}
             </div>
           </Container>
@@ -366,52 +368,55 @@ const MockHomePage: NextPage = () => {
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               {moduleShortcuts.map((mod) => (
-                <Card
+                <Link
                   key={mod.id}
-                  className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary/60 hover:bg-card/90 hover:shadow-lg"
+                  href={mod.href}
+                  className="block h-full"
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
-                          <Icon name={mod.icon} size={20} />
-                        </span>
-                        <div>
-                          <h3 className="text-sm font-semibold text-foreground">
-                            {mod.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {mod.description}
-                          </p>
+                  <Card
+                    className="flex h-full cursor-pointer flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary/60 hover:bg-card/90 hover:shadow-lg"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                            <Icon name={mod.icon} size={20} />
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-semibold text-foreground">
+                              {mod.title}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {mod.description}
+                            </p>
+                          </div>
                         </div>
+                        <Badge
+                          size="xs"
+                          variant={
+                            mod.statusTone === 'success'
+                              ? 'success'
+                              : mod.statusTone === 'info'
+                              ? 'info'
+                              : 'neutral'
+                          }
+                        >
+                          {mod.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        size="xs"
-                        variant={
-                          mod.statusTone === 'success'
-                            ? 'success'
-                            : mod.statusTone === 'info'
-                            ? 'info'
-                            : 'neutral'
-                        }
-                      >
-                        {mod.status}
-                      </Badge>
                     </div>
-                  </div>
 
-                  <div className="pt-4">
-                    <Button
-                      as={Link}
-                      href={mod.href}
-                      size="sm"
-                      variant="secondary"
-                      className="w-full rounded-ds-xl"
-                    >
-                      Open {mod.title}
-                    </Button>
-                  </div>
-                </Card>
+                    <div className="pt-4">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full rounded-ds-xl pointer-events-none"
+                      >
+                        Open {mod.title}
+                      </Button>
+                    </div>
+                  </Card>
+                </Link>
               ))}
             </div>
           </Container>
@@ -438,47 +443,50 @@ const MockHomePage: NextPage = () => {
 
             <div className="grid gap-4 md:grid-cols-3">
               {todayTasks.map((task) => (
-                <Card
+                <Link
                   key={task.id}
-                  className="flex h-full flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4"
+                  href={task.href}
+                  className="block h-full"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <Icon
-                          name={
-                            task.type === 'reading'
-                              ? 'BookOpenCheck'
-                              : task.type === 'listening'
-                              ? 'Headphones'
-                              : task.type === 'writing'
-                              ? 'PenSquare'
-                              : 'Mic'
-                          }
-                          size={14}
-                        />
-                        <span className="capitalize">{task.type}</span>
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {task.estimate}
-                      </span>
+                  <Card
+                    className="flex h-full cursor-pointer flex-col justify-between rounded-ds-2xl border border-border/60 bg-card/80 p-4"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                          <Icon
+                            name={
+                              task.type === 'reading'
+                                ? 'BookOpenCheck'
+                                : task.type === 'listening'
+                                ? 'Headphones'
+                                : task.type === 'writing'
+                                ? 'PenSquare'
+                                : 'Mic'
+                            }
+                            size={14}
+                          />
+                          <span className="capitalize">{task.type}</span>
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {task.estimate}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {task.label}
+                      </p>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {task.label}
-                    </p>
-                  </div>
-                  <div className="pt-3">
-                    <Button
-                      as={Link}
-                      href={task.href}
-                      size="sm"
-                      variant="primary"
-                      className="w-full rounded-ds-xl"
-                    >
-                      Start now
-                    </Button>
-                  </div>
-                </Card>
+                    <div className="pt-3">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="w-full rounded-ds-xl pointer-events-none"
+                      >
+                        Start now
+                      </Button>
+                    </div>
+                  </Card>
+                </Link>
               ))}
             </div>
           </Container>
@@ -514,13 +522,12 @@ const MockHomePage: NextPage = () => {
                     <li>4. Fix weaknesses → come back here for the next mock.</li>
                   </ol>
                   <Button
-                    as={Link}
-                    href="/ai"
+                    asChild
                     size="sm"
                     variant="secondary"
                     className="mt-2 w-full rounded-ds-xl"
                   >
-                    Open AI Lab
+                    <Link href="/ai">Open AI Lab</Link>
                   </Button>
                 </div>
               </div>

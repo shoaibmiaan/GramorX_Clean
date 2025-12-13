@@ -24,6 +24,7 @@ import { computeDailyStreak } from '@/lib/reading/streak';
 // ------------------------------------------------------------------------------------
 // TYPES
 // ------------------------------------------------------------------------------------
+
 type ReadingMockListItem = {
   id: string;
   slug: string;
@@ -69,297 +70,699 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
   attemptMap,
   error,
 }) => {
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = React.useState('all');
+  const [selectedType, setSelectedType] = React.useState('all');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'attempted' | 'not_attempted'>(
+    'all',
+  );
+
   if (error) {
     return (
       <>
         <Head>
           <title>Error · Reading Mocks · GramorX</title>
         </Head>
-        <Container className="py-10 max-w-4xl">
-          <Card className="p-6 text-center space-y-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-              <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
-            </div>
-            <h2 className="text-lg font-semibold">Unable to load Reading mocks</h2>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button asChild>
-              <Link href="/">
-                <Icon name="Home" className="h-4 w-4 mr-2" />
-                Go Home
-              </Link>
-            </Button>
-          </Card>
-        </Container>
+        <main className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90 pb-20">
+          <Container className="py-14">
+            <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-6">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-ds-xl bg-danger/15 text-danger">
+                  <Icon name="TriangleAlert" size={18} />
+                </div>
+                <div>
+                  <h1 className="font-slab text-h3 text-foreground">Couldn’t load Reading mocks</h1>
+                  <p className="mt-1 text-small text-muted-foreground">{error}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button asChild variant="primary" className="rounded-ds-2xl">
+                      <Link href="/mock">Back to Mock hub</Link>
+                    </Button>
+                    <Button asChild variant="secondary" className="rounded-ds-2xl">
+                      <Link href="/mock/reading">Retry</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </Container>
+        </main>
       </>
     );
   }
 
-  const hasAttempts = stats.totalAttempts > 0;
+  const featuredTest = tests[0];
 
-  const helperText = hasAttempts
-    ? `You attempted ${stats.totalTestsAttempted} mock${stats.totalTestsAttempted === 1 ? '' : 's'}. Best band ${stats.bestBand ?? '--'}.`
-    : `Start your first Reading Mock to unlock analytics.`;
+  const safeDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString() : '—');
+
+  const filteredTests = tests.filter((t) => {
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      t.title.toLowerCase().includes(q) ||
+      (t.description ? t.description.toLowerCase().includes(q) : false);
+
+    const matchesDifficulty =
+      selectedDifficulty === 'all'
+        ? true
+        : (t.difficulty ?? '').toLowerCase() === selectedDifficulty;
+
+    const matchesType = selectedType === 'all' ? true : t.examType === selectedType;
+
+    const hasAttempt = Boolean(attemptMap[t.slug]?.latestCreatedAt);
+    const matchesStatus =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'attempted'
+          ? hasAttempt
+          : !hasAttempt;
+
+    return matchesSearch && matchesDifficulty && matchesType && matchesStatus;
+  });
+
+  const getDifficultyLabelTone = (difficulty: string | null) => {
+    const d = difficulty?.toLowerCase();
+    if (!d) return { label: 'Mixed', tone: 'neutral' as const };
+
+    if (d === 'easy') return { label: 'Easy', tone: 'success' as const };
+    if (d === 'medium') return { label: 'Standard', tone: 'info' as const };
+    if (d === 'hard') return { label: 'Hard', tone: 'accent' as const };
+
+    return { label: difficulty, tone: 'neutral' as const };
+  };
 
   return (
     <>
       <Head>
-        <title>IELTS Reading Mock Command Center</title>
+        <title>Reading Mock Command Center · GramorX</title>
+        <meta
+          name="description"
+          content="IELTS-style Reading mocks with three passages, strict timing, AI summaries, band prediction, and analytics."
+        />
       </Head>
 
-      <main className="bg-lightBg dark:bg-dark/90">
+      <main className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90 pb-20">
         {/* ------------------------------------------------------------- */}
-        {/* TOP HERO COMMAND BAR */}
+        {/* HERO */}
         {/* ------------------------------------------------------------- */}
-        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
+        <section className="pb-10 pt-10 md:pt-14">
           <Container>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  <Icon name="BookOpen" size={14} />
-                  <span>Reading Mock Suite</span>
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-center">
+              {/* Left */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    IELTS Reading · Full mocks
+                  </p>
+                  <h1 className="font-slab text-h1 leading-tight text-foreground">
+                    Reading Mock Command Center
+                  </h1>
+                  <p className="max-w-[58ch] text-small text-grayish">
+                    Full-length Reading mocks, strict exam-room vibes, and smart analytics so you stop
+                    guessing and start improving.
+                  </p>
                 </div>
 
-                <h1 className="font-slab text-h2 leading-tight">
-                  Your Reading Mock Command Center.
-                </h1>
-
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                  Three passages. Forty questions. Strict timing. Cambridge-style academic
-                  design with AI summaries, speed metrics, band prediction & attempt analytics.
-                </p>
-
-                <div className="text-xs text-muted-foreground">{helperText}</div>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button asChild size="md" variant="primary" className="rounded-ds-xl">
-                    <Link href="#tests-list">Start a Reading Mock</Link>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button asChild variant="primary" size="lg" className="rounded-ds-2xl px-6">
+                    <Link href={featuredTest ? `/mock/reading/${featuredTest.slug}` : '/mock/reading'}>
+                      <Icon name="Play" size={18} className="mr-2" />
+                      Start a mock
+                    </Link>
                   </Button>
-                  <Button asChild size="md" variant="secondary" className="rounded-ds-xl">
-                    <Link href="/mock/reading/daily">Daily Reading Challenge</Link>
+
+                  <Button asChild variant="secondary" size="lg" className="rounded-ds-2xl px-6">
+                    <Link href="/mock">
+                      <Icon name="Timer" size={18} className="mr-2" />
+                      Back to Mock hub
+                    </Link>
                   </Button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-4 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="Fire" size={14} />
+                    Streak: {streakCurrent || 0} day{streakCurrent === 1 ? '' : 's'}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Attempts logged:{' '}
+                    <span className="font-semibold text-foreground">{stats.totalAttempts}</span>
+                  </span>
+                  {stats.bestBand != null && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        Best band:{' '}
+                        <span className="font-semibold text-foreground">{stats.bestBand}</span>
+                      </span>
+                    </>
+                  )}
+                  {stats.lastAttemptAt && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        Last attempt:{' '}
+                        <span className="font-semibold text-foreground">
+                          {safeDate(stats.lastAttemptAt)}
+                        </span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80 shadow-sm w-full max-w-xs">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
-                  Quick Stats
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
+              {/* Right: quick stats */}
+              <div className="space-y-4">
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Snapshot
+                      </p>
+                      <p className="text-small text-grayish">Your reading momentum, at a glance.</p>
+                    </div>
+
+                    <Badge variant="neutral" size="sm" className="rounded-ds-full">
+                      <Icon name="Shield" className="mr-1 h-3 w-3" />
+                      Strict mode
+                    </Badge>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Best band</div>
+                      <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                        <Icon name="Trophy" className="h-4 w-4 text-primary" />
+                        <span>{stats.bestBand ?? '--'}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Consistency beats lucky jumps.</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Recent avg band</div>
+                      <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                        <Icon name="Medal" className="h-4 w-4 text-primary" />
+                        <span>{stats.avgBand ?? '--'}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Based on your recent attempts — retake underperforming mocks instead of shooting in
+                        the dark.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
+
+                  <p className="mt-3 border-l-2 border-primary/40 pl-3 text-small text-primary/90">
+                    “One full mock per week plus light drills is enough to move the Reading band — if you
+                    actually review your mistakes.”
+                  </p>
+                </Card>
+
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Next mock in queue
+                      </p>
+                      <p className="text-small text-grayish">
+                        Start a fresh full-length Reading mock or retake a previous one.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-slab text-h3 leading-none">{featuredTest ? 'Ready' : 'Soon'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {featuredTest ? featuredTest.title : 'New mocks rolling out'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Card>
+
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <Badge variant="neutral" size="xs">
+                      3 passages
+                    </Badge>
+                    <Badge variant="neutral" size="xs">
+                      40 questions
+                    </Badge>
+                    <Badge variant="neutral" size="xs">
+                      60 minutes
+                    </Badge>
+                    <Badge variant="neutral" size="xs">
+                      Review workflow
+                    </Badge>
+                  </div>
+                </Card>
+              </div>
             </div>
           </Container>
         </section>
 
         {/* ------------------------------------------------------------- */}
-        {/* DAILY CHALLENGE */}
+        {/* FILTERS */}
         {/* ------------------------------------------------------------- */}
-        <section className="py-8">
+        <section className="border-y border-border/60 bg-card/30 py-6">
           <Container>
-            <DailyChallengeBanner streakCurrent={streakCurrent} />
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center">
+              {/* Search Bar */}
+              <div className="relative">
+                <Icon
+                  name="Search"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <input
+                  type="search"
+                  placeholder="Search Reading mocks by title or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 w-full rounded-ds-xl border border-border bg-background px-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  >
+                    <Icon name="X" className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter controls */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="all">All difficulty</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Standard</option>
+                    <option value="hard">Hard</option>
+                  </select>
+
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="all">All types</option>
+                    <option value="Academic">Academic</option>
+                    <option value="General Training">General Training</option>
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as 'all' | 'attempted' | 'not_attempted')
+                    }
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="all">All status</option>
+                    <option value="attempted">Attempted</option>
+                    <option value="not_attempted">Not attempted</option>
+                  </select>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{filteredTests.length}</span> of{' '}
+                  <span className="font-semibold text-foreground">{tests.length}</span>
+                </div>
+              </div>
+            </div>
           </Container>
         </section>
 
         {/* ------------------------------------------------------------- */}
-        {/* GRID LAYOUT */}
+        {/* MAIN CONTENT */}
         {/* ------------------------------------------------------------- */}
-ingos        <section className="pb-20">
-          <Container>
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
-              {/* ------------------ LEFT: MOCK LIST ------------------ */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-slab text-xl">Reading Mock Library</h2>
-                    <p className="text-xs text-muted-foreground">
-                      All full-length Reading tests available.
-                    </p>
-                  </div>
+        <Container className="py-6 px-4 md:px-0">
+          <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+            {/* LEFT COLUMN */}
+            <div className="lg:col-span-2">
+              <div className="mb-6 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-slab text-h2 text-foreground">Reading Mock Library</h2>
+                  <p className="text-small text-grayish">
+                    {filteredTests.length} of {tests.length} full-length Reading mocks visible with current filters.
+                  </p>
                 </div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Badge variant="neutral" size="sm" className="rounded-ds-full">
+                    <Icon name="CheckCircle" className="mr-1 h-3 w-3" />
+                    {stats.totalTestsAttempted} tests attempted
+                  </Badge>
+                </div>
+              </div>
 
-                <div id="tests-list" className="grid gap-5 md:grid-cols-2">
-                  {tests.map((t) => {
-                    const attempt = attemptMap[t.slug];
+              {/* ------------------------------------------------------------- */}
+              {/* DRILLS STRIP */}
+              {/* ------------------------------------------------------------- */}
+              <div className="mb-6 grid gap-4 sm:grid-cols-3">
+                {/* Speed Drill */}
+                <Link href="/mock/reading/drill/speed" className="group block focus:outline-none">
+                  <Card className="h-full rounded-ds-2xl border border-border/60 bg-card/80 p-5 transition hover:-translate-y-[1px] hover:border-primary/30 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-primary/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="success" size="xs" className="rounded-ds-xl">
+                            Live
+                          </Badge>
+                          <p className="text-sm font-semibold text-foreground">Speed Drill</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Timed sets to build pace, scanning, and exam-pressure control.
+                        </p>
+                      </div>
 
-                    return (
-                      <Card
-                        key={t.id}
-                        className="p-4 rounded-ds-2xl bg-card/70 border border-border/60 shadow-sm transition hover:shadow-lg hover:-translate-y-1"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Badge variant="neutral" size="xs">
-                              {t.examType === 'gt' ? 'General Training' : 'Academic'}
-                            </Badge>
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                        <Icon name="Zap" size={16} />
+                      </div>
+                    </div>
 
-                            {t.difficulty && (
-                              <Badge variant="soft" size="xs">
-                                {t.difficulty}
+                    <div className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                      Start
+                      <Icon
+                        name="ArrowRight"
+                        className="h-3 w-3 transition group-hover:translate-x-[1px]"
+                      />
+                    </div>
+                  </Card>
+                </Link>
+
+                {/* Daily Drill */}
+                <Link href="/mock/reading/daily" className="group block focus:outline-none">
+                  <Card className="h-full rounded-ds-2xl border border-border/60 bg-card/80 p-5 transition hover:-translate-y-[1px] hover:border-primary/30 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-primary/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="info" size="xs" className="rounded-ds-xl">
+                            Daily
+                          </Badge>
+                          <p className="text-sm font-semibold text-foreground">Daily Drill</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Lightweight daily practice for consistency + streak momentum.
+                        </p>
+                      </div>
+
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                        <Icon name="Calendar" size={16} />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                      Open
+                      <Icon
+                        name="ArrowRight"
+                        className="h-3 w-3 transition group-hover:translate-x-[1px]"
+                      />
+                    </div>
+                  </Card>
+                </Link>
+
+                {/* Weekly Drill */}
+                <Link href="/mock/reading/weekly" className="group block focus:outline-none">
+                  <Card className="h-full rounded-ds-2xl border border-border/60 bg-card/80 p-5 transition hover:-translate-y-[1px] hover:border-primary/30 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-primary/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="neutral" size="xs" className="rounded-ds-xl">
+                            Weekly
+                          </Badge>
+                          <p className="text-sm font-semibold text-foreground">Weekly Drill</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Longer session to build endurance without doing a full mock.
+                        </p>
+                      </div>
+
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                        <Icon name="Clock" size={16} />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                      Open
+                      <Icon
+                        name="ArrowRight"
+                        className="h-3 w-3 transition group-hover:translate-x-[1px]"
+                      />
+                    </div>
+                  </Card>
+                </Link>
+              </div>
+
+              <div className="mb-4 flex justify-end">
+                <Button asChild variant="ghost" className="rounded-ds-xl">
+                  <Link href="/mock/reading/drill">
+                    View all drills
+                    <Icon name="ArrowRight" className="ml-2" size={16} />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {filteredTests.map((t) => {
+                  const attempt = attemptMap[t.slug];
+                  const hasAttempt = Boolean(attempt?.latestCreatedAt);
+                  const difficultyMeta = getDifficultyLabelTone(t.difficulty);
+                  const isFeatured = featuredTest?.slug === t.slug;
+
+                  return (
+                    <Link key={t.id} href={`/mock/reading/${t.slug}`} className="group block focus:outline-none">
+                      <Card className="relative h-full rounded-ds-2xl border border-border/60 bg-card/80 p-5 transition hover:-translate-y-[1px] hover:border-primary/30 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-primary/40">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge
+                                variant={hasAttempt ? 'success' : 'neutral'}
+                                size="xs"
+                                className="rounded-ds-xl"
+                              >
+                                {hasAttempt ? 'Attempted' : 'New'}
                               </Badge>
+
+                              {t.difficulty && (
+                                <Badge
+                                  variant={
+                                    difficultyMeta.tone === 'success'
+                                      ? 'success'
+                                      : difficultyMeta.tone === 'info'
+                                        ? 'info'
+                                        : difficultyMeta.tone === 'accent'
+                                          ? 'accent'
+                                          : 'neutral'
+                                  }
+                                  size="xs"
+                                  className="rounded-ds-xl"
+                                >
+                                  {difficultyMeta.label}
+                                </Badge>
+                              )}
+
+                              {isFeatured && (
+                                <Badge
+                                  variant="accent"
+                                  size="xs"
+                                  className="rounded-ds-xl inline-flex items-center gap-1"
+                                >
+                                  <Icon name="Sparkles" className="h-3 w-3" />
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                            <Icon name="BookOpen" size={16} />
+                          </div>
+                        </div>
+
+                        <h3 className="mt-3 text-sm font-semibold leading-snug line-clamp-2">{t.title}</h3>
+
+                        {t.description && (
+                          <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
+                            {t.description}
+                          </p>
+                        )}
+
+                        <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name="Layers" className="h-3 w-3" />
+                            {t.totalPassages || 3} passages
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name="ListChecks" className="h-3 w-3" />
+                            {t.totalQuestions || 40} Qs
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name="Clock" className="h-3 w-3" />
+                            {Math.round((t.durationSeconds || 3600) / 60)} min
+                          </span>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                          <div className="text-[11px] text-muted-foreground">
+                            {hasAttempt ? (
+                              <>
+                                Last:{' '}
+                                <span className="text-foreground">{safeDate(attempt?.latestCreatedAt ?? null)}</span>
+                              </>
+                            ) : (
+                              <span>Start fresh</span>
                             )}
                           </div>
 
-                          <h3 className="text-sm font-semibold leading-snug line-clamp-2">
-                            {t.title}
-                          </h3>
-
-                          {attempt ? (
-                            <Badge variant="accent" size="xs" className="rounded-ds-xl">
-                              <Icon name="CheckCircle" className="h-3.5 w-3.5 mr-1" />
-                              Band {attempt.latestBandScore ?? '--'}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" size="xs" className="rounded-ds-xl">
-                              <Icon name="EyeOff" className="h-3.5 w-3.5 mr-1" />
-                              Not attempted
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* UPDATED BUTTON SECTION */}
-                        <div className="mt-4 flex items-center gap-2">
-                          {/* Primary: Start or Re-attempt */}
-                          <Button
-                            asChild
-                            variant="primary"
-                            className="rounded-ds-xl text-xs font-semibold flex-1"
-                          >
-                            <Link href={`/mock/reading/${t.slug}`}>
-                              {attempt ? 'Re-attempt Mock' : 'Start Mock'}
-                            </Link>
-                          </Button>
-
-                          {/* History icon button */}
-                          <Button
-                            asChild
-                            variant="secondary"
-                            size="icon"
-                            className="rounded-ds"
-                            title="View attempt history"
-                          >
-                            <Link href={`/mock/reading/history?test=${t.slug}`}>
-                              <Icon name="History" className="h-4 w-4" />
-                            </Link>
-                          </Button>
-
-                          {/* Optional text link for attempted tests */}
-                          {attempt && (
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs whitespace-nowrap"
-                            >
-                              <Link href={`/mock/reading/history?test=${t.slug}`}>
-                                View Attempts
-                              </Link>
-                            </Button>
-                          )}
+                          <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                            Open
+                            <Icon name="ArrowRight" className="h-3 w-3 transition group-hover:translate-x-[1px]" />
+                          </div>
                         </div>
                       </Card>
-                    );
-                  })}
-                </div>
+                    </Link>
+                  );
+                })}
               </div>
 
-              {/* ------------------ RIGHT RAIL ------------------ */}
-              <div className="space-y-6">
-                <BandPredictorCard attempts={attemptSummaries} />
+              {filteredTests.length === 0 && (
+                <Card className="mt-6 rounded-ds-2xl border border-border/60 bg-card/80 p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-ds-xl bg-warning/15 text-warning">
+                      <Icon name="Search" size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-slab text-h3 text-foreground">No mocks match your filters</h3>
+                      <p className="mt-1 text-small text-muted-foreground">Clear search/filters and try again.</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          className="rounded-ds-2xl"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSelectedDifficulty('all');
+                            setSelectedType('all');
+                            setStatusFilter('all');
+                          }}
+                        >
+                          Reset filters
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
 
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Reading Metrics
-                  </p>
+            {/* RIGHT COLUMN */}
+            <div className="mt-8 lg:mt-0">
+              <div className="sticky top-24 space-y-6">
+                <div className="space-y-4">
+                  <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <span className="inline-block h-1.5 w-6 rounded-full bg-primary" />
+                    Reading AI predictions
+                  </h3>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Info label="Mocks available" value={tests.length} />
-                    <Info label="Mocks attempted" value={stats.totalTestsAttempted} />
-                    <Info label="Best band" value={stats.bestBand ?? '--'} />
-                    <Info label="Avg band" value={stats.avgBand ?? '--'} />
+                  <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4">
+                    <BandPredictorCard attemptSummaries={attemptSummaries} />
+                  </Card>
+
+                  <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4">
+                    <ReadingForecastPanel attemptSummaries={attemptSummaries} />
+                  </Card>
+                </div>
+
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4">
+                  <DailyChallengeBanner />
+                </Card>
+
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4">
+                  <AISummaryCard />
+                </Card>
+
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-slab text-h3 text-foreground">Quick links</h4>
+                      <p className="mt-1 text-small text-muted-foreground">
+                        Review, analytics, and challenges — all in one place.
+                      </p>
+                    </div>
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                      <Icon name="Compass" size={18} />
+                    </div>
                   </div>
 
-                  {stats.lastAttemptAt && (
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      Last attempt:{' '}
-                      {new Date(stats.lastAttemptAt).toLocaleDateString()}
-                    </p>
-                  )}
+                  <div className="mt-4 grid gap-2">
+                    <Link
+                      href="/mock/reading/history"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name="History" size={16} />
+                        History
+                      </span>
+                      <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                    </Link>
+
+                    <Link
+                      href="/mock/reading/analytics"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name="BarChart3" size={16} />
+                        Analytics
+                      </span>
+                      <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                    </Link>
+
+                    <Link
+                      href="/mock/reading/challenges"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name="Swords" size={16} />
+                        Challenges
+                      </span>
+                      <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                    </Link>
+
+                    {/* NEW: Daily Drill */}
+                    <Link
+                      href="/mock/reading/daily"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name="Calendar" size={16} />
+                        Daily Drill
+                      </span>
+                      <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                    </Link>
+
+                    {/* NEW: Weekly Drill */}
+                    <Link
+                      href="/mock/reading/weekly"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name="Clock" size={16} />
+                        Weekly Drill
+                      </span>
+                      <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+                    </Link>
+                  </div>
                 </Card>
-
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
-                  <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
-                    Power Tools
-                  </p>
-
-                  <Tool href="/mock/reading/drill/question-type?type=TFNG" icon="Target">
-                    Question-type drills
-                  </Tool>
-                  <Tool href="/mock/reading/drill/passage?test=any&p=1" icon="FileText">
-                    Single-passage practice
-                  </Tool>
-                  <Tool href="/mock/reading/drill/speed" icon="Zap">
-                    Speed training
-                  </Tool>
-                  <Tool href="/mock/reading/techniques" icon="BookOpen">
-                    Techniques trainer
-                  </Tool>
-                  <Tool href="/mock/reading/analytics" icon="Activity">
-                    Analytics & Weaknesses
-                  </Tool>
-                </Card>
-
-                <ReadingForecastPanel />
-                <AISummaryCard />
               </div>
             </div>
-          </Container>
-        </section>
+          </div>
+        </Container>
       </main>
     </>
   );
 };
 
-/* Helper Components */
-const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between text-xs">
-    <span className="text-muted-foreground">{label}</span>
-    <span className="font-semibold">{value}</span>
-  </div>
-);
-
-const Tool = ({
-  href,
-  icon,
-  children,
-}: {
-  href: string;
-  icon: string;
-  children: React.ReactNode;
-}) => (
-  <Link
-    href={href}
-    className="flex justify-between items-center px-3 py-2 rounded-md border hover:bg-muted/70 transition-colors"
-  >
-    <span>{children}</span>
-    <Icon name={icon} className="h-4 w-4" />
-  </Link>
-);
-
 // ------------------------------------------------------------------------------------
-// SSR (unchanged)
+// SSR
 // ------------------------------------------------------------------------------------
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   try {
     const supabase = getServerClient<Database>(ctx.req, ctx.res);
@@ -377,38 +780,58 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       };
     }
 
-    const { data: testsRows, error: testsErr } = await supabase
-      .from('reading_tests')
-      .select(
-        'id, slug, title, description, exam_type, difficulty, total_questions, total_passages, duration_seconds, tags',
-      )
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+    const [testsRes, attemptsRecentRes, attemptsCountRes, bestBandRes] = await Promise.all([
+      supabase
+        .from('reading_tests')
+        .select(
+          'id, slug, title, description, exam_type, difficulty, total_questions, total_passages, duration_seconds, tags',
+        )
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
 
+      supabase
+        .from('reading_attempts')
+        .select('id, test_id, raw_score, band_score, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
+
+      supabase.from('reading_attempts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+
+      supabase
+        .from('reading_attempts')
+        .select('band_score')
+        .eq('user_id', user.id)
+        .not('band_score', 'is', null)
+        .order('band_score', { ascending: false })
+        .limit(1),
+    ]);
+
+    const { data: testsRows, error: testsErr } = testsRes;
     if (testsErr) throw testsErr;
+
+    const { data: attemptsRecent, error: attemptsRecentErr } = attemptsRecentRes;
+    if (attemptsRecentErr) throw attemptsRecentErr;
+
+    const { count: attemptsCount, error: attemptsCountErr } = attemptsCountRes;
+    if (attemptsCountErr) throw attemptsCountErr;
+
+    const { data: bestBandRow, error: bestBandErr } = bestBandRes;
+    if (bestBandErr) throw bestBandErr;
 
     let attemptSummaries: ReadingAttemptSummary[] = [];
     let attemptMap: Record<string, TestAttemptInfo> = {};
     let streakCurrent = 0;
 
     const stats: ReadingStats = {
-      totalAttempts: 0,
+      totalAttempts: attemptsCount ?? 0,
       totalTestsAttempted: 0,
-      bestBand: null,
-      avgBand: null,
+      bestBand: bestBandRow?.[0]?.band_score != null ? Number(bestBandRow[0].band_score) : null,
+      avgBand: null, // computed from recent attempts below (last 200)
       lastAttemptAt: null,
     };
 
-    const { data: attempts, error: attemptsErr } = await supabase
-      .from('reading_attempts')
-      .select('id, test_id, raw_score, band_score, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(200);
-
-    if (attemptsErr) throw attemptsErr;
-
-    stats.totalAttempts = attempts.length;
+    const attempts = attemptsRecent ?? [];
     if (attempts.length > 0) stats.lastAttemptAt = attempts[0].created_at;
 
     attemptSummaries = attempts.map((a) => ({
@@ -418,17 +841,15 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       createdAt: a.created_at,
     }));
 
-    const { currentStreak } = computeDailyStreak(
-      attempts.map((a) => ({ date: a.created_at })),
-    );
+    const { currentStreak } = computeDailyStreak(attempts.map((a) => ({ date: a.created_at })));
     streakCurrent = currentStreak;
 
+    // Avg band from recent attempts (max 200)
     const bands = attempts
       .map((a) => (a.band_score != null ? Number(a.band_score) : null))
       .filter((v): v is number => typeof v === 'number');
 
     if (bands.length > 0) {
-      stats.bestBand = Math.max(...bands);
       const avg = bands.reduce((acc, v) => acc + v, 0) / bands.length;
       stats.avgBand = Math.round((avg + Number.EPSILON) * 10) / 10;
     }
@@ -445,9 +866,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 
     stats.totalTestsAttempted = Object.keys(mapByTestId).length;
 
-    const testSlugMap = Object.fromEntries(
-      (testsRows ?? []).map((t) => [t.id, t.slug]),
-    );
+    const testSlugMap = Object.fromEntries((testsRows ?? []).map((t) => [t.id, t.slug]));
 
     const finalMap: Record<string, TestAttemptInfo> = {};
     Object.entries(mapByTestId).forEach(([testId, info]) => {
@@ -463,8 +882,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         slug: t.slug,
         title: t.title,
         description: t.description ?? null,
-        examType: t.exam_type,
-        difficulty: t.difficulty,
+        examType: t.exam_type ?? 'Academic',
+        difficulty: t.difficulty ?? null,
         totalQuestions: t.total_questions ?? 40,
         totalPassages: t.total_passages ?? 3,
         durationSeconds: t.duration_seconds ?? 3600,

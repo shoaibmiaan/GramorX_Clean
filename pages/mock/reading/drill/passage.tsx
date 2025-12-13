@@ -2,93 +2,70 @@
 import * as React from 'react';
 import type { GetServerSideProps, NextPage } from 'next';
 import Head from 'next/head';
+import Link from 'next/link';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
+import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
-import Icon from '@/components/design-system/Icon';
+import { Icon } from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { ReadingPassage, ReadingQuestion } from '@/lib/reading/types';
-import { ReadingPassagePane } from '@/components/reading/ReadingPassagePane';
-import { ReadingQuestionItem } from '@/components/reading/ReadingQuestionItem';
 
 type PageProps = {
-  passage: ReadingPassage | null;
+  passage: ReadingPassage;
   questions: ReadingQuestion[];
 };
 
 const PassageDrillPage: NextPage<PageProps> = ({ passage, questions }) => {
-  const [answers, setAnswers] = React.useState<Record<string, string | string[] | null>>({});
-
-  if (!passage) {
-    return (
-      <>
-        <Head>
-          <title>Passage Drill · GramorX</title>
-        </Head>
-        <section className="py-16">
-          <Container className="max-w-3xl">
-            <Card className="p-6 text-sm text-muted-foreground">
-              No passage found for this drill.
-            </Card>
-          </Container>
-        </section>
-      </>
-    );
-  }
-
-  const handleChange = (questionId: string, val: string | string[] | null) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: val }));
-  };
-
   return (
     <>
       <Head>
-        <title>Passage Drill – Passage {passage.passageOrder} · GramorX</title>
+        <title>Passage Drill</title>
       </Head>
 
-      <section className="py-8 bg-background">
-        <Container className="max-w-4xl space-y-4">
-          <Card className="p-4 flex items-center justify-between gap-3">
+      <main className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90 pb-20">
+        <Container className="py-10 space-y-6">
+          <Card className="p-4 flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <Icon name="book-open" className="h-4 w-4" />
+              <Badge variant="neutral" size="sm">
                 Passage drill
-              </span>
-              <h1 className="text-lg font-semibold tracking-tight">
+              </Badge>
+              <h1 className="text-lg font-semibold">
                 Passage {passage.passageOrder}
                 {passage.title ? `: ${passage.title}` : ''}
               </h1>
             </div>
+
             <Button asChild variant="outline" size="sm">
-              <a href="/mock/reading">
-                <Icon name="arrow-left" className="h-4 w-4 mr-1" />
+              <Link href="/mock/reading">
+                <Icon name="ChevronLeft" className="h-4 w-4 mr-1" />
                 Back to Reading
-              </a>
+              </Link>
             </Button>
           </Card>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <ReadingPassagePane passage={passage} totalPassages={1} />
-            <div className="space-y-2">
-              {questions.map((q) => (
-                <ReadingQuestionItem
-                  key={q.id}
-                  question={q}
-                  value={answers[q.id] ?? null}
-                  onChange={(val) => handleChange(q.id, val)}
-                />
-              ))}
-              {!questions.length && (
-                <Card className="p-4 text-xs text-muted-foreground">
-                  No questions found for this passage yet.
-                </Card>
-              )}
+          <Card className="p-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Icon name="BookOpen" className="h-4 w-4 text-primary" />
+              Passage text
             </div>
-          </div>
+            <div className="prose dark:prose-invert max-w-none">
+              {/* If passage.content_html exists in your type, render it instead */}
+              <p>{(passage as any).content ?? (passage as any).text ?? ''}</p>
+            </div>
+          </Card>
+
+          <Card className="p-5 space-y-3">
+            <h2 className="text-sm font-semibold">Questions</h2>
+            <pre className="text-xs text-muted-foreground overflow-auto">
+              {/* Keep your existing question renderer here if you have one */}
+              {JSON.stringify(questions, null, 2)}
+            </pre>
+          </Card>
         </Container>
-      </section>
+      </main>
     </>
   );
 };
@@ -96,74 +73,25 @@ const PassageDrillPage: NextPage<PageProps> = ({ passage, questions }) => {
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = getServerClient(ctx.req, ctx.res);
 
-  const testSlug = ctx.query.test;
-  const passageOrderRaw = ctx.query.p;
-  if (!testSlug || typeof testSlug !== 'string') {
-    return { props: { passage: null, questions: [] } };
-  }
+  const passageOrder =
+    typeof ctx.query.passage === 'string' ? Number(ctx.query.passage) : 1;
 
-  const passageOrder = Number(passageOrderRaw ?? 1);
-
-  const { data: testRow } = await supabase
-    .from('reading_tests')
-    .select('*')
-    .eq('slug', testSlug)
-    .maybeSingle();
-
-  if (!testRow) {
-    return { props: { passage: null, questions: [] } };
-  }
-
-  const { data: passageRow } = await supabase
+  const { data: passage } = await supabase
     .from('reading_passages')
     .select('*')
-    .eq('test_id', testRow.id)
     .eq('passage_order', passageOrder)
+    .limit(1)
     .maybeSingle();
 
-  if (!passageRow) {
-    return { props: { passage: null, questions: [] } };
-  }
-
-  const { data: questionRows } = await supabase
+  const { data: questions } = await supabase
     .from('reading_questions')
     .select('*')
-    .eq('test_id', testRow.id)
-    .eq('passage_id', passageRow.id)
-    .order('question_order', { ascending: true });
-
-  const passage: ReadingPassage = {
-    id: passageRow.id,
-    testId: passageRow.test_id,
-    passageOrder: passageRow.passage_order,
-    title: passageRow.title,
-    subtitle: passageRow.subtitle,
-    content: passageRow.content,
-    wordCount: passageRow.word_count,
-    createdAt: passageRow.created_at,
-    updatedAt: passageRow.updated_at,
-  };
-
-  const questions: ReadingQuestion[] =
-    (questionRows ?? []).map((row: any) => ({
-      id: row.id,
-      testId: row.test_id,
-      passageId: row.passage_id,
-      questionOrder: row.question_order,
-      questionTypeId: row.question_type_id as any,
-      prompt: row.prompt,
-      instruction: row.instruction,
-      correctAnswer: row.correct_answer as any,
-      constraintsJson: (row.constraints_json ?? {}) as Record<string, unknown>,
-      tags: row.tags ?? [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    })) ?? [];
+    .eq('passage_order', passageOrder);
 
   return {
     props: {
-      passage,
-      questions,
+      passage: (passage as any) ?? null,
+      questions: (questions as any) ?? [],
     },
   };
 };

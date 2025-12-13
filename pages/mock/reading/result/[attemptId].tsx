@@ -3,6 +3,7 @@ import * as React from 'react';
 import Head from 'next/head';
 import type { GetServerSideProps, NextPage } from 'next';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
@@ -12,6 +13,7 @@ import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 import { ReadingResultSummary } from '@/components/reading/ReadingResultSummary';
+import { carryAttemptCtx } from '@/lib/reading/attemptNav';
 
 type AttemptSummary = {
   id: string;
@@ -38,9 +40,10 @@ type PageProps = {
 };
 
 const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) => {
-  const notFound = !attempt || !test;
+  const router = useRouter();
+  const ctx = carryAttemptCtx(router.query);
 
-  if (notFound) {
+  if (!attempt || !test) {
     return (
       <>
         <Head>
@@ -51,17 +54,12 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
             <Container className="max-w-xl">
               <Card className="mx-auto rounded-ds-2xl border border-border/60 bg-card/80 p-8 text-center shadow-sm space-y-4">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                  <Icon name="alert-triangle" className="h-5 w-5 text-destructive" />
+                  <Icon name="alert-triangle" className="h-6 w-6 text-destructive" />
                 </div>
-
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
-                    Result not available
-                  </p>
-                  <p className="text-sm text-grayish">
-                    {isLoggedIn
-                      ? 'We couldn&apos;t find your attempt. Please try the test again.'
-                      : 'You need to be logged in to view this result.'}
+                  <h1 className="text-xl font-semibold tracking-tight">Result not available</h1>
+                  <p className="text-sm text-muted-foreground">
+                    We couldn’t load this attempt. It may have been deleted or you don’t have access.
                   </p>
                 </div>
 
@@ -89,24 +87,22 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
     );
   }
 
-  const totalQuestions =
-    test.totalQuestions ?? attempt.questionCount ?? 40;
-  const totalMinutes = Math.round(
-    (test.durationSeconds ?? attempt.durationSeconds ?? 3600) / 60,
-  );
+  const totalQuestions = test.totalQuestions ?? attempt.questionCount ?? 40;
+  const totalMinutes = Math.round((test.durationSeconds ?? attempt.durationSeconds ?? 3600) / 60);
 
   return (
     <>
       <Head>
         <title>Result – {test.title} · Reading Mock · GramorX</title>
       </Head>
+
       <main className="bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
         <section className="pb-16 pt-10 md:pt-14">
           <Container className="max-w-4xl space-y-6">
             {/* HEADER */}
             <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/70 px-3 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-border/60">
+                <div className="inline-flex items-center gap-2 rounded-full bg-background/60 px-3 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-border/60">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Icon name="book-open" className="h-3.5 w-3.5" />
                   </span>
@@ -118,8 +114,8 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
                     {test.title}
                   </h1>
                   <p className="mt-1 text-xs md:text-sm text-muted-foreground">
-                    {test.examType === 'gt' ? 'General Training' : 'Academic'} ·{' '}
-                    {totalQuestions} questions · {totalMinutes} minutes
+                    {test.examType === 'gt' ? 'General Training' : 'Academic'} · {totalQuestions}{' '}
+                    questions · {totalMinutes} minutes
                   </p>
                 </div>
               </div>
@@ -128,22 +124,40 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
                 <Badge variant="soft" className="text-[11px]">
                   Attempted on {new Date(attempt.createdAt).toLocaleString()}
                 </Badge>
+
                 {attempt.bandScore != null && (
-                  <Badge className="text-[11px]">
-                    Band {attempt.bandScore.toFixed(1)}
-                  </Badge>
+                  <Badge className="text-[11px]">Band {attempt.bandScore.toFixed(1)}</Badge>
                 )}
-                <div className="flex gap-2 pt-1">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/mock/reading/review/${attempt.id}`}>
+
+                {/* Enterprise nav: Result ↔ Review ↔ History ↔ Retake (with ctx carry) */}
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
+                  <Button asChild size="sm">
+                    <Link href={`/mock/reading/review/${attempt.id}${ctx}`}>
                       <Icon name="eye" className="h-4 w-4 mr-1" />
-                      Review answers
+                      Review mistakes
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href="/mock/reading/history">
+
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/mock/reading${ctx}`}>
+                      <Icon name="book-open" className="h-4 w-4 mr-1" />
+                      Reading library
+                    </Link>
+                  </Button>
+
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/mock/reading/history${ctx}`}>
                       <Icon name="history" className="h-4 w-4 mr-1" />
-                      View history
+                      History
+                    </Link>
+                  </Button>
+
+                  <Button asChild size="sm" variant="ghost">
+                    <Link
+                      href={test?.slug ? `/mock/reading/${test.slug}${ctx}` : `/mock/reading${ctx}`}
+                    >
+                      <Icon name="arrow-left" className="h-4 w-4 mr-1" />
+                      Retake
                     </Link>
                   </Button>
                 </div>
@@ -163,7 +177,7 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
               </p>
               <p>
                 For detailed question-by-question feedback, go to{' '}
-                <span className="font-medium text-foreground">Review answers</span>.
+                <span className="font-medium text-foreground">Review mistakes</span>.
               </p>
             </Card>
           </Container>
@@ -172,6 +186,9 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
     </>
   );
 };
+
+type AttemptRow = Database['public']['Tables']['reading_attempts']['Row'];
+type TestRow = Database['public']['Tables']['reading_tests']['Row'];
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const attemptIdParam = ctx.params?.attemptId;
@@ -194,10 +211,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  type AttemptRow = Database['public']['Tables']['reading_attempts']['Row'];
-  type TestRow = Database['public']['Tables']['reading_tests']['Row'];
-
-  // 1) get attempt
   const { data: attemptRow, error: attemptError } = await supabase
     .from('reading_attempts')
     .select('*')
@@ -216,18 +229,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  // extra safety: prevent viewing someone else’s attempt (in case RLS is loose)
-  if (user && attemptRow.user_id !== user.id) {
-    return {
-      props: {
-        attempt: null,
-        test: null,
-        isLoggedIn,
-      },
-    };
-  }
-
-  // 2) get test
   const { data: testRow, error: testError } = await supabase
     .from('reading_tests')
     .select('*')
@@ -250,10 +251,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     id: attemptRow.id,
     rawScore: attemptRow.raw_score,
     bandScore: attemptRow.band_score,
-    // table doesn’t have question_count, pull from section_stats if present
-    questionCount: (attemptRow.section_stats as any)?.totalQuestions ?? null,
+    questionCount: attemptRow.question_count,
     durationSeconds: attemptRow.duration_seconds,
-    createdAt: attemptRow.started_at ?? attemptRow.created_at,
+    createdAt: attemptRow.created_at,
   };
 
   const test: TestSummary = {
