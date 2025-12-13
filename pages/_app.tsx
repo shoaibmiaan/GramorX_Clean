@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { Poppins, Roboto_Slab } from 'next/font/google';
+// ❌ removed: import { Poppins, Roboto_Slab } from 'next/font/google';
 
 import '@/styles/tokens.css';
 import '@/styles/semantic.css';
@@ -52,18 +52,7 @@ function getSupa() {
   return typeof v === 'function' ? v() : v;
 }
 
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-sans',
-});
-const slab = Roboto_Slab({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-  variable: '--font-display',
-});
+// ❌ removed next/font setup (Poppins / Roboto_Slab)
 
 const IS_CI = process.env.NEXT_PUBLIC_CI === 'true';
 
@@ -398,8 +387,12 @@ function InnerApp({ Component, pageProps }: AppProps) {
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
         <div
-          className={`${poppins.className} ${slab.className}
-          min-h-screen min-h-[100dvh] bg-background text-foreground antialiased`}
+          className={`
+            font-sans
+            min-h-screen min-h-[100dvh]
+            bg-background text-foreground
+            antialiased
+          `}
         >
           <AnimationProvider>
             <AppLayoutManager

@@ -7,13 +7,13 @@ import { Icon } from "@/components/design-system/Icon";
 import { cn } from "@/lib/utils";
 
 export type ExamHeaderProps = {
-  examLabel?: string; // e.g. "IELTS READING · ACADEMIC"
-  title: string;      // test name
-  subtitle?: string;  // short description
-  metaLeft?: React.ReactNode;   // stats row (questions, passages, minutes, flagged)
-  metaRight?: React.ReactNode;  // zoom / timer block
-  onExitHref?: string;          // where "Exit test" should go
-  onExitClick?: () => void;     // optional extra handler
+  examLabel?: string;
+  title: string;
+  subtitle?: string;
+  metaLeft?: React.ReactNode;
+  metaRight?: React.ReactNode;
+  onExitHref?: string;
+  onExitClick?: () => void;
   className?: string;
 };
 
@@ -27,86 +27,77 @@ export const ExamHeader: React.FC<ExamHeaderProps> = ({
   onExitClick,
   className,
 }) => {
-  const hasExit = onExitHref || onExitClick;
-
-  const exitButton = hasExit ? (
+  const exitButton = (
     <Button
       size="sm"
       variant="outline"
       className={cn(
-        "h-8 px-3 text-[11px] font-semibold rounded-full",
+        "h-[28px] px-2.5 text-[11px] font-semibold rounded-md",
         "border-destructive/40 text-destructive",
         "hover:bg-destructive/5 hover:text-destructive"
       )}
       onClick={onExitClick}
     >
-      <Icon name="log-out" className="mr-1.5 h-3.5 w-3.5" />
-      Exit test
+      <Icon name="log-out" className="mr-1 h-3 w-3" />
+      Exit
     </Button>
-  ) : null;
+  );
 
-  const exitWrapped =
-    onExitHref && onExitClick
-      ? (
-        <Link href={onExitHref} onClick={onExitClick}>
-          {exitButton}
-        </Link>
-      )
-      : onExitHref
-      ? (
-        <Link href={onExitHref}>
-          {exitButton}
-        </Link>
-      )
-      : exitButton;
+  const exitWrapped = onExitHref ? (
+    <Link href={onExitHref} onClick={onExitClick}>
+      {exitButton}
+    </Link>
+  ) : (
+    exitButton
+  );
 
   return (
     <header
       className={cn(
-        "px-3 py-3 sm:px-4 sm:py-3",
+        "w-full h-[58px] px-4 border-b border-white/10 bg-[#0B0F19]",
+        "flex items-center justify-between",
         className
       )}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        {/* LEFT: label, title, subtitle, stats */}
-        <div className="flex-1 min-w-0">
+      {/* LEFT BLOCK */}
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="flex flex-col leading-tight truncate">
           {examLabel && (
-            <div className="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {examLabel}
-            </div>
+            </span>
           )}
-          <h1 className="mt-0.5 text-xl sm:text-2xl font-semibold text-foreground truncate">
+
+          <span className="text-[15px] font-semibold text-foreground truncate">
             {title}
-          </h1>
+          </span>
+
           {subtitle && (
-            <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground truncate">
               {subtitle}
-            </p>
-          )}
-
-          {metaLeft && (
-            <div className="mt-2">
-              {metaLeft}
-            </div>
+            </span>
           )}
         </div>
 
-        {/* RIGHT: controls + timer + exit */}
-        <div className="mt-1 flex flex-col items-end gap-2 sm:mt-0 sm:ml-4">
-          {/* zoom / theme / timer etc. */}
-          {metaRight && (
-            <div className="flex flex-col items-end gap-2">
-              {metaRight}
-            </div>
-          )}
+        {/* Meta Left (40Q · 3 passages · etc.) */}
+        {metaLeft && (
+          <div className="hidden sm:flex items-center text-[11px] text-muted-foreground">
+            {metaLeft}
+          </div>
+        )}
+      </div>
 
-          {/* Exit test button pinned to top-right like IELTS CBE */}
-          {exitWrapped && (
-            <div className="flex items-center justify-end">
-              {exitWrapped}
-            </div>
-          )}
-        </div>
+      {/* RIGHT BLOCK */}
+      <div className="flex items-center gap-4">
+        {/* Timer + Zoom etc */}
+        {metaRight && (
+          <div className="flex items-center text-[11px] leading-tight">
+            {metaRight}
+          </div>
+        )}
+
+        {/* Exit */}
+        {exitWrapped}
       </div>
     </header>
   );

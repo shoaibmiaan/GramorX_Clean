@@ -4,10 +4,13 @@ import { Card } from '@/components/design-system/Card';
 import type { ReadingAttemptSummary } from '@/lib/reading/bandPredictor';
 import { predictBand } from '@/lib/reading/bandPredictor';
 
-// Props for the BandPredictorCard. It accepts an array of attempt
-// summaries and computes a predicted band using a simple heuristic.
+// Props for the BandPredictorCard.
+// - Prefer `attempts`
+// - Support legacy `attemptSummaries`
+// - Never crash if caller forgets: defaults to []
 type BandPredictorProps = {
-  attempts: ReadingAttemptSummary[];
+  attempts?: ReadingAttemptSummary[];
+  attemptSummaries?: ReadingAttemptSummary[];
 };
 
 /**
@@ -15,12 +18,19 @@ type BandPredictorProps = {
  * no attempts exist yet it encourages the user to complete at least
  * one mock.
  */
-export const BandPredictorCard: React.FC<BandPredictorProps> = ({ attempts }) => {
-  const { band, confidence } = predictBand(attempts);
+export const BandPredictorCard: React.FC<BandPredictorProps> = ({
+  attempts,
+  attemptSummaries,
+}) => {
+  const safeAttempts = (attempts ?? attemptSummaries ?? []) as ReadingAttemptSummary[];
+
+  const { band, confidence } = predictBand(safeAttempts);
+
   return (
     <Card className="p-4 space-y-1 text-xs">
       <p className="font-medium">Predicted band</p>
-      {attempts.length === 0 ? (
+
+      {safeAttempts.length === 0 ? (
         <p className="text-muted-foreground">
           Do at least one mock to see your predicted band.
         </p>

@@ -13,6 +13,9 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 
+type IconName = React.ComponentProps<typeof Icon>['name'];
+type Db = Database['public'];
+
 // ------------------------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------------------------
@@ -23,147 +26,519 @@ type WritingMockListItem = {
   title: string;
   description: string | null;
   difficulty: string | null;
+  taskType: string | null;
 };
 
 type TestAttemptInfo = {
   attemptsCount: number;
   latestCreatedAt: string | null;
+  latestBand: number | null;
 };
 
 type WritingStats = {
   totalAttempts: number;
   totalTestsAttempted: number;
   lastAttemptAt: string | null;
+  averageBand: number | null;
+};
+
+type RecentAttempt = {
+  id: string;
+  testTitle: string;
+  bandLabel: string | null;
+  dateLabel: string;
 };
 
 type PageProps = {
   tests: WritingMockListItem[];
   stats: WritingStats;
   attemptMap: Record<string, TestAttemptInfo>;
-  error?: string | null;
+  recentAttempts: RecentAttempt[];
+};
+
+// Internal Supabase row shapes we care about
+type WritingTestRow = Db['Tables']['writing_tests']['Row'];
+type AttemptWritingRow = Db['Tables']['attempts_writing']['Row'];
+
+// ------------------------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------------------------
+
+function formatRelativeDate(iso: string | null): string {
+  if (!iso) return '—';
+  const created = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays <= 7) return `${diffDays} days ago`;
+  return created.toLocaleDateString();
+}
+
+function avgBand(attempts: AttemptWritingRow[]): number | null {
+  const vals = attempts
+    .map((a) => a.band_overall)
+    .filter((v): v is number => typeof v === 'number');
+  if (!vals.length) return null;
+  const sum = vals.reduce((acc, v) => acc + v, 0);
+  return sum / vals.length;
+}
+
+function computeStats(attempts: AttemptWritingRow[]): WritingStats {
+  if (attempts.length === 0) {
+    return {
+      totalAttempts: 0,
+      totalTestsAttempted: 0,
+      lastAttemptAt: null,
+      averageBand: null,
+    };
+  }
+
+  const totalAttempts = attempts.length;
+  const testsSet = new Set<string>();
+  let lastAttemptAt: string | null = null;
+
+  attempts.forEach((a) => {
+    if (a.test_id) testsSet.add(a.test_id);
+    if (!lastAttemptAt || new Date(a.created_at) > new Date(lastAttemptAt)) {
+      lastAttemptAt = a.created_at;
+    }
+  });
+
+  const totalTestsAttempted = testsSet.size;
+  const averageBand = avgBand(attempts);
+
+  return {
+    totalAttempts,
+    totalTestsAttempted,
+    lastAttemptAt,
+    averageBand,
+  };
+}
+
+function computeAttemptMap(
+  tests: WritingTestRow[],
+  attempts: AttemptWritingRow[],
+): Record<string, TestAttemptInfo> {
+  const map: Record<string, TestAttemptInfo> = {};
+
+  tests.forEach((t) => {
+    map[t.id] = {
+      attemptsCount: 0,
+      latestCreatedAt: null,
+      latestBand: null,
+    };
+  });
+
+  attempts.forEach((a) => {
+    if (!a.test_id || !map[a.test_id]) return;
+
+    const current = map[a.test_id];
+    current.attemptsCount += 1;
+
+    if (
+      !current.latestCreatedAt ||
+      new Date(a.created_at) > new Date(current.latestCreatedAt)
+    ) {
+      current.latestCreatedAt = a.created_at;
+      current.latestBand =
+        typeof a.band_overall === 'number' ? a.band_overall : current.latestBand;
+    }
+  });
+
+  return map;
+}
+
+// ------------------------------------------------------------------------------------
+// Page
+// ------------------------------------------------------------------------------------
+
+const WritingMockIndexPage: NextPage<PageProps> = ({
+  tests,
+  stats,
+  attemptMap,
+  recentAttempts,
+}) => {
+  const avgBandLabel =
+    stats.averageBand != null ? `Band ${stats.averageBand.toFixed(1)}` : 'No data yet';
+
+  const lastAttemptLabel = formatRelativeDate(stats.lastAttemptAt);
+
+  return (
+    <>
+      <Head>
+        <title>IELTS Writing Mock Command Center · GramorX</title>
+        <meta
+          name="description"
+          content="IELTS Writing mocks with Task 1 + Task 2, AI band scores, and deep feedback analytics."
+        />
+      </Head>
+
+      <main className="bg-lightBg dark:bg-dark/90">
+        {/* TOP HERO */}
+        <section className="border-b border-border/50 bg-card/70 backdrop-blur py-8">
+          <Container>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <Icon name="PenTool" size={14} />
+                  <span>Writing Mock Command Center</span>
+                </div>
+
+                <h1 className="font-slab text-h2 leading-tight">
+                  Writing mocks with real band scores and AI coaching.
+                </h1>
+
+                <p className="text-sm text-muted-foreground max-w-xl">
+                  Attempt full Academic writing mock tests (Task 1 + Task 2),
+                  see your estimated band, and get targeted feedback on coherence,
+                  grammar, task response, and vocabulary.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <Badge tone="success" size="sm">
+                    <Icon name="Sparkles" size={14} className="mr-1" />
+                    AI essay feedback ready
+                  </Badge>
+                  <Badge tone="neutral" size="sm">
+                    <Icon name="ShieldCheck" size={14} className="mr-1" />
+                    Exam-room timing
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Snapshot panel */}
+              <Card className="w-full max-w-xs p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Writing mock summary
+                  </p>
+                  <Icon name="TrendingUp" size={16} className="text-success" />
+                </div>
+
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold">{avgBandLabel}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {stats.totalAttempts > 0 ? 'avg from your mocks' : 'no mocks yet'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] text-muted-foreground">Total attempts</p>
+                    <p className="font-medium">{stats.totalAttempts}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] text-muted-foreground">Tests attempted</p>
+                    <p className="font-medium">{stats.totalTestsAttempted}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] text-muted-foreground">Last attempt</p>
+                    <p className="font-medium">{lastAttemptLabel}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] text-muted-foreground">Target</p>
+                    <p className="font-medium">Band 7.0+</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </Container>
+        </section>
+
+        {/* MAIN BODY */}
+        <section className="py-10">
+          <Container className="grid gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]">
+            {/* LEFT: test list + hero CTA */}
+            <div className="space-y-8">
+              {/* Call-to-action stripe */}
+              <Card className="p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1 max-w-md">
+                  <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                    <Icon name="LayoutDashboard" size={16} />
+                    <span>Full Academic writing mock</span>
+                  </div>
+                  <h2 className="text-lg font-semibold">
+                    Attempt Task 1 + Task 2 in one sitting.
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    60 minutes, strict timer, no pauses. Ideal for simulating your exam-day
+                    writing performance.
+                  </p>
+                </div>
+
+                <div className="space-y-2 w-full max-w-xs">
+                  {/* TODO: wire href to /mock/writing/[slug] or /mock/writing/run */}
+                  <Button size="sm" className="w-full">
+                    <Icon name="PlayCircle" size={16} className="mr-1" />
+                    Start a writing mock
+                  </Button>
+                  <Button size="sm" variant="ghost" className="w-full">
+                    <Icon name="Sparkles" size={16} className="mr-1" />
+                    Open AI Writing Lab
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Test catalogue */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold">Available writing mock tests</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {tests.length} test{tests.length === 1 ? '' : 's'} available
+                  </p>
+                </div>
+
+                {tests.length === 0 ? (
+                  <Card className="p-5 text-xs text-muted-foreground">
+                    No writing mock tests are available yet. Once tests are added for your
+                    account, they will appear here automatically.
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {tests.map((test) => {
+                      const info = attemptMap[test.id];
+                      const attemptsLabel =
+                        info && info.attemptsCount > 0
+                          ? `${info.attemptsCount} attempt${
+                              info.attemptsCount === 1 ? '' : 's'
+                            }`
+                          : 'No attempts yet';
+
+                      const lastAttemptLabel = info?.latestCreatedAt
+                        ? formatRelativeDate(info.latestCreatedAt)
+                        : null;
+
+                      const lastBandLabel =
+                        info?.latestBand != null
+                          ? `Last band: ${info.latestBand.toFixed(1)}`
+                          : null;
+
+                      const difficultyLabel =
+                        test.difficulty && test.difficulty.length > 0
+                          ? test.difficulty.charAt(0).toUpperCase() +
+                            test.difficulty.slice(1)
+                          : null;
+
+                      return (
+                        <Card
+                          key={test.id}
+                          className="flex flex-col gap-3 rounded-ds-2xl p-4 md:p-5"
+                        >
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-semibold">
+                                  {test.title}
+                                </h3>
+                                {difficultyLabel && (
+                                  <Badge tone="neutral" size="xs">
+                                    {difficultyLabel}
+                                  </Badge>
+                                )}
+                                {test.taskType && (
+                                  <Badge tone="info" size="xs">
+                                    {test.taskType === 'both'
+                                      ? 'Task 1 + Task 2'
+                                      : test.taskType === 'task1'
+                                      ? 'Task 1 only'
+                                      : test.taskType === 'task2'
+                                      ? 'Task 2 only'
+                                      : test.taskType}
+                                  </Badge>
+                                )}
+                              </div>
+                              {test.description && (
+                                <p className="text-xs text-muted-foreground max-w-xl">
+                                  {test.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="mt-2 flex flex-col items-start gap-1 text-[11px] text-muted-foreground md:items-end">
+                              <div className="flex flex-wrap gap-2">
+                                <span>{attemptsLabel}</span>
+                                {lastAttemptLabel && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Last: {lastAttemptLabel}</span>
+                                  </>
+                                )}
+                              </div>
+                              {lastBandLabel && (
+                                <span className="font-medium text-foreground">
+                                  {lastBandLabel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-3">
+                            <Link
+                              href={`/mock/writing/${encodeURIComponent(test.slug)}`}
+                              passHref
+                              legacyBehavior
+                            >
+                              <Button as="a" size="sm">
+                                <Icon name="PlayCircle" size={16} className="mr-1" />
+                                Start this mock
+                              </Button>
+                            </Link>
+
+                            <Button size="sm" variant="ghost">
+                              <Icon name="ClipboardList" size={16} className="mr-1" />
+                              View my attempts
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: AI insights / recent attempts */}
+            <div className="space-y-6">
+              {/* AI insight panel */}
+              <Card className="p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Icon name="Sparkles" size={16} />
+                    </span>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold">AI Writing Coach</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Quick summary from your latest mocks
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  {stats.totalAttempts === 0 ? (
+                    <>
+                      <p>
+                        You haven&apos;t attempted any writing mocks yet. Start with one of
+                        the tests on the left to unlock AI-driven writing feedback.
+                      </p>
+                      <p>
+                        After your first attempt, we&apos;ll highlight your biggest gaps in
+                        task response, coherence, grammar range, and vocabulary.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        Based on your recent mocks, your writing band is trending around{' '}
+                        <span className="font-medium">
+                          {stats.averageBand != null
+                            ? `Band ${stats.averageBand.toFixed(1)}`
+                            : 'Band ?'}
+                        </span>
+                        .
+                      </p>
+                      <p>
+                        Focus on: developing ideas clearly, using paragraphing, and avoiding
+                        repeated grammar mistakes. Aim for at least{' '}
+                        <span className="font-medium">2 mocks / week</span> to see clear
+                        gains.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                <Button size="sm" variant="outline" className="w-full">
+                  <Icon name="Wand2" size={16} className="mr-1" />
+                  Open detailed AI report
+                </Button>
+              </Card>
+
+              {/* Recent attempts */}
+              <Card className="p-5 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">Recent writing attempts</h2>
+                  <Button size="xs" variant="ghost">
+                    <Icon name="History" size={14} className="mr-1" />
+                    View all
+                  </Button>
+                </div>
+
+                {recentAttempts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No writing attempts yet. Once you attempt a mock, it will appear here
+                    with your latest band and date.
+                  </p>
+                ) : (
+                  <div className="space-y-2 text-xs">
+                    {recentAttempts.map((attempt) => (
+                      <div
+                        key={attempt.id}
+                        className="flex items-center justify-between gap-2 rounded-ds-lg border border-border/60 px-3 py-2"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-medium">{attempt.testTitle}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {attempt.dateLabel}
+                          </p>
+                        </div>
+                        <div className="text-right space-y-0.5">
+                          <p className="text-[11px] text-muted-foreground">
+                            {attempt.bandLabel ?? 'Band —'}
+                          </p>
+                          <Button size="xs" variant="ghost">
+                            <Icon name="Eye" size={12} className="mr-1" />
+                            Review
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </Container>
+        </section>
+      </main>
+    </>
+  );
 };
 
 // ------------------------------------------------------------------------------------
-// GSSP
+// SSR
 // ------------------------------------------------------------------------------------
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  try {
-    const supabase = getServerClient<Database>(ctx.req, ctx.res);
+  const supabase = getServerClient(ctx.req, ctx.res);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-      return {
-        redirect: {
-          destination: '/login?next=/mock/writing',
-          permanent: false,
-        },
-      };
-    }
-
-    // Load active, published writing mocks
-    const { data: testsRows, error: testsErr } = await supabase
-      .from('writing_tests')
-      .select(
-        'id, slug, title, description, difficulty, is_mock, is_active, is_published',
-      )
-      .eq('is_mock', true)
-      .eq('is_active', true)
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
-
-    if (testsErr) throw testsErr;
-
-    // Load attempts for this user
-    const { data: attemptsRows, error: attemptsErr } = await supabase
-      .from('attempts_writing')
-      .select('id, prompt_id, submitted_at')
-      .eq('user_id', user.id)
-      .order('submitted_at', { ascending: false });
-
-    if (attemptsErr) throw attemptsErr;
-
-    const stats: WritingStats = {
-      totalAttempts: attemptsRows?.length ?? 0,
-      totalTestsAttempted: 0,
-      lastAttemptAt: attemptsRows?.[0]?.submitted_at ?? null,
-    };
-
-    const attemptMapBySlug: Record<string, TestAttemptInfo> = {};
-
-    // Tie attempts to tests via prompts
-    if (testsRows && attemptsRows && attemptsRows.length > 0) {
-      const promptIds = attemptsRows
-        .map((a) => a.prompt_id)
-        .filter(Boolean) as string[];
-
-      if (promptIds.length > 0) {
-        const { data: promptsRows, error: promptsErr } = await supabase
-          .from('writing_prompts')
-          .select('id, test_id')
-          .in('id', promptIds);
-
-        if (promptsErr) throw promptsErr;
-
-        const testIdByPromptId: Record<string, string> = {};
-        promptsRows?.forEach((p) => {
-          testIdByPromptId[p.id] = (p as any).test_id ?? '';
-        });
-
-        const slugByTestId: Record<string, string> = {};
-        testsRows?.forEach((t) => {
-          slugByTestId[t.id] = (t as any).slug ?? '';
-        });
-
-        for (const a of attemptsRows) {
-          if (!a.prompt_id) continue;
-          const testId = testIdByPromptId[a.prompt_id];
-          if (!testId) continue;
-          const slug = slugByTestId[testId];
-          if (!slug) continue;
-
-          if (!attemptMapBySlug[slug]) {
-            attemptMapBySlug[slug] = {
-              attemptsCount: 0,
-              latestCreatedAt: null,
-            };
-          }
-
-          attemptMapBySlug[slug].attemptsCount += 1;
-
-          if (
-            a.submitted_at &&
-            (!attemptMapBySlug[slug].latestCreatedAt ||
-              a.submitted_at > attemptMapBySlug[slug].latestCreatedAt!)
-          ) {
-            attemptMapBySlug[slug].latestCreatedAt = a.submitted_at;
-          }
-        }
-
-        stats.totalTestsAttempted = Object.keys(attemptMapBySlug).length;
-      }
-    }
-
-    const tests: WritingMockListItem[] =
-      testsRows?.map((t: any) => ({
-        id: t.id,
-        slug: t.slug,
-        title: t.title ?? 'Writing Mock',
-        description: t.description ?? null,
-        difficulty: t.difficulty ?? null,
-      })) ?? [];
-
+  if (!user) {
     return {
-      props: {
-        tests,
-        stats,
-        attemptMap: attemptMapBySlug,
+      redirect: {
+        destination: `/auth/login?redirectTo=${encodeURIComponent(
+          ctx.resolvedUrl || '/mock/writing',
+        )}`,
+        permanent: false,
       },
     };
-  } catch (err: any) {
+  }
+
+  // Fetch active writing tests
+  const { data: testsRaw, error: testsError } = await supabase
+    .from<WritingTestRow>('writing_tests')
+    .select('id, slug, title, description, difficulty, task_type')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (testsError) {
+    // Fail soft: no tests, stats zero
     return {
       props: {
         tests: [],
@@ -171,321 +546,66 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
           totalAttempts: 0,
           totalTestsAttempted: 0,
           lastAttemptAt: null,
+          averageBand: null,
         },
         attemptMap: {},
-        error: err?.message ?? 'Unexpected error loading Writing mocks.',
+        recentAttempts: [],
       },
     };
   }
-};
 
-// ------------------------------------------------------------------------------------
-// Helpers
-// ------------------------------------------------------------------------------------
+  const tests: WritingMockListItem[] = (testsRaw ?? []).map((t) => ({
+    id: t.id,
+    slug: t.slug,
+    title: t.title,
+    description: t.description ?? null,
+    difficulty: (t as any).difficulty ?? null, // if not in schema, will just be null
+    taskType: (t as any).task_type ?? null,
+  }));
 
-function formatDateTime(value: string | null) {
-  if (!value) return null;
-  try {
-    const d = new Date(value);
-    return d.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return null;
-  }
-}
+  // Fetch user writing attempts
+  const { data: attemptsRaw } = await supabase
+    .from<AttemptWritingRow>('attempts_writing')
+    .select('id, test_id, created_at, band_overall')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(100);
 
-// ------------------------------------------------------------------------------------
-// Component
-// ------------------------------------------------------------------------------------
+  const attempts: AttemptWritingRow[] = attemptsRaw ?? [];
 
-const WritingMockIndexPage: NextPage<PageProps> = ({
-  tests,
-  stats,
-  attemptMap,
-  error,
-}) => {
-  if (error) {
-    return (
-      <>
-        <Head>
-          <title>Writing Mock Tests · GramorX</title>
-        </Head>
-        <section className="py-10 md:py-12">
-          <Container className="max-w-3xl">
-            <Card className="space-y-3 p-4 md:p-6">
-              <div className="flex items-start gap-3">
-                <Icon
-                  name="AlertTriangle"
-                  className="mt-0.5 h-5 w-5 text-destructive"
-                />
-                <div className="space-y-1">
-                  <h1 className="text-base font-semibold">
-                    Something went wrong loading Writing mocks
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {error}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Try refreshing the page. If the issue continues, contact support.
-                  </p>
-                </div>
-              </div>
-              <div>
-                <Button asChild size="sm">
-                  <Link href="/mock">Back to Mock home</Link>
-                </Button>
-              </div>
-            </Card>
-          </Container>
-        </section>
-      </>
-    );
-  }
-
-  const hasAttempts = stats.totalAttempts > 0;
-
-  return (
-    <>
-      <Head>
-        <title>Writing Mock Tests · GramorX</title>
-        <meta
-          name="description"
-          content="Full IELTS Writing mocks (Task 1 + Task 2) with AI scoring, analytics, and detailed feedback."
-        />
-      </Head>
-
-      <section className="py-10 md:py-12 bg-lightBg">
-        <Container className="space-y-8">
-          {/* Hero */}
-          <header className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-              <Icon name="PenSquare" className="h-3.5 w-3.5" />
-              <span>IELTS Writing • Full mocks</span>
-            </div>
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-3">
-                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                  Writing Mock Tests (Task 1 + Task 2)
-                </h1>
-                <p className="max-w-2xl text-sm md:text-base text-muted-foreground">
-                  Practice complete IELTS Writing exams in a strict 60-minute environment
-                  that mirrors the real computer-based test – with AI-powered scoring and
-                  feedback.
-                </p>
-              </div>
-              <div className="flex flex-col items-start gap-2 md:items-end">
-                <Button asChild size="sm">
-                  <Link href={tests[0] ? `/mock/writing/run?testSlug=${encodeURIComponent(
-                    tests[0].slug,
-                  )}` : '/mock/writing'}>
-                    <Icon name="Play" className="mr-1.5 h-4 w-4" />
-                    {tests[0] ? 'Start first full mock' : 'No mocks available'}
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline" tone="neutral">
-                  <Link href="/mock/writing/history">
-                    <Icon name="Clock" className="mr-1.5 h-4 w-4" />
-                    View Writing history
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          {/* Stats + explainer */}
-          <section className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <Card className="space-y-3 p-4 md:p-5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                    Your Writing mock progress
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Track how many full mocks you&apos;ve completed and when you last
-                    practised.
-                  </p>
-                </div>
-                <Badge size="xs" tone={hasAttempts ? 'success' : 'neutral'}>
-                  {hasAttempts ? 'Active' : 'Not started'}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-center text-xs md:text-sm">
-                <div className="rounded-ds-lg border border-border bg-card/60 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">Total attempts</p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {stats.totalAttempts}
-                  </p>
-                </div>
-                <div className="rounded-ds-lg border border-border bg-card/60 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">
-                    Distinct mocks
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">
-                    {stats.totalTestsAttempted}
-                  </p>
-                </div>
-                <div className="rounded-ds-lg border border-border bg-card/60 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">
-                    Last attempt
-                  </p>
-                  <p className="mt-1 text-xs font-medium">
-                    {formatDateTime(stats.lastAttemptAt) ?? 'Not yet attempted'}
-                  </p>
-                </div>
-              </div>
-
-              {hasAttempts ? (
-                <p className="text-[11px] text-muted-foreground">
-                  Keep your streak alive: aim for at least{' '}
-                  <span className="font-medium">1 full Writing mock per week</span> to see
-                  steady band improvement.
-                </p>
-              ) : (
-                <p className="text-[11px] text-muted-foreground">
-                  No attempts yet. Start your first full Writing mock and unlock
-                  AI-powered feedback.
-                </p>
-              )}
-            </Card>
-
-            <Card className="space-y-3 p-4 md:p-5 text-xs">
-              <div className="flex items-center gap-2">
-                <Icon name="Info" className="h-4 w-4 text-muted-foreground" />
-                <p className="text-[13px] font-medium">How Writing mocks work</p>
-              </div>
-              <ul className="space-y-2 text-[11px] text-muted-foreground">
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
-                  <span>
-                    Each mock includes <span className="font-medium">Task 1 + Task 2</span>{' '}
-                    in a single 60-minute exam.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
-                  <span>
-                    Your responses are auto-saved frequently, so you don&apos;t lose work if
-                    the tab refreshes.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
-                  <span>
-                    After submitting, you get{' '}
-                    <span className="font-medium">AI-powered scores</span> for Task 1 &amp;
-                    Task 2, with band prediction and key improvement areas.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
-                  <span>
-                    You can revisit your attempts from the{' '}
-                    <span className="font-medium">Writing history</span> page anytime.
-                  </span>
-                </li>
-              </ul>
-            </Card>
-          </section>
-
-          {/* Tests list */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold md:text-base">
-                Available Writing mocks
-              </h2>
-              <Button asChild size="xs" variant="outline" tone="neutral">
-                <Link href="/mock">
-                  <Icon name="LayoutDashboard" className="mr-1.5 h-3.5 w-3.5" />
-                  Back to Mock home
-                </Link>
-              </Button>
-            </div>
-
-            {tests.length === 0 ? (
-              <Card className="p-5 text-sm text-muted-foreground">
-                No Writing mocks are currently available. Check back later.
-              </Card>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {tests.map((t) => {
-                  const attemptsInfo = attemptMap[t.slug];
-                  const attempted = attemptsInfo?.attemptsCount && attemptsInfo.attemptsCount > 0;
-                  const latest = formatDateTime(attemptsInfo?.latestCreatedAt ?? null);
-
-                  return (
-                    <Card
-                      key={t.id}
-                      className="flex flex-col justify-between gap-3 p-4 md:p-5"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold">{t.title}</p>
-                            {t.description && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {t.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge size="xs" tone="neutral">
-                              Full mock
-                            </Badge>
-                            {t.difficulty && (
-                              <span className="text-[11px] text-muted-foreground">
-                                Level: {t.difficulty}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {attempted ? (
-                          <p className="text-[11px] text-muted-foreground">
-                            <span className="font-medium">
-                              {attemptsInfo!.attemptsCount} attempt
-                              {attemptsInfo!.attemptsCount > 1 ? 's' : ''}
-                            </span>{' '}
-                            · Last on {latest}
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-muted-foreground">
-                            You haven&apos;t attempted this mock yet.
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-[11px] text-muted-foreground">
-                          Includes Task 1 &amp; Task 2 in one sitting.
-                        </div>
-                        <Button asChild size="sm">
-                          <Link
-                            href={`/mock/writing/run?testSlug=${encodeURIComponent(
-                              t.slug,
-                            )}`}
-                          >
-                            {attempted ? 'Re-attempt Mock' : 'Start Mock'}
-                            <Icon
-                              name={attempted ? 'RotateCw' : 'Play'}
-                              className="ml-1.5 h-3.5 w-3.5"
-                            />
-                          </Link>
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </Container>
-      </section>
-    </>
+  const stats = computeStats(attempts);
+  const attemptMap = computeAttemptMap(
+    (testsRaw ?? []) as WritingTestRow[],
+    attempts,
   );
+
+  // Build recent attempts list with test titles
+  const testById = new Map<string, WritingTestRow>();
+  (testsRaw ?? []).forEach((t) => testById.set(t.id, t as WritingTestRow));
+
+  const recentAttempts: RecentAttempt[] = attempts.slice(0, 5).map((a) => {
+    const test = a.test_id ? testById.get(a.test_id) : null;
+    const bandLabel =
+      typeof a.band_overall === 'number'
+        ? `Band ${a.band_overall.toFixed(1)}`
+        : null;
+
+    return {
+      id: a.id,
+      testTitle: test?.title ?? 'Writing mock',
+      bandLabel,
+      dateLabel: formatRelativeDate(a.created_at),
+    };
+  });
+
+  return {
+    props: {
+      tests,
+      stats,
+      attemptMap,
+      recentAttempts,
+    },
+  };
 };
 
 export default WritingMockIndexPage;

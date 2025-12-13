@@ -3,14 +3,18 @@ import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import type { GetServerSideProps, NextPage } from 'next';
+import { useRouter } from 'next/router';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
+import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
+import { carryAttemptCtx } from '@/lib/reading/attemptNav';
+
 import type {
   ReadingTest,
   ReadingPassage,
@@ -63,6 +67,38 @@ const ReadingReviewPage: NextPage<PageProps> = ({
   previousAttempt,
   nextAttempt,
 }) => {
+  const router = useRouter();
+  const ctx = carryAttemptCtx(router.query);
+
+  // Append ctx safely to links that already have a querystring
+  const withCtx = React.useCallback(
+    (href: string) => {
+      if (!ctx) return href;
+      if (href.includes('?')) return href + ctx.replace('?', '&');
+      return href + ctx;
+    },
+    [ctx]
+  );
+
+  // Remember scroll (review pages are long; users hate losing position)
+  React.useEffect(() => {
+    const key = `reading_review_scroll_${attempt?.id ?? 'unknown'}`;
+    if (typeof window === 'undefined') return;
+
+    const saved = window.sessionStorage.getItem(key);
+    if (saved) {
+      const y = Number(saved);
+      if (!Number.isNaN(y)) window.scrollTo(0, y);
+    }
+
+    const onScroll = () => {
+      window.sessionStorage.setItem(key, String(window.scrollY));
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [attempt?.id]);
+
   const notFound = !test || !attempt;
 
   if (notFound) {
@@ -146,9 +182,28 @@ const ReadingReviewPage: NextPage<PageProps> = ({
           <Container className="max-w-6xl space-y-6">
             {/* ========= HEADER (short) ========= */}
             <header className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-[5px] text-[11px] font-medium text-muted-foreground ring-1 ring-border/60">
-                <Icon name="BookOpenCheck" size={13} />
-                <span>Reading Review</span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-[5px] text-[11px] font-medium text-muted-foreground ring-1 ring-border/60">
+                  <Icon name="BookOpenCheck" size={13} />
+                  <span>Reading Review</span>
+                </div>
+
+                {/* Quick nav (enterprise) */}
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="secondary" className="rounded-ds-full">
+                    <Link href={withCtx('/mock/reading/history')}>
+                      <Icon name="Grid3X3" size={12} className="mr-1.5" />
+                      History
+                    </Link>
+                  </Button>
+
+                  <Button asChild size="sm" className="rounded-ds-full">
+                    <Link href={withCtx(`/mock/reading/result/${attempt.id}`)}>
+                      <Icon name="LayoutTemplate" size={12} className="mr-1.5" />
+                      Back to Result
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               <h1 className="font-slab text-h3 md:text-h2 leading-tight text-foreground">
@@ -216,7 +271,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                   {/* Retry SAME mock */}
                   <Link
-                    href={`/mock/reading/start?testId=${test.id}&retry=1`}
+                    href={withCtx(`/mock/reading/start?testId=${test.id}&retry=1`)}
                     className="inline-flex items-center gap-1 rounded-ds-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
                   >
                     <Icon name="RotateCcw" size={12} />
@@ -225,7 +280,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
 
                   {/* Retry NEW mock */}
                   <Link
-                    href="/mock/reading"
+                    href={withCtx('/mock/reading')}
                     className="inline-flex items-center gap-1 rounded-ds-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
                   >
                     <Icon name="Shuffle" size={12} />
@@ -233,7 +288,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   </Link>
 
                   <Link
-                    href="/mock"
+                    href={withCtx('/mock')}
                     className="inline-flex items-center gap-1 rounded-ds-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
                   >
                     <Icon name="LayoutTemplate" size={12} />
@@ -391,7 +446,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   </p>
                   <div className="space-y-2 text-xs">
                     <Link
-                      href={`/mock/reading/start?testId=${test.id}&retry=1`}
+                      href={withCtx(`/mock/reading/start?testId=${test.id}&retry=1`)}
                       className="flex items-center justify-between rounded-ds-lg bg-background/70 px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
                     >
                       <span className="inline-flex items-center gap-1.5">
@@ -401,7 +456,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                       <Icon name="ChevronRight" size={12} />
                     </Link>
                     <Link
-                      href="/mock/reading"
+                      href={withCtx('/mock/reading')}
                       className="flex items-center justify-between rounded-ds-lg bg-background/70 px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
                     >
                       <span className="inline-flex items-center gap-1.5">
@@ -411,7 +466,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                       <Icon name="ChevronRight" size={12} />
                     </Link>
                     <Link
-                      href="/mock"
+                      href={withCtx('/mock')}
                       className="flex items-center justify-between rounded-ds-lg bg-background/70 px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
                     >
                       <span className="inline-flex items-center gap-1.5">
@@ -436,6 +491,33 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   />
                 </Card>
               </div>
+            </div>
+
+            {/* Sticky nav (Result ↔ Review) */}
+            <div className="sticky bottom-4 z-20">
+              <Card className="rounded-ds-2xl border border-border/60 bg-card/95 p-3 shadow-soft">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-[11px] text-muted-foreground">
+                    Don’t just check answers — learn the pattern, then retake.
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button asChild variant="secondary" size="sm" className="rounded-ds-2xl">
+                      <Link href={withCtx('/mock/reading/history')}>
+                        <Icon name="Grid3X3" size={14} className="mr-1.5" />
+                        History
+                      </Link>
+                    </Button>
+
+                    <Button asChild size="sm" className="rounded-ds-2xl">
+                      <Link href={withCtx(`/mock/reading/result/${attempt.id}`)}>
+                        <Icon name="LayoutTemplate" size={14} className="mr-1.5" />
+                        Back to Result
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             </div>
           </Container>
         </section>

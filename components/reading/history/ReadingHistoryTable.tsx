@@ -1,6 +1,7 @@
 // components/reading/history/ReadingHistoryTable.tsx
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
@@ -14,18 +15,37 @@ export type ReadingHistoryRow = {
   testTitle: string;
   bandScore: number | null;
   rawScore: number | null;
-  totalQuestions: number | null;  // derived from meta.answers
+  totalQuestions: number;
   createdAt: string;
-  status?: 'in_progress' | 'submitted'; // optional visual cue
+  status?: string | null;
 };
 
-type Props = {
+export type ReadingHistoryTableProps = {
   rows: ReadingHistoryRow[];
   className?: string;
 };
 
-export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
-  if (!rows.length) {
+const safeDateTime = (iso?: string | null) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  // eslint-disable-next-line no-restricted-globals
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const ReadingHistoryTable: React.FC<ReadingHistoryTableProps> = ({
+  rows,
+  className,
+}) => {
+  const router = useRouter();
+
+  if (!rows?.length) {
     return (
       <Card
         className={cn(
@@ -37,6 +57,10 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
       </Card>
     );
   }
+
+  const go = (href: string) => {
+    void router.push(href);
+  };
 
   return (
     <Card
@@ -68,7 +92,14 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
           const band = row.bandScore;
           const accuracy = total > 0 ? Math.round((raw / total) * 100) : 0;
 
-          // Band color logic
+          const isInProgress = row.status === 'in_progress';
+
+          // Primary click target
+          const primaryHref = isInProgress
+            ? `/mock/reading/review/${row.attemptId}`
+            : `/mock/reading/result/${row.attemptId}`;
+
+          // Band tone
           let toneClass = 'bg-amber-500/15 text-amber-700 border border-amber-500/30';
           if (band !== null) {
             if (band >= 7.0) {
@@ -78,17 +109,30 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
             }
           }
 
-          const isInProgress = row.status === 'in_progress';
-
           return (
             <div
               key={row.attemptId}
+              role="link"
+              tabIndex={0}
+              aria-label={
+                isInProgress
+                  ? `Continue review: ${row.testTitle}`
+                  : `Open result: ${row.testTitle}`
+              }
+              onClick={() => go(primaryHref)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  go(primaryHref);
+                }
+              }}
               className={cn(
                 'grid items-center',
                 'grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.2fr)]',
-                'gap-3 px-4 py-3 text-xs transition-colors',
+                'gap-3 px-4 py-3 text-xs transition-colors cursor-pointer',
                 'hover:bg-muted/30',
-                isInProgress && 'opacity-75 italic'
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                isInProgress && 'opacity-85'
               )}
             >
               {/* TEST INFO */}
@@ -100,17 +144,12 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
                 <div className="text-[11px] text-muted-foreground">
                   {isInProgress && (
                     <span className="inline-block mr-2">
-                      <Badge variant="secondary" className="text-[9px] px-1">In Progress</Badge>
+                      <Badge variant="secondary" className="text-[9px] px-1">
+                        In Progress
+                      </Badge>
                     </span>
                   )}
-                  Attempted on{' '}
-                  {new Date(row.createdAt).toLocaleString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  Attempted on {safeDateTime(row.createdAt)}
                 </div>
               </div>
 
@@ -123,7 +162,7 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
                     toneClass
                   )}
                 >
-                  {band !== null ? `Band ${band.toFixed(1)}` : '—'}
+                  {band !== null ? band.toFixed(1) : '—'}
                 </Badge>
                 <div className="text-[11px] text-muted-foreground">
                   Accuracy {accuracy}%
@@ -135,11 +174,17 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
                 <span>
                   {raw}/{total} correct
                 </span>
-                {isInProgress && <span className="text-[10px] text-orange-600">partial</span>}
+                {isInProgress && (
+                  <span className="text-[10px] text-orange-600">partial</span>
+                )}
               </div>
 
-              {/* ACTIONS */}
-              <div className="flex items-center justify-end gap-2">
+              {/* ACTIONS (stop row click) */}
+              <div
+                className="flex items-center justify-end gap-2"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <Button
                   asChild
                   size="xs"
@@ -156,7 +201,7 @@ export const ReadingHistoryTable: React.FC<Props> = ({ rows, className }) => {
                 <Button
                   asChild
                   size="xs"
-                  variant={isInProgress ? 'secondary' : 'default'}
+                  variant="secondary"
                   className="rounded-ds-xl px-2 py-1 text-[11px]"
                 >
                   <Link href={`/mock/reading/review/${row.attemptId}`}>
