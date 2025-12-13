@@ -22,15 +22,20 @@ export const BandPredictorCard: React.FC<BandPredictorProps> = ({
   attempts,
   attemptSummaries,
 }) => {
-  const safeAttempts = (attempts ?? attemptSummaries ?? []) as ReadingAttemptSummary[];
+  const safeAttempts = Array.isArray(attempts)
+    ? attempts
+    : Array.isArray(attemptSummaries)
+      ? attemptSummaries
+      : [];
 
-  const { band, confidence } = predictBand(safeAttempts);
+  const hasAttempts = safeAttempts.length > 0;
+  const prediction = hasAttempts ? predictBand(safeAttempts) : { band: 0, confidence: 0 };
 
   return (
     <Card className="p-4 space-y-1 text-xs">
       <p className="font-medium">Predicted band</p>
 
-      {safeAttempts.length === 0 ? (
+      {!hasAttempts ? (
         <p className="text-muted-foreground">
           Do at least one mock to see your predicted band.
         </p>
@@ -38,10 +43,10 @@ export const BandPredictorCard: React.FC<BandPredictorProps> = ({
         <>
           <p>
             Your predicted IELTS Reading band is{' '}
-            <span className="font-semibold">{band.toFixed(1)}</span>
+            <span className="font-semibold">{prediction.band.toFixed(1)}</span>
           </p>
           <p className="text-muted-foreground">
-            Confidence: {(confidence * 100).toFixed(0)}%
+            Confidence: {(prediction.confidence * 100).toFixed(0)}%
           </p>
         </>
       )}

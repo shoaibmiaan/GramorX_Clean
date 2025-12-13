@@ -484,37 +484,43 @@ const FakeBandTimeline: React.FC<FakeBandTimelineProps> = ({ attempts }) => {
   const range = maxBand - minBand || 1;
 
   return (
-    <div className="flex items-end gap-1 h-32">
-      {attempts.slice(0, 10).map((attempt, index) => {
-        const band = attempt.bandScore;
-        const normalized =
-          band == null ? 0.1 : 0.1 + 0.9 * ((band - minBand) / range);
-        const heightPercent = Math.round(normalized * 100);
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <span>Placeholder band timeline</span>
+        <span>Not indicative of actual scoring</span>
+      </div>
+      <div className="flex items-end gap-1 h-32">
+        {attempts.slice(0, 10).map((attempt, index) => {
+          const band = attempt.bandScore;
+          const normalized =
+            band == null ? 0.1 : 0.1 + 0.9 * ((band - minBand) / range);
+          const heightPercent = Math.round(normalized * 100);
 
-        const colorClass =
-          attempt.module === 'listening'
-            ? 'bg-sky-500/80'
-            : attempt.module === 'reading'
-            ? 'bg-emerald-500/80'
-            : 'bg-indigo-500/80';
+          const colorClass =
+            attempt.module === 'listening'
+              ? 'bg-sky-500/80'
+              : attempt.module === 'reading'
+              ? 'bg-emerald-500/80'
+              : 'bg-indigo-500/80';
 
-        return (
-          <div
-            key={attempt.id}
-            className="flex-1 flex flex-col items-center gap-1"
-          >
+          return (
             <div
-              className={`w-full rounded-t-md ${colorClass}`}
-              style={{ height: `${heightPercent}%` }}
-              title={`Band ${band?.toFixed(1) ?? '—'}`}
-            />
-            <span className="text-[10px] text-slate-400">
-              {attempt.module[0].toUpperCase()}
-              {index + 1}
-            </span>
-          </div>
-        );
-      })}
+              key={attempt.id}
+              className="flex-1 flex flex-col items-center gap-1"
+            >
+              <div
+                className={`w-full rounded-t-md ${colorClass}`}
+                style={{ height: `${heightPercent}%` }}
+                title={`Band ${band?.toFixed(1) ?? '—'}`}
+              />
+              <span className="text-[10px] text-slate-400">
+                {attempt.module[0].toUpperCase()}
+                {index + 1}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
