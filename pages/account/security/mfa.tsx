@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import type { GetServerSideProps } from 'next';
 
 import { Alert } from '@/components/design-system/Alert';
 import { Button } from '@/components/design-system/Button';
@@ -9,6 +10,25 @@ import { Input } from '@/components/design-system/Input';
 import AuthLayout from '@/components/layouts/AuthLayout';
 import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { redirectByRole } from '@/lib/routeAccess';
+import { getServerClient } from '@/lib/supabaseServer';
+
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      redirect: {
+        destination: '/auth/login?next=/account/security/mfa',
+        permanent: false,
+      },
+    };
+  }
+
+  return { props: {} };
+};
 
 export default function MfaPage() {
   const [code, setCode] = useState('');
