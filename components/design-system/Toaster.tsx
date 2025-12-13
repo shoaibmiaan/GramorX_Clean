@@ -190,6 +190,8 @@ export function Toaster({ children }: { children?: React.ReactNode }) {
   return <ToastProvider>{children}</ToastProvider>;
 }
 
-export function useToast() {
-  return useContext(ToastCtx);
+export function useToast(): ToastApi & { toast: ToastApi } {
+  const api = useContext(ToastCtx);
+  // Ensure consumers can destructure `{ toast }` while keeping legacy methods.
+  return Object.assign(api, { toast: api });
 }

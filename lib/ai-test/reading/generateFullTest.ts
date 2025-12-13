@@ -71,5 +71,23 @@ export async function generateReadingFullTest(
   return generateFullTest(config);
 }
 
+export type GenerateFullAiReadingTestInput = {
+  supabase?: unknown;
+  testId: string;
+  userId: string;
+};
+
+export async function generateFullAiReadingTest(
+  input: GenerateFullAiReadingTestInput,
+): Promise<{ ok: boolean; error?: string; test?: GeneratedReadingTest | null }> {
+  try {
+    const test = await generateFullTest({ userId: input.userId });
+    // A future implementation could persist `test` with Supabase using `input.supabase` + `input.testId`.
+    return { ok: true, test };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'generation_failed', test: null };
+  }
+}
+
 // Default export as well, in case the route uses `default` import.
 export default generateFullTest;

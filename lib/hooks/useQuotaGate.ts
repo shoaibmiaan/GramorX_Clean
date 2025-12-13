@@ -1,7 +1,7 @@
 // hooks/useQuotaGuard.ts
 import { useRouter } from 'next/router';
 import { useCallback } from 'react';
-import { toast } from '@/components/design-system/Toaster'; // your DS toaster
+import { useToast } from '@/components/design-system/Toaster'; // your DS toaster
 
 type GXErrorPayload = {
   error?: {
@@ -13,6 +13,7 @@ type GXErrorPayload = {
 
 export function useQuotaGuard() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleResponse = useCallback(async (res: Response, context?: { module?: string }) => {
     if (res.ok) return res;
@@ -32,15 +33,14 @@ export function useQuotaGuard() {
       const remaining = Number(meta.remaining ?? 0);
       const resetAt = meta.resetAt ? new Date(meta.resetAt) : null;
 
-      toast.error(
-        `No ${module} attempts left on your plan.`,
-        {
-          description: resetAt
-            ? `Quota resets ${resetAt.toLocaleDateString()} ${resetAt.toLocaleTimeString()}.`
-            : `Upgrade to continue immediately.`,
-          duration: 5000
-        }
-      );
+      toast({
+        title: `No ${module} attempts left on your plan.`,
+        description: resetAt
+          ? `Quota resets ${resetAt.toLocaleDateString()} ${resetAt.toLocaleTimeString()}.`
+          : `Upgrade to continue immediately.`,
+        duration: 5000,
+        intent: 'error',
+      });
 
       const params = new URLSearchParams({
         reason: 'quota_exhausted',
@@ -58,7 +58,7 @@ export function useQuotaGuard() {
     }
 
     // Generic error
-    toast.error('Request failed', { description: message });
+    toast({ title: 'Request failed', description: message, intent: 'error' });
     throw new Error(message);
   }, [router]);
 

@@ -1,21 +1,52 @@
 import { useRouter } from 'next/router';
 import { Button, Card } from '@/components/design-system';
 import { useState } from 'react';
+import { useToast } from '@/components/design-system/Toaster';
 
 export default function ConfirmOrder() {
   const router = useRouter();
   const { plan } = router.query;
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleConfirm = async () => {
     setLoading(true);
-    const res = await fetch('/api/payment/create-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
-    });
-    const { checkoutUrl } = await res.json();
-    router.push(checkoutUrl);
+    try {
+      const res = await fetch('/api/payment/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        toast({
+          title: 'Payment setup failed',
+          description: payload?.error || res.statusText,
+          intent: 'error',
+        });
+        return;
+      }
+
+      const { checkoutUrl } = await res.json();
+      if (checkoutUrl) {
+        router.push(checkoutUrl);
+      } else {
+        toast({
+          title: 'Missing checkout link',
+          description: 'Please try again in a moment.',
+          intent: 'warning',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Unexpected error',
+        description: err?.message || 'Could not start checkout.',
+        intent: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

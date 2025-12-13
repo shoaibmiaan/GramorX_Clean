@@ -60,3 +60,86 @@ export function computeAccuracyByQuestionType(
     return { questionTypeId, correct, total, accuracy };
   });
 }
+
+type AttemptLike = {
+  id?: string;
+  created_at?: string;
+  raw_score?: number | null;
+  question_count?: number | null;
+  duration_seconds?: number | null;
+  section_stats?: Record<string, any> | null;
+};
+
+export function computeAttemptsTimeline(attempts: AttemptLike[]) {
+  return (attempts ?? []).map((attempt) => {
+    const sectionStats = attempt.section_stats ?? {};
+    const bandFromStats =
+      typeof sectionStats.band_score === "number"
+        ? sectionStats.band_score
+        : typeof sectionStats.band === "number"
+        ? sectionStats.band
+        : null;
+
+    const derivedBand =
+      bandFromStats != null
+        ? bandFromStats
+        : attempt.raw_score != null && attempt.question_count
+        ? (attempt.raw_score / attempt.question_count) * 9
+        : null;
+
+    return {
+      attemptId: attempt.id ?? "", // fallback to keep UI stable
+      createdAt: attempt.created_at ?? "",
+      rawScore: attempt.raw_score ?? null,
+      questionCount: attempt.question_count ?? null,
+      bandScore: derivedBand,
+    };
+  });
+}
+
+export function computeTimePerQuestionStats(attempts: AttemptLike[]) {
+  const aggregates = new Map<string, { total: number; count: number }>();
+
+  (attempts ?? []).forEach((attempt) => {
+    const sectionStats = attempt.section_stats ?? {};
+    const byType =
+      // arrays: [{ questionTypeId, avgSeconds }]
+      (Array.isArray(sectionStats.time_per_question)
+        ? sectionStats.time_per_question
+        : Array.isArray(sectionStats.timePerQuestion)
+        ? sectionStats.timePerQuestion
+        : Array.isArray(sectionStats.questionTypeTimings)
+        ? sectionStats.questionTypeTimings
+        : null) ?? null;
+
+    if (Array.isArray(byType)) {
+      byType.forEach((entry: any) => {
+        const typeId = String(entry?.questionTypeId || entry?.type || "").trim();
+        const avg = Number(entry?.avgSeconds ?? entry?.avg ?? entry?.seconds);
+        if (!typeId || Number.isNaN(avg)) return;
+        const agg = aggregates.get(typeId) ?? { total: 0, count: 0 };
+        agg.total += avg;
+        agg.count += 1;
+        aggregates.set(typeId, agg);
+      });
+      return;
+    }
+
+    // object map form: { tfng: 42, mcq: 30 }
+    if (sectionStats && typeof sectionStats.time_per_question === "object") {
+      Object.entries(sectionStats.time_per_question as Record<string, any>).forEach(([typeId, value]) => {
+        const numeric = Number(value);
+        if (!typeId || Number.isNaN(numeric)) return;
+        const agg = aggregates.get(typeId) ?? { total: 0, count: 0 };
+        agg.total += numeric;
+        agg.count += 1;
+        aggregates.set(typeId, agg);
+      });
+    }
+  });
+
+  return Array.from(aggregates.entries()).map(([questionTypeId, { total, count }]) => ({
+    questionTypeId,
+    avgSeconds: count > 0 ? total / count : null,
+  }));
+}

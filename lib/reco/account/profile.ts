@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
+import { deriveSignalsFromOutcome, refreshLearningProfile } from '../profile';
 
 type Db = Database;
 
@@ -26,3 +27,6 @@ export async function getRecoProfile(
 
   return data;
 }
+
+// Re-export helpers used by API routes for compatibility.
+export { deriveSignalsFromOutcome, refreshLearningProfile };
