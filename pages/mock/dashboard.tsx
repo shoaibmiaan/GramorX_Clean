@@ -11,6 +11,7 @@ import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
+import { Icon } from '@/components/design-system/Icon';
 
 type DashboardAttempt = {
   id: string;
@@ -46,6 +47,7 @@ type PageProps = {
   recentAttempts: DashboardAttempt[];
   weakAreas: string[];
   aiInsights: string[];
+  error?: string;
 };
 
 const MockDashboardPage: NextPage<PageProps> = ({
@@ -54,7 +56,32 @@ const MockDashboardPage: NextPage<PageProps> = ({
   recentAttempts,
   weakAreas,
   aiInsights,
+  error,
 }) => {
+  if (error) {
+    return (
+      <main className="bg-lightBg dark:bg-dark/90 min-h-screen">
+        <Container className="py-12 max-w-4xl">
+          <Card className="p-6 rounded-ds-2xl border border-border/60 bg-card/70 space-y-4">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <Icon name="AlertTriangle" />
+            </div>
+            <h1 className="text-2xl font-slab">Unable to load Mock dashboard</h1>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="primary" className="rounded-ds-xl">
+                <Link href="/mock">Back to Mock hub</Link>
+              </Button>
+              <Button asChild variant="secondary" className="rounded-ds-xl">
+                <Link href="/mock/dashboard">Retry</Link>
+              </Button>
+            </div>
+          </Card>
+        </Container>
+      </main>
+    );
+  }
+
   const hasAttempts = recentAttempts.length > 0;
 
   const formatDate = (value: string | null) => {
@@ -493,234 +520,233 @@ const FakeBandTimeline: React.FC<FakeBandTimelineProps> = ({ attempts }) => {
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient<Database>(ctx);
+  try {
+    const supabase = getServerClient<Database>(ctx);
 
-  // Get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
+    if (!user) {
+      return {
+        redirect: {
+          destination: `/auth/login?next=/mock/dashboard`,
+          permanent: false,
+        },
+      };
+    }
+
+    const [profileRes, listeningRes, readingRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, target_band, next_exam_date, streak_days')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('listening_attempts')
+        .select(
+          'id, mode, status, started_at, submitted_at, duration_seconds, raw_score, band_score, question_count',
+        )
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('reading_attempts')
+        .select(
+          'id, mode, status, started_at, submitted_at, duration_seconds, raw_score, band_score, question_count',
+        )
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(10),
+    ]);
+
+    const { data: profileData, error: profileError } = profileRes;
+    if (profileError) throw profileError;
+
+    const { data: listeningData, error: listeningError } = listeningRes;
+    if (listeningError) throw listeningError;
+
+    const { data: readingData, error: readingError } = readingRes;
+    if (readingError) throw readingError;
+
+    const fullName = (profileData as any)?.full_name ?? null;
+    const targetBand =
+      (profileData as any)?.target_band != null
+        ? Number((profileData as any).target_band)
+        : null;
+    const nextExamDate = (profileData as any)?.next_exam_date ?? null;
+    const streakDays =
+      (profileData as any)?.streak_days != null
+        ? Number((profileData as any).streak_days)
+        : 0;
+
+    const recentAttempts: DashboardAttempt[] = [];
+
+    (listeningData ?? []).forEach((row: any) => {
+      recentAttempts.push({
+        id: row.id,
+        module: 'listening',
+        mode: row.mode ?? null,
+        status: row.status ?? null,
+        startedAt: row.started_at,
+        submittedAt: row.submitted_at,
+        durationSeconds:
+          row.duration_seconds != null ? Number(row.duration_seconds) : null,
+        rawScore: row.raw_score != null ? Number(row.raw_score) : null,
+        bandScore: row.band_score != null ? Number(row.band_score) : null,
+        questionCount:
+          row.question_count != null ? Number(row.question_count) : null,
+      });
+    });
+
+    (readingData ?? []).forEach((row: any) => {
+      recentAttempts.push({
+        id: row.id,
+        module: 'reading',
+        mode: row.mode ?? null,
+        status: row.status ?? null,
+        startedAt: row.started_at,
+        submittedAt: row.submitted_at,
+        durationSeconds:
+          row.duration_seconds != null ? Number(row.duration_seconds) : null,
+        rawScore: row.raw_score != null ? Number(row.raw_score) : null,
+        bandScore: row.band_score != null ? Number(row.band_score) : null,
+        questionCount:
+          row.question_count != null ? Number(row.question_count) : null,
+      });
+    });
+
+    recentAttempts.sort((a, b) => {
+      return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
+    });
+
+    const bands: Bands = {
+      overall: null,
+      listening: null,
+      reading: null,
+      writing: null,
+      speaking: null,
+    };
+
+    const safeNumber = (value: unknown): number | null => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const listeningBands = recentAttempts
+      .filter((a) => a.module === 'listening')
+      .map((a) => safeNumber(a.bandScore))
+      .filter((v): v is number => v != null);
+
+    const readingBands = recentAttempts
+      .filter((a) => a.module === 'reading')
+      .map((a) => safeNumber(a.bandScore))
+      .filter((v): v is number => v != null);
+
+    if (listeningBands.length > 0) {
+      bands.listening =
+        listeningBands.reduce((sum, v) => sum + v, 0) / listeningBands.length;
+    }
+
+    if (readingBands.length > 0) {
+      bands.reading =
+        readingBands.reduce((sum, v) => sum + v, 0) / readingBands.length;
+    }
+
+    const allBands = [...listeningBands, ...readingBands];
+    if (allBands.length > 0) {
+      bands.overall =
+        allBands.reduce((sum, v) => sum + v, 0) / allBands.length;
+    }
+
+    const weakAreas: string[] = [];
+    const tgt = targetBand ?? 7;
+
+    if (bands.reading != null && bands.reading < tgt) {
+      weakAreas.push('Reading');
+    }
+    if (bands.listening != null && bands.listening < tgt) {
+      weakAreas.push('Listening');
+    }
+
+    const aiInsights: string[] = [];
+
+    if (bands.overall != null && targetBand != null) {
+      const diff = targetBand - bands.overall;
+      if (diff > 1.0) {
+        aiInsights.push(
+          `You're currently around band ${bands.overall.toFixed(
+            1,
+          )}, which is more than 1 band below your target ${targetBand.toFixed(
+            1,
+          )}. You need consistent full mocks, not just casual practice.`,
+        );
+      } else if (diff > 0.3) {
+        aiInsights.push(
+          `You're within striking distance of your target. Tighten up timing and work on weak question types to close the final gap.`,
+        );
+      } else if (diff <= 0.3) {
+        aiInsights.push(
+          `You're basically at or above your target band. Now it's about stability — keep mocks regular so exam day feels like repetition.`,
+        );
+      }
+    }
+
+    if (weakAreas.includes('Reading')) {
+      aiInsights.push(
+        `Reading is dragging your overall band. Focus on TF/NG/Y/NG and long passages — you likely lose marks in the last 10 questions.`,
+      );
+    }
+
+    if (weakAreas.includes('Listening')) {
+      aiInsights.push(
+        `Listening scores are below target. You probably lose focus in Part 3 & 4. Start doing short, high-intensity practice sets for those parts.`,
+      );
+    }
+
+    const profile: ProfileSummary = {
+      fullName,
+      targetBand,
+      nextExamDate,
+      streakDays,
+    };
+
     return {
-      redirect: {
-        destination: `/auth/login?next=/mock/dashboard`,
-        permanent: false,
+      props: {
+        profile,
+        bands,
+        recentAttempts: recentAttempts.slice(0, 10),
+        weakAreas,
+        aiInsights,
+      },
+    };
+  } catch (err: unknown) {
+    console.error('Failed to load Mock dashboard', err);
+    const message =
+      err instanceof Error ? err.message : 'Failed to load Mock dashboard.';
+
+    return {
+      props: {
+        profile: {
+          fullName: null,
+          targetBand: null,
+          nextExamDate: null,
+          streakDays: 0,
+        },
+        bands: {
+          overall: null,
+          listening: null,
+          reading: null,
+          writing: null,
+          speaking: null,
+        },
+        recentAttempts: [],
+        weakAreas: [],
+        aiInsights: [],
+        error: message,
       },
     };
   }
-
-  // PROFILE
-  let fullName: string | null = null;
-  let targetBand: number | null = null;
-  let nextExamDate: string | null = null;
-  let streakDays = 0;
-
-  try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, target_band, next_exam_date, streak_days')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (profile) {
-      fullName = (profile as any).full_name ?? null;
-      targetBand =
-        (profile as any).target_band != null
-          ? Number((profile as any).target_band)
-          : null;
-      nextExamDate = (profile as any).next_exam_date ?? null;
-      streakDays =
-        (profile as any).streak_days != null
-          ? Number((profile as any).streak_days)
-          : 0;
-    }
-  } catch {
-    // swallow — use defaults
-  }
-
-  // ATTEMPTS
-  const recentAttempts: DashboardAttempt[] = [];
-
-  // LISTENING ATTEMPTS (if table exists)
-  try {
-    const { data: listening } = await supabase
-      .from('listening_attempts')
-      .select(
-        'id, mode, status, started_at, submitted_at, duration_seconds, raw_score, band_score, question_count',
-      )
-      .eq('user_id', user.id)
-      .order('started_at', { ascending: false })
-      .limit(10);
-
-    if (listening) {
-      listening.forEach((row: any) => {
-        recentAttempts.push({
-          id: row.id,
-          module: 'listening',
-          mode: row.mode ?? null,
-          status: row.status ?? null,
-          startedAt: row.started_at,
-          submittedAt: row.submitted_at,
-          durationSeconds:
-            row.duration_seconds != null
-              ? Number(row.duration_seconds)
-              : null,
-          rawScore: row.raw_score != null ? Number(row.raw_score) : null,
-          bandScore: row.band_score != null ? Number(row.band_score) : null,
-          questionCount:
-            row.question_count != null ? Number(row.question_count) : null,
-        });
-      });
-    }
-  } catch {
-    // ignore if table not ready
-  }
-
-  // READING ATTEMPTS
-  try {
-    const { data: reading } = await supabase
-      .from('reading_attempts')
-      .select(
-        'id, mode, status, started_at, submitted_at, duration_seconds, raw_score, band_score, question_count',
-      )
-      .eq('user_id', user.id)
-      .order('started_at', { ascending: false })
-      .limit(10);
-
-    if (reading) {
-      reading.forEach((row: any) => {
-        recentAttempts.push({
-          id: row.id,
-          module: 'reading',
-          mode: row.mode ?? null,
-          status: row.status ?? null,
-          startedAt: row.started_at,
-          submittedAt: row.submitted_at,
-          durationSeconds:
-            row.duration_seconds != null
-              ? Number(row.duration_seconds)
-              : null,
-          rawScore: row.raw_score != null ? Number(row.raw_score) : null,
-          bandScore: row.band_score != null ? Number(row.band_score) : null,
-          questionCount:
-            row.question_count != null ? Number(row.question_count) : null,
-        });
-      });
-    }
-  } catch {
-    // ignore if table not ready
-  }
-
-  // TODO: once writing/speaking attempts tables exist, add them similarly.
-
-  // SORT BY DATE DESC (across modules)
-  recentAttempts.sort((a, b) => {
-    return new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime();
-  });
-
-  const bands: Bands = {
-    overall: null,
-    listening: null,
-    reading: null,
-    writing: null,
-    speaking: null,
-  };
-
-  // Compute simple averages
-  const safeNumber = (value: unknown): number | null => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-  };
-
-  const listeningBands = recentAttempts
-    .filter((a) => a.module === 'listening')
-    .map((a) => safeNumber(a.bandScore))
-    .filter((v): v is number => v != null);
-
-  const readingBands = recentAttempts
-    .filter((a) => a.module === 'reading')
-    .map((a) => safeNumber(a.bandScore))
-    .filter((v): v is number => v != null);
-
-  if (listeningBands.length > 0) {
-    bands.listening =
-      listeningBands.reduce((sum, v) => sum + v, 0) / listeningBands.length;
-  }
-
-  if (readingBands.length > 0) {
-    bands.reading =
-      readingBands.reduce((sum, v) => sum + v, 0) / readingBands.length;
-  }
-
-  const allBands = [...listeningBands, ...readingBands];
-  if (allBands.length > 0) {
-    bands.overall =
-      allBands.reduce((sum, v) => sum + v, 0) / allBands.length;
-  }
-
-  // Weak areas
-  const weakAreas: string[] = [];
-  const tgt = targetBand ?? 7;
-
-  if (bands.reading != null && bands.reading < tgt) {
-    weakAreas.push('Reading');
-  }
-  if (bands.listening != null && bands.listening < tgt) {
-    weakAreas.push('Listening');
-  }
-
-  // AI-ish insights (rule based for now)
-  const aiInsights: string[] = [];
-
-  if (bands.overall != null && targetBand != null) {
-    const diff = targetBand - bands.overall;
-    if (diff > 1.0) {
-      aiInsights.push(
-        `You're currently around band ${bands.overall.toFixed(
-          1,
-        )}, which is more than 1 band below your target ${targetBand.toFixed(
-          1,
-        )}. You need consistent full mocks, not just casual practice.`,
-      );
-    } else if (diff > 0.3) {
-      aiInsights.push(
-        `You're within striking distance of your target. Tighten up timing and work on weak question types to close the final gap.`,
-      );
-    } else if (diff <= 0.3) {
-      aiInsights.push(
-        `You're basically at or above your target band. Now it's about stability — keep mocks regular so exam day feels like repetition.`,
-      );
-    }
-  }
-
-  if (weakAreas.includes('Reading')) {
-    aiInsights.push(
-      `Reading is dragging your overall band. Focus on TF/NG/Y/NG and long passages — you likely lose marks in the last 10 questions.`,
-    );
-  }
-
-  if (weakAreas.includes('Listening')) {
-    aiInsights.push(
-      `Listening scores are below target. You probably lose focus in Part 3 & 4. Start doing short, high-intensity practice sets for those parts.`,
-    );
-  }
-
-  const profile: ProfileSummary = {
-    fullName,
-    targetBand,
-    nextExamDate,
-    streakDays,
-  };
-
-  return {
-    props: {
-      profile,
-      bands,
-      recentAttempts: recentAttempts.slice(0, 10),
-      weakAreas,
-      aiInsights,
-    },
-  };
 };
 
 export default MockDashboardPage;

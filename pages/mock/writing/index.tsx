@@ -54,6 +54,7 @@ type PageProps = {
   stats: WritingStats;
   attemptMap: Record<string, TestAttemptInfo>;
   recentAttempts: RecentAttempt[];
+  error?: string;
 };
 
 // Internal Supabase row shapes we care about
@@ -160,7 +161,35 @@ const WritingMockIndexPage: NextPage<PageProps> = ({
   stats,
   attemptMap,
   recentAttempts,
+  error,
 }) => {
+  if (error) {
+    return (
+      <>
+        <Head>
+          <title>Error · Writing Mocks · GramorX</title>
+        </Head>
+        <Container className="py-12 max-w-3xl">
+          <Card className="p-6 space-y-3 rounded-ds-2xl border border-border/60 bg-card/70">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <Icon name="AlertTriangle" />
+            </div>
+            <h1 className="text-xl font-semibold">Unable to load Writing mocks</h1>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button asChild variant="primary" className="rounded-ds-xl">
+                <Link href="/mock">Back to Mock hub</Link>
+              </Button>
+              <Button asChild variant="secondary" className="rounded-ds-xl">
+                <Link href="/mock/writing">Retry</Link>
+              </Button>
+            </div>
+          </Card>
+        </Container>
+      </>
+    );
+  }
+
   const avgBandLabel =
     stats.averageBand != null ? `Band ${stats.averageBand.toFixed(1)}` : 'No data yet';
 
@@ -512,33 +541,94 @@ const WritingMockIndexPage: NextPage<PageProps> = ({
 // ------------------------------------------------------------------------------------
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx.req, ctx.res);
+  try {
+    const supabase = getServerClient(ctx.req, ctx.res);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
+    if (!user) {
+      return {
+        redirect: {
+          destination: `/auth/login?redirectTo=${encodeURIComponent(
+            ctx.resolvedUrl || '/mock/writing',
+          )}`,
+          permanent: false,
+        },
+      };
+    }
+
+    const [testsRes, attemptsRes] = await Promise.all([
+      supabase
+        .from<WritingTestRow>('writing_tests')
+        .select('id, slug, title, description, difficulty, task_type')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true }),
+      supabase
+        .from<AttemptWritingRow>('attempts_writing')
+        .select('id, test_id, created_at, band_overall')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ]);
+
+    const { data: testsRaw, error: testsError } = testsRes;
+    if (testsError) throw testsError;
+
+    const { data: attemptsRaw, error: attemptsError } = attemptsRes;
+    if (attemptsError) throw attemptsError;
+
+    const tests: WritingMockListItem[] = (testsRaw ?? []).map((t) => ({
+      id: t.id,
+      slug: t.slug,
+      title: t.title,
+      description: t.description ?? null,
+      difficulty: (t as any).difficulty ?? null, // if not in schema, will just be null
+      taskType: (t as any).task_type ?? null,
+    }));
+
+    const attempts: AttemptWritingRow[] = attemptsRaw ?? [];
+
+    const stats = computeStats(attempts);
+    const attemptMap = computeAttemptMap(
+      (testsRaw ?? []) as WritingTestRow[],
+      attempts,
+    );
+
+    // Build recent attempts list with test titles
+    const testById = new Map<string, WritingTestRow>();
+    (testsRaw ?? []).forEach((t) => testById.set(t.id, t as WritingTestRow));
+
+    const recentAttempts: RecentAttempt[] = attempts.slice(0, 5).map((a) => {
+      const test = a.test_id ? testById.get(a.test_id) : null;
+      const bandLabel =
+        typeof a.band_overall === 'number'
+          ? `Band ${a.band_overall.toFixed(1)}`
+          : null;
+
+      return {
+        id: a.id,
+        testTitle: test?.title ?? 'Writing mock',
+        bandLabel,
+        dateLabel: formatRelativeDate(a.created_at),
+      };
+    });
+
     return {
-      redirect: {
-        destination: `/auth/login?redirectTo=${encodeURIComponent(
-          ctx.resolvedUrl || '/mock/writing',
-        )}`,
-        permanent: false,
+      props: {
+        tests,
+        stats,
+        attemptMap,
+        recentAttempts,
       },
     };
-  }
+  } catch (err: unknown) {
+    console.error('Failed to load Writing mocks', err);
+    const message =
+      err instanceof Error ? err.message : 'Failed to load Writing mocks.';
 
-  // Fetch active writing tests
-  const { data: testsRaw, error: testsError } = await supabase
-    .from<WritingTestRow>('writing_tests')
-    .select('id, slug, title, description, difficulty, task_type')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
-
-  if (testsError) {
-    // Fail soft: no tests, stats zero
     return {
       props: {
         tests: [],
@@ -550,62 +640,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         },
         attemptMap: {},
         recentAttempts: [],
+        error: message,
       },
     };
   }
-
-  const tests: WritingMockListItem[] = (testsRaw ?? []).map((t) => ({
-    id: t.id,
-    slug: t.slug,
-    title: t.title,
-    description: t.description ?? null,
-    difficulty: (t as any).difficulty ?? null, // if not in schema, will just be null
-    taskType: (t as any).task_type ?? null,
-  }));
-
-  // Fetch user writing attempts
-  const { data: attemptsRaw } = await supabase
-    .from<AttemptWritingRow>('attempts_writing')
-    .select('id, test_id, created_at, band_overall')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  const attempts: AttemptWritingRow[] = attemptsRaw ?? [];
-
-  const stats = computeStats(attempts);
-  const attemptMap = computeAttemptMap(
-    (testsRaw ?? []) as WritingTestRow[],
-    attempts,
-  );
-
-  // Build recent attempts list with test titles
-  const testById = new Map<string, WritingTestRow>();
-  (testsRaw ?? []).forEach((t) => testById.set(t.id, t as WritingTestRow));
-
-  const recentAttempts: RecentAttempt[] = attempts.slice(0, 5).map((a) => {
-    const test = a.test_id ? testById.get(a.test_id) : null;
-    const bandLabel =
-      typeof a.band_overall === 'number'
-        ? `Band ${a.band_overall.toFixed(1)}`
-        : null;
-
-    return {
-      id: a.id,
-      testTitle: test?.title ?? 'Writing mock',
-      bandLabel,
-      dateLabel: formatRelativeDate(a.created_at),
-    };
-  });
-
-  return {
-    props: {
-      tests,
-      stats,
-      attemptMap,
-      recentAttempts,
-    },
-  };
 };
 
 export default WritingMockIndexPage;
