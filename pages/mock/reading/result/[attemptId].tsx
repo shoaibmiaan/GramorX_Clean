@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
-import withPlan from '@/lib/withPlan';
+import { withPlan } from '@/lib/withPlan';
 import type { PlanTier } from '@/lib/plans';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';

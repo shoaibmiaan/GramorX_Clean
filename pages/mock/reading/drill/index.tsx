@@ -4,10 +4,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import type { GetServerSideProps, NextPage } from 'next';
 
-import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
 import { hasAtLeast, type PlanTier } from '@/lib/plans';
-import withPlan from '@/lib/withPlan';
+import { withPlan } from '@/lib/withPlan';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
@@ -15,6 +14,8 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 import { UpgradeGate } from '@/components/payments/UpgradeGate';
+import { formatDateTime } from '@/lib/mock/format';
+import { requireUserOrRedirect } from '@/lib/mock/guards';
 
 type DrillStats = {
   totalDrills: number;
@@ -99,6 +100,8 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
           title="Pro drills"
           description="Unlock focused Reading drills to sharpen speed and accuracy."
           ctaLabel="Upgrade for Focused Practice"
+          secondaryCtaHref="/pricing"
+          secondaryCtaLabel="See plans"
           ctaFullWidth
         >
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -191,7 +194,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                     {stats.bestAccuracy == null ? '—' : `${Math.round(stats.bestAccuracy * 100)}%`}
                     {' · '}
                     Last drill:{' '}
-                    {stats.lastDrillAt == null ? '—' : new Date(stats.lastDrillAt).toLocaleString()}
+                    {formatDateTime(stats.lastDrillAt)}
                   </p>
                 </div>
 
@@ -213,15 +216,10 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free', async (ctx, planCtx) => {
-  const supabase = getServerClient<Database>(ctx.req, ctx.res);
+  const auth = await requireUserOrRedirect<Database>(ctx, ctx.resolvedUrl ?? '/mock/reading/drill');
+  if ('redirect' in auth) return auth;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { redirect: { destination: '/login', permanent: false } } as const;
-  }
+  const { supabase, user } = auth;
 
   // NOTE: this is intentionally defensive; if you don't have drill attempts table,
   // it should still load the hub without crashing.
