@@ -258,9 +258,17 @@ async function baseHandler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// Guard with plan: starter+ (admins/teachers bypass)
+// Guard with plan: pro+ (admins/teachers bypass)
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  return withPlan('starter', baseHandler, {
+  return withPlan('pro', baseHandler, {
     allowRoles: ['admin', 'teacher'],
+    onPlanFailure: ({ apiRoute, res: response, required }) => {
+      if (apiRoute && response) {
+        response.status(402).json({ error: 'upgrade_required', required });
+        return null;
+      }
+
+      return { redirect: { destination: `/pricing?required=${required}`, permanent: false } } as const;
+    },
   })(req, res);
 }

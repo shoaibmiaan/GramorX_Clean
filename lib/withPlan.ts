@@ -5,7 +5,16 @@ import { getServerClient } from '@/lib/supabaseServer';
 import { hasAtLeast, mapPlanIdToTier, resolveUserTier, type PlanInput, type PlanTier } from '@/lib/plans';
 
 export type WithPlanContext = { tier: PlanTier; hasAtLeast: (tier: PlanInput) => boolean };
-export type WithPlanOptions = { allowRoles?: string[] };
+export type WithPlanOptions = {
+  allowRoles?: string[];
+  onPlanFailure?: (args: {
+    apiRoute: boolean;
+    req: NextApiRequest | GetServerSidePropsContext['req'];
+    res: NextApiResponse | GetServerSidePropsContext['res'] | undefined;
+    required: PlanTier;
+    current: PlanTier;
+  }) => any;
+};
 
 const DEFAULT_REDIRECT = '/pricing';
 
@@ -44,7 +53,18 @@ async function ensureAuth(
   return { userId: user.id, role, tier };
 }
 
-function handlePlanFailure(isApi: boolean, res: NextApiResponse | undefined, required: PlanTier, current: PlanTier) {
+function handlePlanFailure(
+  isApi: boolean,
+  req: NextApiRequest | GetServerSidePropsContext['req'] | undefined,
+  res: NextApiResponse | undefined,
+  required: PlanTier,
+  current: PlanTier,
+  options?: WithPlanOptions,
+) {
+  if (options?.onPlanFailure) {
+    return options.onPlanFailure({ apiRoute: isApi, req: req as any, res, required, current });
+  }
+
   if (isApi && res) {
     res.status(402).json({ error: 'Plan required', required, current, upgradeUrl: DEFAULT_REDIRECT });
     return null;
@@ -90,7 +110,14 @@ export function withPlan(required: PlanInput, handler?: any, options: WithPlanOp
       }
 
       if (!ctx.hasAtLeast(requiredTier)) {
-        return handlePlanFailure(apiRoute, res, requiredTier, auth.tier);
+        return handlePlanFailure(
+          apiRoute,
+          req as NextApiRequest,
+          res as NextApiResponse | undefined,
+          requiredTier,
+          auth.tier,
+          options,
+        );
       }
 
       return apiRoute ? fn(args[0], args[1], ctx) : fn(args[0], ctx);
