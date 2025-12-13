@@ -12,9 +12,12 @@ import { Icon } from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { ReadingPassage, ReadingQuestion, ReadingTest } from '@/lib/reading/types';
+import { hasAtLeast, type PlanTier } from '@/lib/plans';
+import withPlan from '@/lib/withPlan';
 
 import { ReadingExamShell } from '@/components/reading/ReadingExamShell';
 import { speedTrainingLevels } from '@/data/reading/speedTrainingConfigs';
+import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
 // ---------------------------------------------------------------------
 // TYPES
@@ -25,6 +28,7 @@ type PageProps = {
   passages: ReadingPassage[];
   questions: ReadingQuestion[];
   error?: string;
+  tier: PlanTier;
 };
 
 // ---------------------------------------------------------------------
@@ -54,7 +58,10 @@ const coerceExamType = (raw: any) => {
 
 // ---------------------------------------------------------------------
 
-const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error }) => {
+const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error, tier }) => {
+  const upgradeLabel = 'Upgrade for Focused Practice';
+  const showSmartMode = hasAtLeast(tier, 'basic') && !hasAtLeast(tier, 'elite');
+
   if (error) {
     return (
       <>
@@ -114,38 +121,66 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error 
               </p>
             </div>
 
-            <Button asChild variant="outline" size="sm">
-              <Link href="/mock/reading">
-                <Icon name="ChevronLeft" className="h-4 w-4 mr-1" />
-                Back to Reading
-              </Link>
-            </Button>
-          </Card>
-
-          {/* Speed level info */}
-          <Card className="p-4 flex items-center gap-3">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
-              <Icon name="Clock" className="h-5 w-5" />
-            </div>
-
-            <div>
-              <div className="text-sm font-medium">Speed Mode</div>
-              <p className="text-xs text-muted-foreground">
-                Shorter time · fewer questions · no distractions
-              </p>
+            <div className="flex items-center gap-2">
+              {showSmartMode && (
+                <Button href="/pricing" size="sm" variant="secondary">
+                  <Icon name="sparkles" className="mr-1 h-4 w-4" />
+                  Upgrade to Smart Mode
+                </Button>
+              )}
+              <Button asChild variant="outline" size="sm">
+                <Link href="/mock/reading">
+                  <Icon name="ChevronLeft" className="h-4 w-4 mr-1" />
+                  Back to Reading
+                </Link>
+              </Button>
             </div>
           </Card>
+
+          <UpgradeGate
+            required="basic"
+            tier={tier}
+            variant="overlay"
+            title="Speed drills"
+            description="Upgrade to unlock focused practice drills with timing controls."
+            ctaLabel={upgradeLabel}
+            ctaFullWidth
+          >
+            {/* Speed level info */}
+            <Card className="p-4 flex items-center gap-3">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-ds-xl bg-primary/10 text-primary">
+                <Icon name="Clock" className="h-5 w-5" />
+              </div>
+
+              <div>
+                <div className="text-sm font-medium">Speed Mode</div>
+                <p className="text-xs text-muted-foreground">
+                  Shorter time · fewer questions · no distractions
+                </p>
+              </div>
+            </Card>
+          </UpgradeGate>
         </Container>
 
         {/* IMPORTANT: Exam shell should be full-bleed; don’t wrap it in Container padding */}
         <section className="px-0">
-          <ReadingExamShell
-            test={test}
-            passages={passages}
-            questions={questions}
-            mode="speed"
-            speedLevels={speedTrainingLevels}
-          />
+          <UpgradeGate
+            required="basic"
+            tier={tier}
+            variant="overlay"
+            title="Start speed drill"
+            description="Unlock Reading drills to practise with timers and adaptive question sets."
+            ctaLabel={upgradeLabel}
+            ctaFullWidth
+          >
+            <ReadingExamShell
+              test={test}
+              passages={passages}
+              questions={questions}
+              mode="speed"
+              speedLevels={speedTrainingLevels}
+            />
+          </UpgradeGate>
         </section>
       </main>
     </>
@@ -156,7 +191,7 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error 
 // SSR (FIXED)
 // ---------------------------------------------------------------------
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free', async (ctx, planCtx) => {
   const cfg = getDefaultSpeedConfig();
 
   try {
@@ -173,7 +208,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
           destination: '/login?next=/mock/reading/drill/speed',
           permanent: false,
         },
-      };
+      } as const;
     }
 
     // Prefer a dedicated speed test if you have one; fallback to latest active
@@ -255,8 +290,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         test: drillTest,
         passages: [chosenPassage] as any,
         questions: drillQuestions as any,
+        tier: planCtx.tier,
       },
-    };
+    } as const;
   } catch (err: any) {
     return {
       props: {
@@ -271,9 +307,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         passages: [],
         questions: [],
         error: err?.message ?? 'Failed to load speed drill.',
+        tier: planCtx.tier,
       },
-    };
+    } as const;
   }
-};
+});
 
 export default SpeedDrillPage;

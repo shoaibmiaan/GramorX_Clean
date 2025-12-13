@@ -13,6 +13,8 @@ import Icon from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
+import withPlan from '@/lib/withPlan';
+import { mapPlanIdToTier, type PlanTier } from '@/lib/plans';
 import { carryAttemptCtx } from '@/lib/reading/attemptNav';
 
 import type {
@@ -22,6 +24,7 @@ import type {
 } from '@/lib/reading/types';
 
 import { ReadingReviewShell } from '@/components/reading/review/ReadingReviewShell';
+import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
 type ReviewAnswer = {
   questionId: string;
@@ -54,6 +57,7 @@ type PageProps = {
   totalTestAttempts: number;
   previousAttempt: AttemptNeighborSummary | null;
   nextAttempt: AttemptNeighborSummary | null;
+  tier: PlanTier;
 };
 
 const ReadingReviewPage: NextPage<PageProps> = ({
@@ -66,6 +70,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
   totalTestAttempts,
   previousAttempt,
   nextAttempt,
+  tier,
 }) => {
   const router = useRouter();
   const ctx = carryAttemptCtx(router.query);
@@ -170,6 +175,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
     .slice(0, 3);
 
   const hasWeakTags = weakTagsSorted.length > 0;
+  const normalizedTier = mapPlanIdToTier(tier);
 
   return (
     <>
@@ -489,6 +495,28 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                     attempt={attempt}
                     answers={answers}
                   />
+                  <div className="mt-4 space-y-2">
+                    <UpgradeGate
+                      required="pro"
+                      tier={normalizedTier}
+                      variant="inline"
+                      title="Explanations"
+                      description="See why each answer is correct with expert rationales and traps to avoid."
+                      ctaLabel="Unlock Explanations"
+                      ctaFullWidth
+                    >
+                      <div className="rounded-ds-xl border border-border/60 bg-background/70 p-4 space-y-2 text-xs text-muted-foreground">
+                        <p className="font-semibold text-sm text-foreground">Explanation highlights</p>
+                        <ul className="list-disc space-y-1 pl-4">
+                          <li>
+                            Match your answers against the passage with line-by-line callouts for each question.
+                          </li>
+                          <li>Spot trap phrases and distractors that typically lead to mistakes.</li>
+                          <li>Learn the reasoning pattern for your weakest tags before the next attempt.</li>
+                        </ul>
+                      </div>
+                    </UpgradeGate>
+                  </div>
                 </Card>
               </div>
             </div>
@@ -530,7 +558,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
 // SERVER-SIDE FETCH
 // ------------------------------
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free', async (ctx, planCtx) => {
   const attemptIdParam = ctx.params?.attemptId;
   if (!attemptIdParam || typeof attemptIdParam !== 'string') {
     return {
@@ -544,6 +572,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         totalTestAttempts: 0,
         previousAttempt: null,
         nextAttempt: null,
+        tier: planCtx.tier,
       },
     };
   }
@@ -588,6 +617,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         totalTestAttempts: 0,
         previousAttempt: null,
         nextAttempt: null,
+        tier: planCtx.tier,
       },
     };
   }
@@ -613,6 +643,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         totalTestAttempts: 0,
         previousAttempt: null,
         nextAttempt: null,
+        tier: planCtx.tier,
       },
     };
   }
@@ -803,8 +834,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       totalTestAttempts,
       previousAttempt,
       nextAttempt,
+      tier: planCtx.tier,
     },
   };
-};
+});
 
 export default ReadingReviewPage;
