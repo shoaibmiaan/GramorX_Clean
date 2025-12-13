@@ -10,14 +10,14 @@ import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
 
-import { getServerClient } from '@/lib/supabaseServer';
 import type { ReadingPassage, ReadingQuestion, ReadingTest } from '@/lib/reading/types';
 import { hasAtLeast, type PlanTier } from '@/lib/plans';
-import withPlan from '@/lib/withPlan';
+import { withPlan } from '@/lib/withPlan';
 
 import { ReadingExamShell } from '@/components/reading/ReadingExamShell';
 import { speedTrainingLevels } from '@/data/reading/speedTrainingConfigs';
 import { UpgradeGate } from '@/components/payments/UpgradeGate';
+import { requireUserOrRedirect } from '@/lib/mock/guards';
 
 // ---------------------------------------------------------------------
 // TYPES
@@ -144,6 +144,8 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error,
             title="Speed drills"
             description="Upgrade to unlock focused practice drills with timing controls."
             ctaLabel={upgradeLabel}
+            secondaryCtaHref="/pricing"
+            secondaryCtaLabel="See plans"
             ctaFullWidth
           >
             {/* Speed level info */}
@@ -171,6 +173,8 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error,
             title="Start speed drill"
             description="Unlock Reading drills to practise with timers and adaptive question sets."
             ctaLabel={upgradeLabel}
+            secondaryCtaHref="/pricing"
+            secondaryCtaLabel="See plans"
             ctaFullWidth
           >
             <ReadingExamShell
@@ -195,21 +199,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free'
   const cfg = getDefaultSpeedConfig();
 
   try {
-    const supabase = getServerClient(ctx.req, ctx.res);
+    const auth = await requireUserOrRedirect(ctx, ctx.resolvedUrl ?? '/mock/reading/drill/speed');
+    if ('redirect' in auth) return auth;
 
-    // Auth
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return {
-        redirect: {
-          destination: '/login?next=/mock/reading/drill/speed',
-          permanent: false,
-        },
-      } as const;
-    }
+    const { supabase, user } = auth;
 
     // Prefer a dedicated speed test if you have one; fallback to latest active
     const { data: speedTestRow, error: speedTestErr } = await supabase

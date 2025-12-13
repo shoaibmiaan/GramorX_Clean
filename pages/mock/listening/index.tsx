@@ -352,16 +352,24 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       };
     }
 
-    // Load listening tests (only published mocks)
-    const { data: testsRows, error: testsErr } = await supabase
-      .from('listening_tests')
-      .select(
-        'id, slug, title, description, duration_minutes, questions, level',
-      )
-      .eq('is_mock', true)
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
+    const [testsRes, attemptsRes] = await Promise.all([
+      supabase
+        .from('listening_tests')
+        .select(
+          'id, slug, title, description, duration_minutes, questions, level',
+        )
+        .eq('is_mock', true)
+        .eq('is_published', true)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('listening_attempts')
+        .select('id, test_id, raw_score, band_score, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
+    ]);
 
+    const { data: testsRows, error: testsErr } = testsRes;
     if (testsErr) throw testsErr;
 
     type ListeningAttemptsRow =
@@ -375,13 +383,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       lastAttemptAt: null,
     };
 
-    const { data: attempts, error: attemptsErr } = await supabase
-      .from('listening_attempts')
-      .select('id, test_id, raw_score, band_score, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(200);
-
+    const { data: attempts, error: attemptsErr } = attemptsRes;
     if (attemptsErr) throw attemptsErr;
 
     const safeAttempts: ListeningAttemptsRow[] = attempts ?? [];
@@ -451,6 +453,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       },
     };
   } catch (err: unknown) {
+    console.error('Failed to load Listening mocks', err);
     const message =
       err instanceof Error ? err.message : 'Failed to load Listening mocks.';
     return {

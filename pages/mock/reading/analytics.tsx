@@ -10,7 +10,7 @@ import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
-import withPlan from '@/lib/withPlan';
+import { withPlan } from '@/lib/withPlan';
 import { hasAtLeast, type PlanTier } from '@/lib/plans';
 import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
@@ -19,6 +19,7 @@ import {
   computeAttemptsTimeline,
   computeTimePerQuestionStats,
 } from '@/lib/reading/analytics';
+import { formatDateTime } from '@/lib/mock/format';
 
 type AttemptsRow = {
   id: string;
@@ -121,6 +122,8 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
               title="Pro analytics"
               description="Unlock detailed charts, pacing, and question-type insights."
               ctaLabel={upgradeLabel}
+              secondaryCtaHref="/pricing"
+              secondaryCtaLabel="Compare plans"
               ctaFullWidth
             >
               <div className="grid gap-4 md:grid-cols-2">
@@ -199,7 +202,7 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
                         className="flex items-center justify-between border-b border-border/60 py-1 last:border-b-0"
                       >
                         <span className="text-[11px] text-muted-foreground">
-                          {new Date(t.createdAt).toLocaleString()}
+                          {formatDateTime(t.createdAt)}
                         </span>
                         <span className="font-medium">
                           {t.rawScore ?? '—'}

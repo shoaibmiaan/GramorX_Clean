@@ -159,7 +159,7 @@ const quickActions: QuickAction[] = [
     id: 'resume-latest',
     label: 'Resume latest mock',
     description: 'Jump back into your last unfinished attempt.',
-    href: '/mock/history',
+    href: '/mock/resume',
     icon: 'PlayCircle',
   },
   {
