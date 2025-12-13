@@ -7,6 +7,8 @@ import { useRouter } from 'next/router';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
+import withPlan from '@/lib/withPlan';
+import type { PlanTier } from '@/lib/plans';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
@@ -14,6 +16,7 @@ import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
 import { ReadingResultSummary } from '@/components/reading/ReadingResultSummary';
 import { carryAttemptCtx } from '@/lib/reading/attemptNav';
+import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
 type AttemptSummary = {
   id: string;
@@ -37,9 +40,10 @@ type PageProps = {
   attempt: AttemptSummary | null;
   test: TestSummary | null;
   isLoggedIn: boolean;
+  tier: PlanTier;
 };
 
-const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) => {
+const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tier }) => {
   const router = useRouter();
   const ctx = carryAttemptCtx(router.query);
 
@@ -125,9 +129,9 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
                   Attempted on {new Date(attempt.createdAt).toLocaleString()}
                 </Badge>
 
-                {attempt.bandScore != null && (
-                  <Badge className="text-[11px]">Band {attempt.bandScore.toFixed(1)}</Badge>
-                )}
+              {attempt.bandScore != null && (
+                <Badge className="text-[11px]">Band {attempt.bandScore.toFixed(1)}</Badge>
+              )}
 
                 {/* Enterprise nav: Result ↔ Review ↔ History ↔ Retake (with ctx carry) */}
                 <div className="flex flex-wrap justify-end gap-2 pt-1">
@@ -169,6 +173,61 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
               <ReadingResultSummary attempt={attempt} test={test} />
             </Card>
 
+            <UpgradeGate
+              required="pro"
+              tier={tier}
+              variant="overlay"
+              title="Detailed analysis"
+              description="Unlock granular breakdowns, pacing feedback, and smart retake plans."
+              ctaLabel="Unlock Detailed Analysis"
+              ctaFullWidth
+              secondaryCtaHref="/pricing"
+              secondaryCtaLabel="See what Pro includes"
+              className="rounded-ds-2xl border border-border/60"
+            >
+              <Card className="rounded-ds-2xl border-none bg-card/80 p-4 md:p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/50">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Detailed analysis
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      See where you lost points and how to retake smarter.
+                    </p>
+                  </div>
+                  <Badge variant="accent" size="xs">
+                    Pro
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3 pt-3">
+                  <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Accuracy focus</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {attempt.bandScore != null ? `Band ${attempt.bandScore.toFixed(1)} trend` : 'Score tracker'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Identify question types dragging you below your target band.
+                    </p>
+                  </div>
+                  <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Timing</p>
+                    <p className="text-sm font-semibold text-foreground">Pacing heatmap</p>
+                    <p className="text-xs text-muted-foreground">
+                      Spot where you spent too long so you can trim reading time.
+                    </p>
+                  </div>
+                  <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Next steps</p>
+                    <p className="text-sm font-semibold text-foreground">AI-guided retake</p>
+                    <p className="text-xs text-muted-foreground">
+                      Get a focused retake plan with your weakest tags and timings.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </UpgradeGate>
+
             {/* FOOTER HELP TEXT */}
             <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs md:text-sm text-muted-foreground space-y-2">
               <p>
@@ -190,7 +249,7 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn }) =
 type AttemptRow = Database['public']['Tables']['reading_attempts']['Row'];
 type TestRow = Database['public']['Tables']['reading_tests']['Row'];
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free', async (ctx, planCtx) => {
   const attemptIdParam = ctx.params?.attemptId;
 
   const supabase = getServerClient(ctx.req, ctx.res);
@@ -207,6 +266,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         attempt: null,
         test: null,
         isLoggedIn,
+        tier: planCtx.tier,
       },
     };
   }
@@ -225,6 +285,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         attempt: null,
         test: null,
         isLoggedIn,
+        tier: planCtx.tier,
       },
     };
   }
@@ -243,6 +304,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         attempt: null,
         test: null,
         isLoggedIn,
+        tier: planCtx.tier,
       },
     };
   }
@@ -270,8 +332,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       attempt,
       test,
       isLoggedIn,
+      tier: planCtx.tier,
     },
   };
-};
+});
 
 export default ReadingResultPage;

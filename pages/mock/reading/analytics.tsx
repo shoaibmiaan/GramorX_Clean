@@ -10,6 +10,9 @@ import { Button } from '@/components/design-system/Button';
 import Icon from '@/components/design-system/Icon';
 
 import { getServerClient } from '@/lib/supabaseServer';
+import withPlan from '@/lib/withPlan';
+import { hasAtLeast, type PlanTier } from '@/lib/plans';
+import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
 import {
   computeAccuracyByQuestionType,
@@ -52,6 +55,7 @@ type PageProps = {
   accuracyByType: QuestionTypeAccuracy[];
   timeline: TimelinePoint[];
   timeStats: TimePerQuestionStat[];
+  tier: PlanTier;
 };
 
 const ReadingAnalyticsPage: NextPage<PageProps> = ({
@@ -59,7 +63,11 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
   accuracyByType,
   timeline,
   timeStats,
+  tier,
 }) => {
+  const isProPlus = hasAtLeast(tier, 'pro');
+  const upgradeLabel = tier === 'free' ? 'Unlock Progress Tracking' : 'Upgrade to Pro';
+
   return (
     <>
       <Head>
@@ -67,7 +75,7 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
       </Head>
       <section className="py-10 bg-background">
         <Container className="max-w-4xl space-y-6">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <Badge size="xs" variant="outline">
                 Analytics
@@ -80,12 +88,20 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
                 where to drill next.
               </p>
             </div>
-            <Button asChild size="sm" variant="outline">
-              <a href="/mock/reading">
-                <Icon name="arrow-left" className="h-4 w-4 mr-1" />
-                Back to Reading mocks
-              </a>
-            </Button>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              {!isProPlus && (
+                <Button href="/pricing" size="sm" variant={tier === 'free' ? 'primary' : 'secondary'}>
+                  <Icon name="sparkles" className="mr-1 h-4 w-4" />
+                  {upgradeLabel}
+                </Button>
+              )}
+              <Button asChild size="sm" variant="outline">
+                <a href="/mock/reading">
+                  <Icon name="arrow-left" className="h-4 w-4 mr-1" />
+                  Back to Reading mocks
+                </a>
+              </Button>
+            </div>
           </div>
 
           {!hasData && (
@@ -98,101 +114,109 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
           )}
 
           {hasData && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Accuracy by question type</h2>
-                  <Icon name="target" className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This is based on your last few Reading attempts. Focus first on types with many
-                  questions and low accuracy.
-                </p>
-                <div className="mt-2 space-y-2">
-                  {accuracyByType.map((row) => (
-                    <div key={row.questionTypeId} className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium">
-                          {row.questionTypeLabel || row.questionTypeId}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {row.attempts} questions
+            <UpgradeGate
+              required="pro"
+              tier={tier}
+              variant="overlay"
+              title="Pro analytics"
+              description="Unlock detailed charts, pacing, and question-type insights."
+              ctaLabel={upgradeLabel}
+              ctaFullWidth
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Accuracy by question type</h2>
+                    <Icon name="target" className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    This is based on your last few Reading attempts. Focus first on types with many
+                    questions and low accuracy.
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {accuracyByType.map((row) => (
+                      <div key={row.questionTypeId} className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium">
+                            {row.questionTypeLabel || row.questionTypeId}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {row.attempts} questions
+                          </span>
+                        </div>
+                        <span className="text-xs font-semibold">
+                          {row.accuracy.toFixed(0)}%
                         </span>
                       </div>
-                      <span className="text-xs font-semibold">
-                        {row.accuracy.toFixed(0)}%
-                      </span>
-                    </div>
-                  ))}
-                  {!accuracyByType.length && (
-                    <p className="text-xs text-muted-foreground">
-                      Not enough data yet. Do a few more strict mocks.
-                    </p>
-                  )}
-                </div>
-              </Card>
+                    ))}
+                    {!accuracyByType.length && (
+                      <p className="text-xs text-muted-foreground">
+                        Not enough data yet. Do a few more strict mocks.
+                      </p>
+                    )}
+                  </div>
+                </Card>
 
-              <Card className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Time per question</h2>
-                  <Icon name="clock" className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Slower than 90 seconds on a question type? You might be over-reading. Faster than
-                  30 seconds with low accuracy? You&apos;re probably rushing.
-                </p>
-                <div className="mt-2 space-y-2">
-                  {timeStats.map((row) => (
-                    <div key={row.questionTypeId} className="flex items-center justify-between">
-                      <span className="text-xs font-medium">
-                        {row.questionTypeId.toUpperCase()}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {row.avgSeconds != null ? `${row.avgSeconds.toFixed(1)}s / question` : '—'}
-                      </span>
-                    </div>
-                  ))}
-                  {!timeStats.length && (
-                    <p className="text-xs text-muted-foreground">
-                      Not enough timing data yet.
-                    </p>
-                  )}
-                </div>
-              </Card>
+                <Card className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Time per question</h2>
+                    <Icon name="clock" className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Slower than 90 seconds on a question type? You might be over-reading. Faster than
+                    30 seconds with low accuracy? You&apos;re probably rushing.
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {timeStats.map((row) => (
+                      <div key={row.questionTypeId} className="flex items-center justify-between">
+                        <span className="text-xs font-medium">
+                          {row.questionTypeId.toUpperCase()}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {row.avgSeconds != null ? `${row.avgSeconds.toFixed(1)}s / question` : '—'}
+                        </span>
+                      </div>
+                    ))}
+                    {!timeStats.length && (
+                      <p className="text-xs text-muted-foreground">Not enough timing data yet.</p>
+                    )}
+                  </div>
+                </Card>
 
-              <Card className="p-4 space-y-3 md:col-span-2">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Recent Reading attempts</h2>
-                  <Icon name="line-chart" className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Track how your raw score and band are moving over time. Use this to see if your
-                  practice is actually working.
-                </p>
-                <div className="mt-3 space-y-1 text-xs">
-                  {timeline.map((t) => (
-                    <div
-                      key={t.attemptId}
-                      className="flex items-center justify-between border-b border-border/60 py-1 last:border-b-0"
-                    >
-                      <span className="text-[11px] text-muted-foreground">
-                        {new Date(t.createdAt).toLocaleString()}
-                      </span>
-                      <span className="font-medium">
-                        {t.rawScore ?? '—'}
-                        {t.questionCount ? `/${t.questionCount}` : null}{' '}
-                        {t.bandScore != null ? `· Band ${t.bandScore.toFixed(1)}` : ''}
-                      </span>
-                    </div>
-                  ))}
-                  {!timeline.length && (
-                    <p className="text-xs text-muted-foreground">
-                      No attempts in the window we looked at.
-                    </p>
-                  )}
-                </div>
-              </Card>
-            </div>
+                <Card className="p-4 space-y-3 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Recent Reading attempts</h2>
+                    <Icon name="line-chart" className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Track how your raw score and band are moving over time. Use this to see if your
+                    practice is actually working.
+                  </p>
+                  <div className="mt-3 space-y-1 text-xs">
+                    {timeline.map((t) => (
+                      <div
+                        key={t.attemptId}
+                        className="flex items-center justify-between border-b border-border/60 py-1 last:border-b-0"
+                      >
+                        <span className="text-[11px] text-muted-foreground">
+                          {new Date(t.createdAt).toLocaleString()}
+                        </span>
+                        <span className="font-medium">
+                          {t.rawScore ?? '—'}
+                          {t.questionCount ? `/${t.questionCount}` : null}{' '}
+                          {t.bandScore != null ? `· Band ${t.bandScore.toFixed(1)}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                    {!timeline.length && (
+                      <p className="text-xs text-muted-foreground">
+                        No attempts in the window we looked at.
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </UpgradeGate>
           )}
         </Container>
       </section>
@@ -200,7 +224,7 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
   );
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free', async (ctx, planCtx) => {
   const supabase = getServerClient(ctx.req, ctx.res);
 
   const {
@@ -230,6 +254,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         accuracyByType: [],
         timeline: [],
         timeStats: [],
+        tier: planCtx.tier,
       },
     };
   }
@@ -244,8 +269,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       accuracyByType,
       timeline,
       timeStats,
+      tier: planCtx.tier,
     },
   };
-};
+});
 
 export default ReadingAnalyticsPage;

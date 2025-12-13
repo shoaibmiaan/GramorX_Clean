@@ -10,13 +10,33 @@ export type UpgradeGateProps = {
   variant?: 'inline' | 'overlay' | 'panel';
   title?: string;
   description?: string;
+  ctaLabel?: string;
+  ctaFullWidth?: boolean;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
   className?: string;
   children?: React.ReactNode;
 };
 
 const CTA_LABEL = 'Upgrade to continue';
 
-function GateContent({ title, description }: { title?: string; description?: string }) {
+type GateContentProps = {
+  title?: string;
+  description?: string;
+  ctaLabel?: string;
+  ctaFullWidth?: boolean;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+};
+
+function GateContent({
+  title,
+  description,
+  ctaLabel,
+  ctaFullWidth,
+  secondaryCtaHref,
+  secondaryCtaLabel,
+}: GateContentProps) {
   return (
     <div className="flex flex-col gap-2 text-left">
       <div className="space-y-1">
@@ -24,9 +44,19 @@ function GateContent({ title, description }: { title?: string; description?: str
         <p className="text-sm text-muted-foreground">{description ?? 'Upgrade to unlock this feature.'}</p>
       </div>
       <div>
-        <Button href="/pricing" variant="primary">
-          {CTA_LABEL}
+        <Button href="/pricing" variant="primary" className={clsx({ 'w-full': ctaFullWidth })}>
+          {ctaLabel ?? CTA_LABEL}
         </Button>
+        {secondaryCtaHref && secondaryCtaLabel && (
+          <Button
+            href={secondaryCtaHref}
+            variant="ghost"
+            size="sm"
+            className="mt-1 h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            {secondaryCtaLabel}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -38,6 +68,10 @@ export function UpgradeGate({
   variant = 'inline',
   title,
   description,
+  ctaLabel,
+  ctaFullWidth,
+  secondaryCtaHref,
+  secondaryCtaLabel,
   className,
   children,
 }: UpgradeGateProps) {
@@ -49,7 +83,14 @@ export function UpgradeGate({
   if (variant === 'panel') {
     return (
       <div className={clsx('rounded-xl border border-border bg-card/70 p-4 shadow-sm', className)}>
-        <GateContent title={title} description={description} />
+        <GateContent
+          title={title}
+          description={description}
+          ctaLabel={ctaLabel}
+          ctaFullWidth={ctaFullWidth}
+          secondaryCtaHref={secondaryCtaHref}
+          secondaryCtaLabel={secondaryCtaLabel}
+        />
       </div>
     );
   }
@@ -61,7 +102,14 @@ export function UpgradeGate({
         'p-6': variant === 'overlay',
         'p-4': variant === 'inline',
       })}>
-        <GateContent title={title} description={description} />
+        <GateContent
+          title={title}
+          description={description}
+          ctaLabel={ctaLabel}
+          ctaFullWidth={ctaFullWidth}
+          secondaryCtaHref={secondaryCtaHref}
+          secondaryCtaLabel={secondaryCtaLabel}
+        />
       </div>
     </div>
   );
