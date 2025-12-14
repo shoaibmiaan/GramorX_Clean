@@ -37,6 +37,7 @@ import { loadTranslations } from '@/lib/i18n';
 import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
+import { StreakProvider } from '@/components/progress/StreakProvider';
 
 // ⭐ NEW BreadcrumbBar V2 (used inside AppLayoutManager)
 import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
@@ -357,14 +358,22 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const { isChecking } = useRouteGuard();
   if (isChecking) return <GuardSkeleton />;
 
+  const streakInitial = (pageProps as { streakInitial?: number | null })?.streakInitial ?? null;
+
+  const pageWithProviders = (
+    <StreakProvider initial={streakInitial}>
+      <Component {...pageProps} key={router.asPath} />
+    </StreakProvider>
+  );
+
   // base page
   const basePage =
     routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
       <PremiumThemeProvider>
-        <Component {...pageProps} key={router.asPath} />
+        {pageWithProviders}
       </PremiumThemeProvider>
     ) : (
-      <Component {...pageProps} key={router.asPath} />
+      pageWithProviders
     );
 
   // ⭐ Decide when to show breadcrumb bar

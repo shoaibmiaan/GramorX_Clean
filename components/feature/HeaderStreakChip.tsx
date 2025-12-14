@@ -1,14 +1,18 @@
 import * as React from 'react';
+
 import { useStreak } from '@/hooks/useStreak';
+import { useStreakFromContext } from '@/components/progress/StreakProvider';
 
 export function HeaderStreakChip() {
+  const streakFromContext = useStreakFromContext();
   const { current, loading, error } = useStreak();
 
   const value = React.useMemo(() => {
+    if (typeof streakFromContext === 'number') return Math.max(0, streakFromContext);
     if (loading) return '…';
     if (error) return '—';
     return Math.max(0, current);
-  }, [current, error, loading]);
+  }, [current, error, loading, streakFromContext]);
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-small bg-background/70 backdrop-blur">
