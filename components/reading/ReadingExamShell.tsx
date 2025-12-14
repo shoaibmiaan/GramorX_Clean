@@ -859,6 +859,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
                         question={q}
                         value={val}
                         onChange={(v) => handleAnswerChange(q.id, v)}
+                        answers={answers}
                         isFlagged={isFlagged}
                         onToggleFlag={() => toggleFlag(q.id)}
                       />
@@ -931,13 +932,14 @@ const ReadingExamShellInner: React.FC<Props> = ({
                         : 'p-0',
                     )}
                   >
-                    <ReadingQuestionItem
-                      question={q}
-                      value={val}
-                      onChange={(v) => handleAnswerChange(q.id, v)}
-                      isFlagged={isFlagged}
-                      onToggleFlag={() => toggleFlag(q.id)}
-                    />
+                      <ReadingQuestionItem
+                        question={q}
+                        value={val}
+                        onChange={(v) => handleAnswerChange(q.id, v)}
+                        answers={answers}
+                        isFlagged={isFlagged}
+                        onToggleFlag={() => toggleFlag(q.id)}
+                      />
                   </div>
                 );
               })
