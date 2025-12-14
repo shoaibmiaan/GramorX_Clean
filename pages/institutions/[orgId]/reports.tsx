@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { GetServerSideProps } from 'next'
 import { Button } from '@/components/design-system/Button'
 import { Skeleton } from '@/components/design-system/Skeleton'
+import { Breadcrumb } from '@/components/navigation/Breadcrumb'
 import { supabaseServer } from '@/lib/supabaseServer'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend, BarChart, Bar } from 'recharts'
 
@@ -102,6 +103,14 @@ export default function OrgReportsPage(props: ReportsPageProps){
       <Head><title>{org.name} · Reports</title></Head>
       <main className="min-h-screen bg-background">
         <section className="mx-auto max-w-7xl px-4 py-6">
+          <Breadcrumb
+            className="mb-4"
+            items={[
+              { label: 'Institutions', href: '/institutions' },
+              { label: org.name, href: `/institutions/${org.id}` },
+              { label: 'Reports' },
+            ]}
+          />
           <div className="flex items-center justify-between">
             <h1 className="font-slab text-h2 md:text-h1">Reports</h1>
             <Link href={`/institutions/${org.id}`} className="inline-flex"><Button variant="outline" className="border-border">Back</Button></Link>

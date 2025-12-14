@@ -16,6 +16,22 @@ A Next.js (TypeScript) + Tailwind CSS portal with a separate **Premium “Exam E
 - Vercel configuration included
 - Teacher and admin flows consolidated into a single rollout (see [Teacher & Admin Workflow Overview](docs/teacher-admin-overview.md))
 
+## Navigation components
+
+Use the shared `Breadcrumb` component when a page sits inside a hierarchy. It renders responsive chevron-separated links styled with the design tokens:
+
+```tsx
+import { Breadcrumb } from '@/components/navigation/Breadcrumb';
+
+<Breadcrumb
+  items={[
+    { label: 'Institutions', href: '/institutions' },
+    { label: 'Orbit Academy', href: '/institutions/orbit' },
+    { label: 'Reports' },
+  ]}
+/>;
+```
+
 ## Getting Started
 
 For a step-by-step onboarding checklist, see [Docs/new-developer-guide.md](Docs/new-developer-guide.md).
