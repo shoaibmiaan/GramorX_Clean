@@ -21,6 +21,7 @@ type PageProps = {
   rows: ReadingHistoryRow[];
   filterSlug?: string | null;
   filterTitle?: string | null;
+  error?: string | null;
 };
 
 const safeDateTime = (iso?: string | null) => {
@@ -36,6 +37,7 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
   rows,
   filterSlug,
   filterTitle,
+  error,
 }) => {
   const hasFilter = !!filterSlug;
 
@@ -189,7 +191,18 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
             </div>
 
             {/* Table / Empty */}
-            {displayRows.length === 0 ? (
+            {error ? (
+              <Card className="flex flex-col gap-3 rounded-ds-2xl border border-border/70 bg-danger/5 p-6 text-danger shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Icon name="TriangleAlert" className="h-4 w-4" />
+                  Couldn’t load your Reading attempts
+                </div>
+                <p className="text-xs text-danger/80">{error}</p>
+                <div className="text-xs text-danger/80">
+                  Please refresh the page or try again later. If the issue persists, contact support.
+                </div>
+              </Card>
+            ) : displayRows.length === 0 ? (
               <Card className="flex flex-col items-center justify-center rounded-ds-2xl border border-border/70 bg-card/90 p-8 text-center shadow-sm">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                   <Icon name="History" className="h-6 w-6 text-muted-foreground" />
@@ -276,6 +289,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         rows: [],
         filterSlug: testSlug ?? null,
         filterTitle: null,
+        error: error.message ?? "Unexpected error",
       },
     };
   }
