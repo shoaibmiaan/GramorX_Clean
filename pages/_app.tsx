@@ -38,9 +38,6 @@ import type { SupportedLocale } from '@/lib/i18n/config';
 import type { SubscriptionTier } from '@/lib/navigation/types';
 import { getRouteConfig, isAttemptPath } from '@/lib/routes/routeLayoutMap';
 
-// ⭐ NEW BreadcrumbBar V2 (used inside AppLayoutManager)
-import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
-
 const PricingReasonBanner = dynamic(
   () => import('@/components/paywall/PricingReasonBanner'),
   { ssr: false }

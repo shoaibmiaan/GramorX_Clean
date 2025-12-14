@@ -9,7 +9,6 @@ type Pill = { id: string; label: string; tone?: 'ok' | 'warn' | 'info' };
 type RailItem = { id: string; label: string; meta?: string; active?: boolean; onClick?: () => void };
 
 type ExamShellProps = {
-  breadcrumb: { href: string; label: string }[];
   title: string;
   planLabel?: string;
   headerPills?: Pill[]; // e.g., Autosave: On, Focus Guard: Active, Remaining: 56:12
@@ -30,7 +29,6 @@ const toneClass = (tone?: Pill['tone']) =>
     : 'bg-accent/10 text-accent ring-1 ring-accent/20';
 
 export default function ExamShell({
-  breadcrumb,
   title,
   planLabel,
   headerPills = [],
@@ -52,17 +50,6 @@ export default function ExamShell({
               <Image src="/logo-mark.png" alt="Gramor X" width={24} height={24} className="rounded" />
               <span className="sr-only">Dashboard</span>
             </Link>
-
-            <nav className="flex items-center gap-2 text-muted-foreground">
-              {breadcrumb.map((b, i) => (
-                <React.Fragment key={b.href}>
-                  <Link href={b.href} className="hover:text-foreground">
-                    {b.label}
-                  </Link>
-                  {i < breadcrumb.length - 1 && <span>›</span>}
-                </React.Fragment>
-              ))}
-            </nav>
 
             <div className="ml-auto flex items-center gap-2">
               {planLabel && <Badge tone="purple">{planLabel}</Badge>}

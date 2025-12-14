@@ -35,8 +35,8 @@ import ResourcesLayout from '@/components/layouts/ResourcesLayout';
 import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
 import SupportLayout from '@/components/layouts/SupportLayout';
 
-// ⭐ NEW — Breadcrumb Bar V2
-import { BreadcrumbBar } from '@/components/navigation/BreadcrumbBar';
+// Enterprise-grade auto breadcrumbs
+import { EnterpriseBreadcrumbs } from '@/components/navigation/EnterpriseBreadcrumbs';
 
 
 // -----------------------
@@ -352,8 +352,7 @@ export function AppLayoutManager({
         <Layout>
           <ImpersonationBanner />
 
-          {/* ⭐ Breadcrumb Bar V2 — inserted globally under header chrome */}
-          {showBreadcrumbs && <BreadcrumbBar />}
+          {showBreadcrumbs && <EnterpriseBreadcrumbs />}
 
           {content}
         </Layout>

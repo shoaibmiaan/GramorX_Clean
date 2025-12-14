@@ -5,7 +5,6 @@ import clsx from 'clsx';
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
 import { Alert } from '@/components/design-system/Alert';
-import { ExamBreadcrumbs } from '@/components/exam/ExamBreadcrumbs';
 import TextareaAutosize from '@/components/design-system/TextareaAutosize';
 import { useExamTimer } from '@/lib/hooks/useExamTimer';
 
@@ -160,14 +159,6 @@ export const WritingExamShell: React.FC<Props> = ({
                 {testTitle}
               </p>
             </div>
-            <ExamBreadcrumbs
-              className="mt-1"
-              items={[
-                { label: 'Full Mock Tests', href: '/mock' },
-                { label: 'Writing', href: '/mock/writing' },
-                { label: testTitle, active: true },
-              ]}
-            />
           </div>
 
           <div className="flex flex-col items-end gap-1">

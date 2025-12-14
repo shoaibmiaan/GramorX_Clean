@@ -1,7 +1,7 @@
 // components/layout/GlobalPageLayout.tsx
 import * as React from "react";
-import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { Container } from "@/components/design-system/Container";
+import { EnterpriseBreadcrumbs } from "@/components/navigation/EnterpriseBreadcrumbs";
 
 type Props = {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ export const GlobalPageLayout: React.FC<Props> = ({
     <div className="w-full">
       {showBreadcrumbs && (
         <Container className="py-4">
-          <Breadcrumbs />
+          <EnterpriseBreadcrumbs className="bg-transparent px-0" />
         </Container>
       )}
 
