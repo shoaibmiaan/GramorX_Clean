@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { GetServerSideProps } from 'next'
 import { Button } from '@/components/design-system/Button'
 import { Input } from '@/components/design-system/Input'
+import { Breadcrumb } from '@/components/navigation/Breadcrumb'
 import { supabaseServer } from '@/lib/supabaseServer'
 
 export type StudioDetailProps = {
@@ -67,6 +68,14 @@ export default function StudioDetailPage({ ok, error, item }: StudioDetailProps)
       <main className="min-h-screen bg-background">
         <section className="mx-auto max-w-5xl px-4 py-6">
           <div className="rounded-2xl border border-lightBorder bg-card p-6">
+            <Breadcrumb
+              className="mb-4"
+              items={[
+                { label: 'Content', href: '/content' },
+                { label: 'Studio', href: '/content/studio' },
+                { label: item.title || 'Edit item' },
+              ]}
+            />
             <header className="flex items-center justify-between">
               <h1 className="text-h2 md:text-h1">Edit Content</h1>
               <div className="flex gap-2">

@@ -8,6 +8,7 @@ import type { GetServerSideProps } from 'next'
 import { Button } from '@/components/design-system/Button'
 import { Input } from '@/components/design-system/Input'
 import { Skeleton } from '@/components/design-system/Skeleton'
+import { Breadcrumb } from '@/components/navigation/Breadcrumb'
 import { supabaseServer } from '@/lib/supabaseServer'
 
 // ---------- Types ----------
@@ -71,6 +72,14 @@ export default function OrgStudentsPage({ ok, error, org }: StudentsPageProps){
       <Head><title>{org.name} · Students</title></Head>
       <main className="min-h-screen bg-background">
         <section className="mx-auto max-w-7xl px-4 py-6">
+          <Breadcrumb
+            className="mb-4"
+            items={[
+              { label: 'Institutions', href: '/institutions' },
+              { label: org.name, href: `/institutions/${org.id}` },
+              { label: 'Students' },
+            ]}
+          />
           <div className="flex items-center justify-between">
             <h1 className="font-slab text-h2 md:text-h1">Students</h1>
             <Link href={`/institutions/${org.id}`} className="inline-flex"><Button variant="outline" className="border-border">Back</Button></Link>
