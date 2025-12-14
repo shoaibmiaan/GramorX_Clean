@@ -364,22 +364,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
       <Component {...pageProps} key={router.asPath} />
     );
 
-  // ⭐ Decide when to show breadcrumb bar
-  const isReadingReview = isReadingReviewRoute(pathname);
-
-  const showBreadcrumbs =
-    !routeConfiguration.isAuthPage &&
-    !routeConfiguration.isProctoringRoute &&
-    !routeConfiguration.isPremiumRoute &&
-    // allow breadcrumbs on reading review, but keep off for other mock run/review
-    (!isMockTestsFlowRoute(pathname) || isReadingReview) &&
-    !isListeningMockRoute(pathname) &&
-    !isReadingExamRoute(pathname) &&
-    !pathname.includes('/run') &&
-    // allow /review only for reading review page
-    (!pathname.includes('/review') || isReadingReview) &&
-    !routeConfiguration.isNoChromeRoute;
-
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <HighContrastProvider>
@@ -409,8 +393,6 @@ function InnerApp({ Component, pageProps }: AppProps) {
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
-              // ⭐ SEND TO LAYOUT MANAGER
-              showBreadcrumbs={showBreadcrumbs}
             >
               {(router.pathname === '/pricing' ||
                 router.pathname === '/pricing/overview') && (

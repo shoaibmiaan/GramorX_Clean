@@ -35,9 +35,6 @@ import ResourcesLayout from '@/components/layouts/ResourcesLayout';
 import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
 import SupportLayout from '@/components/layouts/SupportLayout';
 
-// Enterprise-grade auto breadcrumbs
-import { EnterpriseBreadcrumbs } from '@/components/navigation/EnterpriseBreadcrumbs';
-
 
 // -----------------------
 // Error Boundary
@@ -93,9 +90,6 @@ type AppLayoutManagerProps = {
   role?: string | null;
   isTeacherApproved?: boolean | null;
   guardFallback: () => ReactNode;
-
-  // ⭐ NEW — passed from _app.tsx
-  showBreadcrumbs?: boolean;
 };
 
 
@@ -219,7 +213,6 @@ export function AppLayoutManager({
   role,
   isTeacherApproved,
   guardFallback,
-  showBreadcrumbs,
 }: AppLayoutManagerProps) {
 
   const router = useRouter();
@@ -351,9 +344,6 @@ export function AppLayoutManager({
       {shouldWrapInMainLayout ? (
         <Layout>
           <ImpersonationBanner />
-
-          {showBreadcrumbs && <EnterpriseBreadcrumbs />}
-
           {content}
         </Layout>
       ) : (
