@@ -11,7 +11,6 @@ import type { Database } from '@/lib/database.types';
 import { Container } from '@/components/design-system/Container';
 import { Button } from '@/components/design-system/Button';
 import { Icon } from '@/components/design-system/Icon';
-import { ExamBreadcrumbs } from '@/components/exam/ExamBreadcrumbs';
 import TextareaAutosize from '@/components/design-system/TextareaAutosize';
 
 // ------------------------------------------------------------------------------------
@@ -354,17 +353,6 @@ const WritingMockRunPage: NextPage<PageProps> = ({ test, tasks }) => {
         {/* TOP EXAM HEADER (IELTS CBT style) */}
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-6xl px-4 py-3">
-            {/* Breadcrumbs */}
-            <div className="mb-2">
-              <ExamBreadcrumbs
-                items={[
-                  { label: 'Full Mock Tests', href: '/mock' },
-                  { label: 'Writing', href: '/mock/writing' },
-                  { label: test.title, active: true },
-                ]}
-              />
-            </div>
-
             <div className="flex flex-wrap items-end justify-between gap-4">
               {/* Left: Test meta */}
               <div className="space-y-1">
