@@ -114,7 +114,7 @@ export const ReadingPassagePane: React.FC<Props> = ({
       {/* Main text area */}
       <div
         className={cn(
-          'flex-1 overflow-y-auto px-5 py-5 leading-7',
+          'flex-1 overflow-y-auto overscroll-contain px-5 py-5 leading-7',
           'scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent',
           zoom === 'sm' && 'text-xs',
           zoom === 'md' && 'text-sm',

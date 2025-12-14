@@ -7,19 +7,13 @@ import { cn } from '@/lib/utils';
 export type FilterStatus = 'all' | 'unanswered' | 'flagged';
 
 type QuestionNavProps = {
-  /** Total questions in this test (1..N) */
-  totalQuestions: number;
-  /** 0-based index of the current question */
-  currentIndex: number;
-  /** Jump to a different question (0-based) */
-  onChangeQuestion: (index: number) => void;
+  questions: { id: string }[];
+  activeQuestionId: string | null;
+  onJump: (id: string) => void;
 
-  /** Map: questionNumber (1..N) -> isAnswered */
-  answeredMap: Record<number, boolean>;
-  /** Map: questionNumber (1..N) -> isFlagged */
-  flaggedMap?: Record<number, boolean>;
+  answeredMap: Record<string, boolean>;
+  flaggedMap?: Record<string, boolean>;
 
-  /** Current filter mode for the nav (All / Unanswered / Flagged) */
   filterStatus: FilterStatus;
   onFilterStatusChange: (status: FilterStatus) => void;
 };
@@ -31,42 +25,45 @@ const FILTERS: { id: FilterStatus; label: string }[] = [
 ];
 
 export const QuestionNav: React.FC<QuestionNavProps> = ({
-  totalQuestions,
-  currentIndex,
-  onChangeQuestion,
+  questions,
+  activeQuestionId,
+  onJump,
   answeredMap,
   flaggedMap = {},
   filterStatus,
   onFilterStatusChange,
 }) => {
-  // Guard: clamp index into range and avoid NaN / negative
-  const safeTotal = Math.max(0, totalQuestions);
-  const clampedIndex =
-    safeTotal > 0 ? Math.min(Math.max(0, currentIndex), safeTotal - 1) : 0;
-  const currentQuestionNumber = safeTotal > 0 ? clampedIndex + 1 : 0;
+  const totalQuestions = Math.max(0, questions.length);
+  const activeIndex = Math.max(
+    0,
+    questions.findIndex((q) => q.id === activeQuestionId),
+  );
+  const currentQuestionNumber = totalQuestions > 0 ? activeIndex + 1 : 0;
 
   const answeredCount = React.useMemo(
     () =>
-      Array.from({ length: safeTotal }).reduce((acc, _, i) => {
-        const qNum = i + 1;
-        return answeredMap[qNum] ? acc + 1 : acc;
+      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+        const q = questions[i];
+        if (!q) return acc;
+        return answeredMap[q.id] ? acc + 1 : acc;
       }, 0),
-    [answeredMap, safeTotal],
+    [answeredMap, questions, totalQuestions],
   );
 
   const flaggedCount = React.useMemo(
     () =>
-      Array.from({ length: safeTotal }).reduce((acc, _, i) => {
-        const qNum = i + 1;
-        return flaggedMap[qNum] ? acc + 1 : acc;
+      Array.from({ length: totalQuestions }).reduce((acc, _, i) => {
+        const q = questions[i];
+        if (!q) return acc;
+        return flaggedMap[q.id] ? acc + 1 : acc;
       }, 0),
-    [flaggedMap, safeTotal],
+    [flaggedMap, questions, totalQuestions],
   );
 
-  const isVisibleUnderFilter = (qNum: number): boolean => {
+  const isVisibleUnderFilter = (qId: string): boolean => {
     if (filterStatus === 'all') return true;
-    const isAnswered = !!answeredMap[qNum];
-    const isFlagged = !!flaggedMap[qNum];
+    const isAnswered = !!answeredMap[qId];
+    const isFlagged = !!flaggedMap[qId];
 
     if (filterStatus === 'unanswered') return !isAnswered;
     if (filterStatus === 'flagged') return isFlagged;
@@ -75,8 +72,10 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
   };
 
   const handleClickQuestion = (idx: number) => {
-    if (idx < 0 || idx >= safeTotal) return;
-    onChangeQuestion(idx);
+    if (idx < 0 || idx >= totalQuestions) return;
+    const q = questions[idx];
+    if (!q) return;
+    onJump(q.id);
   };
 
   return (
@@ -89,15 +88,15 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
       {/* Top row: Question X of Y + filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-[12px] text-muted-foreground">
-          {safeTotal > 0 ? (
+          {totalQuestions > 0 ? (
             <>
               Question{' '}
               <span className="font-semibold text-foreground">
                 {currentQuestionNumber}
               </span>{' '}
-              of {safeTotal}
+              of {totalQuestions}
               <span className="ml-2 text-[11px]">
-                • Answered {answeredCount}/{safeTotal}
+                • Answered {answeredCount}/{totalQuestions}
               </span>
               {flaggedCount > 0 ? (
                 <span className="ml-2 text-[11px] text-amber-600 dark:text-amber-400">
@@ -133,13 +132,15 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
       {/* Bottom row: IELTS-style dots */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-1 flex-wrap gap-1.5">
-          {Array.from({ length: safeTotal }).map((_, idx) => {
-            const qNum = idx + 1;
-            if (!isVisibleUnderFilter(qNum)) return null;
+          {Array.from({ length: totalQuestions }).map((_, idx) => {
+            const q = questions[idx];
+            if (!q) return null;
+            if (!isVisibleUnderFilter(q.id)) return null;
 
-            const isCurrent = qNum === currentQuestionNumber;
-            const isAnswered = !!answeredMap[qNum];
-            const isFlagged = !!flaggedMap[qNum];
+            const qNum = idx + 1;
+            const isCurrent = q.id === activeQuestionId;
+            const isAnswered = !!answeredMap[q.id];
+            const isFlagged = !!flaggedMap[q.id];
 
             return (
               <button
