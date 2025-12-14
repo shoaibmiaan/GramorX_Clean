@@ -6,6 +6,7 @@ import TimerProgress from '@/components/reading/TimerProgress';
 import { ReadingPassagePane } from './ReadingPassagePane';
 import { ReadingQuestionItem } from './ReadingQuestionItem';
 import { QuestionNav } from './QuestionNav';
+import { useReadingExamController } from './exam/useReadingExamController';
 
 import type { ReadingTest, ReadingPassage, ReadingQuestion } from '@/lib/reading/types';
 
@@ -51,6 +52,8 @@ type Theme = 'light' | 'dark' | 'system';
 const THEME_KEY = 'rx-reading-theme';
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
+
+const HEADER_HEIGHT_PX = 64;
 
 // Split layout support (draggable)
 const SPLIT_KEY = 'rx-reading-split-step';
@@ -155,14 +158,20 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const isDark = theme === 'dark' || (theme === 'system' && systemPrefersDark);
 
   // ===== CORE STATE (MUST BE BEFORE ANY CONDITIONAL UI) =====
-  const [answers, setAnswers] = React.useState<Record<string, AnswerValue>>({});
-  const [flags, setFlags] = React.useState<Record<string, boolean>>({});
+  const {
+    activeQuestionId,
+    setActiveQuestionId,
+    answers,
+    setAnswer,
+    flags,
+    toggleFlag: toggleFlagState,
+    flushAutosave,
+  } = useReadingExamController({ questions, testId: t.id ?? null, attemptId: t.id ?? null, readOnly });
 
   const [statusFilter, setStatusFilter] = React.useState<FilterStatus>('all');
-  const [typeFilter, setTypeFilter] = React.useState<FilterType>('all');
+  const [typeFilter] = React.useState<FilterType>('all');
 
   const [currentPassageIdx, setCurrentPassageIdx] = React.useState(0);
-  const [currentQuestionId, setCurrentQuestionId] = React.useState<string | null>(null);
 
   const [focusMode, setFocusMode] = React.useState(false);
   const [zoom, setZoom] = React.useState<ZoomLevel>('md');
@@ -174,12 +183,14 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const startTimeRef = React.useRef<number | null>(null);
   const submitting = React.useRef(false);
+  const timeUpHandledRef = React.useRef(false);
 
   // strict CBE modals
   const [showSubmitConfirm, setShowSubmitConfirm] = React.useState(false);
   const [showExitPopup, setShowExitPopup] = React.useState(false);
   const [showTimeWarning, setShowTimeWarning] = React.useState(false);
-  const [timeWarningShown, setTimeWarningShown] = React.useState(false);
+  const shownTimeWarnings = React.useRef<Set<number>>(new Set());
+  const [strictWarningOpen, setStrictWarningOpen] = React.useState(false);
 
   // ✅ FIX: never read from test directly; use normalized
   const durationSeconds = t.durationSeconds;
@@ -188,13 +199,6 @@ const ReadingExamShellInner: React.FC<Props> = ({
   React.useEffect(() => {
     setRemainingSeconds(durationSeconds);
   }, [durationSeconds]);
-
-  // ✅ set initial currentQuestionId when questions arrive
-  React.useEffect(() => {
-    if (!currentQuestionId && questions.length > 0) {
-      setCurrentQuestionId(questions[0].id);
-    }
-  }, [currentQuestionId, questions]);
 
   // ✅ content guard (NO early return; we render fallback UI later)
   const hasContent = questions.length > 0 && passages.length > 0;
@@ -303,13 +307,40 @@ const ReadingExamShellInner: React.FC<Props> = ({
   }, [started, readOnly]);
 
   React.useEffect(() => {
-    if (readOnly || !started || timeWarningShown) return;
+    if (readOnly || !started) return;
     const minutesLeft = Math.floor(remainingSeconds / 60);
-    if (minutesLeft <= 5) {
-      setShowTimeWarning(true);
-      setTimeWarningShown(true);
+    [10, 5, 1].forEach((threshold) => {
+      if (minutesLeft <= threshold && !shownTimeWarnings.current.has(threshold)) {
+        shownTimeWarnings.current.add(threshold);
+        setShowTimeWarning(true);
+      }
+    });
+  }, [remainingSeconds, readOnly, started]);
+
+  React.useEffect(() => {
+    if (readOnly) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') setStrictWarningOpen(true);
+    };
+    const handleWindowBlur = () => setStrictWarningOpen(true);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [readOnly]);
+
+  React.useEffect(() => {
+    if (readOnly || timeUpHandledRef.current) return;
+    if (remainingSeconds <= 0 && started) {
+      timeUpHandledRef.current = true;
+      flushAutosave();
+      void submitToServer();
     }
-  }, [remainingSeconds, readOnly, started, timeWarningShown]);
+  }, [flushAutosave, readOnly, remainingSeconds, started, submitToServer]);
 
   // ===== PASSAGE / QUESTION MAPS =====
   const passageIndexById = React.useMemo(() => {
@@ -343,6 +374,22 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
   const flaggedCount = React.useMemo(() => Object.values(flags).filter(Boolean).length, [flags]);
 
+  const answeredMapById = React.useMemo(() => {
+    const map: Record<string, boolean> = {};
+    questions.forEach((q) => {
+      map[q.id] = isAnswered(answers[q.id]);
+    });
+    return map;
+  }, [answers, questions]);
+
+  const flaggedMapById = React.useMemo(() => {
+    const map: Record<string, boolean> = {};
+    Object.entries(flags).forEach(([id, value]) => {
+      map[id] = !!value;
+    });
+    return map;
+  }, [flags]);
+
   // ===== FILTERED QUESTIONS =====
   const visibleQuestions = React.useMemo(() => {
     // If we have no current passage, show nothing (safe)
@@ -369,16 +416,14 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
   // ===== JUMP / NAV =====
   const handleJump = (id: string) => {
-    setCurrentQuestionId(id);
+    flushAutosave();
+    setActiveQuestionId(id);
     const q = questionsById[id];
 
     if (q && (q as any).passageId) {
       const idx = passageIndexById[(q as any).passageId as string];
       if (typeof idx === 'number') setCurrentPassageIdx(idx);
     }
-
-    const el = questionRefs.current[id];
-    if (el && typeof window !== 'undefined') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const goNextPassage = () =>
@@ -386,12 +431,27 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const goPrevPassage = () => setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
 
   const handleAnswerChange = (questionId: string, value: AnswerValue) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setAnswer(questionId, value);
   };
 
   const toggleFlag = (questionId: string) => {
-    setFlags((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
+    toggleFlagState(questionId);
   };
+
+  React.useEffect(() => {
+    if (!currentQuestionId) return;
+    if (typeof document === 'undefined') return;
+    const anchor = document.getElementById(`q-${currentQuestionId}`);
+    if (anchor) {
+      anchor.scrollIntoView({ block: 'nearest' });
+      const focusable = anchor.querySelector(
+        'input, textarea, [contenteditable="true"], button, select',
+      ) as HTMLElement | null;
+      if (focusable) {
+        focusable.focus({ preventScroll: true } as any);
+      }
+    }
+  }, [currentQuestionId]);
 
   // ===== HIGHLIGHTS =====
   const currentHighlights = currentPassageId ? highlightsByPassage[currentPassageId] ?? [] : [];
@@ -606,6 +666,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   };
 
   // ===== NAV helpers =====
+  const currentQuestionId = activeQuestionId;
   const currentIndex = Math.max(0, questions.findIndex((q) => q.id === currentQuestionId));
 
   const goPrevQuestion = () => {
@@ -621,6 +682,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const handleStartTest = () => {
     startTimeRef.current = Date.now();
     setStarted(true);
+    setStrictWarningOpen(false);
   };
 
   const handleExit = () => {
@@ -637,7 +699,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   // ✅ When no content, render a safe “empty state” inside the shell
   if (!hasContent) {
     return (
-      <div className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex items-center justify-center p-4">
+      <div className="h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] w-full bg-background text-foreground flex items-center justify-center p-4">
         <Card className="p-6 text-sm text-muted-foreground max-w-xl w-full">
           This Reading test does not have passages or questions configured yet.
         </Card>
@@ -648,7 +710,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   return (
     <div
       className={cn(
-        'h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col overflow-hidden',
+        'h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] w-full bg-background text-foreground flex flex-col overflow-hidden',
         focusMode && 'ring-2 ring-primary/40',
       )}
     >
@@ -774,11 +836,11 @@ const ReadingExamShellInner: React.FC<Props> = ({
       </div>
 
       {/* BODY AREA */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <div
           ref={layoutContainerRef}
           className={cn(
-            'hidden lg:grid flex-1 gap-4 px-4 py-3 overflow-hidden',
+            'hidden lg:grid flex-1 min-h-0 gap-4 px-4 py-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)] lg:[&>*]:min-w-0',
             SPLIT_LAYOUT_CLASSES[splitStep],
           )}
         >
@@ -806,24 +868,22 @@ const ReadingExamShellInner: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60">
+          <div className="bg-card/95 shadow-sm rounded-lg flex flex-col overflow-hidden border border-border/60 min-w-0">
             <div id="reading-question-nav">
               <QuestionNav
                 questions={questions}
-                answers={answers}
-                flags={flags}
-                currentQuestionId={currentQuestionId}
+                activeQuestionId={currentQuestionId}
                 onJump={handleJump}
-                statusFilter={statusFilter}
-                typeFilter={typeFilter}
-                setStatusFilter={setStatusFilter}
-                setTypeFilter={setTypeFilter}
+                answeredMap={answeredMapById}
+                flaggedMap={flaggedMapById}
+                filterStatus={statusFilter}
+                onFilterStatusChange={setStatusFilter}
               />
             </div>
 
             <div
               className={cn(
-                'flex-1 overflow-y-auto px-4 py-4 space-y-4',
+                'flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 min-h-0',
                 isDark ? 'bg-background/80' : 'bg-white',
                 zoom === 'sm' && 'text-xs',
                 zoom === 'md' && 'text-sm',
@@ -843,6 +903,8 @@ const ReadingExamShellInner: React.FC<Props> = ({
                   return (
                     <div
                       key={q.id}
+                      id={`q-${q.id}`}
+                      tabIndex={-1}
                       ref={(el) => {
                         questionRefs.current[q.id] = el;
                       }}
@@ -872,7 +934,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
         </div>
 
         {/* MOBILE / TABLET STACKED */}
-        <div className="flex flex-col gap-4 px-4 py-3 lg:hidden overflow-y-auto">
+        <div className="flex flex-col gap-4 px-4 py-3 lg:hidden overflow-y-auto overscroll-contain min-h-0">
           <ReadingPassagePane
             passage={currentPassage as any}
             totalPassages={passages.length}
@@ -888,14 +950,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
           <Card className="p-3 border-border/70 bg-card/95 shadow-sm" id="reading-question-nav">
             <QuestionNav
               questions={questions}
-              answers={answers}
-              flags={flags}
-              currentQuestionId={currentQuestionId}
+              activeQuestionId={currentQuestionId}
               onJump={handleJump}
-              statusFilter={statusFilter}
-              typeFilter={typeFilter}
-              setStatusFilter={setStatusFilter}
-              setTypeFilter={setTypeFilter}
+              answeredMap={answeredMapById}
+              flaggedMap={flaggedMapById}
+              filterStatus={statusFilter}
+              onFilterStatusChange={setStatusFilter}
             />
           </Card>
 
@@ -920,6 +980,8 @@ const ReadingExamShellInner: React.FC<Props> = ({
                 return (
                   <div
                     key={q.id}
+                    id={`q-${q.id}`}
+                    tabIndex={-1}
                     ref={(el) => {
                       questionRefs.current[q.id] = el;
                     }}
@@ -985,7 +1047,9 @@ const ReadingExamShellInner: React.FC<Props> = ({
       </div>
 
       {/* STRICT MODE POPUP */}
-      {!readOnly && <ExamStrictModePopup open={!started} onAcknowledge={handleStartTest} />}
+      {!readOnly && (
+        <ExamStrictModePopup open={!started || strictWarningOpen} onAcknowledge={handleStartTest} />
+      )}
 
       {/* SUBMIT CONFIRM POPUP (mock only) */}
       {!isDrill && (
