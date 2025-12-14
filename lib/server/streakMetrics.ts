@@ -145,8 +145,9 @@ export async function getServerStreakPayload(
   req: Parameters<typeof getServerClient>[0],
   res: Parameters<typeof getServerClient>[1],
   userId?: string,
+  supabaseOverride?: SupabaseClient<Database>,
 ) {
-  const supabase = getServerClient(req as any, res as any);
+  const supabase = supabaseOverride ?? getServerClient(req as any, res as any);
   const today = new Date();
   const todayKey = toDateKey(today);
   const last90Keys = rangeKeys(90, today);

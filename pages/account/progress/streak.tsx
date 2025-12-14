@@ -8,7 +8,7 @@ import { Container } from '@/components/design-system/Container';
 import { StreakProvider } from '@/components/progress/StreakProvider';
 import { StreakChip } from '@/components/user/StreakChip';
 import { getServerStreakPayload, type StreakResponse } from '@/lib/server/streakMetrics';
-import { getServerClient } from '@/lib/supabaseServer';
+import { getServerClient, getServerUser } from '@/lib/supabaseServer';
 
 const Heatmap = dynamic(
   () => import('@/components/user/StreakHeatmap').then((mod) => mod.StreakHeatmap),
@@ -135,20 +135,19 @@ const StreakPage: NextPage<Props> = ({ streak }) => {
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const supabase = getServerClient(ctx.req, ctx.res);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getServerUser(ctx.req, ctx.res);
 
   if (!user?.id) {
+    const next = encodeURIComponent(ctx.resolvedUrl ?? '/account/progress/streak');
     return {
       redirect: {
-        destination: '/login',
+        destination: `/auth/login?next=${next}`,
         permanent: false,
       },
     };
   }
 
-  const streak = await getServerStreakPayload(ctx.req, ctx.res, user.id);
+  const streak = await getServerStreakPayload(ctx.req, ctx.res, user.id, supabase);
 
   return {
     props: {

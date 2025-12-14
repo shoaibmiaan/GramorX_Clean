@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { getServerClient } from '@/lib/supabaseServer';
+import { getServerClient, getServerUser } from '@/lib/supabaseServer';
 import { getServerStreakPayload } from '@/lib/server/streakMetrics';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -10,17 +10,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const supabase = getServerClient(req, res);
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getServerUser(req, res);
 
-  if (error || !user) {
+  if (!user) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
   try {
-    const payload = await getServerStreakPayload(req, res, user.id);
+    const payload = await getServerStreakPayload(req, res, user.id, supabase);
     return res.status(200).json(payload);
   } catch (err) {
     console.error('[api/account/streak] failed', err);
