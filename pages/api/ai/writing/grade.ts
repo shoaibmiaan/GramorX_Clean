@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 const BodySchema = z.object({
   task1: z.string().min(1, 'task1 required'),
   task2: z.string().min(1, 'task2 required'),
-  attemptId: z.string().optional(), // if provided, we'll persist AI feedback to attempts_writing.ai_feedback
+  attemptId: z.string().optional(), // if provided, we'll persist AI feedback to writing_attempts.ai_feedback
 });
 
 type AIFeedback = {
@@ -48,14 +48,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     feedback = heuristic(task1, task2);
   }
 
-  // Optional: persist to attempts_writing.ai_feedback if attemptId provided
+  // Optional: persist to writing_attempts.ai_feedback if attemptId provided
   if (attemptId && process.env.NEXT_PUBLIC_SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
       );
-      await supabase.from('attempts_writing').update({ ai_feedback: feedback }).eq('id', attemptId);
+      await supabase.from('writing_attempts').update({ ai_feedback: feedback }).eq('id', attemptId);
     } catch {
       // ignore persistence errors
     }

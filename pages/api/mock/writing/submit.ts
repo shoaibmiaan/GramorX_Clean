@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getServerClient } from '@/lib/supabaseServer';
 
 const Body = z.object({
-  testSlug: z.string().min(1), // we'll save this into attempts_writing.prompt_id
+  testSlug: z.string().min(1), // we'll save this into writing_attempts.prompt_id
   durationSeconds: z.number().int().nonnegative(),
   task1: z.object({
     text: z.string().min(1),
@@ -71,10 +71,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Writing test not found' });
   }
 
-  // 1) Create attempt in attempts_writing
+  // 1) Create attempt in writing_attempts
   // prompt_id is TEXT in your schema, we store the test slug there.
   const { data: attemptInsert, error: attemptError } = await supabase
-    .from('attempts_writing')
+    .from('writing_attempts')
     .insert({
       user_id: user.id,
       prompt_id: body.testSlug,
@@ -106,9 +106,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const attemptId = attemptInsert.id;
 
-  // 2) Insert per-task answers into attempts_writing_answers
+  // 2) Insert per-task answers into writing_attempts_answers
   const { error: answersError } = await supabase
-    .from('attempts_writing_answers')
+    .from('writing_attempts_answers')
     .insert([
       {
         attempt_id: attemptId,

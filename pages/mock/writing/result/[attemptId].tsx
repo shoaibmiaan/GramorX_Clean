@@ -1,289 +1,495 @@
 // pages/mock/writing/result/[attemptId].tsx
 import * as React from 'react';
 import Head from 'next/head';
-import type { GetServerSideProps, NextPage } from 'next';
 import Link from 'next/link';
+import type { GetServerSideProps, NextPage } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
-import type { Database } from '@/lib/database.types';
 
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
-import { Badge } from '@/components/design-system/Badge';
 import { Button } from '@/components/design-system/Button';
+import { Badge } from '@/components/design-system/Badge';
 import { Icon } from '@/components/design-system/Icon';
-import { Alert } from '@/components/design-system/Alert';
 
-type PageProps = {
-  ok: boolean;
-  error?: string;
-  attempt?: {
-    id: string;
-    createdAt: string;
-    testId: string;
-    overallBand: number | null;
-    task1Band: number | null;
-    task2Band: number | null;
-    totalWords: number | null;
-  };
-  test?: {
-    id: string;
-    slug: string;
-    title: string;
-    taskType: string | null;
-    durationMinutes: number | null;
-  };
+import { WritingResultSummary } from '@/components/writing/result/WritingResultSummary';
+import { WritingTaskBreakdown } from '@/components/writing/result/WritingTaskBreakdown';
+import { WritingCriteriaGrid } from '@/components/writing/result/WritingCriteriaGrid';
+import { WritingWarnings } from '@/components/writing/result/WritingWarnings';
+import { WritingNextSteps } from '@/components/writing/result/WritingNextSteps';
+
+type TaskLabel = 'Task 1' | 'Task 2';
+
+type WritingAnswer = {
+  taskNumber: 1 | 2;
+  label: TaskLabel;
+  text: string;
+  wordCount: number;
 };
 
-const WritingResultPage: NextPage<PageProps> = ({ ok, error, attempt, test }) => {
-  if (!ok || !attempt || !test) {
-    return (
-      <Container className="py-10">
-        <Alert tone="danger" title="Result not available">
-          {error ?? 'We could not find this Writing attempt or you do not have access.'}
-        </Alert>
-        <div className="mt-4">
-          <Button as={Link} href="/mock/writing" size="sm">
-            <Icon name="ArrowLeft" className="mr-1.5 h-4 w-4" />
-            Back to Writing mocks
-          </Button>
-        </div>
-      </Container>
-    );
+type WritingCriteriaKey = 'TR' | 'CC' | 'LR' | 'GRA';
+
+type WritingEvaluation = {
+  overallBand: number;
+  task1Band: number;
+  task2Band: number;
+  criteria: Record<WritingCriteriaKey, number>;
+  criteriaNotes: Partial<Record<WritingCriteriaKey, string[]>>;
+  shortVerdictTask1?: string;
+  shortVerdictTask2?: string;
+  warnings?: string[];
+  nextSteps?: string[];
+};
+
+type AttemptMeta = {
+  attemptId: string;
+  testTitle: string;
+  testSlug: string;
+  submittedAt: string | null;
+  autoSubmitted: boolean;
+  status: string;
+};
+
+type PageProps = {
+  attemptId: string;
+  attempt: AttemptMeta | null;
+  answers: WritingAnswer[];
+  evaluation: WritingEvaluation | null;
+  viewerHasAccess: boolean;
+  pending: boolean;
+  debug?: { attemptTableTried: string[]; rawAttemptKeys?: string[] };
+};
+
+const bandFmt = (n: number | null | undefined) => {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
+  const fixed = Math.round(n * 2) / 2;
+  return fixed % 1 === 0 ? `${fixed.toFixed(0)}.0` : `${fixed.toFixed(1)}`;
+};
+
+const safeNum = (v: unknown, fallback = 0) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const pickFirstKey = (obj: any, keys: string[]) => {
+  for (const k of keys) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, k)) return k;
   }
+  return null;
+};
 
-  const formattedDate = new Date(attempt.createdAt).toLocaleString();
+const getStr = (obj: any, key: string | null, fallback = '') => {
+  if (!key) return fallback;
+  const v = obj?.[key];
+  return v == null ? fallback : String(v);
+};
 
-  return (
-    <>
-      <Head>
-        <title>
-          Writing result · {test.title} | GramorX
-        </title>
-      </Head>
+const getBool = (obj: any, key: string | null, fallback = false) => {
+  if (!key) return fallback;
+  const v = obj?.[key];
+  return Boolean(v);
+};
 
-      <Container className="py-8 lg:py-10 space-y-6">
-        {/* Top header */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
-              <Icon name="CheckCircle2" className="h-3.5 w-3.5" />
-              <span>Writing mock completed</span>
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight lg:text-2xl">
-              Result – {test.title}
-            </h1>
-            <p className="text-xs text-muted-foreground lg:text-sm">
-              Attempt ID {attempt.id.slice(0, 8)} · {formattedDate}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button as={Link} href="/mock/writing/review" size="sm" tone="neutral" variant="outline">
-              <Icon name="Eye" className="mr-1.5 h-4 w-4" />
-              Review this attempt
-            </Button>
-            <Button as={Link} href="/mock/writing" size="sm">
-              <Icon name="RefreshCw" className="mr-1.5 h-4 w-4" />
-              Try another mock
-            </Button>
-          </div>
-        </div>
-
-        {/* Score cards */}
-        <div className="grid gap-3 md:grid-cols-3">
-          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Overall band
-            </div>
-            <div className="text-3xl font-semibold">
-              {attempt.overallBand ?? '—'}
-            </div>
-            <div className="text-xs text-muted-foreground">Estimated Writing band</div>
-          </Card>
-
-          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Task 1 band
-            </div>
-            <div className="text-2xl font-semibold">
-              {attempt.task1Band ?? '—'}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Based on your Task 1 response
-            </div>
-          </Card>
-
-          <Card className="flex flex-col items-center justify-center gap-1 py-5 text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Task 2 band
-            </div>
-            <div className="text-2xl font-semibold">
-              {attempt.task2Band ?? '—'}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Based on your Task 2 response
-            </div>
-          </Card>
-        </div>
-
-        {/* Meta + AI coach hook */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="md:col-span-2 space-y-2 p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Icon name="FileText" className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">Mock details</h2>
-              </div>
-              <Badge size="xs" tone="info">
-                {test.taskType ?? 'writing'}
-              </Badge>
-            </div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
-              <div>
-                <dt className="font-medium">Test title</dt>
-                <dd className="truncate">{test.title}</dd>
-              </div>
-              <div>
-                <dt className="font-medium">Duration</dt>
-                <dd>{test.durationMinutes ?? 60} minutes</dd>
-              </div>
-              <div>
-                <dt className="font-medium">Attempted on</dt>
-                <dd>{formattedDate}</dd>
-              </div>
-              <div>
-                <dt className="font-medium">Total words (approx.)</dt>
-                <dd>{attempt.totalWords ?? '—'}</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card className="space-y-3 p-4">
-            <div className="flex items-center gap-2">
-              <Icon name="Brain" className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">AI Coach summary</h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              This card is ready for your AI evaluation output. Once your scoring
-              pipeline is wired, show key strengths, weaknesses, and next steps
-              for the candidate here.
-            </p>
-            <Button
-              as={Link}
-              href={`/mock/writing/review/${attempt.id}`}
-              size="sm"
-              tone="primary"
-              variant="outline"
-            >
-              <Icon name="Sparkles" className="mr-1.5 h-4 w-4" />
-              Open detailed feedback
-            </Button>
-          </Card>
-        </div>
-      </Container>
-    </>
-  );
+const getNullableIso = (obj: any, key: string | null) => {
+  if (!key) return null;
+  const v = obj?.[key];
+  return v ? String(v) : null;
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx);
-  const attemptId = ctx.params?.attemptId as string | undefined;
+  const attemptId = typeof ctx.params?.attemptId === 'string' ? ctx.params.attemptId : null;
+  if (!attemptId) return { notFound: true };
 
-  if (!attemptId) {
-    return {
-      props: {
-        ok: false,
-        error: 'Missing attempt id in URL.',
-      },
-    };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = getServerClient(ctx.req, ctx.res);
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
 
   if (!user) {
     return {
       redirect: {
-        destination: `/login?next=/mock/writing/result/${encodeURIComponent(
-          attemptId
-        )}`,
+        destination: `/login?next=/mock/writing/result/${encodeURIComponent(attemptId)}`,
         permanent: false,
       },
     };
   }
 
-  type AttemptsWritingRow =
-    Database['public']['Tables']['attempts_writing']['Row'];
-  type WritingTestsRow =
-    Database['public']['Tables']['writing_tests']['Row'];
+  // ----------------------------
+  // Attempt lookup (flex schema)
+  // ----------------------------
+  const attemptTablesToTry = ['writing_attempts', 'attempts_writing'];
+  let attemptRow: any | null = null;
+  let attemptTableFound: string | null = null;
 
-  const { data: attemptRow, error: attemptError } = await supabase
-    .from('attempts_writing')
-    .select(
-      'id, user_id, test_id, created_at, overall_band, task1_band, task2_band, total_words'
-    )
-    .eq('id', attemptId)
-    .maybeSingle();
-
-  if (attemptError) {
-    console.error('[mock/writing/result/[attemptId]] attempt error', attemptError);
+  for (const table of attemptTablesToTry) {
+    const res = await supabase.from(table as any).select('*').eq('id', attemptId).maybeSingle();
+    if (res.data) {
+      attemptRow = res.data;
+      attemptTableFound = table;
+      break;
+    }
   }
 
-  if (!attemptRow || attemptRow.user_id !== user.id) {
+  if (!attemptRow || !attemptTableFound) {
     return {
       props: {
-        ok: false,
-        error: 'Attempt not found or you do not have access.',
+        attemptId,
+        attempt: null,
+        answers: [],
+        evaluation: null,
+        viewerHasAccess: false,
+        pending: false,
+        debug:
+          process.env.NODE_ENV !== 'production'
+            ? { attemptTableTried: attemptTablesToTry }
+            : undefined,
       },
     };
   }
 
-  const { data: testRow, error: testError } = await supabase
-    .from('writing_tests')
-    .select('id, slug, title, task_type, duration_minutes')
-    .eq('id', attemptRow.test_id)
-    .maybeSingle();
+  const ownerKey = pickFirstKey(attemptRow, ['user_id', 'uid', 'profile_id', 'owner_id']);
+  const testIdKey = pickFirstKey(attemptRow, ['test_id', 'writing_test_id', 'mock_test_id']);
+  const statusKey = pickFirstKey(attemptRow, ['status', 'attempt_status']);
+  const submittedAtKey = pickFirstKey(attemptRow, ['submitted_at', 'submittedAt', 'submitted_on']);
+  const autoSubmittedKey = pickFirstKey(attemptRow, ['auto_submitted', 'autoSubmitted', 'auto_submit']);
 
-  if (testError) {
-    console.error('[mock/writing/result/[attemptId]] test error', testError);
-  }
+  const ownerId = getStr(attemptRow, ownerKey, '');
+  const viewerHasAccess = ownerId && String(ownerId) === String(user.id);
 
-  if (!testRow) {
+  if (!viewerHasAccess) {
     return {
       props: {
-        ok: false,
-        error: 'Test for this attempt no longer exists.',
+        attemptId,
+        attempt: null,
+        answers: [],
+        evaluation: null,
+        viewerHasAccess: false,
+        pending: false,
+        debug:
+          process.env.NODE_ENV !== 'production'
+            ? {
+                attemptTableTried: attemptTablesToTry,
+                rawAttemptKeys: Object.keys(attemptRow ?? {}),
+              }
+            : undefined,
       },
     };
   }
 
-  const attempt: PageProps['attempt'] = {
-    id: attemptRow.id,
-    createdAt: attemptRow.created_at,
-    testId: attemptRow.test_id ?? '',
-    overallBand: (attemptRow as any).overall_band ?? null,
-    task1Band: (attemptRow as any).task1_band ?? null,
-    task2Band: (attemptRow as any).task2_band ?? null,
-    totalWords: (attemptRow as any).total_words ?? null,
+  // ----------------------------
+  // Test meta (flex schema)
+  // ----------------------------
+  let testTitle = 'Writing Mock';
+  let testSlug = 'writing-mock';
+
+  const testId = getStr(attemptRow, testIdKey, '');
+  if (testId) {
+    // try common tables
+    const testTables = ['writing_tests', 'writing_mock_tests'];
+    for (const t of testTables) {
+      const tr = await supabase.from(t as any).select('slug, title').eq('id', testId).maybeSingle();
+      if (tr.data) {
+        testTitle = String((tr.data as any).title ?? testTitle);
+        testSlug = String((tr.data as any).slug ?? testSlug);
+        break;
+      }
+    }
+  }
+
+  const attempt: AttemptMeta = {
+    attemptId,
+    testTitle,
+    testSlug,
+    submittedAt: getNullableIso(attemptRow, submittedAtKey),
+    autoSubmitted: getBool(attemptRow, autoSubmittedKey, false),
+    status: getStr(attemptRow, statusKey, ''),
   };
 
-  const test: PageProps['test'] = {
-    id: testRow.id,
-    slug: testRow.slug,
-    title: testRow.title,
-    taskType: (testRow as any).task_type ?? null,
-    durationMinutes: (testRow as any).duration_minutes ?? null,
-  };
+  // ----------------------------
+  // Answers (flex schema)
+  // ----------------------------
+  const answersTablesToTry = [
+    { table: 'writing_attempt_answers', map: { task: 'task_number', text: 'answer_text', wc: 'word_count' } },
+    { table: 'attempts_writing_answers', map: { task: 'task_number', text: 'answer_text', wc: 'word_count' } },
+    { table: 'writing_user_answers', map: { task: 'task_number', text: 'text', wc: 'word_count' } },
+    { table: 'attempts_writing_user_answers', map: { task: 'task_number', text: 'text', wc: 'word_count' } },
+  ];
+
+  let answers: WritingAnswer[] = [];
+
+  for (const a of answersTablesToTry) {
+    const res = await supabase
+      .from(a.table as any)
+      .select('*')
+      .eq('attempt_id', attemptId)
+      .order(a.map.task, { ascending: true });
+
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      answers = res.data.map((r: any) => {
+        const tn: 1 | 2 = r[a.map.task] === 2 ? 2 : 1;
+        return {
+          taskNumber: tn,
+          label: (tn === 2 ? 'Task 2' : 'Task 1') as TaskLabel,
+          text: String(r[a.map.text] ?? ''),
+          wordCount: safeNum(r[a.map.wc], 0),
+        };
+      });
+      break;
+    }
+  }
+
+  // ----------------------------
+  // Evaluation (stored)
+  // ----------------------------
+  let evaluation: WritingEvaluation | null = null;
+
+  const evalTablesToTry = ['writing_evaluations', 'writing_ai_evaluations'];
+  let evalRow: any | null = null;
+
+  for (const t of evalTablesToTry) {
+    const er = await supabase.from(t as any).select('*').eq('attempt_id', attemptId).maybeSingle();
+    if (er.data) {
+      evalRow = er.data;
+      break;
+    }
+  }
+
+  if (evalRow) {
+    const criteriaNotesRaw = evalRow.criteria_notes as unknown;
+    const safeNotes =
+      typeof criteriaNotesRaw === 'object' && criteriaNotesRaw !== null
+        ? (criteriaNotesRaw as WritingEvaluation['criteriaNotes'])
+        : {};
+
+    evaluation = {
+      overallBand: safeNum(evalRow.overall_band, 0),
+      task1Band: safeNum(evalRow.task1_band, 0),
+      task2Band: safeNum(evalRow.task2_band, 0),
+      criteria: {
+        TR: safeNum(evalRow.criteria_tr, 0),
+        CC: safeNum(evalRow.criteria_cc, 0),
+        LR: safeNum(evalRow.criteria_lr, 0),
+        GRA: safeNum(evalRow.criteria_gra, 0),
+      },
+      criteriaNotes: safeNotes,
+      shortVerdictTask1: evalRow.short_verdict_task1 ? String(evalRow.short_verdict_task1) : undefined,
+      shortVerdictTask2: evalRow.short_verdict_task2 ? String(evalRow.short_verdict_task2) : undefined,
+      warnings: Array.isArray(evalRow.warnings) ? (evalRow.warnings as string[]) : [],
+      nextSteps: Array.isArray(evalRow.next_steps) ? (evalRow.next_steps as string[]) : [],
+    };
+  }
+
+  const pending = attempt.status === 'submitted' && !evaluation;
 
   return {
     props: {
-      ok: true,
+      attemptId,
       attempt,
-      test,
+      answers,
+      evaluation,
+      viewerHasAccess: true,
+      pending,
+      debug:
+        process.env.NODE_ENV !== 'production'
+          ? {
+              attemptTableTried: attemptTablesToTry,
+              rawAttemptKeys: Object.keys(attemptRow ?? {}),
+            }
+          : undefined,
     },
   };
+};
+
+const WritingResultPage: NextPage<PageProps> = ({
+  attemptId,
+  attempt,
+  answers,
+  evaluation,
+  viewerHasAccess,
+  pending,
+  debug,
+}) => {
+  // Auto-refresh while pending (every 3s, max ~3 min)
+  React.useEffect(() => {
+    if (!pending) return;
+
+    let ticks = 0;
+    const id = window.setInterval(() => {
+      ticks += 1;
+      if (ticks > 60) {
+        window.clearInterval(id);
+        return;
+      }
+      window.location.reload();
+    }, 3000);
+
+    return () => window.clearInterval(id);
+  }, [pending]);
+
+  if (!viewerHasAccess || !attempt) {
+    return (
+      <>
+        <Head>
+          <title>Writing Result · Not available · GramorX</title>
+        </Head>
+
+        <main className="min-h-[100dvh] bg-background">
+          <Container className="max-w-3xl py-10">
+            <Card className="rounded-ds-2xl border border-border/60 bg-card p-6 text-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                <Icon name="AlertTriangle" size={18} />
+              </div>
+
+              <h1 className="mt-3 text-lg font-semibold">Result not available</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This attempt doesn’t exist, or you don’t have access.
+              </p>
+
+              {debug ? (
+                <div className="mt-4 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-left text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground">Dev debug</p>
+                  <p className="mt-1">Tried tables: {debug.attemptTableTried.join(', ')}</p>
+                  {debug.rawAttemptKeys?.length ? (
+                    <p className="mt-1">Attempt keys: {debug.rawAttemptKeys.join(', ')}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button asChild variant="secondary">
+                  <Link href="/mock/writing">Back to Writing mocks</Link>
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link href={`/mock/writing/attempt/${encodeURIComponent(attemptId)}`}>
+                    Go back to attempt
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </Container>
+        </main>
+      </>
+    );
+  }
+
+  const overall = evaluation ? bandFmt(evaluation.overallBand) : '—';
+
+  return (
+    <>
+      <Head>
+        <title>{attempt.testTitle} · Result · GramorX</title>
+      </Head>
+
+      <main className="min-h-[100dvh] bg-background">
+        <section className="border-b border-border/60 bg-card/60">
+          <Container className="max-w-6xl py-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="neutral" size="xs">
+                    Writing Result
+                  </Badge>
+
+                  {attempt.autoSubmitted ? (
+                    <Badge tone="warning" size="xs">
+                      Auto-submitted
+                    </Badge>
+                  ) : null}
+
+                  <Badge tone="neutral" size="xs">
+                    Attempt {attempt.attemptId.slice(0, 8)}
+                  </Badge>
+
+                  {pending ? (
+                    <Badge tone="info" size="xs">
+                      Evaluating…
+                    </Badge>
+                  ) : null}
+                </div>
+
+                <h1 className="text-xl font-semibold text-foreground">{attempt.testTitle}</h1>
+                <p className="text-xs text-muted-foreground">
+                  Training band can be slightly stricter than IELTS. Real exam is usually within ±0.5.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/mock/writing/${encodeURIComponent(attempt.testSlug)}`}>
+                    <Icon name="RotateCcw" size={16} className="mr-1.5" />
+                    Retry test
+                  </Link>
+                </Button>
+
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/mock/writing">
+                    <Icon name="ArrowLeft" size={16} className="mr-1.5" />
+                    Back
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <Container className="max-w-6xl py-6">
+          <div className="grid gap-5">
+            <WritingResultSummary
+              overallBandLabel={overall}
+              submittedAt={attempt.submittedAt}
+              status={attempt.status}
+              hasEvaluation={Boolean(evaluation)}
+            />
+
+            {evaluation ? (
+              <>
+                <WritingTaskBreakdown
+                  task1Band={bandFmt(evaluation.task1Band)}
+                  task2Band={bandFmt(evaluation.task2Band)}
+                  verdictTask1={evaluation.shortVerdictTask1 ?? ''}
+                  verdictTask2={evaluation.shortVerdictTask2 ?? ''}
+                />
+
+                <WritingCriteriaGrid
+                  criteriaBands={{
+                    TR: bandFmt(evaluation.criteria.TR),
+                    CC: bandFmt(evaluation.criteria.CC),
+                    LR: bandFmt(evaluation.criteria.LR),
+                    GRA: bandFmt(evaluation.criteria.GRA),
+                  }}
+                  criteriaNotes={{
+                    TR: evaluation.criteriaNotes.TR ?? [],
+                    CC: evaluation.criteriaNotes.CC ?? [],
+                    LR: evaluation.criteriaNotes.LR ?? [],
+                    GRA: evaluation.criteriaNotes.GRA ?? [],
+                  }}
+                />
+
+                <WritingWarnings warnings={evaluation.warnings ?? []} answers={answers} />
+                <WritingNextSteps nextSteps={evaluation.nextSteps ?? []} />
+              </>
+            ) : (
+              <Card className="rounded-ds-2xl border border-border/60 bg-card p-6">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name="Loader2" size={18} className="animate-spin" />
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Evaluation pending</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your attempt is submitted. Evaluation hasn’t been stored yet.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      This page will auto-refresh until results are available.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+        </Container>
+      </main>
+    </>
+  );
 };
 
 export default WritingResultPage;

@@ -84,7 +84,7 @@ async function fetchStudyTaskCompletions(client: MaybeClient, userId: string, si
 }
 
 async function fetchAttemptActivity(client: MaybeClient, userId: string, sinceISO: string) {
-  const tables = ['attempts_reading', 'attempts_listening', 'attempts_writing', 'attempts_speaking'] as const;
+  const tables = ['attempts_reading', 'attempts_listening', 'writing_attempts', 'attempts_speaking'] as const;
   const activity = new Map<string, number>();
 
   await Promise.all(

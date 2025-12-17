@@ -42,7 +42,7 @@ export default async function handler(
 
   // 1) Load attempt + responses
   const { data: attempt, error: attemptErr } = await supabase
-    .from('attempts_writing')
+    .from('writing_attempts')
     .select(
       `
       id,
@@ -64,9 +64,9 @@ export default async function handler(
   }
 
   // TODO: Replace with your real table / columns for stored responses
-  // Example guess: attempts_writing_tasks has task1_text, task2_text
+  // Example guess: writing_attempts_tasks has task1_text, task2_text
   const { data: taskRows, error: tasksErr } = await supabase
-    .from('attempts_writing_tasks')
+    .from('writing_attempts_tasks')
     .select('task_type, content')
     .eq('attempt_id', attemptId);
 

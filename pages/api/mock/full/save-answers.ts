@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         attemptIdColumn = 'attempt_id';
         break;
       case 'writing':
-        tableName = 'attempts_writing_answers';
+        tableName = 'writing_attempts_answers';
         attemptIdColumn = 'attempt_id';
         break;
       case 'speaking':

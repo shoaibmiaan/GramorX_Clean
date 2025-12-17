@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ThemeProvider } from 'next-themes';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
-// ❌ removed: import { Poppins, Roboto_Slab } from 'next/font/google';
 
 import '@/styles/tokens.css';
 import '@/styles/semantic.css';
@@ -49,8 +48,6 @@ function getSupa() {
   const v: any = supabaseClientSource as any;
   return typeof v === 'function' ? v() : v;
 }
-
-// ❌ removed next/font setup (Poppins / Roboto_Slab)
 
 const IS_CI = process.env.NEXT_PUBLIC_CI === 'true';
 
@@ -226,6 +223,9 @@ function useRouteConfiguration(pathname: string) {
 
     const showLayout = !pathname.startsWith('/premium') && !isNoChromeRoute;
 
+    // ✅ exam routes = STRICT no chrome, no global widgets
+    const isExamRoute = Boolean(isAttempt || listeningMock || readingExam);
+
     return {
       isAuthPage: derivedIsAuth,
       isProctoringRoute: routeConfig.layout === 'proctoring',
@@ -250,6 +250,7 @@ function useRouteConfiguration(pathname: string) {
       isPremiumRoute: isPremiumRoomRoute(pathname),
       routeConfig,
       isNoChromeRoute,
+      isExamRoute,
     };
   }, [pathname, user]);
 }
@@ -283,6 +284,23 @@ function InnerApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     void loadTranslations(activeLocale as SupportedLocale);
   }, [activeLocale]);
+
+  // ✅ route loading overlay state
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  useEffect(() => {
+    const start = () => setIsRouteLoading(true);
+    const stop = () => setIsRouteLoading(false);
+
+    router.events.on('routeChangeStart', start);
+    router.events.on('routeChangeComplete', stop);
+    router.events.on('routeChangeError', stop);
+
+    return () => {
+      router.events.off('routeChangeStart', start);
+      router.events.off('routeChangeComplete', stop);
+      router.events.off('routeChangeError', stop);
+    };
+  }, [router.events]);
 
   // route analytics (stub)
   useEffect(() => {
@@ -355,7 +373,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
   const { isChecking } = useRouteGuard();
   if (isChecking) return <GuardSkeleton />;
 
-  const streakInitial = (pageProps as { streakInitial?: number | null })?.streakInitial ?? null;
+  const streakInitial =
+    (pageProps as { streakInitial?: number | null })?.streakInitial ?? null;
 
   const pageWithProviders = (
     <StreakProvider initial={streakInitial}>
@@ -366,9 +385,7 @@ function InnerApp({ Component, pageProps }: AppProps) {
   // base page
   const basePage =
     routeConfiguration.needPremium || routeConfiguration.isPremiumRoute ? (
-      <PremiumThemeProvider>
-        {pageWithProviders}
-      </PremiumThemeProvider>
+      <PremiumThemeProvider>{pageWithProviders}</PremiumThemeProvider>
     ) : (
       pageWithProviders
     );
@@ -402,6 +419,8 @@ function InnerApp({ Component, pageProps }: AppProps) {
               role={role}
               isTeacherApproved={isTeacherApproved}
               guardFallback={() => <GuardSkeleton />}
+              isRouteLoading={isRouteLoading}
+              isExamRoute={routeConfiguration.isExamRoute}
             >
               {(router.pathname === '/pricing' ||
                 router.pathname === '/pricing/overview') && (
