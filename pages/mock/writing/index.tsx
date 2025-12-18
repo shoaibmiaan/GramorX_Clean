@@ -564,7 +564,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         .from<WritingTestRow>('writing_tests')
         .select('id, slug, title, description, difficulty, task_type')
         .eq('is_active', true)
-        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true }),
       supabase
         .from<AttemptWritingRow>('attempts_writing')
