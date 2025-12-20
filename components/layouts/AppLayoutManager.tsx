@@ -35,7 +35,6 @@ import ResourcesLayout from '@/components/layouts/ResourcesLayout';
 import AnalyticsLayout from '@/components/layouts/AnalyticsLayout';
 import SupportLayout from '@/components/layouts/SupportLayout';
 
-
 // -----------------------
 // Error Boundary
 // -----------------------
@@ -56,9 +55,7 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
           <p className="text-sm text-muted-foreground mb-4">
             There was a problem loading this page layout.
           </p>
-          <Button onClick={() => window.location.reload()}>
-            Reload Page
-          </Button>
+          <Button onClick={() => window.location.reload()}>Reload Page</Button>
         </div>
       </Card>
     );
@@ -66,7 +63,6 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return <>{children}</>;
 };
-
 
 // -----------------------
 // Props
@@ -86,12 +82,17 @@ type AppLayoutManagerProps = {
   isReportsRoute: boolean;
   isMarketingRoute: boolean;
   subscriptionTier: SubscriptionTier;
-  isRouteLoading: boolean;
+
+  // ✅ make optional so TS never blocks you if a caller forgets
+  isRouteLoading?: boolean;
+
   role?: string | null;
   isTeacherApproved?: boolean | null;
   guardFallback: () => ReactNode;
-};
 
+  // ✅ new: strict exam route (IELTS room)
+  isExamRoute: boolean;
+};
 
 // -----------------------
 // Teacher Onboarding Gate
@@ -116,7 +117,8 @@ function TeacherOnboardingGate() {
           </p>
           <h2 className="text-h3 font-semibold text-foreground">Complete your profile</h2>
           <p className="text-small text-muted-foreground">
-            Your account is created but not approved yet. Share a quick profile so our team can unlock the teacher workspace for you.
+            Your account is created but not approved yet. Share a quick profile so our team
+            can unlock the teacher workspace for you.
           </p>
         </div>
 
@@ -145,7 +147,6 @@ function TeacherOnboardingGate() {
   );
 }
 
-
 // -----------------------
 // Teacher Access Helper
 // -----------------------
@@ -161,7 +162,7 @@ const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | nu
       canAccessTeacher,
       isApproved,
       shouldRedirect: isTeacherRoute && role && !canAccessTeacher,
-      showOnboarding: role === 'teacher' && !isApproved
+      showOnboarding: role === 'teacher' && !isApproved,
     };
   }, [role, isTeacherApproved, isTeacherRoute]);
 
@@ -173,7 +174,6 @@ const useTeacherAccess = (role?: string | null, isTeacherApproved?: boolean | nu
 
   return teacherAccess;
 };
-
 
 // -----------------------
 // Layout Config Type
@@ -189,7 +189,6 @@ type LayoutConfig = {
     guardFallback?: () => ReactNode
   ) => ReactNode;
 };
-
 
 // -----------------------
 // MAIN COMPONENT
@@ -209,18 +208,17 @@ export function AppLayoutManager({
   isReportsRoute,
   isMarketingRoute,
   subscriptionTier,
-  isRouteLoading,
+  isRouteLoading = false,
   role,
   isTeacherApproved,
   guardFallback,
+  isExamRoute,
 }: AppLayoutManagerProps) {
-
   const router = useRouter();
   const pathname = router.pathname;
   const teacherAccess = useTeacherAccess(role, isTeacherApproved);
   const isTeacherRoute = pathname.startsWith('/teacher');
   const teacherAccessRole = role ?? 'guest';
-
 
   // -----------------------
   // Teacher Content Switch
@@ -245,14 +243,18 @@ export function AppLayoutManager({
     return guardFallback();
   }, [role, teacherAccessRole, teacherAccess.isApproved, children, guardFallback]);
 
-
   // -----------------------
   // Layout Mapping
   // -----------------------
   const layoutConfigs: LayoutConfig[] = useMemo(
     () => [
       { type: 'admin', component: AdminLayout, guard: () => isAdminRoute },
-      { type: 'teacher', component: TeacherLayout, guard: () => isTeacherRoute, getContent: () => getTeacherContent() },
+      {
+        type: 'teacher',
+        component: TeacherLayout,
+        guard: () => isTeacherRoute,
+        getContent: () => getTeacherContent(),
+      },
       { type: 'institutions', component: InstitutionsLayout, guard: () => isInstitutionsRoute },
       { type: 'dashboard', component: DashboardLayout, guard: () => isDashboardRoute },
       { type: 'marketplace', component: MarketplaceLayout, guard: () => isMarketplaceRoute },
@@ -260,12 +262,42 @@ export function AppLayoutManager({
       { type: 'community', component: CommunityLayout, guard: () => isCommunityRoute },
       { type: 'reports', component: ReportsLayout, guard: () => isReportsRoute },
       { type: 'marketing', component: PublicMarketingLayout, guard: () => isMarketingRoute },
-      { type: 'profile', component: ProfileLayout, guard: () => pathname.startsWith('/account') || pathname.startsWith('/user') },
-      { type: 'communication', component: CommunicationLayout, guard: () => pathname.startsWith('/messages') || pathname.startsWith('/chat') || pathname.startsWith('/inbox') },
-      { type: 'billing', component: BillingLayout, guard: () => pathname.startsWith('/billing') || pathname.startsWith('/payment') || pathname.startsWith('/subscription') },
-      { type: 'resources', component: ResourcesLayout, guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library') },
-      { type: 'analytics', component: AnalyticsLayout, guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats') },
-      { type: 'support', component: SupportLayout, guard: () => pathname.startsWith('/support') || pathname.startsWith('/help') },
+      {
+        type: 'profile',
+        component: ProfileLayout,
+        guard: () => pathname.startsWith('/account') || pathname.startsWith('/user'),
+      },
+      {
+        type: 'communication',
+        component: CommunicationLayout,
+        guard: () =>
+          pathname.startsWith('/messages') ||
+          pathname.startsWith('/chat') ||
+          pathname.startsWith('/inbox'),
+      },
+      {
+        type: 'billing',
+        component: BillingLayout,
+        guard: () =>
+          pathname.startsWith('/billing') ||
+          pathname.startsWith('/payment') ||
+          pathname.startsWith('/subscription'),
+      },
+      {
+        type: 'resources',
+        component: ResourcesLayout,
+        guard: () => pathname.startsWith('/resources') || pathname.startsWith('/library'),
+      },
+      {
+        type: 'analytics',
+        component: AnalyticsLayout,
+        guard: () => pathname.startsWith('/analytics') || pathname.startsWith('/stats'),
+      },
+      {
+        type: 'support',
+        component: SupportLayout,
+        guard: () => pathname.startsWith('/support') || pathname.startsWith('/help'),
+      },
     ],
     [
       isAdminRoute,
@@ -282,7 +314,6 @@ export function AppLayoutManager({
     ]
   );
 
-
   // -----------------------
   // Which Layout Active?
   // -----------------------
@@ -291,21 +322,19 @@ export function AppLayoutManager({
     [layoutConfigs, role, isTeacherApproved]
   );
 
-
   // -----------------------
   // Apply Wrappers
   // -----------------------
-  const getNakedContent = (
-    auth: boolean,
-    proctoring: boolean,
-    content: ReactNode
-  ) => {
+  const getNakedContent = (auth: boolean, proctoring: boolean, content: ReactNode) => {
     if (auth) return <AuthLayout>{content}</AuthLayout>;
     if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
     return content;
   };
 
   const content = useMemo(() => {
+    // ✅ strict exam mode: do not apply ANY layout wrappers
+    if (isExamRoute) return children;
+
     if (!showLayout) {
       return getNakedContent(isAuthPage, isProctoringRoute, children);
     }
@@ -321,6 +350,7 @@ export function AppLayoutManager({
 
     return children;
   }, [
+    isExamRoute,
     showLayout,
     isAuthPage,
     isProctoringRoute,
@@ -331,7 +361,6 @@ export function AppLayoutManager({
     guardFallback,
   ]);
 
-
   // -----------------------
   // Final Layout Wrap
   // -----------------------
@@ -339,9 +368,13 @@ export function AppLayoutManager({
 
   return (
     <LayoutErrorBoundary>
-      <GlobalPlanGuard />
+      {/* ✅ Also disable plan guard overlays inside exam room */}
+      {!isExamRoute && <GlobalPlanGuard />}
 
-      {shouldWrapInMainLayout ? (
+      {isExamRoute ? (
+        // ✅ EXAM ROOM = pure canvas
+        <>{children}</>
+      ) : shouldWrapInMainLayout ? (
         <Layout>
           <ImpersonationBanner />
           {content}
@@ -353,9 +386,16 @@ export function AppLayoutManager({
         </>
       )}
 
-      <AuthAssistant />
-      <SidebarAI />
-      <UpgradeModal />
+      {/* ✅ Kill floating widgets in exam room */}
+      {!isExamRoute && (
+        <>
+          <AuthAssistant />
+          <SidebarAI />
+          <UpgradeModal />
+        </>
+      )}
+
+      {/* Overlay is ok; it’s not “help/widget chrome” */}
       <RouteLoadingOverlay active={isRouteLoading} tier={subscriptionTier} />
     </LayoutErrorBoundary>
   );

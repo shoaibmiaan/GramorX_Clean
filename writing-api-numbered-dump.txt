@@ -1,0 +1,3257 @@
+===== FILE 1 /       31 : pages/api/writing/metrics/compute.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { rateLimit } from '@/lib/rateLimit';
+import { getServerClient } from '@/lib/supabaseServer';
+import {
+  calcCohesionDensity,
+  calcOriginalityScore,
+  calcTtr,
+  calcTemplateOveruse,
+  calcWpm,
+  countHedgingPhrases,
+  mergeIntegrityFlags,
+} from '@/lib/writing/metrics';
+
+const Body = z.object({
+  attemptId: z.string().uuid(),
+  draftText: z.string(),
+  wordCount: z.number().int().nonnegative(),
+  timeSpentMs: z.number().int().nonnegative(),
+});
+
+type Data = { ok: true } | { error: string; details?: unknown };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/metrics/compute', { requestId, clientIp });
+
+  if (!(await rateLimit(req, res))) {
+    logger.warn('rate limit triggered on metrics');
+    return;
+  }
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid metrics payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const { attemptId, draftText, wordCount, timeSpentMs } = parsed.data;
+
+  const ttr = calcTtr(draftText);
+  const wpm = calcWpm(wordCount, timeSpentMs);
+  const cohesionDensity = calcCohesionDensity(draftText);
+  const templateOveruse = calcTemplateOveruse(draftText);
+  const originalityScore = calcOriginalityScore(draftText);
+  const hedgingCounts = countHedgingPhrases(draftText);
+  const totalHedges = Object.values(hedgingCounts).reduce((sum, value) => sum + value, 0);
+  const hedgingDensity = Math.round(Math.min(totalHedges / Math.max(wordCount / 120, 1), 1) * 100) / 100;
+
+  const { error: upsertError } = await supabase
+    .from('writing_metrics')
+    .upsert(
+      {
+        attempt_id: attemptId,
+        ttr,
+        wpm,
+        cohesion_density: cohesionDensity,
+        template_overuse: templateOveruse,
+        originality_score: originalityScore,
+        computed_at: new Date().toISOString(),
+      },
+      { onConflict: 'attempt_id' },
+    );
+
+  if (upsertError) {
+    logger.error('failed to upsert metrics', { error: upsertError.message, attemptId });
+    return res.status(500).json({ error: upsertError.message });
+  }
+
+  const { data: attemptRow, error: loadError } = await supabase
+    .from('writing_attempts')
+    .select('integrity_flags')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (loadError) {
+    logger.error('failed to load attempt integrity flags', { error: loadError.message, attemptId });
+    return res.status(500).json({ error: loadError.message });
+  }
+
+  const integrityFlags = mergeIntegrityFlags(attemptRow?.integrity_flags, {
+    templateOveruse,
+    originality: originalityScore,
+    hedgingDensity,
+  });
+
+  const { error: integrityError } = await supabase
+    .from('writing_attempts')
+    .update({ integrity_flags: integrityFlags })
+    .eq('id', attemptId);
+
+  if (integrityError) {
+    logger.error('failed to update integrity flags', { error: integrityError.message, attemptId });
+    return res.status(500).json({ error: integrityError.message });
+  }
+
+  logger.info('metrics computed', { attemptId, wpm, ttr, cohesionDensity, templateOveruse, originalityScore, hedgingDensity });
+  await trackor.log('writing_attempt_metrics', {
+    attempt_id: attemptId,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  return res.status(200).json({ ok: true });
+}
+
+===== FILE 2 /       31 : pages/api/writing/draft.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+const BodySchema = z.object({
+  paperId: z.string().min(1),
+  attemptId: z.string().min(1),
+  startedAt: z.number().optional(),
+  updatedAt: z.number(),
+  content: z.object({
+    task1: z.string(),
+    task2: z.string(),
+    task1WordCount: z.number(),
+    task2WordCount: z.number(),
+  }),
+});
+
+type Resp =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Resp>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  const parsed = BodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ ok: false, error: 'Invalid payload' });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return res.status(401).json({ ok: false, error: 'Unauthenticated' });
+  }
+
+  const { paperId, attemptId, startedAt, updatedAt, content } = parsed.data;
+
+  try {
+    const startedIso = new Date(startedAt ?? updatedAt).toISOString();
+    const updatedIso = new Date(updatedAt).toISOString();
+
+    const { error } = await supabaseAdmin
+      .from('writing_attempts')
+      .upsert(
+        {
+          id: attemptId,
+          user_id: user.id,
+          prompt_id: paperId,
+          started_at: startedIso,
+          submitted_at: null,
+          content_text: JSON.stringify({
+            version: 1,
+            updatedAt: updatedIso,
+            tasks: {
+              task1: { text: content.task1, wordCount: content.task1WordCount },
+              task2: { text: content.task2, wordCount: content.task2WordCount },
+            },
+          }),
+        },
+        { onConflict: 'id' },
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err: any) {
+    console.error('writing draft persistence failed', err);
+    return res.status(200).json({ ok: false, error: err?.message ?? 'Persistence failed' });
+  }
+}
+
+===== FILE 3 /       31 : pages/api/writing/start-attempt.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+import { getServerClient } from '@/lib/supabaseServer';
+
+const Body = z.object({
+  mode: z.enum(['academic', 'general']),
+  durationSeconds: z.number().int().positive().optional(), // default 3600
+});
+
+type StartAttemptResponse =
+  | { ok: true; attemptId: string; mode: 'academic' | 'general'; status: 'created'; startedAt: string; durationSeconds: number }
+  | { ok: false; error: string; details?: unknown };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<StartAttemptResponse>) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+
+  const parse = Body.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ ok: false, error: 'Invalid body', details: parse.error.flatten() });
+
+  const { mode, durationSeconds } = parse.data;
+  const supabase = getServerClient(req, res);
+
+  const { data: auth, error: authErr } = await supabase.auth.getUser();
+  if (authErr) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  const user = auth.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+  const dur = durationSeconds ?? 3600;
+
+  // 1) Create attempt
+  const { data: attempt, error: attemptErr } = await supabase
+    .from('writing_attempts')
+    .insert({
+      user_id: user.id,
+      mode,
+      status: 'created',
+      duration_seconds: dur,
+      remaining_seconds: dur,
+    })
+    .select('id, mode, status, started_at, duration_seconds')
+    .single();
+
+  if (attemptErr || !attempt) {
+    return res.status(500).json({ ok: false, error: 'Failed to create attempt', details: attemptErr });
+  }
+
+  // 2) Pre-create Task 1 & 2 answer rows (empty)
+  const { error: ansErr } = await supabase.from('writing_attempt_answers').insert([
+    { attempt_id: attempt.id, task_number: 1, answer_text: '', word_count: 0 },
+    { attempt_id: attempt.id, task_number: 2, answer_text: '', word_count: 0 },
+  ]);
+
+  if (ansErr) {
+    return res.status(500).json({ ok: false, error: 'Failed to create answer rows', details: ansErr });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    attemptId: attempt.id,
+    mode: attempt.mode,
+    status: 'created',
+    startedAt: attempt.started_at,
+    durationSeconds: attempt.duration_seconds,
+  });
+}
+
+===== FILE 4 /       31 : pages/api/writing/lexical/track.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { lexicalVarietyReport } from '@/lib/writing/languageTools';
+import { z } from 'zod';
+
+const Body = z.object({
+  text: z.string().max(25000),
+  timeSpentMs: z.number().int().nonnegative().default(0),
+});
+
+type Data =
+  | {
+      report: ReturnType<typeof lexicalVarietyReport>;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/lexical/track', { requestId });
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid lexical payload', { requestId, issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    logger.warn('unauthorised lexical request', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const report = lexicalVarietyReport(parsed.data.text, parsed.data.timeSpentMs);
+  logger.info('lexical report generated', { userId: user.id, requestId, report });
+
+  return res.status(200).json({ report });
+}
+
+export default withPlan('free', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 5 /       31 : pages/api/writing/restore-reeval.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const supa = getServerClient(req, res);
+  const { data: auth } = await supa.auth.getUser();
+  if (!auth?.user) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { data: profile } = await supa.from('profiles').select('is_admin').eq('id', auth.user.id).single();
+  if (!profile?.is_admin) return res.status(403).json({ error: 'Admins only' });
+
+  const { reevalId } = req.body as { reevalId?: string };
+  if (!reevalId) return res.status(400).json({ error: 'reevalId is required' });
+
+  const admin = supabaseAdmin;
+  const { data: row, error: e1 } = await admin
+    .from('writing_reevals')
+    .select('id, attempt_id, band_overall, band_breakdown, feedback')
+    .eq('id', reevalId)
+    .single();
+
+  if (e1 || !row) return res.status(404).json({ error: 'Re-eval not found' });
+
+  const { error: e2 } = await admin
+    .from('writing_attempts')
+    .update({
+      band_overall: row.band_overall,
+      band_breakdown: row.band_breakdown,
+      feedback: row.feedback,
+      restored_from_reeval: row.id
+    })
+    .eq('id', row.attempt_id);
+
+  if (e2) return res.status(500).json({ error: e2.message });
+
+  res.status(200).json({
+    ok: true,
+    attemptId: row.attempt_id,
+    band_overall: row.band_overall,
+    band_breakdown: row.band_breakdown,
+    feedback: row.feedback
+  });
+}
+
+===== FILE 6 /       31 : pages/api/writing/eval.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import type { PlanId } from '@/types/pricing';
+import { evaluateQuota, upgradeAdvice, getUtcDayWindow } from '@/lib/plan/quotas';
+
+const INFORMAL_MARKERS = ['gonna', 'wanna', 'kinda', 'sorta', 'dude', 'buddy', 'kiddo', 'stuff', 'cool'];
+
+interface WritingEvalBody {
+  word_id?: string;
+  item_type?: 'word' | 'collocation' | 'gap';
+  text?: string;
+  prompt?: string;
+  register?: 'formal' | 'neutral' | null;
+  scenarios?: string[];
+  suggested_collocations?: string[];
+}
+
+function countSentences(text: string) {
+  const matches = text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .match(/[.!?]+/g);
+  if (!matches) return text.trim().length > 0 ? 1 : 0;
+  return matches.length;
+}
+
+function countTokens(text: string) {
+  const tokens = text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return tokens.length;
+}
+
+function normalise(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function resolvePlanId(supabase: ReturnType<typeof createSupabaseServerClient>, userId: string): Promise<PlanId> {
+  try {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('plan_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (data?.plan_id) return data.plan_id as PlanId;
+  } catch { /* ignore */ }
+  return 'starter' as PlanId;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const body = (req.body ?? {}) as WritingEvalBody;
+  const wordId = typeof body.word_id === 'string' ? body.word_id : null;
+  const text = typeof body.text === 'string' ? body.text : '';
+  const itemType = body.item_type && ['word', 'collocation', 'gap'].includes(body.item_type)
+    ? body.item_type
+    : 'word';
+
+  if (!wordId) {
+    return res.status(400).json({ error: 'Missing word_id' });
+  }
+
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({ error: 'Provide a sentence or two to evaluate.' });
+  }
+
+  const supabase = createSupabaseServerClient({ req, res });
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+
+  if (userErr || !user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // —— QUOTA: aiEvaluationsPerDay ——
+  try {
+    const plan = await resolvePlanId(supabase, user.id);
+    const { startIso, endIso } = getUtcDayWindow();
+
+    // Count both writing_responses and word_writing_attempts for today's usage
+    const [{ count: usedResp = 0 }, { count: usedWord = 0 }] = await Promise.all([
+      supabase
+        .from('writing_responses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('submitted_at', startIso)
+        .lt('submitted_at', endIso),
+      supabase
+        .from('word_writing_attempts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startIso)
+        .lt('created_at', endIso),
+    ]);
+
+    const used = (usedResp ?? 0) + (usedWord ?? 0);
+    const snap = evaluateQuota(plan, 'aiEvaluationsPerDay', used);
+    if (!snap.isUnlimited && snap.remaining < 1) {
+      const advice = upgradeAdvice(plan, 'aiEvaluationsPerDay', used);
+      return res.status(402).json({
+        error: 'Quota exceeded',
+        quota: { key: 'aiEvaluationsPerDay', limit: snap.limit, used: snap.used, remaining: snap.remaining },
+        advice,
+      });
+    }
+  } catch {
+    // Non-fatal if counting fails
+  }
+  // —— /QUOTA ——
+
+  try {
+    const [{ data: wordRow, error: wordError }, { data: collocationsRows, error: collocationError }] = await Promise.all([
+      supabase
+        .from('words')
+        .select('id, headword, register, definition, ielts_topics')
+        .eq('id', wordId)
+        .maybeSingle(),
+      supabase
+        .from('word_collocations')
+        .select('chunk')
+        .eq('word_id', wordId)
+        .limit(6),
+    ]);
+
+    if (wordError || !wordRow) {
+      console.error('[writing/eval] failed to load word', wordError);
+      return res.status(404).json({ error: 'Word not found' });
+    }
+
+    if (collocationError) {
+      console.error('[writing/eval] failed to load collocations', collocationError);
+      return res.status(500).json({ error: 'Failed to evaluate collocations' });
+    }
+
+    const headword = wordRow.headword ?? '';
+    const register = (body.register ?? wordRow.register ?? null) as 'formal' | 'neutral' | null;
+    const allowedCollocations = Array.isArray(collocationsRows)
+      ? collocationsRows.map((row) => row.chunk).filter((chunk): chunk is string => typeof chunk === 'string')
+      : [];
+
+    const providedCollocations = Array.isArray(body.suggested_collocations)
+      ? body.suggested_collocations.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+
+    const collocations = Array.from(new Set([...allowedCollocations, ...providedCollocations])).slice(0, 6);
+
+    const headwordUsed = normalise(text).includes(normalise(headword));
+    const collocationsUsed = collocations.filter((chunk) => normalise(text).includes(normalise(chunk)));
+    const sentenceCount = countSentences(text);
+    const tokens = countTokens(text);
+    const informalDetected = register === 'formal'
+      ? INFORMAL_MARKERS.some((marker) => normalise(text).includes(marker))
+      : false;
+
+    const checks = {
+      headwordUsed,
+      collocationUsed: collocationsUsed.length > 0,
+      sentenceCountOk: sentenceCount >= 1 && sentenceCount <= 2,
+      registerOk: !informalDetected,
+    };
+
+    let score = 100;
+    const feedback: string[] = [];
+
+    if (!checks.headwordUsed) {
+      score -= 40;
+      feedback.push(`Include the target word “${headword}” at least once.`);
+    }
+
+    if (!checks.collocationUsed && collocations.length > 0) {
+      score -= 20;
+      feedback.push('Work in one of the recommended collocations to show range.');
+    }
+
+    if (!checks.sentenceCountOk) {
+      score -= 20;
+      feedback.push('Keep the response to one or two sentences.');
+    }
+
+    if (!checks.registerOk) {
+      score -= 20;
+      feedback.push('Avoid informal filler when practising a formal register.');
+    }
+
+    if (tokens < 8) {
+      score -= 10;
+      feedback.push('Aim for richer detail—add a clause or supporting idea.');
+    }
+
+    score = Math.max(0, Math.min(100, score));
+
+    if (feedback.length === 0) {
+      feedback.push('Great job! The sentence(s) look exam-ready.');
+    }
+
+    const { data: attemptRow, error: attemptError } = await supabase
+      .from('word_writing_attempts')
+      .insert({
+        user_id: user.id,
+        word_id: wordId,
+        item_type: itemType,
+        prompt: body.prompt ?? `Write two sentences using “${headword}”.`,
+        response: text,
+        tokens,
+        sentences: sentenceCount,
+        collocations_used: collocationsUsed,
+        register_target: register,
+        checks,
+        feedback: feedback.join(' '),
+        score,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (attemptError || !attemptRow) {
+      console.error('[writing/eval] failed to insert attempt', attemptError);
+      return res.status(500).json({ error: 'Failed to record attempt' });
+    }
+
+    const { data: statsRow, error: statsError } = await supabase
+      .from('user_word_stats')
+      .select('writing_attempts')
+      .eq('user_id', user.id)
+      .eq('word_id', wordId)
+      .maybeSingle();
+
+    if (statsError) {
+      console.error('[writing/eval] failed to fetch stats', statsError);
+      return res.status(500).json({ error: 'Failed to update stats' });
+    }
+
+    const nextCount = (statsRow?.writing_attempts ?? 0) + 1;
+
+    if (statsRow) {
+      const { error: updateError } = await supabase
+        .from('user_word_stats')
+        .update({ writing_attempts: nextCount })
+        .eq('user_id', user.id)
+        .eq('word_id', wordId);
+
+      if (updateError) {
+        console.error('[writing/eval] failed to increment attempts', updateError);
+        return res.status(500).json({ error: 'Failed to increment attempts' });
+      }
+    } else {
+      const { error: insertStatsError } = await supabase.from('user_word_stats').insert({
+        user_id: user.id,
+        word_id: wordId,
+        status: 'new',
+        writing_attempts: nextCount,
+      });
+
+      if (insertStatsError) {
+        console.error('[writing/eval] failed to create stats', insertStatsError);
+        return res.status(500).json({ error: 'Failed to initialise stats' });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      score,
+      feedback: feedback.join(' '),
+      checks,
+      collocations_used: collocationsUsed,
+      writing_attempts: nextCount,
+    });
+  } catch (error) {
+    console.error('[writing/eval] fatal error', error);
+    return res.status(500).json({ error: 'Unexpected error' });
+  }
+}
+
+===== FILE 7 /       31 : pages/api/writing/get-attempt.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+import { getServerClient } from '@/lib/supabaseServer';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+const Query = z.object({
+  attemptId: z.string().uuid(),
+});
+
+type AttemptStatus = 'created' | 'in_progress' | 'submitted' | 'evaluated';
+
+type TaskPrompt = {
+  taskNumber: 1 | 2;
+  title: string | null;
+  instruction: string | null;
+  prompt: string | null;
+  wordLimit: number | null;
+};
+
+type GetAttemptResponse =
+  | {
+      ok: true;
+      attempt: {
+        id: string;
+        mode: 'academic' | 'general';
+        status: AttemptStatus;
+        startedAt: string;
+        submittedAt: string | null;
+        evaluatedAt: string | null;
+        durationSeconds: number;
+        remainingSeconds: number | null;
+      };
+      answers: Array<{
+        taskNumber: 1 | 2;
+        answerText: string;
+        wordCount: number;
+        lastSavedAt: string;
+      }>;
+      tasks: TaskPrompt[];
+    }
+  | { ok: false; error: string; details?: unknown };
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<GetAttemptResponse>
+) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  const parse = Query.safeParse(req.query);
+  if (!parse.success) {
+    return res
+      .status(400)
+      .json({ ok: false, error: 'Invalid query', details: parse.error.flatten() });
+  }
+
+  // ✅ Auth via cookie session
+  const supabase = getServerClient(req, res);
+  const { data: auth, error: authErr } = await supabase.auth.getUser();
+  const user = auth?.user;
+
+  if (authErr || !user) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized', details: authErr ?? null });
+  }
+
+  const { attemptId } = parse.data;
+
+  // ✅ Read attempt via service role to avoid RLS “ghost 404”
+  // NOTE: your writing_attempts table DOES NOT have test_id
+  const { data: attempt, error: attemptErr } = await supabaseAdmin
+    .from('writing_attempts')
+    .select(
+      'id, user_id, mode, status, started_at, submitted_at, evaluated_at, duration_seconds, remaining_seconds'
+    )
+    .eq('id', attemptId)
+    .single();
+
+  if (attemptErr || !attempt) {
+    return res.status(404).json({
+      ok: false,
+      error: 'Attempt not found',
+      details: attemptErr ?? null,
+    });
+  }
+
+  // ✅ Ownership guard (security)
+  if (attempt.user_id !== user.id) {
+    return res.status(403).json({ ok: false, error: 'Forbidden' });
+  }
+
+  // Answers (service role read)
+  const { data: answers, error: ansErr } = await supabaseAdmin
+    .from('writing_attempt_answers')
+    .select('task_number, answer_text, word_count, last_saved_at')
+    .eq('attempt_id', attemptId)
+    .order('task_number', { ascending: true });
+
+  if (ansErr) {
+    return res.status(500).json({ ok: false, error: 'Failed to load answers', details: ansErr });
+  }
+
+  // ✅ TEMP FIX: Always return prompts, even without test_id
+  // Later: replace with writing_tasks lookup once you add attempt.test_id.
+  const tasks: TaskPrompt[] = [
+    {
+      taskNumber: 1,
+      title: 'Writing Task 1',
+      instruction:
+        attempt.mode === 'academic'
+          ? 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.'
+          : 'Write a letter. Use the correct tone and cover all bullet points.',
+      prompt:
+        attempt.mode === 'academic'
+          ? 'The chart below gives information about ... (placeholder). Summarise the information by selecting and reporting the main features.'
+          : 'You recently had a problem with a service you purchased. Write a letter to the company. In your letter:\n- explain the problem\n- describe what you have already done\n- say what action you would like the company to take',
+      wordLimit: 150,
+    },
+    {
+      taskNumber: 2,
+      title: 'Writing Task 2',
+      instruction:
+        'Write an essay in response to the question below. Give reasons for your answer and include any relevant examples from your own knowledge or experience.',
+      prompt:
+        'Some people think that technology has made life more complicated, while others believe it has made life easier. Discuss both views and give your own opinion.',
+      wordLimit: 250,
+    },
+  ];
+
+  return res.status(200).json({
+    ok: true,
+    attempt: {
+      id: attempt.id,
+      mode: attempt.mode,
+      status: attempt.status,
+      startedAt: attempt.started_at,
+      submittedAt: attempt.submitted_at,
+      evaluatedAt: attempt.evaluated_at,
+      durationSeconds: attempt.duration_seconds ?? 3600,
+      remainingSeconds: attempt.remaining_seconds ?? null,
+    },
+    answers: (answers ?? []).map((a: any) => ({
+      taskNumber: a.task_number,
+      answerText: a.answer_text ?? '',
+      wordCount: a.word_count ?? 0,
+      lastSavedAt: a.last_saved_at,
+    })),
+    tasks,
+  });
+}
+
+===== FILE 8 /       31 : pages/api/writing/cohesion/heatmap.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { cohesionHeatmap } from '@/lib/writing/languageTools';
+import { z } from 'zod';
+
+const Body = z.object({
+  text: z.string().max(25000),
+});
+
+type Data =
+  | {
+      heatmap: ReturnType<typeof cohesionHeatmap>;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/cohesion/heatmap', { requestId });
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid cohesion payload', { requestId, issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    logger.warn('unauthorised cohesion request', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const heatmap = cohesionHeatmap(parsed.data.text);
+  logger.info('cohesion heatmap generated', { userId: user.id, markers: heatmap.length, requestId });
+
+  return res.status(200).json({ heatmap });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 9 /       31 : pages/api/writing/reeval-history.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const attemptId = String(req.query.attemptId || '');
+  if (!attemptId) return res.status(400).json({ error: 'attemptId required' });
+
+  const supabase = createSupabaseServerClient({ serviceRole: true });
+
+  const { data, error } = await supabase
+    .from('writing_reevals')
+    .select('id, band_overall, band_breakdown, mode, created_at')
+    .eq('attempt_id', attemptId)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(200).json({ rows: data });
+}
+
+===== FILE 10 /       31 : pages/api/writing/originals/upload.ts =====
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type formidable from 'formidable';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { mergeIntegrityFlags } from '@/lib/writing/metrics';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+type Data =
+  | {
+      text: string;
+      legibility: number;
+      imagePath: string;
+    }
+  | { error: string; details?: unknown };
+
+async function parseForm(req: NextApiRequest) {
+  const formidableModule = await import('formidable');
+  const form = formidableModule.default({ multiples: false, maxFileSize: 15 * 1024 * 1024 });
+  return new Promise<{ fields: formidable.Fields; files: formidable.Files }>((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve({ fields, files });
+    });
+  });
+}
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/originals/upload', { requestId, clientIp });
+
+  let parsed;
+  try {
+    parsed = await parseForm(req);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to parse upload';
+    logger.error('form parse failed', { error: message });
+    return res.status(400).json({ error: message });
+  }
+
+  const attemptIdRaw = parsed.fields.attemptId ?? parsed.fields.attempt_id;
+  const attemptId = Array.isArray(attemptIdRaw) ? attemptIdRaw[0] : attemptIdRaw;
+  if (!attemptId || typeof attemptId !== 'string') {
+    return res.status(400).json({ error: 'Missing attemptId' });
+  }
+
+  const fileEntry = parsed.files.file ?? parsed.files.image ?? parsed.files.photo;
+  const file = Array.isArray(fileEntry) ? fileEntry[0] : fileEntry;
+  if (!file || !('filepath' in file)) {
+    return res.status(400).json({ error: 'Image file required' });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { data: attemptRow, error: attemptError } = await supabase
+    .from('writing_attempts')
+    .select('user_id, integrity_flags')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptError) {
+    logger.error('failed to load attempt for upload', { error: attemptError.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: attemptError.message });
+  }
+
+  if (!attemptRow || attemptRow.user_id !== user.id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const buffer = await fs.readFile(file.filepath as string);
+  const extension = path.extname((file.originalFilename ?? 'upload.jpg').toString()) || '.jpg';
+  const objectPath = `${user.id}/${attemptId}/${Date.now()}${extension}`;
+  const contentType = (file.mimetype ?? 'image/jpeg').toString();
+
+  const uploadResponse = await supabase.storage
+    .from('writing-originals')
+    .upload(objectPath, buffer, {
+      contentType,
+      upsert: false,
+    });
+
+  if (uploadResponse.error) {
+    logger.error('failed to upload handwriting image', { error: uploadResponse.error.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: uploadResponse.error.message });
+  }
+
+  const { recognize } = await import('tesseract.js');
+  const result = await recognize(buffer, 'eng');
+  const text = (result.data?.text ?? '').trim();
+  const confidence = Math.round((result.data?.confidence ?? 0) * 100) / 100;
+  const legibility = Math.max(0, Math.min(confidence / 100, 1));
+
+  const { error: insertError } = await supabase.from('writing_originals').insert({
+    user_id: user.id,
+    attempt_id: attemptId,
+    image_path: objectPath,
+    ocr_text: text,
+    legibility,
+  });
+
+  if (insertError) {
+    logger.error('failed to save handwriting record', { error: insertError.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: insertError.message });
+  }
+
+  const integrityFlags = mergeIntegrityFlags(attemptRow.integrity_flags, {
+    handwriting: { path: objectPath, legibility: Math.round(legibility * 100) / 100 },
+  });
+
+  await supabase
+    .from('writing_attempts')
+    .update({ integrity_flags: integrityFlags })
+    .eq('id', attemptId);
+
+  await trackor.log('writing_handwriting_uploaded', {
+    attempt_id: attemptId,
+    user_id: user.id,
+    legibility,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  return res.status(200).json({ text, legibility, imagePath: objectPath });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 11 /       31 : pages/api/writing/cross/evidence.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { fetchReadingEvidence } from '@/lib/writing/crossModule';
+import { CrossEvidenceBody } from '@/lib/writing/schemas';
+
+type Data =
+  | {
+      evidence: ReturnType<typeof fetchReadingEvidence> extends Promise<infer R> ? R : never;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/cross/evidence', { requestId, clientIp });
+
+  const parsed = CrossEvidenceBody.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised evidence request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { promptId, topic } = parsed.data;
+
+  let promptTopic = topic;
+  if (!promptTopic) {
+    const { data: promptRow } = await supabase
+      .from('writing_prompts')
+      .select('topic')
+      .eq('id', promptId)
+      .maybeSingle();
+    promptTopic = promptRow?.topic ?? '';
+  }
+
+  try {
+    const evidence = await fetchReadingEvidence(supabase, user.id, promptTopic ?? '');
+    logger.info('cross-module evidence surfaced', { userId: user.id, promptId, count: evidence.length });
+    await trackor.log('writing_cross_evidence', {
+      user_id: user.id,
+      prompt_id: promptId,
+      evidence_count: evidence.length,
+      request_id: requestId,
+      ip: clientIp,
+    });
+    return res.status(200).json({ evidence });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to load evidence suggestions';
+    logger.error('failed to load evidence', { error: message, userId: user.id, promptId });
+    return res.status(500).json({ error: message });
+  }
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 12 /       31 : pages/api/writing/cross/hedging.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { buildHedgingSuggestions } from '@/lib/writing/crossModule';
+
+const DEFAULT_LIMIT = 6;
+
+type Data =
+  | {
+      suggestions: ReturnType<typeof buildHedgingSuggestions>;
+    }
+  | { error: string };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/cross/hedging', { requestId, clientIp });
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised hedging request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const limitParam = Number.parseInt(String(req.query.limit ?? DEFAULT_LIMIT), 10);
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 10) : DEFAULT_LIMIT;
+
+  try {
+    const { data: attempts } = await supabase
+      .from('speaking_attempts')
+      .select('transcript')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    const transcripts = (attempts ?? []).map((row) => row.transcript ?? '');
+    const suggestions = buildHedgingSuggestions(transcripts);
+    logger.info('hedging suggestions computed', { userId: user.id, suggestions: suggestions.length });
+    await trackor.log('writing_cross_hedging', {
+      user_id: user.id,
+      suggestion_count: suggestions.length,
+      request_id: requestId,
+      ip: clientIp,
+    });
+    return res.status(200).json({ suggestions });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to compute hedging suggestions';
+    logger.error('failed to compute hedging suggestions', { error: message, userId: user.id });
+    return res.status(500).json({ error: message });
+  }
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 13 /       31 : pages/api/writing/paraphrase/suggest.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { paraphraseSentence } from '@/lib/writing/languageTools';
+import { z } from 'zod';
+
+const Body = z.object({
+  sentence: z.string().max(400),
+});
+
+type Data =
+  | {
+      options: ReturnType<typeof paraphraseSentence>;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/paraphrase/suggest', { requestId });
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid paraphrase payload', { requestId, issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    logger.warn('unauthorised paraphrase request', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const options = paraphraseSentence(parsed.data.sentence);
+  logger.info('paraphrases generated', { userId: user.id, optionCount: options.length, requestId });
+
+  return res.status(200).json({ options });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 14 /       31 : pages/api/writing/score/run.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { rateLimit } from '@/lib/rateLimit';
+import { getServerClient } from '@/lib/supabaseServer';
+import { FeedbackJson, ScoresJson } from '@/lib/writing/schemas';
+import { queueNotificationEvent, getNotificationContact } from '@/lib/notify';
+import { getBaseUrl } from '@/lib/url';
+
+const Body = z.object({
+  attemptId: z.string().uuid(),
+  scores: ScoresJson,
+  feedback: FeedbackJson.optional(),
+});
+
+type Data = { ok: true } | { error: string; details?: unknown };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/score/run', { requestId, clientIp });
+
+  if (!(await rateLimit(req, res))) {
+    logger.warn('rate limit triggered on scoring');
+    return;
+  }
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid scoring payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const { attemptId, scores, feedback } = parsed.data;
+
+  const { data: attemptRow, error: loadError } = await supabase
+    .from('writing_attempts')
+    .select('status, user_id')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (loadError) {
+    logger.error('failed to load attempt for scoring', { error: loadError.message, attemptId });
+    return res.status(500).json({ error: loadError.message });
+  }
+
+  if (!attemptRow) {
+    logger.warn('attempt not found for scoring', { attemptId });
+    return res.status(404).json({ error: 'Attempt not found' });
+  }
+
+  if (attemptRow.status === 'scored') {
+    logger.info('scoring skipped because attempt already scored', { attemptId });
+    return res.status(200).json({ ok: true });
+  }
+
+  const { error } = await supabase
+    .from('writing_attempts')
+    .update({
+      status: 'scored',
+      overall_band: scores.overall,
+      scores_json: scores,
+      feedback_json: feedback ?? null,
+    })
+    .eq('id', attemptId)
+    .eq('status', 'submitted');
+
+  if (error) {
+    logger.error('failed to persist scoring payload', { error: error.message, attemptId });
+    return res.status(500).json({ error: error.message });
+  }
+
+  logger.info('attempt scored', { attemptId, overall: scores.overall });
+  await trackor.log('writing_attempt_scored', {
+    attempt_id: attemptId,
+    user_id: attemptRow.user_id ?? null,
+    overall_band: scores.overall,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  if (attemptRow.user_id) {
+    const contact = await getNotificationContact(attemptRow.user_id);
+    if (contact.email) {
+      const baseUrl = getBaseUrl();
+      const payload: Record<string, unknown> = {
+        module: 'Writing',
+        band: scores.overall,
+        deep_link: `${baseUrl}/writing/results/${attemptId}`,
+        user_email: contact.email,
+      };
+      if (contact.phone) {
+        payload.user_phone = contact.phone;
+      }
+
+      const result = await queueNotificationEvent({
+        event_key: 'score_ready',
+        user_id: attemptRow.user_id,
+        payload,
+        channels: ['email'],
+        idempotency_key: `writing_score:${attemptId}`,
+      });
+
+      if (!result.ok && result.reason !== 'duplicate') {
+        logger.error('failed to enqueue score notification', {
+          attemptId,
+          userId: attemptRow.user_id,
+          error: result.message,
+        });
+      }
+    } else {
+      logger.warn('skipping score notification because email is missing', {
+        attemptId,
+        userId: attemptRow.user_id,
+      });
+    }
+  }
+
+  return res.status(200).json({ ok: true });
+}
+
+===== FILE 15 /       31 : pages/api/writing/rehearsals/similar.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { RehearsalSimilarBody } from '@/lib/writing/schemas';
+
+type Suggestion = { id: string; slug: string; topic: string };
+
+type Data = { suggestions: Suggestion[] } | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/rehearsals/similar', { requestId });
+
+  const parsed = RehearsalSimilarBody.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid payload', { issues: parsed.error.flatten(), requestId });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised rehearsal suggestion', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { promptId } = parsed.data;
+
+  const { data: sourcePrompt, error: promptError } = await supabase
+    .from('writing_prompts')
+    .select('id, task_type')
+    .eq('id', promptId)
+    .single();
+
+  if (promptError || !sourcePrompt) {
+    logger.warn('source prompt not found', { promptId, requestId });
+    return res.status(404).json({ error: promptError?.message ?? 'Prompt not found' });
+  }
+
+  const { data, error } = await supabase
+    .from('writing_prompts')
+    .select('id, slug, topic')
+    .eq('task_type', sourcePrompt.task_type)
+    .neq('id', sourcePrompt.id)
+    .limit(20);
+
+  if (error) {
+    logger.error('failed to load rehearsal suggestions', { error: error.message, userId: user.id, promptId, requestId });
+    return res.status(500).json({ error: error.message });
+  }
+
+  const keywords = new Set(
+    sourcePrompt.topic
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 3),
+  );
+
+  const ranked = (data ?? [])
+    .map((row) => {
+      const tokens = row.topic
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((token) => token.length > 3);
+      const overlap = tokens.reduce((acc, token) => (keywords.has(token) ? acc + 1 : acc), 0);
+      return { ...row, overlap };
+    })
+    .sort((a, b) => b.overlap - a.overlap || a.topic.localeCompare(b.topic))
+    .slice(0, 3)
+    .map(({ overlap: _overlap, ...rest }) => rest);
+
+  logger.info('rehearsal suggestions generated', { promptId, userId: user.id, suggestions: ranked.map((item) => item.slug) });
+
+  return res.status(200).json({ suggestions: ranked });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 16 /       31 : pages/api/writing/readiness/evaluate.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { evaluateReadiness } from '@/lib/writing/readiness';
+
+type Data =
+  | {
+      pass: boolean;
+      missing: string[];
+      summary: {
+        recentBand?: number | null;
+        previousBand?: number | null;
+        bandDelta?: number | null;
+        recentWpm?: number | null;
+        requiredDrills: Record<string, number>;
+        completedDrills: Record<string, number>;
+      };
+    }
+  | { error: string };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/readiness/evaluate', { requestId, clientIp });
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised readiness check');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const gate = await evaluateReadiness(supabase, user.id);
+    logger.info('readiness evaluated', {
+      userId: user.id,
+      pass: gate.pass,
+      missing: gate.missing,
+      summary: gate.summary,
+    });
+
+    if (gate.pass) {
+      await trackor.log('writing_readiness_passed', {
+        user_id: user.id,
+        request_id: requestId,
+        ip: clientIp,
+        band_delta: gate.summary.bandDelta ?? null,
+      });
+    }
+
+    return res.status(200).json({ pass: gate.pass, missing: gate.missing, summary: gate.summary });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to evaluate readiness';
+    logger.error('failed to evaluate readiness', { error: message, userId: user.id });
+    return res.status(500).json({ error: message });
+  }
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 17 /       31 : pages/api/writing/reevaluate.ts =====
+import { env } from "@/lib/env";
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
+
+const BodySchema = z.object({
+  attemptId: z.string().uuid(),
+  mode: z.enum(['balanced', 'strict', 'coaching']),
+  focus: z.array(z.enum(['task', 'coherence', 'lexical', 'grammar', 'tone'])).optional().default([]),
+});
+
+const ReevalSchema = z.object({
+  band_overall: z.number().min(0).max(9),
+  band_breakdown: z.object({
+    task: z.number().min(0).max(9),
+    coherence: z.number().min(0).max(9),
+    lexical: z.number().min(0).max(9),
+    grammar: z.number().min(0).max(9),
+  }),
+  feedback: z.string().min(1),
+  model: z.string().min(1),
+});
+
+function promptForGemini(args: {
+  mode: 'balanced' | 'strict' | 'coaching';
+  focus: string[];
+  task_type: 'T1' | 'T2' | 'GT';
+  prompt: string;
+  essay_text: string;
+}) {
+  const { mode, focus, task_type, prompt, essay_text } = args;
+
+  const modeText =
+    mode === 'strict'
+      ? `Be conservative. Penalize structure/grammar more.`
+      : mode === 'coaching'
+      ? `Be supportive. Include concrete tips and short examples.`
+      : `Be neutral and rubric-faithful.`;
+
+  const focusText = focus.length
+    ? `Prioritize these areas: ${focus.join(', ')}.`
+    : `Evaluate all criteria evenly.`;
+
+  return [
+    `You are an IELTS examiner. Evaluate the essay strictly using IELTS ${task_type === 'GT' ? 'General Training Letter' : task_type === 'T1' ? 'Task 1 (Academic)' : 'Task 2'} rubrics.`,
+    modeText,
+    focusText,
+    `Return ONLY JSON with keys: band_overall (number, 0–9, use 0.5 increments), band_breakdown (object with task, coherence, lexical, grammar numbers), feedback (string), model (string: an ideal model answer outline or response appropriate to ${task_type}).`,
+    `Essay prompt:\n${prompt}`,
+    `---`,
+    `Student essay:\n${essay_text}`,
+  ].join('\n\n');
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // 1) Auth (user must be logged in)
+  const supabase = getServerClient(req, res);
+  const { data: userResp, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !userResp?.user) return res.status(401).json({ error: 'Unauthorized' });
+  const userId = userResp.user.id;
+
+  // 2) Validate body
+  const parse = BodySchema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
+  const { attemptId, mode, focus } = parse.data;
+
+  // 3) Fetch attempt (and ensure ownership)
+  const { data: attempt, error: attemptErr } = await supabase
+    .from('writing_attempts')
+    .select('id, user_id, task_type, prompt, essay_text')
+    .eq('id', attemptId)
+    .single();
+
+  if (attemptErr) return res.status(404).json({ error: 'Attempt not found' });
+  if (attempt.user_id && attempt.user_id !== userId) return res.status(403).json({ error: 'Forbidden' });
+
+  // 4) Call Gemini
+  try {
+    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY as string);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // or 'gemini-1.5-flash' for cheaper/faster
+
+    const prompt = promptForGemini({
+      mode,
+      focus,
+      task_type: attempt.task_type as 'T1' | 'T2' | 'GT',
+      prompt: attempt.prompt,
+      essay_text: attempt.essay_text,
+    });
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+      } as any,
+    });
+
+    const text = result.response.text();
+    const parsed = ReevalSchema.parse(JSON.parse(text));
+
+    // 5) Persist re-eval
+    const insertPayload = {
+      attempt_id: attemptId,
+      mode,
+      focus,
+      band_overall: parsed.band_overall,
+      band_breakdown: parsed.band_breakdown,
+      feedback: parsed.feedback,
+      model: parsed.model,
+    };
+
+    const { data: saved, error: insErr } = await supabase
+      .from('writing_reevals')
+      .insert(insertPayload)
+      .select('id, attempt_id, mode, focus, band_overall, band_breakdown, feedback, model, created_at')
+      .single();
+
+    if (insErr) return res.status(500).json({ error: 'Failed to save re-eval', details: insErr.message });
+
+    return res.status(200).json(saved);
+  } catch (e: any) {
+    // Handle malformed JSON or LLM errors gracefully
+    return res.status(500).json({
+      error: 'LLM evaluation failed',
+      details: e?.message ?? String(e),
+    });
+  }
+}
+
+===== FILE 18 /       31 : pages/api/writing/prompts/index.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getServerClient } from '@/lib/supabaseServer';
+import type { PlanId } from '@/types/pricing';
+import type { PromptCard } from '@/types/writing-dashboard';
+import { mapPromptRow } from '@/lib/writing/mappers';
+
+type ResponseBody =
+  | { ok: true; prompts: PromptCard[] }
+  | { ok: false; error: string };
+
+const PLAN_LIMIT: Record<PlanId, number> = {
+  free: 12,
+  starter: 100,
+  booster: 500,
+  master: 500,
+};
+
+async function handler(req: NextApiRequest, res: NextApiResponse<ResponseBody>) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return res.status(401).json({ ok: false, error: 'Not authenticated' });
+  }
+
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('plan_id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const planId = (profileRow?.plan_id as PlanId | undefined) ?? 'free';
+  const planLimit = PLAN_LIMIT[planId] ?? PLAN_LIMIT.starter;
+
+  const limitParam = Number.parseInt(String(req.query.limit ?? ''), 10);
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, planLimit) : planLimit;
+
+  const { data, error } = await supabase
+    .from('writing_prompts')
+    .select('id, slug, topic, task_type, difficulty, outline_json, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return res.status(500).json({ ok: false, error: error.message || 'Unable to load prompts' });
+  }
+
+  return res.status(200).json({ ok: true, prompts: (data ?? []).map(mapPromptRow) });
+}
+
+export default withPlan('starter', handler);
+
+===== FILE 19 /       31 : pages/api/writing/autosave.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+import { getServerClient } from '@/lib/supabaseServer';
+
+const Body = z.object({
+  attemptId: z.string().uuid(),
+  taskNumber: z.union([z.literal(1), z.literal(2)]),
+  answerText: z.string(),
+});
+
+type AutosaveResponse =
+  | { ok: true; savedAt: string; wordCount: number }
+  | { ok: false; error: string; details?: unknown };
+
+const countWords = (text: string) => {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).filter(Boolean).length;
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<AutosaveResponse>) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+
+  const parse = Body.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ ok: false, error: 'Invalid body', details: parse.error.flatten() });
+
+  const { attemptId, taskNumber, answerText } = parse.data;
+  const supabase = getServerClient(req, res);
+
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+  if (!user) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+  // Ensure attempt is owned and not submitted/evaluated (RLS + triggers also enforce, but we fail fast)
+  const { data: attempt, error: attemptErr } = await supabase
+    .from('writing_attempts')
+    .select('id, status')
+    .eq('id', attemptId)
+    .single();
+
+  if (attemptErr || !attempt) return res.status(404).json({ ok: false, error: 'Attempt not found' });
+
+  if (attempt.status === 'submitted' || attempt.status === 'evaluated') {
+    return res.status(409).json({ ok: false, error: 'Attempt is locked' });
+  }
+
+  const wc = countWords(answerText);
+  const savedAt = new Date().toISOString();
+
+  // Update answer row
+  const { error: updErr } = await supabase
+    .from('writing_attempt_answers')
+    .update({
+      answer_text: answerText,
+      word_count: wc,
+      last_saved_at: savedAt,
+    })
+    .eq('attempt_id', attemptId)
+    .eq('task_number', taskNumber);
+
+  if (updErr) return res.status(500).json({ ok: false, error: 'Autosave failed', details: updErr });
+
+  // Move attempt to in_progress (optional but useful)
+  await supabase
+    .from('writing_attempts')
+    .update({ status: 'in_progress' })
+    .eq('id', attemptId)
+    .eq('status', 'created');
+
+  return res.status(200).json({ ok: true, savedAt, wordCount: wc });
+}
+
+===== FILE 20 /       31 : pages/api/writing/critique/live.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { critiqueText } from '@/lib/writing/languageTools';
+import { z } from 'zod';
+
+const Body = z.object({
+  text: z.string().max(25000),
+});
+
+type Data =
+  | {
+      suggestions: ReturnType<typeof critiqueText>;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/critique/live', { requestId });
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid critique payload', { requestId, issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    logger.warn('unauthorised critique request', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const suggestions = critiqueText(parsed.data.text);
+  logger.info('live critique generated', { userId: user.id, suggestionCount: suggestions.length, requestId });
+
+  return res.status(200).json({ suggestions });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 21 /       31 : pages/api/writing/export/pdf.ts =====
+// pages/api/writing/export/pdf.ts
+// Generates a lightweight PDF summary for a writing attempt.
+
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan, type PlanGuardContext } from '@/lib/api/withPlan';
+import type { WritingScorePayload } from '@/types/writing';
+
+const escapePdf = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+function buildPdf(lines: string[]): Buffer {
+  const content = lines
+    .slice(0, 30)
+    .map((line, index) => `BT /F1 12 Tf 50 ${760 - index * 20} Td (${escapePdf(line)}) Tj ET`)
+    .join('\n');
+
+  const objects = [
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+    '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+    '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj',
+    `4 0 obj << /Length ${content.length} >> stream\n${content}\nendstream endobj`,
+    '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+  ];
+
+  const header = '%PDF-1.4';
+  const segments = [header];
+  const xref: string[] = [];
+  let offset = header.length + 1;
+  xref.push('0000000000 65535 f ');
+
+  for (const object of objects) {
+    segments.push(object);
+    const record = `${offset.toString().padStart(10, '0')} 00000 n `;
+    xref.push(record);
+    offset += object.length + 1;
+  }
+
+  const xrefStart = offset;
+  segments.push('xref');
+  segments.push(`0 ${objects.length + 1}`);
+  segments.push(...xref);
+  segments.push('trailer << /Size ' + (objects.length + 1) + ' /Root 1 0 R >>');
+  segments.push('startxref');
+  segments.push(String(xrefStart));
+  segments.push('%%EOF');
+
+  return Buffer.from(segments.join('\n'), 'utf8');
+}
+
+export async function writingExportHandler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  ctx: PlanGuardContext,
+) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  if (!ctx.flags.writingExports) {
+    res.status(404).json({ error: 'Export unavailable' });
+    return;
+  }
+
+  const attemptId = req.query.attemptId as string | undefined;
+  if (!attemptId) {
+    res.status(400).json({ error: 'Missing attemptId' });
+    return;
+  }
+
+  const { data: attempt, error: attemptError } = await ctx.supabase
+    .from('exam_attempts')
+    .select('id, user_id, submitted_at, updated_at')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptError || !attempt) {
+    res.status(404).json({ error: 'Attempt not found' });
+    return;
+  }
+
+  if (attempt.user_id !== ctx.user.id && ctx.role !== 'admin' && ctx.role !== 'teacher') {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+
+  const { data: responses, error: responseError } = await ctx.supabase
+    .from('writing_responses')
+    .select('task, answer_text, overall_band, band_scores, feedback')
+    .eq('exam_attempt_id', attemptId);
+
+  if (responseError) {
+    res.status(500).json({ error: 'Failed to load responses' });
+    return;
+  }
+
+  const scores = (responses ?? [])
+    .filter((row) => row.task === 'task1' || row.task === 'task2')
+    .map((row) => ({
+      task: row.task,
+      band: Number(row.overall_band ?? 0),
+      feedback: (row.feedback as WritingScorePayload['feedback']) ?? null,
+    }));
+
+  if (scores.length === 0) {
+    res.status(400).json({ error: 'Scores not ready' });
+    return;
+  }
+
+  const avg = scores.reduce((sum, item) => sum + item.band, 0) / scores.length;
+
+  const lines = [
+    'GramorX Writing Report',
+    `Attempt: ${attemptId}`,
+    `Generated: ${new Date().toISOString()}`,
+    `Average band: ${avg.toFixed(1)}`,
+    '',
+  ];
+
+  scores.forEach((score) => {
+    lines.push(`Task ${score.task?.toString().replace('task', '') ?? ''}: Band ${score.band.toFixed(1)}`);
+    const summary = score.feedback?.summary ?? 'Feedback not available.';
+    lines.push(summary.length > 140 ? `${summary.slice(0, 137)}...` : summary);
+    lines.push('');
+  });
+
+  const buffer = buildPdf(lines);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="writing-${attemptId}.pdf"`);
+  res.status(200).send(buffer);
+}
+
+export default withPlan('booster', writingExportHandler, {
+  allowRoles: ['admin', 'teacher'],
+  killSwitchFlag: 'killSwitchWriting',
+});
+
+
+===== FILE 22 /       31 : pages/api/writing/worker/run-once.ts =====
+// pages/api/writing/worker/run-once.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import { evaluateWritingAttempt } from '@/lib/writing/evaluation/evaluate';
+import type { WritingEvalInput } from '@/lib/writing/evaluation/types';
+
+type ApiOk =
+  | { ok: true; processed: true; attemptId: string; mode: 'queued' | 'forced' | 'already_done' }
+  | { ok: true; processed: false; reason: 'no_jobs' };
+
+type ApiErr = { ok: false; error: string };
+
+const Body = z.object({
+  // Optional: run worker for a specific attempt (debug / admin)
+  attemptId: z.string().uuid().optional(),
+});
+
+const ANSWER_TABLE_CANDIDATES = [
+  // common names
+  'writing_attempt_answers',
+  'writing_user_answers',
+] as const;
+
+type AnswerRow = {
+  task_number: number | null;
+  text: string | null;
+};
+
+const pickText = (rows: AnswerRow[] | null | undefined, taskNumber: 1 | 2) => {
+  const row = rows?.find((r) => Number(r.task_number) === taskNumber);
+  return String(row?.text ?? '').trim();
+};
+
+async function loadAnswers(supabase: ReturnType<typeof getServerClient>, attemptId: string) {
+  for (const table of ANSWER_TABLE_CANDIDATES) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('task_number, text')
+      .eq('attempt_id', attemptId);
+
+    if (!error && Array.isArray(data)) {
+      return { tableUsed: table, rows: data as AnswerRow[] };
+    }
+  }
+  return { tableUsed: null as string | null, rows: [] as AnswerRow[] };
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiOk | ApiErr>,
+) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+
+  // Worker auth
+  const secret = process.env.WRITING_WORKER_SECRET;
+  const headerSecret = req.headers['x-worker-secret'];
+  const provided = Array.isArray(headerSecret) ? headerSecret[0] : headerSecret;
+
+  if (!secret) return res.status(500).json({ ok: false, error: 'WRITING_WORKER_SECRET not set' });
+  if (!provided || provided !== secret) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+  const parse = Body.safeParse(req.body ?? {});
+  if (!parse.success) return res.status(400).json({ ok: false, error: 'Invalid body' });
+
+  const supabase = getServerClient(req, res);
+
+  const forcedAttemptId = parse.data.attemptId;
+
+  // 1) Find a job (or create one if forced)
+  let attemptId: string | null = null;
+
+  if (forcedAttemptId) {
+    attemptId = forcedAttemptId;
+
+    // Ensure job row exists so your UI + DB stays consistent
+    await supabase.from('writing_eval_jobs').upsert(
+      {
+        attempt_id: attemptId,
+        status: 'queued',
+        attempts: 0,
+        locked_at: null,
+        last_error: null,
+      },
+      { onConflict: 'attempt_id' },
+    );
+  } else {
+    const { data: jobRow, error: jobErr } = await supabase
+      .from('writing_eval_jobs')
+      .select('attempt_id, status, attempts')
+      .eq('status', 'queued')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (jobErr) return res.status(500).json({ ok: false, error: 'Failed to fetch job' });
+    if (!jobRow) return res.status(200).json({ ok: true, processed: false, reason: 'no_jobs' });
+
+    attemptId = String(jobRow.attempt_id);
+  }
+
+  if (!attemptId) return res.status(200).json({ ok: true, processed: false, reason: 'no_jobs' });
+
+  // 2) Lock job
+  const { data: existingJob, error: jobFetchErr } = await supabase
+    .from('writing_eval_jobs')
+    .select('attempt_id, status, attempts')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (jobFetchErr || !existingJob) {
+    return res.status(500).json({ ok: false, error: 'Job not found (unexpected)' });
+  }
+
+  // If someone else is running it, we still proceed in dev; but keep it safe:
+  const nextAttempts = Number(existingJob.attempts ?? 0) + 1;
+
+  const { error: lockErr } = await supabase
+    .from('writing_eval_jobs')
+    .update({
+      status: 'running',
+      locked_at: new Date().toISOString(),
+      attempts: nextAttempts,
+      last_error: null,
+    })
+    .eq('attempt_id', attemptId)
+    .in('status', ['queued', 'running']); // allow resume
+
+  if (lockErr) return res.status(500).json({ ok: false, error: 'Failed to lock job' });
+
+  try {
+    // 3) If evaluation already exists, mark job done and exit (idempotent)
+    const { data: existingEval, error: existingEvalErr } = await supabase
+      .from('writing_evaluations')
+      .select('attempt_id')
+      .eq('attempt_id', attemptId)
+      .maybeSingle();
+
+    if (existingEvalErr) throw new Error('Failed to check existing evaluation');
+
+    if (existingEval?.attempt_id) {
+      await supabase.from('writing_eval_jobs').update({ status: 'done', last_error: null }).eq('attempt_id', attemptId);
+
+      // attempt might have evaluated_at empty, set it
+      await supabase
+        .from('writing_attempts')
+        .update({ evaluated_at: new Date().toISOString() })
+        .eq('id', attemptId)
+        .is('evaluated_at', null);
+
+      return res.status(200).json({ ok: true, processed: true, attemptId, mode: 'already_done' });
+    }
+
+    // 4) Load attempt
+    const { data: attempt, error: attemptErr } = await supabase
+      .from('writing_attempts')
+      .select('id, user_id, mode, status')
+      .eq('id', attemptId)
+      .maybeSingle();
+
+    if (attemptErr) throw new Error('Failed to load attempt');
+    if (!attempt) throw new Error('Attempt not found');
+
+    const attemptStatus = String(attempt.status ?? '');
+    if (attemptStatus !== 'submitted' && attemptStatus !== 'locked') {
+      throw new Error(`Attempt not ready (status=${attemptStatus})`);
+    }
+
+    const userId = String(attempt.user_id);
+
+    // 5) Load answers (tries multiple table names)
+    const { tableUsed, rows } = await loadAnswers(supabase, attemptId);
+
+    const task1Text = pickText(rows, 1);
+    const task2Text = pickText(rows, 2);
+
+    // If nothing found, fail clearly (don’t store fake eval)
+    if (!task1Text && !task2Text) {
+      throw new Error(
+        `No answers found for attempt. Checked tables: ${ANSWER_TABLE_CANDIDATES.join(', ')}.`,
+      );
+    }
+
+    // 6) Prompts / mins (fallback defaults — your schema didn’t show test linkage)
+    const task1Prompt = '';
+    const task2Prompt = '';
+
+    const task1Min = 150;
+    const task2Min = 250;
+
+    // 7) Evaluate (Day 23 strict rules)
+    const input: WritingEvalInput = {
+      attemptId,
+      userId,
+      task1: { prompt: task1Prompt, text: task1Text, minWords: task1Min },
+      task2: { prompt: task2Prompt, text: task2Text, minWords: task2Min },
+      meta: { answers_table: tableUsed ?? 'unknown', mode: String(attempt.mode ?? '') },
+    };
+
+    const evalResult = await evaluateWritingAttempt(input);
+
+    // 8) Store evaluation (idempotent upsert)
+    const { error: storeErr } = await supabase.from('writing_evaluations').upsert(
+      {
+        attempt_id: attemptId,
+        user_id: userId,
+
+        overall_band: evalResult.overallBand,
+        task1_band: evalResult.task1Band,
+        task2_band: evalResult.task2Band,
+
+        criteria_tr: evalResult.criteria.TR,
+        criteria_cc: evalResult.criteria.CC,
+        criteria_lr: evalResult.criteria.LR,
+        criteria_gra: evalResult.criteria.GRA,
+
+        short_verdict_task1: evalResult.shortVerdictTask1 ?? null,
+        short_verdict_task2: evalResult.shortVerdictTask2 ?? null,
+
+        criteria_notes: evalResult.criteriaNotes ?? {},
+        task_notes: evalResult.taskNotes ?? {},
+
+        warnings: evalResult.warnings ?? [],
+        next_steps: evalResult.nextSteps ?? [],
+
+        provider: evalResult.provider,
+        model: evalResult.model,
+        meta: evalResult.meta ?? {},
+      },
+      { onConflict: 'attempt_id' },
+    );
+
+    if (storeErr) throw new Error('Failed to store evaluation');
+
+    // 9) Update attempt evaluated_at
+    const { error: attemptUpdateErr } = await supabase
+      .from('writing_attempts')
+      .update({ evaluated_at: new Date().toISOString() })
+      .eq('id', attemptId);
+
+    if (attemptUpdateErr) throw new Error('Failed to update attempt evaluated_at');
+
+    // 10) Mark job done
+    const { error: doneErr } = await supabase
+      .from('writing_eval_jobs')
+      .update({ status: 'done', last_error: null })
+      .eq('attempt_id', attemptId);
+
+    if (doneErr) throw new Error('Failed to mark job done');
+
+    return res.status(200).json({
+      ok: true,
+      processed: true,
+      attemptId,
+      mode: forcedAttemptId ? 'forced' : 'queued',
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Worker failed';
+
+    await supabase
+      .from('writing_eval_jobs')
+      .update({ status: 'failed', last_error: msg })
+      .eq('attempt_id', attemptId);
+
+    return res.status(500).json({ ok: false, error: msg });
+  }
+}
+
+===== FILE 23 /       31 : pages/api/writing/drills/complete.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { evaluateReadiness } from '@/lib/writing/readiness';
+import { DrillCompleteBody } from '@/lib/writing/schemas';
+
+type Data = { ok: true } | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/drills/complete', { requestId, clientIp });
+  const startedAt = Date.now();
+
+  const parsed = DrillCompleteBody.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised drill completion');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { attemptId, tags } = parsed.data;
+
+  if (attemptId) {
+    const { data: attemptRow, error: attemptError } = await supabase
+      .from('writing_attempts')
+      .select('user_id')
+      .eq('id', attemptId)
+      .maybeSingle();
+
+    if (attemptError) {
+      logger.error('failed to validate attempt for drill', { error: attemptError.message, attemptId, userId: user.id });
+      return res.status(500).json({ error: attemptError.message });
+    }
+
+    if (!attemptRow || attemptRow.user_id !== user.id) {
+      logger.warn('drill completion forbidden for attempt', { attemptId, userId: user.id });
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+
+  const { error } = await supabase
+    .from('writing_drill_events')
+    .insert({
+      user_id: user.id,
+      attempt_id: attemptId ?? null,
+      tags,
+    });
+
+  if (error) {
+    logger.error('failed to record drill completion', { error: error.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: error.message });
+  }
+
+  const gate = await evaluateReadiness(supabase, user.id);
+
+  const latency = Date.now() - startedAt;
+  logger.info('drill completion recorded', {
+    userId: user.id,
+    attemptId: attemptId ?? null,
+    tags,
+    readinessPass: gate.pass,
+    latencyMs: latency,
+  });
+
+  await trackor.log('writing_drill_completed', {
+    user_id: user.id,
+    attempt_id: attemptId ?? null,
+    tags,
+    readiness_pass: gate.pass ? 1 : 0,
+    latency_ms: latency,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  return res.status(200).json({ ok: true });
+}
+
+export default withPlan('free', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 24 /       31 : pages/api/writing/drills/recommend.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { recommendDrills } from '@/lib/writing/drills';
+import { z } from 'zod';
+
+const Body = z.object({
+  weakCriteria: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+  limit: z.number().int().positive().max(8).optional(),
+});
+
+type Data =
+  | {
+      drills: ReturnType<typeof recommendDrills>;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/drills/recommend', { requestId });
+
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid drill recommend payload', { requestId, issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    logger.warn('unauthorised drill recommendation', { requestId });
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const drills = recommendDrills(parsed.data);
+  logger.info('drill recommendations generated', {
+    userId: user.id,
+    requestId,
+    weakCriteria: parsed.data.weakCriteria ?? [],
+    tags: parsed.data.tags ?? [],
+    count: drills.length,
+  });
+
+  return res.status(200).json({ drills });
+}
+
+export default withPlan('free', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 25 /       31 : pages/api/writing/notifications/micro-prompt.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getRequestId } from '@/lib/api/requestContext';
+import { dispatchWhatsAppTask } from '@/lib/tasks/whatsapp';
+import { buildRetakeReminder, ensureNotificationChannels, getDailyMicroPrompt, shouldSendMicroPromptToday } from '@/lib/writing/notifications';
+import { MicroPromptRequestBody } from '@/lib/writing/schemas';
+
+interface MicroPromptGetResponse {
+  ok: true;
+  message: string;
+  lastSentAt: string | null;
+  channels: string[];
+  canSendWhatsApp: boolean;
+  alreadySentToday: boolean;
+  retakeReminder: {
+    message: string;
+    completion: number;
+    missing: string[];
+  } | null;
+}
+
+interface MicroPromptPostResponse {
+  ok: true;
+  message: string;
+  delivered: { channel: string; notificationId?: string | null }[];
+}
+
+interface ErrorResponse {
+  ok: false;
+  error: string;
+  code?: string;
+}
+
+type Response = MicroPromptGetResponse | MicroPromptPostResponse | ErrorResponse;
+
+const ROUTE_NAME = 'api/writing/notifications/micro-prompt';
+
+async function loadProfileAndPlan(supabase: ReturnType<typeof getServerClient>, userId: string) {
+  const [profileRes, redraftRes, drillRes, mockRes, readinessRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('notification_channels, whatsapp_opt_in, phone, settings')
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .from('writing_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .not('version_of', 'is', null),
+    supabase
+      .from('writing_drill_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    supabase
+      .from('writing_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .is('version_of', null)
+      .eq('status', 'scored'),
+    supabase
+      .from('writing_readiness')
+      .select('window_start, window_end, status')
+      .eq('user_id', userId)
+      .order('window_start', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  return {
+    profileRow: profileRes.data ?? null,
+    planSummary: {
+      redraftsCompleted: redraftRes.count ?? 0,
+      drillsCompleted: drillRes.count ?? 0,
+      mocksCompleted: mockRes.count ?? 0,
+    },
+    readiness: readinessRes.data ?? null,
+  } as const;
+}
+
+async function getLastMicroPrompt(supabase: ReturnType<typeof getServerClient>, userId: string) {
+  const { data } = await supabase
+    .from('writing_notification_events')
+    .select('id, channel, created_at, message')
+    .eq('user_id', userId)
+    .eq('type', 'micro_prompt')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Response>) {
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger(ROUTE_NAME, { requestId });
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    logger.warn('unauthorized', { reason: authError?.message });
+    return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'auth_required' });
+  }
+
+  if (req.method === 'GET') {
+    const [{ profileRow, planSummary, readiness }, lastEvent] = await Promise.all([
+      loadProfileAndPlan(supabase, user.id),
+      getLastMicroPrompt(supabase, user.id),
+    ]);
+
+    const channels = ensureNotificationChannels(profileRow?.notification_channels ?? []);
+    const microPrompt = getDailyMicroPrompt();
+    const alreadySentToday = !shouldSendMicroPromptToday(lastEvent?.created_at ?? null);
+
+    const retakeReminder = buildRetakeReminder(
+      {
+        windowStart:
+          readiness?.window_start ?? new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        windowEnd: readiness?.window_end ?? null,
+        ...planSummary,
+      },
+      { redrafts: 6, drills: 8, mocks: 2 },
+    );
+
+    return res.status(200).json({
+      ok: true,
+      message: microPrompt.message,
+      lastSentAt: lastEvent?.created_at ?? null,
+      channels,
+      canSendWhatsApp: channels.includes('whatsapp') && Boolean(profileRow?.whatsapp_opt_in),
+      alreadySentToday,
+      retakeReminder,
+    });
+  }
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'GET,POST');
+    return res.status(405).json({ ok: false, error: 'Method not allowed', code: 'method_not_allowed' });
+  }
+
+  const parseResult = MicroPromptRequestBody.safeParse(req.body ?? {});
+  if (!parseResult.success) {
+    logger.warn('invalid body', { issues: parseResult.error.issues });
+    return res.status(400).json({ ok: false, error: 'Invalid request body', code: 'invalid_body' });
+  }
+
+  const [{ profileRow }, lastEvent] = await Promise.all([
+    loadProfileAndPlan(supabase, user.id),
+    getLastMicroPrompt(supabase, user.id),
+  ]);
+
+  const allowedChannels = ensureNotificationChannels(
+    parseResult.data.channels ?? profileRow?.notification_channels ?? [],
+  );
+
+  const microPrompt = getDailyMicroPrompt();
+  const alreadySentToday = !shouldSendMicroPromptToday(lastEvent?.created_at ?? null);
+
+  if (alreadySentToday) {
+    logger.info('micro prompt already sent today', { userId: user.id, lastSentAt: lastEvent?.created_at });
+    return res.status(200).json({
+      ok: true,
+      message: microPrompt.message,
+      delivered: [],
+    });
+  }
+
+  const deliveries: { channel: string; notificationId?: string | null }[] = [];
+
+  if (allowedChannels.includes('in_app')) {
+    const { data: notificationRow, error: notificationError } = await supabase
+      .from('notifications')
+      .insert({ user_id: user.id, message: microPrompt.message, url: '/writing' })
+      .select('id')
+      .single();
+
+    if (notificationError) {
+      logger.error('failed to create in-app notification', { error: notificationError.message });
+      return res.status(500).json({ ok: false, error: 'Failed to queue notification', code: 'notification_failed' });
+    }
+
+    deliveries.push({ channel: 'in_app', notificationId: notificationRow?.id ?? null });
+
+    await supabase.from('writing_notification_events').insert({
+      user_id: user.id,
+      channel: 'in_app',
+      type: 'micro_prompt',
+      message: microPrompt.message,
+      metadata: { source: parseResult.data.source, notification_id: notificationRow?.id ?? null },
+    });
+  }
+
+  if (allowedChannels.includes('whatsapp') && profileRow?.whatsapp_opt_in) {
+    try {
+      await dispatchWhatsAppTask(supabase, {
+        userId: user.id,
+        type: 'task',
+        message: `${microPrompt.message}\n\nReply DONE when you have applied this tip in today’s draft.`,
+        metadata: { source: ROUTE_NAME, reason: parseResult.data.source },
+      });
+      deliveries.push({ channel: 'whatsapp' });
+      await supabase.from('writing_notification_events').insert({
+        user_id: user.id,
+        channel: 'whatsapp',
+        type: 'micro_prompt',
+        message: microPrompt.message,
+        metadata: { source: parseResult.data.source, delivery: 'queued' },
+      });
+    } catch (error) {
+      logger.error('failed to queue whatsapp task', { error: error instanceof Error ? error.message : error });
+      return res.status(502).json({ ok: false, error: 'Failed to queue WhatsApp micro prompt', code: 'whatsapp_failed' });
+    }
+  }
+
+  logger.info('micro prompt delivered', { userId: user.id, deliveries });
+
+  return res.status(200).json({
+    ok: true,
+    message: microPrompt.message,
+    delivered: deliveries,
+  });
+}
+
+===== FILE 26 /       31 : pages/api/writing/submit.ts =====
+// pages/api/writing/submit.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+
+import { getServerClient } from '@/lib/supabaseServer';
+import type { Database } from '@/lib/database.types';
+
+type Db = Database['public'];
+
+const Body = z.object({
+  attemptId: z.string().uuid(),
+  autoSubmitted: z.boolean().optional(),
+});
+
+type Ok = {
+  ok: true;
+  attemptId: string;
+  submittedAt: string;
+};
+
+type Err = {
+  error: string;
+  details?: unknown;
+  got?: unknown;
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Ok | Err>) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const rawBody: unknown = req.body;
+  const maybeParsed: unknown =
+    typeof rawBody === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(rawBody) as unknown;
+          } catch {
+            return rawBody;
+          }
+        })()
+      : rawBody;
+
+  const parse = Body.safeParse(maybeParsed);
+  if (!parse.success) {
+    return res.status(400).json({
+      error: 'Invalid body',
+      details: parse.error.flatten(),
+      got: maybeParsed,
+    });
+  }
+
+  const { attemptId } = parse.data;
+
+  const supabase = getServerClient(req, res);
+
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+
+  if (userErr) return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  // Load attempt + verify ownership
+  const attemptRes = await supabase
+    .from('writing_attempts')
+    .select('id,user_id,status,submitted_at')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptRes.error) return res.status(500).json({ error: attemptRes.error.message });
+  if (!attemptRes.data) return res.status(404).json({ error: 'Attempt not found' });
+  if (attemptRes.data.user_id !== user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  // Already submitted → return OK
+  if (attemptRes.data.submitted_at) {
+    return res.status(200).json({
+      ok: true,
+      attemptId,
+      submittedAt: new Date(attemptRes.data.submitted_at).toISOString(),
+    });
+  }
+
+  const nowIso = new Date().toISOString();
+
+  const updateRes = await supabase
+    .from('writing_attempts')
+    .update({
+      status: 'submitted',
+      submitted_at: nowIso,
+    } satisfies Partial<Db['Tables']['writing_attempts']['Update']>)
+    .eq('id', attemptId)
+    .eq('user_id', user.id)
+    .select('id,submitted_at')
+    .maybeSingle();
+
+  if (updateRes.error) return res.status(500).json({ error: updateRes.error.message });
+  if (!updateRes.data?.submitted_at) return res.status(500).json({ error: 'Submit failed' });
+
+  return res.status(200).json({
+    ok: true,
+    attemptId,
+    submittedAt: new Date(updateRes.data.submitted_at).toISOString(),
+  });
+}
+
+===== FILE 27 /       31 : pages/api/writing/log-complete.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
+import { getServerClient } from '@/lib/supabaseServer';
+
+const Body = z.object({
+  kind: z.enum(['tip', 'micro']),
+  refId: z.string().min(1),
+  draft: z.string().optional(), // optional text the user wrote (for future analytics)
+});
+
+type Ok = { ok: true; id: string; createdAt: string };
+type Err = { error: string; details?: unknown };
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Ok | Err>) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const parse = Body.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({ error: 'Invalid body', details: parse.error.flatten() });
+  }
+
+  const { kind, refId, draft } = parse.data;
+
+  const supabase = getServerClient(req, res);
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  // build a tiny meta payload (safe to expand later)
+  const meta = {
+    draft_len: typeof draft === 'string' ? Math.min(draft.length, 10000) : 0,
+  };
+
+  const { data, error } = await supabase
+    .from('writing_activity_log')
+    .insert({
+      user_id: user.id,
+      kind,
+      ref_id: refId,
+      meta,
+    })
+    .select('id, created_at')
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Insert failed', details: { code: error.code, message: error.message } });
+  }
+
+  return res.status(200).json({ ok: true, id: data!.id as string, createdAt: data!.created_at as string });
+}
+
+===== FILE 28 /       31 : pages/api/writing/reports/[token].ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const { token } = req.query;
+  if (typeof token !== 'string') {
+    res.status(400).json({ error: 'Invalid token' });
+    return;
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/reports/download', { requestId, clientIp });
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const { data: report, error } = await supabase
+    .from('writing_band_reports')
+    .select('pdf, user_id, created_at')
+    .eq('download_token', token)
+    .maybeSingle();
+
+  if (error) {
+    logger.error('failed to load band report', { error: error.message, token });
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  if (!report || report.user_id !== user.id) {
+    res.status(404).json({ error: 'Report not found' });
+    return;
+  }
+
+  const pdfBuffer = Buffer.isBuffer(report.pdf)
+    ? (report.pdf as Buffer)
+    : Buffer.from((report.pdf as string) ?? '', 'base64');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="band-report-${report.created_at ?? 'latest'}.pdf"`);
+  res.send(pdfBuffer);
+}
+
+===== FILE 29 /       31 : pages/api/writing/reports/band.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { sendTransactionalEmail } from '@/lib/email';
+import { getServerClient } from '@/lib/supabaseServer';
+import { dispatchWhatsAppTask } from '@/lib/tasks/whatsapp';
+import { buildBandReportPdf } from '@/lib/writing/reporting';
+import { evaluateReadiness } from '@/lib/writing/readiness';
+import { BandReportBody } from '@/lib/writing/schemas';
+
+const DEFAULT_RANGE_DAYS = 7;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://app.gramorx.com');
+
+type Data =
+  | {
+      downloadToken: string;
+      reportId: string;
+    }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/reports/band', { requestId, clientIp });
+
+  const parsed = BandReportBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    logger.warn('invalid band report payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const rangeDays = parsed.data.rangeDays ?? DEFAULT_RANGE_DAYS;
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const periodEnd = new Date();
+  const periodStart = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+
+  const [{ data: profile }, { data: attempts }, { data: drills }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, email, notification_channels, phone')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('writing_attempts')
+      .select('id, created_at, overall_band, scores_json, writing_prompts(topic)')
+      .eq('user_id', user.id)
+      .eq('status', 'scored')
+      .gte('created_at', periodStart.toISOString())
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('writing_drill_events')
+      .select('tags')
+      .eq('user_id', user.id)
+      .gte('completed_at', periodStart.toISOString()),
+  ]);
+
+  const readiness = await evaluateReadiness(supabase, user.id);
+
+  const attemptSummaries = (attempts ?? []).map((row, index, arr) => {
+    const prev = arr[index + 1];
+    const band = row.overall_band ?? null;
+    const prevBand = prev?.overall_band ?? null;
+    const delta = band !== null && prevBand !== null ? band - prevBand : null;
+    return {
+      topic: (row.writing_prompts as { topic?: string } | null)?.topic ?? 'Prompt',
+      createdAt: row.created_at,
+      band,
+      delta,
+    };
+  });
+
+  const averageBand = attemptSummaries.length
+    ? attemptSummaries.reduce((sum, attempt) => sum + (attempt.band ?? 0), 0) / attemptSummaries.length
+    : null;
+
+  const drillSummary = (drills ?? []).reduce<Record<string, number>>((acc, row) => {
+    const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
+    tags.forEach((tag) => {
+      acc[tag] = (acc[tag] ?? 0) + 1;
+    });
+    return acc;
+  }, {});
+
+  const pdf = await buildBandReportPdf({
+    userName: profile?.full_name ?? 'Learner',
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
+    averageBand,
+    attempts: attemptSummaries,
+    drills: { total: drills?.length ?? 0, tags: drillSummary },
+    readiness: { pass: readiness.pass, missing: readiness.missing },
+  });
+
+  const summary = {
+    rangeDays,
+    attemptCount: attemptSummaries.length,
+    averageBand,
+    drillCount: drills?.length ?? 0,
+    readiness: readiness.pass ? 'pass' : 'fail',
+  };
+
+  const channels = new Set(parsed.data.channels ?? profile?.notification_channels ?? ['in_app']);
+
+  const { data: reportRow, error: insertError } = await supabase
+    .from('writing_band_reports')
+    .insert({
+      user_id: user.id,
+      period_start: periodStart.toISOString(),
+      period_end: periodEnd.toISOString(),
+      summary,
+      pdf,
+      channels: Array.from(channels),
+    })
+    .select('id, download_token')
+    .single();
+
+  if (insertError || !reportRow) {
+    logger.error('failed to save band report', { error: insertError?.message, userId: user.id });
+    return res.status(500).json({ error: insertError?.message ?? 'Failed to generate report' });
+  }
+
+  const downloadUrl = `${SITE_URL}/api/writing/reports/${reportRow.download_token}`;
+
+  if (channels.has('email') && profile?.email) {
+    try {
+      await sendTransactionalEmail({
+        to: profile.email,
+        subject: 'Your GramorX writing band report is ready',
+        text: `Download your report: ${downloadUrl}`,
+        html: `<p>Your weekly writing band report is ready.</p><p><a href="${downloadUrl}">Download the PDF</a></p>`,
+        attachments: [
+          {
+            filename: `band-report-${periodEnd.toISOString().slice(0, 10)}.pdf`,
+            content: pdf.toString('base64'),
+            mimetype: 'application/pdf',
+          },
+        ],
+      });
+    } catch (error) {
+      logger.warn('email delivery failed', { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  if (channels.has('whatsapp') && profile?.phone) {
+    try {
+      await dispatchWhatsAppTask(supabase, {
+        userId: user.id,
+        type: 'task',
+        message: `Your GramorX writing band report is ready. Download it here: ${downloadUrl}`,
+        metadata: { reportId: reportRow.id },
+      });
+    } catch (error) {
+      logger.warn('whatsapp dispatch failed', { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  await supabase
+    .from('writing_band_reports')
+    .update({ sent_at: new Date().toISOString() })
+    .eq('id', reportRow.id);
+
+  await trackor.log('writing_band_report_generated', {
+    user_id: user.id,
+    report_id: reportRow.id,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  return res.status(200).json({ downloadToken: reportRow.download_token, reportId: reportRow.id });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 30 /       31 : pages/api/writing/reviews/calibrate.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getRequestId } from '@/lib/api/requestContext';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import calibration from '@/data/writing/review-calibration';
+import { z } from 'zod';
+
+const SubmitBody = z.object({
+  anchorId: z.string(),
+  ratings: z.object({
+    TR: z.number().min(0).max(9),
+    CC: z.number().min(0).max(9),
+    LR: z.number().min(0).max(9),
+    GRA: z.number().min(0).max(9),
+  }),
+  notes: z.string().max(500).optional(),
+});
+
+type Data =
+  | { anchors: typeof calibration }
+  | { ok: true }
+  | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  const requestId = getRequestId(req);
+  const logger = createRequestLogger('api/writing/reviews/calibrate', { requestId });
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (req.method === 'GET') {
+    logger.info('served calibration anchors', { userId: user.id, requestId });
+    return res.status(200).json({ anchors: calibration });
+  }
+
+  if (req.method === 'POST') {
+    const parsed = SubmitBody.safeParse(req.body);
+    if (!parsed.success) {
+      logger.warn('invalid calibration submission', { requestId, issues: parsed.error.flatten() });
+      return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+    }
+
+    await supabase
+      .from('writing_drill_events')
+      .insert({
+        user_id: user.id,
+        attempt_id: null,
+        tags: ['CALIBRATION_PASSED'],
+      });
+
+    logger.info('calibration recorded', { userId: user.id, anchorId: parsed.data.anchorId, requestId });
+    return res.status(200).json({ ok: true });
+  }
+
+  res.setHeader('Allow', 'GET, POST');
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+
+===== FILE 31 /       31 : pages/api/writing/reviews/submit.ts =====
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { withPlan } from '@/lib/apiGuard';
+import { getClientIp, getRequestId } from '@/lib/api/requestContext';
+import { trackor } from '@/lib/analytics/trackor.server';
+import { createRequestLogger } from '@/lib/obs/logger';
+import { getServerClient } from '@/lib/supabaseServer';
+import { ReviewSubmitBody } from '@/lib/writing/schemas';
+
+type Data = { ok: true } | { error: string; details?: unknown };
+
+async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestId = getRequestId(req);
+  const clientIp = getClientIp(req);
+  const logger = createRequestLogger('api/writing/reviews/submit', { requestId, clientIp });
+  const parsed = ReviewSubmitBody.safeParse(req.body);
+  if (!parsed.success) {
+    logger.warn('invalid payload', { issues: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+  }
+
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    logger.warn('unauthorised review submission');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { attemptId, role, scores, comments, audioUrl } = parsed.data;
+
+  const [{ data: profile }] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+  ]);
+
+  const { data: attemptRow, error: attemptError } = await supabase
+    .from('writing_attempts')
+    .select('user_id, status')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptError) {
+    logger.error('failed to load attempt for review submission', { error: attemptError.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: attemptError.message });
+  }
+
+  if (!attemptRow) {
+    logger.warn('attempt not found for review submission', { attemptId, userId: user.id });
+    return res.status(404).json({ error: 'Attempt not found' });
+  }
+
+  const reviewerRole = profile?.role ?? 'user';
+  const isCoach = reviewerRole === 'teacher' || reviewerRole === 'admin';
+  const isOwner = attemptRow.user_id === user.id;
+
+  if (!isOwner && !isCoach && role !== 'peer') {
+    logger.warn('review forbidden due to role mismatch', { attemptId, reviewerRole, requestedRole: role, userId: user.id });
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (role === 'peer' && !isOwner && !isCoach) {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from('writing_drill_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .contains('tags', ['CALIBRATION_PASSED'])
+      .gte('completed_at', ninetyDaysAgo);
+
+    if ((count ?? 0) === 0) {
+      logger.warn('peer review blocked by calibration gate', { attemptId, userId: user.id });
+      return res.status(403).json({
+        error: 'Complete calibration first',
+        details: { missing: ['Finish the peer calibration essays'] },
+      });
+    }
+  }
+
+  if (role === 'teacher' && !isCoach) {
+    logger.warn('teacher review requires elevated role', { attemptId, userId: user.id, reviewerRole });
+    return res.status(403).json({ error: 'Teacher role required' });
+  }
+
+  if (attemptRow.status !== 'scored' && role !== 'teacher') {
+    logger.info('review blocked until scoring completes', { attemptId, status: attemptRow.status, userId: user.id });
+    return res.status(409).json({ error: 'Attempt must be scored before reviews are added' });
+  }
+
+  const { error } = await supabase
+    .from('writing_reviews')
+    .insert({
+      attempt_id: attemptId,
+      reviewer_id: user.id,
+      role,
+      scores_json: scores ?? null,
+      comments_json: comments ?? null,
+      audio_url: audioUrl ?? null,
+    });
+
+  if (error) {
+    logger.error('failed to save review', { error: error.message, attemptId, userId: user.id });
+    return res.status(500).json({ error: error.message });
+  }
+
+  logger.info('review submitted', { attemptId, reviewerRole: role, userId: user.id });
+  await trackor.log('writing_peer_review_submitted', {
+    attempt_id: attemptId,
+    reviewer_id: user.id,
+    role,
+    audio_attachment: audioUrl ? 1 : 0,
+    request_id: requestId,
+    ip: clientIp,
+  });
+
+  return res.status(200).json({ ok: true });
+}
+
+export default withPlan('starter', handler, { allowRoles: ['teacher', 'admin'] });
+

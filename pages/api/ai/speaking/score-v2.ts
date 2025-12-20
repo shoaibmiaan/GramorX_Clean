@@ -73,7 +73,7 @@ async function handler(
 
   // If attempt is provided, verify ownership
   if (attemptId) {
-    const tables = ['attempts_speaking', 'attempts_listening', 'attempts_reading', 'attempts_writing'] as const;
+    const tables = ['attempts_speaking', 'attempts_listening', 'attempts_reading', 'writing_attempts'] as const;
     let owner = null as string | null;
     for (const t of tables) {
       // eslint-disable-next-line no-await-in-loop

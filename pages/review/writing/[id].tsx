@@ -34,7 +34,7 @@ export default function WritingReviewPage() {
     (async () => {
       // Load attempt
       try {
-        const { data } = await supabase.from('attempts_writing').select('*').eq('id', attempt).single();
+        const { data } = await supabase.from('writing_attempts').select('*').eq('id', attempt).single();
         if (data) setAtt(data as Attempt);
       } catch {
         // local fallback

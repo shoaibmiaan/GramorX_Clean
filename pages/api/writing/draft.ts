@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const updatedIso = new Date(updatedAt).toISOString();
 
     const { error } = await supabaseAdmin
-      .from('attempts_writing')
+      .from('writing_attempts')
       .upsert(
         {
           id: attemptId,

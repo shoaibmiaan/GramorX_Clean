@@ -77,8 +77,8 @@ async function baseHandler(
   }
 
   // ---------- INSERT ATTEMPT ----------
-  // Adjust this shape to match Database['public']['Tables']['attempts_writing']['Insert']
-  const insertPayload: Database['public']['Tables']['attempts_writing']['Insert'] = {
+  // Adjust this shape to match Database['public']['Tables']['writing_attempts']['Insert']
+  const insertPayload: Database['public']['Tables']['writing_attempts']['Insert'] = {
     user_id: user.id,
     test_id: testRow.id,
     task1_text: body.task1Text,
@@ -90,13 +90,13 @@ async function baseHandler(
   };
 
   const { data: attemptRow, error: attemptErr } = await supabase
-    .from('attempts_writing')
+    .from('writing_attempts')
     .insert(insertPayload)
     .select('id')
     .maybeSingle();
 
   if (attemptErr || !attemptRow) {
-    console.error('attempts_writing insert error', attemptErr);
+    console.error('writing_attempts insert error', attemptErr);
     return res.status(500).json({
       error: 'Failed to create Writing attempt',
     });

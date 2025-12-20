@@ -187,12 +187,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   }
 
   type AttemptsWritingRow =
-    Database['public']['Tables']['attempts_writing']['Row'];
+    Database['public']['Tables']['writing_attempts']['Row'];
   type WritingTestsRow =
     Database['public']['Tables']['writing_tests']['Row'];
 
   const { data: rows, error } = await supabase
-    .from('attempts_writing')
+    .from('writing_attempts')
     .select(
       'id, created_at, user_id, overall_band, writing_tests ( id, slug, title )'
     )

@@ -1,8 +1,8 @@
 // pages/mock/writing/review/[attemptId].tsx
 import * as React from 'react';
 import Head from 'next/head';
-import type { GetServerSideProps, NextPage } from 'next';
 import Link from 'next/link';
+import type { GetServerSideProps, NextPage } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import type { Database } from '@/lib/database.types';
@@ -10,238 +10,289 @@ import type { Database } from '@/lib/database.types';
 import { Container } from '@/components/design-system/Container';
 import { Card } from '@/components/design-system/Card';
 import { Button } from '@/components/design-system/Button';
-import { Icon } from '@/components/design-system/Icon';
-import { Alert } from '@/components/design-system/Alert';
 import { Badge } from '@/components/design-system/Badge';
+import Icon from '@/components/design-system/Icon';
 
-type PageProps = {
-  ok: boolean;
-  error?: string;
-  attempt?: {
-    id: string;
-    createdAt: string;
-    testId: string;
-  };
-  test?: {
-    id: string;
-    slug: string;
-    title: string;
-  };
-  answers?: {
-    taskNumber: number;
-    label: 'Task 1' | 'Task 2';
-    text: string;
-    wordCount: number | null;
-    band: number | null;
-  }[];
+import { WritingReviewShell } from '@/components/writing/review/WritingReviewShell';
+
+type TaskLabel = 'Task 1' | 'Task 2';
+type WritingCriteriaKey = 'TR' | 'CC' | 'LR' | 'GRA';
+
+type AttemptMeta = {
+  attemptId: string;
+  testId: string;
+  testSlug: string;
+  testTitle: string;
+  submittedAt: string | null;
+  autoSubmitted: boolean;
+  status: string;
 };
 
-const WritingReviewPage: NextPage<PageProps> = ({ ok, error, attempt, test, answers }) => {
-  if (!ok || !attempt || !test || !answers?.length) {
-    return (
-      <Container className="py-10">
-        <Alert tone="danger" title="Review not available">
-          {error ?? 'We could not load this Writing attempt or its answers.'}
-        </Alert>
-        <div className="mt-4">
-          <Button as={Link} href="/mock/writing" size="sm">
-            <Icon name="ArrowLeft" className="mr-1.5 h-4 w-4" />
-            Back to Writing mocks
-          </Button>
-        </div>
-      </Container>
-    );
-  }
+type PromptTask = {
+  taskNumber: 1 | 2;
+  label: TaskLabel;
+  prompt: string;
+  minWords: number;
+};
 
-  const formattedDate = new Date(attempt.createdAt).toLocaleString();
+type AnswerTask = {
+  taskNumber: 1 | 2;
+  label: TaskLabel;
+  text: string;
+  wordCount: number;
+};
 
-  return (
-    <>
-      <Head>
-        <title>Review – {test.title} | Writing Mock | GramorX</title>
-      </Head>
+type WritingEvaluation = {
+  overallBand: number;
+  task1Band: number;
+  task2Band: number;
+  criteria: Record<WritingCriteriaKey, number>;
+  criteriaNotes: Partial<Record<WritingCriteriaKey, string[]>>;
+  shortVerdictTask1?: string;
+  shortVerdictTask2?: string;
+  taskNotes?: Partial<Record<'task1' | 'task2', string[]>>;
+  warnings?: string[];
+  nextSteps?: string[];
+};
 
-      <Container className="py-8 lg:py-10 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-              <Icon name="Eye" className="h-3.5 w-3.5" />
-              <span>Review mode · Writing mock</span>
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight lg:text-2xl">
-              Review – {test.title}
-            </h1>
-            <p className="text-xs text-muted-foreground lg:text-sm">
-              Attempt ID {attempt.id.slice(0, 8)} · {formattedDate}
-            </p>
-          </div>
+type PageProps = {
+  attempt: AttemptMeta | null;
+  prompts: PromptTask[];
+  answers: AnswerTask[];
+  evaluation: WritingEvaluation | null;
+};
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              as={Link}
-              href={`/mock/writing/result/${attempt.id}`}
-              size="sm"
-              tone="neutral"
-              variant="outline"
-            >
-              <Icon name="BarChart3" className="mr-1.5 h-4 w-4" />
-              View result summary
-            </Button>
-            <Button as={Link} href="/mock/writing" size="sm">
-              <Icon name="Home" className="mr-1.5 h-4 w-4" />
-              Back to Writing mocks
-            </Button>
-          </div>
-        </div>
+const bandFmt = (n: number | null | undefined) => {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
+  const fixed = Math.round(n * 2) / 2;
+  return fixed % 1 === 0 ? `${fixed.toFixed(0)}.0` : `${fixed.toFixed(1)}`;
+};
 
-        {/* Answers */}
-        <div className="space-y-4">
-          {answers.map((answer) => (
-            <Card key={answer.taskNumber} className="space-y-3 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Icon name="PenSquare" className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold">
-                    {answer.label}
-                  </h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                  {answer.wordCount !== null && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                      <Icon name="Type" className="h-3 w-3" />
-                      {answer.wordCount} words
-                    </span>
-                  )}
-                  {answer.band !== null && (
-                    <Badge size="xs" tone="success">
-                      Band {answer.band.toFixed(1)}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-md border bg-muted/40 p-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap">
-                {answer.text || <span className="text-muted-foreground">No answer recorded.</span>}
-              </div>
-            </Card>
-          ))}
-        </div>
-      </Container>
-    </>
-  );
+const formatDateTime = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const supabase = getServerClient(ctx);
-  const attemptId = ctx.params?.attemptId as string | undefined;
+  const attemptId = typeof ctx.params?.attemptId === 'string' ? ctx.params.attemptId : null;
+  if (!attemptId) return { notFound: true };
 
-  if (!attemptId) {
-    return {
-      props: {
-        ok: false,
-        error: 'Missing attempt id in URL.',
-      },
-    };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = getServerClient(ctx.req, ctx.res);
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
 
   if (!user) {
     return {
       redirect: {
-        destination: `/login?next=/mock/writing/review/${encodeURIComponent(
-          attemptId
-        )}`,
+        destination: `/login?next=/mock/writing/review/${encodeURIComponent(attemptId)}`,
         permanent: false,
       },
     };
   }
 
-  type AttemptsWritingRow =
-    Database['public']['Tables']['attempts_writing']['Row'];
-  type WritingTestsRow =
-    Database['public']['Tables']['writing_tests']['Row'];
-  type WritingAnswersRow =
-    Database['public']['Tables']['writing_user_answers']['Row'];
-
-  const { data: attemptRow, error: attemptError } = await supabase
-    .from('attempts_writing')
-    .select('id, user_id, test_id, created_at')
+  // Attempt + test meta (ownership enforced)
+  const { data: attemptRow, error: attemptErr } = await supabase
+    .from('writing_attempts')
+    .select('id, user_id, test_id, status, submitted_at, auto_submitted, writing_tests:writing_tests(id, slug, title)')
     .eq('id', attemptId)
     .maybeSingle();
 
-  if (attemptError) {
-    console.error('[mock/writing/review/[attemptId]] attempt error', attemptError);
-  }
+  if (attemptErr || !attemptRow) return { notFound: true };
+  if (String(attemptRow.user_id) !== String(user.id)) return { notFound: true };
 
-  if (!attemptRow || attemptRow.user_id !== user.id) {
-    return {
-      props: {
-        ok: false,
-        error: 'Attempt not found or you do not have access.',
-      },
-    };
-  }
+  const testTitle = (attemptRow as any)?.writing_tests?.title ?? 'Writing Mock';
+  const testSlug = (attemptRow as any)?.writing_tests?.slug ?? 'writing-mock';
 
-  const { data: testRow, error: testError } = await supabase
-    .from('writing_tests')
-    .select('id, slug, title')
-    .eq('id', attemptRow.test_id)
-    .maybeSingle();
+  const attempt: AttemptMeta = {
+    attemptId: String(attemptRow.id),
+    testId: String(attemptRow.test_id),
+    testSlug: String(testSlug),
+    testTitle: String(testTitle),
+    submittedAt: attemptRow.submitted_at ? String(attemptRow.submitted_at) : null,
+    autoSubmitted: Boolean(attemptRow.auto_submitted),
+    status: String(attemptRow.status ?? ''),
+  };
 
-  if (testError) {
-    console.error('[mock/writing/review/[attemptId]] test error', testError);
-  }
-
-  if (!testRow) {
-    return {
-      props: {
-        ok: false,
-        error: 'Test for this attempt no longer exists.',
-      },
-    };
-  }
-
-  const { data: answersRaw, error: answersError } = await supabase
-    .from('writing_user_answers')
-    .select(
-      'task_number, label, text, word_count, band'
-    )
-    .eq('attempt_id', attemptRow.id)
+  // Prompts (task 1/2)
+  const { data: taskRows } = await supabase
+    .from('writing_tasks')
+    .select('task_number, prompt, word_limit_min')
+    .eq('test_id', attempt.testId)
     .order('task_number', { ascending: true });
 
-  if (answersError) {
-    console.error('[mock/writing/review/[attemptId]] answers error', answersError);
+  const prompts: PromptTask[] =
+    (taskRows ?? []).map((t) => {
+      const num = t.task_number === 2 ? 2 : 1;
+      return {
+        taskNumber: num,
+        label: (num === 2 ? 'Task 2' : 'Task 1') as TaskLabel,
+        prompt: String(t.prompt ?? ''),
+        minWords: typeof t.word_limit_min === 'number' ? t.word_limit_min : num === 2 ? 250 : 150,
+      };
+    });
+
+  // Answers
+  const { data: ansRows } = await supabase
+    .from('writing_user_answers')
+    .select('task_number, label, text, word_count')
+    .eq('attempt_id', attemptId)
+    .order('task_number', { ascending: true });
+
+  const answers: AnswerTask[] =
+    (ansRows ?? []).map((r) => {
+      const num = r.task_number === 2 ? 2 : 1;
+      return {
+        taskNumber: num,
+        label: (num === 2 ? 'Task 2' : 'Task 1') as TaskLabel,
+        text: String(r.text ?? ''),
+        wordCount: typeof r.word_count === 'number' ? r.word_count : 0,
+      };
+    });
+
+  // Evaluation (stored only)
+  const { data: evalRow } = await supabase
+    .from('writing_evaluations')
+    .select(
+      'overall_band, task1_band, task2_band, criteria_tr, criteria_cc, criteria_lr, criteria_gra, criteria_notes, task_notes, warnings, next_steps, short_verdict_task1, short_verdict_task2',
+    )
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  let evaluation: WritingEvaluation | null = null;
+
+  if (evalRow) {
+    const criteriaNotesRaw = evalRow.criteria_notes as unknown;
+    const taskNotesRaw = evalRow.task_notes as unknown;
+
+    const criteriaNotes =
+      typeof criteriaNotesRaw === 'object' && criteriaNotesRaw !== null
+        ? (criteriaNotesRaw as WritingEvaluation['criteriaNotes'])
+        : {};
+
+    const taskNotes =
+      typeof taskNotesRaw === 'object' && taskNotesRaw !== null
+        ? (taskNotesRaw as WritingEvaluation['taskNotes'])
+        : {};
+
+    evaluation = {
+      overallBand: Number(evalRow.overall_band),
+      task1Band: Number(evalRow.task1_band),
+      task2Band: Number(evalRow.task2_band),
+      criteria: {
+        TR: Number(evalRow.criteria_tr),
+        CC: Number(evalRow.criteria_cc),
+        LR: Number(evalRow.criteria_lr),
+        GRA: Number(evalRow.criteria_gra),
+      },
+      criteriaNotes,
+      taskNotes,
+      shortVerdictTask1: evalRow.short_verdict_task1 ? String(evalRow.short_verdict_task1) : undefined,
+      shortVerdictTask2: evalRow.short_verdict_task2 ? String(evalRow.short_verdict_task2) : undefined,
+      warnings: Array.isArray(evalRow.warnings) ? (evalRow.warnings as string[]) : [],
+      nextSteps: Array.isArray(evalRow.next_steps) ? (evalRow.next_steps as string[]) : [],
+    };
   }
 
-  const answers =
-    (answersRaw as WritingAnswersRow[] | null)?.map((a) => ({
-      taskNumber: (a as any).task_number as number,
-      label: ((a as any).label as 'Task 1' | 'Task 2') ?? 'Task 1',
-      text: (a as any).text ?? '',
-      wordCount: (a as any).word_count ?? null,
-      band: (a as any).band ?? null,
-    })) ?? [];
+  return { props: { attempt, prompts, answers, evaluation } };
+};
 
-  return {
-    props: {
-      ok: true,
-      attempt: {
-        id: attemptRow.id,
-        createdAt: attemptRow.created_at,
-        testId: attemptRow.test_id ?? '',
-      },
-      test: {
-        id: testRow.id,
-        slug: testRow.slug,
-        title: testRow.title,
-      },
-      answers,
-    },
-  };
+const WritingReviewPage: NextPage<PageProps> = ({ attempt, prompts, answers, evaluation }) => {
+  if (!attempt) {
+    return (
+      <>
+        <Head>
+          <title>Writing Review · Not found · GramorX</title>
+        </Head>
+        <main className="min-h-screen bg-lightBg">
+          <Container className="max-w-3xl py-10">
+            <Card className="rounded-ds-2xl border border-border bg-card p-6 text-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <Icon name="TriangleAlert" size={18} />
+              </div>
+              <h1 className="mt-3 text-lg font-semibold">Review not found</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This attempt doesn’t exist or you don’t have access.
+              </p>
+              <div className="mt-4 flex justify-center">
+                <Button asChild variant="secondary">
+                  <Link href="/mock/writing">Back to Writing mocks</Link>
+                </Button>
+              </div>
+            </Card>
+          </Container>
+        </main>
+      </>
+    );
+  }
+
+  const hasEval = Boolean(evaluation);
+  const overallBand = hasEval ? bandFmt(evaluation!.overallBand) : '—';
+
+  return (
+    <>
+      <Head>
+        <title>{attempt.testTitle} · Review · GramorX</title>
+      </Head>
+
+      <main className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
+        <section className="border-b border-border bg-card/70">
+          <Container className="max-w-6xl py-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="neutral" size="sm">
+                    Writing Review
+                  </Badge>
+                  {attempt.autoSubmitted ? (
+                    <Badge variant="accent" size="sm">
+                      Auto-submitted
+                    </Badge>
+                  ) : null}
+                  <Badge variant={hasEval ? 'success' : 'neutral'} size="sm">
+                    {hasEval ? 'Evaluated' : 'Pending'}
+                  </Badge>
+                  <Badge variant="neutral" size="sm">
+                    Attempt {attempt.attemptId.slice(0, 8)}
+                  </Badge>
+                </div>
+
+                <h1 className="text-xl font-semibold text-foreground">{attempt.testTitle}</h1>
+
+                <p className="text-xs text-muted-foreground">
+                  Training band: <span className="font-semibold text-foreground">{overallBand}</span>
+                  {attempt.submittedAt ? (
+                    <>
+                      {' • '}Submitted: {formatDateTime(attempt.submittedAt)}
+                    </>
+                  ) : null}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/mock/writing/result/${encodeURIComponent(attempt.attemptId)}`}>
+                    <Icon name="BarChart3" className="mr-1.5 h-4 w-4" />
+                    Result
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/mock/writing">
+                    <Icon name="ArrowLeft" className="mr-1.5 h-4 w-4" />
+                    Back
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <Container className="max-w-6xl py-6">
+          <WritingReviewShell prompts={prompts} answers={answers} evaluation={evaluation} />
+        </Container>
+      </main>
+    </>
+  );
 };
 
 export default WritingReviewPage;
