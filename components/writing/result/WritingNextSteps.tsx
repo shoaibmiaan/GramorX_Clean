@@ -5,14 +5,13 @@ import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
 
 import { pickExample } from '@/lib/writing/examples/examples';
-import type { BandScore } from '@/lib/writing/types';
 
 type CriteriaKey = 'TR' | 'CC' | 'LR' | 'GRA';
 
 type Props = {
   nextSteps: string[];
   // Optional: pass overall band or a representative band (e.g., overall band) for example difficulty
-  exampleBand?: BandScore;
+  exampleBand?: number;
 };
 
 const FALLBACK_STEPS = [
