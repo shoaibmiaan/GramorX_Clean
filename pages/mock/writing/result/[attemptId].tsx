@@ -21,6 +21,10 @@ import { WritingNextSteps } from '@/components/writing/result/WritingNextSteps';
 import { WritingResultLoading } from '@/components/writing/result/WritingResultLoading';
 import { WritingResultEmptyState } from '@/components/writing/result/WritingResultEmptyState';
 import { getWritingAttempt, getWritingEvaluation } from '@/lib/writing/api';
+import { WritingFeedbackBlocks } from '@/components/writing/result/WritingFeedbackBlocks';
+import { WritingBandReasoning } from '@/components/writing/result/WritingBandReasoning';
+import { WritingImprovementsTable } from '@/components/writing/result/WritingImprovementsTable';
+import { formatFeedback } from '@/lib/writing/format/formatFeedback';
 import {
   formatBandScore,
   hasSubmittedStatus,
@@ -108,6 +112,7 @@ const WritingResultPage: NextPage<PageProps> = ({
   if (!evaluation && !pending) return <WritingResultEmptyState reason="not_evaluated" attemptId={attemptId} />;
 
   const overallBandLabel = evaluation ? formatBandScore(evaluation.overallBand) : '—';
+  const formatted = formatFeedback(evaluation, answers);
 
   // ✅ Retry link: if slug missing, go to writing hub (no more 404)
   const retryHref = attempt.testSlug ? `/mock/writing/${encodeURIComponent(attempt.testSlug)}` : '/mock/writing';
@@ -178,6 +183,21 @@ const WritingResultPage: NextPage<PageProps> = ({
               status={attempt.status}
               hasEvaluation={Boolean(evaluation)}
             />
+            {formatted.summary.length ? (
+              <Card className="rounded-ds-2xl border border-border/60 bg-muted/20 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Summary
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-foreground">
+                  {formatted.summary.slice(0, 3).map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
 
             {evaluation ? (
               <>
@@ -203,7 +223,10 @@ const WritingResultPage: NextPage<PageProps> = ({
                   }}
                 />
 
-                <WritingWarnings warnings={evaluation.warnings ?? []} answers={answers} />
+                <WritingWarnings warnings={formatted.warnings} answers={answers} />
+                <WritingFeedbackBlocks blocks={formatted.blocks} />
+                <WritingBandReasoning items={formatted.bandReasoning} />
+                <WritingImprovementsTable rows={formatted.improvements} />
                 <WritingNextSteps nextSteps={evaluation.nextSteps ?? []} exampleBand={evaluation.overallBand} />
               </>
             ) : (

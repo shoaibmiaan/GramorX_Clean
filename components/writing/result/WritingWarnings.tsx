@@ -3,10 +3,10 @@ import * as React from 'react';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
-import type { WarningType, WritingAnswer } from '@/lib/writing/types';
+import type { WarningItem, WritingAnswer } from '@/lib/writing/types';
 
 type Props = {
-  warnings: WarningType[];
+  warnings: WarningItem[];
   answers: WritingAnswer[];
 };
 
@@ -14,16 +14,36 @@ export const WritingWarnings: React.FC<Props> = ({ warnings, answers }) => {
   const task1 = answers.find((a) => a.taskNumber === 1);
   const task2 = answers.find((a) => a.taskNumber === 2);
 
-  const autoWarnings: string[] = [];
+  const autoWarnings: WarningItem[] = [];
 
   if (task1 && task1.wordCount > 0 && task1.wordCount < 150) {
-    autoWarnings.push('Task 1 is under 150 words (word count penalty risk).');
+    autoWarnings.push({
+      type: 'task1_under_length',
+      message: 'Task 1 is under 150 words (word count penalty risk).',
+      taskNumber: 1,
+      severity: 'medium',
+    });
   }
   if (task2 && task2.wordCount > 0 && task2.wordCount < 250) {
-    autoWarnings.push('Task 2 is under 250 words (word count penalty risk).');
+    autoWarnings.push({
+      type: 'task2_under_length',
+      message: 'Task 2 is under 250 words (word count penalty risk).',
+      taskNumber: 2,
+      severity: 'high',
+    });
   }
 
-  const all = [...autoWarnings, ...(warnings ?? [])].filter((x) => x && x.trim().length > 0);
+  const normalize = (item: WarningItem): WarningItem => {
+    if (typeof item === 'string') {
+      return { type: item, message: item };
+    }
+    return { ...item, message: item.message || String(item.type) };
+  };
+
+  const all = [...autoWarnings, ...(warnings ?? [])]
+    .filter((x) => Boolean(x))
+    .map(normalize)
+    .filter((x) => x.message.trim().length > 0);
 
   if (!all.length) return null;
 
@@ -48,9 +68,16 @@ export const WritingWarnings: React.FC<Props> = ({ warnings, answers }) => {
 
       <ul className="mt-4 space-y-2 text-sm text-foreground">
         {all.slice(0, 6).map((w) => (
-          <li key={w} className="flex items-start gap-2">
+          <li key={`${w.type}-${w.message}`} className="flex items-start gap-2">
             <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-foreground/60" />
-            <span>{w}</span>
+            <span>
+              {w.taskNumber ? (
+                <Badge size="xs" variant={w.taskNumber === 2 ? 'accent' : 'neutral'} className="mr-2">
+                  Task {w.taskNumber}
+                </Badge>
+              ) : null}
+              {w.message}
+            </span>
           </li>
         ))}
       </ul>

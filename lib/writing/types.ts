@@ -12,6 +12,13 @@ export type WarningType =
   | 'memorised_language'
   | string;
 
+export type WarningItem = {
+  type: WarningType;
+  message: string;
+  taskNumber?: 1 | 2;
+  severity?: 'low' | 'medium' | 'high';
+};
+
 export type CriteriaScore = {
   key: CriteriaKey;
   band: BandScore;
@@ -33,6 +40,29 @@ export type WritingEvaluation = {
   warnings: WarningType[];
   warningNotes?: string[];
   nextSteps: string[];
+};
+
+export type FeedbackBlock = {
+  taskNumber: 1 | 2;
+  title: string;
+  issues: string[];
+  impact: string[];
+  fixes: string[];
+  examples: string[];
+  criteria: CriteriaKey[];
+};
+
+export type BandReasoningItem = {
+  taskNumber: 1 | 2;
+  criteria: CriteriaKey;
+  text: string;
+};
+
+export type ImprovementRow = {
+  taskNumber: 1 | 2;
+  criteria?: CriteriaKey;
+  before: string;
+  after: string;
 };
 
 export type TaskLabel = 'Task 1' | 'Task 2';
