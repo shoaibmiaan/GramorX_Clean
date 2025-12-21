@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
-import { getServerClient } from '@/lib/supabaseServer';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { evaluateWritingAttempt } from '@/lib/writing/evaluation/evaluate';
 import type { WritingEvalInput } from '@/lib/writing/evaluation/types';
 
@@ -13,39 +13,39 @@ type ApiOk =
 type ApiErr = { ok: false; error: string };
 
 const Body = z.object({
-  // Optional: run worker for a specific attempt (debug / admin)
   attemptId: z.string().uuid().optional(),
 });
 
-const ANSWER_TABLE_CANDIDATES = [
-  // common names
-  'writing_attempt_answers',
-  'writing_user_answers',
-] as const;
-
-type AnswerRow = {
-  task_number: number | null;
-  text: string | null;
-};
-
-const pickText = (rows: AnswerRow[] | null | undefined, taskNumber: 1 | 2) => {
-  const row = rows?.find((r) => Number(r.task_number) === taskNumber);
-  return String(row?.text ?? '').trim();
-};
-
-async function loadAnswers(supabase: ReturnType<typeof getServerClient>, attemptId: string) {
-  for (const table of ANSWER_TABLE_CANDIDATES) {
-    const { data, error } = await supabase
-      .from(table)
-      .select('task_number, text')
-      .eq('attempt_id', attemptId);
-
-    if (!error && Array.isArray(data)) {
-      return { tableUsed: table, rows: data as AnswerRow[] };
-    }
+function fallbackPrompts(mode: 'academic' | 'general') {
+  if (mode === 'academic') {
+    return {
+      t1: {
+        prompt:
+          'The chart below shows the percentage of households in a country that owned different types of technology in 2000 and 2020.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+        minWords: 150,
+      },
+      t2: {
+        prompt:
+          'Some people think schools should teach practical skills like managing money, while others believe traditional academic subjects should remain the focus.\n\nDiscuss both views and give your own opinion.',
+        minWords: 250,
+      },
+    };
   }
-  return { tableUsed: null as string | null, rows: [] as AnswerRow[] };
+  return {
+    t1: {
+      prompt:
+        'You recently bought a product online, but it arrived damaged.\n\nWrite a letter to the company. In your letter:\n- explain what happened\n- describe how this has affected you\n- say what you would like the company to do',
+      minWords: 150,
+    },
+    t2: {
+      prompt:
+        'In many countries, people are working longer hours and have less free time.\n\nWhat do you think are the causes of this? What solutions can governments and employers provide?',
+      minWords: 250,
+    },
+  };
 }
+
+const safeText = (v: unknown) => String(v ?? '').trim();
 
 export default async function handler(
   req: NextApiRequest,
@@ -53,7 +53,7 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
-  // Worker auth
+  // ✅ internal worker auth
   const secret = process.env.WRITING_WORKER_SECRET;
   const headerSecret = req.headers['x-worker-secret'];
   const provided = Array.isArray(headerSecret) ? headerSecret[0] : headerSecret;
@@ -64,18 +64,17 @@ export default async function handler(
   const parse = Body.safeParse(req.body ?? {});
   if (!parse.success) return res.status(400).json({ ok: false, error: 'Invalid body' });
 
-  const supabase = getServerClient(req, res);
-
   const forcedAttemptId = parse.data.attemptId;
+  const admin = supabaseAdmin;
 
-  // 1) Find a job (or create one if forced)
+  // 1) Pick attemptId (forced OR oldest queued)
   let attemptId: string | null = null;
 
   if (forcedAttemptId) {
     attemptId = forcedAttemptId;
 
-    // Ensure job row exists so your UI + DB stays consistent
-    await supabase.from('writing_eval_jobs').upsert(
+    // ensure job exists
+    await admin.from('writing_eval_jobs').upsert(
       {
         attempt_id: attemptId,
         status: 'queued',
@@ -86,15 +85,15 @@ export default async function handler(
       { onConflict: 'attempt_id' },
     );
   } else {
-    const { data: jobRow, error: jobErr } = await supabase
+    const { data: jobRow, error: jobErr } = await admin
       .from('writing_eval_jobs')
-      .select('attempt_id, status, attempts')
+      .select('attempt_id')
       .eq('status', 'queued')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();
 
-    if (jobErr) return res.status(500).json({ ok: false, error: 'Failed to fetch job' });
+    if (jobErr) return res.status(500).json({ ok: false, error: jobErr.message });
     if (!jobRow) return res.status(200).json({ ok: true, processed: false, reason: 'no_jobs' });
 
     attemptId = String(jobRow.attempt_id);
@@ -103,20 +102,19 @@ export default async function handler(
   if (!attemptId) return res.status(200).json({ ok: true, processed: false, reason: 'no_jobs' });
 
   // 2) Lock job
-  const { data: existingJob, error: jobFetchErr } = await supabase
+  const { data: job, error: jobFetchErr } = await admin
     .from('writing_eval_jobs')
-    .select('attempt_id, status, attempts')
+    .select('attempt_id,status,attempts')
     .eq('attempt_id', attemptId)
     .maybeSingle();
 
-  if (jobFetchErr || !existingJob) {
+  if (jobFetchErr || !job) {
     return res.status(500).json({ ok: false, error: 'Job not found (unexpected)' });
   }
 
-  // If someone else is running it, we still proceed in dev; but keep it safe:
-  const nextAttempts = Number(existingJob.attempts ?? 0) + 1;
+  const nextAttempts = Number(job.attempts ?? 0) + 1;
 
-  const { error: lockErr } = await supabase
+  const { error: lockErr } = await admin
     .from('writing_eval_jobs')
     .update({
       status: 'running',
@@ -124,26 +122,23 @@ export default async function handler(
       attempts: nextAttempts,
       last_error: null,
     })
-    .eq('attempt_id', attemptId)
-    .in('status', ['queued', 'running']); // allow resume
+    .eq('attempt_id', attemptId);
 
   if (lockErr) return res.status(500).json({ ok: false, error: 'Failed to lock job' });
 
   try {
-    // 3) If evaluation already exists, mark job done and exit (idempotent)
-    const { data: existingEval, error: existingEvalErr } = await supabase
+    // 3) Idempotency: already evaluated?
+    const { data: existingEval, error: existingEvalErr } = await admin
       .from('writing_evaluations')
       .select('attempt_id')
       .eq('attempt_id', attemptId)
       .maybeSingle();
 
-    if (existingEvalErr) throw new Error('Failed to check existing evaluation');
+    if (existingEvalErr) throw new Error(existingEvalErr.message);
 
-    if (existingEval?.attempt_id) {
-      await supabase.from('writing_eval_jobs').update({ status: 'done', last_error: null }).eq('attempt_id', attemptId);
-
-      // attempt might have evaluated_at empty, set it
-      await supabase
+   if (existingEval?.attempt_id) {
+      await admin.from('writing_eval_jobs').update({ status: 'done', last_error: null }).eq('attempt_id', attemptId);
+      await admin
         .from('writing_attempts')
         .update({ evaluated_at: new Date().toISOString() })
         .eq('id', attemptId)
@@ -152,59 +147,67 @@ export default async function handler(
       return res.status(200).json({ ok: true, processed: true, attemptId, mode: 'already_done' });
     }
 
-    // 4) Load attempt
-    const { data: attempt, error: attemptErr } = await supabase
+    // 4) Load attempt (✅ ADMIN to bypass RLS)
+    const { data: attempt, error: attemptErr } = await admin
       .from('writing_attempts')
-      .select('id, user_id, mode, status')
+      .select('id,user_id,mode,status')
       .eq('id', attemptId)
       .maybeSingle();
 
-    if (attemptErr) throw new Error('Failed to load attempt');
+    if (attemptErr) throw new Error(attemptErr.message);
     if (!attempt) throw new Error('Attempt not found');
 
-    const attemptStatus = String(attempt.status ?? '');
-    if (attemptStatus !== 'submitted' && attemptStatus !== 'locked') {
-      throw new Error(`Attempt not ready (status=${attemptStatus})`);
+    const mode = (String(attempt.mode ?? 'academic') as 'academic' | 'general');
+    const status = String(attempt.status ?? '');
+
+    if (status !== 'submitted' && status !== 'locked') {
+      throw new Error(`Attempt not ready (status=${status})`);
     }
 
-    const userId = String(attempt.user_id);
+    // 5) Load answers + prompts from canonical table
+    const { data: answers, error: ansErr } = await admin
+      .from('writing_attempt_answers')
+      .select('task_number, answer_text, prompt_text, word_limit')
+      .eq('attempt_id', attemptId)
+      .order('task_number', { ascending: true });
 
-    // 5) Load answers (tries multiple table names)
-    const { tableUsed, rows } = await loadAnswers(supabase, attemptId);
+    if (ansErr) throw new Error(ansErr.message);
 
-    const task1Text = pickText(rows, 1);
-    const task2Text = pickText(rows, 2);
+    const r1 = answers?.find((a: any) => Number(a.task_number) === 1);
+    const r2 = answers?.find((a: any) => Number(a.task_number) === 2);
 
-    // If nothing found, fail clearly (don’t store fake eval)
+    const task1Text = safeText(r1?.answer_text);
+    const task2Text = safeText(r2?.answer_text);
+
+    // Your SQL shows len = 0 for both → this will now fail with a REAL message.
     if (!task1Text && !task2Text) {
       throw new Error(
-        `No answers found for attempt. Checked tables: ${ANSWER_TABLE_CANDIDATES.join(', ')}.`,
+        'No answers found (both Task 1 and Task 2 are empty). This usually means autosave did not persist OR submit did not send answers.',
       );
     }
 
-    // 6) Prompts / mins (fallback defaults — your schema didn’t show test linkage)
-    const task1Prompt = '';
-    const task2Prompt = '';
+    const fb = fallbackPrompts(mode);
 
-    const task1Min = 150;
-    const task2Min = 250;
+    const task1Prompt = safeText(r1?.prompt_text) || fb.t1.prompt;
+    const task2Prompt = safeText(r2?.prompt_text) || fb.t2.prompt;
 
-    // 7) Evaluate (Day 23 strict rules)
+    const task1Min = typeof r1?.word_limit === 'number' ? r1.word_limit : fb.t1.minWords;
+    const task2Min = typeof r2?.word_limit === 'number' ? r2.word_limit : fb.t2.minWords;
+
     const input: WritingEvalInput = {
       attemptId,
-      userId,
+      userId: String(attempt.user_id),
       task1: { prompt: task1Prompt, text: task1Text, minWords: task1Min },
       task2: { prompt: task2Prompt, text: task2Text, minWords: task2Min },
-      meta: { answers_table: tableUsed ?? 'unknown', mode: String(attempt.mode ?? '') },
+      meta: { mode },
     };
 
     const evalResult = await evaluateWritingAttempt(input);
 
-    // 8) Store evaluation (idempotent upsert)
-    const { error: storeErr } = await supabase.from('writing_evaluations').upsert(
+    // 6) Store evaluation (✅ matches your table: NO user_id column)
+    const { error: storeErr } = await admin.from('writing_evaluations').upsert(
       {
         attempt_id: attemptId,
-        user_id: userId,
 
         overall_band: evalResult.overallBand,
         task1_band: evalResult.task1Band,
@@ -221,8 +224,8 @@ export default async function handler(
         criteria_notes: evalResult.criteriaNotes ?? {},
         task_notes: evalResult.taskNotes ?? {},
 
-        warnings: evalResult.warnings ?? [],
-        next_steps: evalResult.nextSteps ?? [],
+        warnings: (evalResult.warnings ?? []) as unknown as string[],
+        next_steps: (evalResult.nextSteps ?? []) as unknown as string[],
 
         provider: evalResult.provider,
         model: evalResult.model,
@@ -231,23 +234,23 @@ export default async function handler(
       { onConflict: 'attempt_id' },
     );
 
-    if (storeErr) throw new Error('Failed to store evaluation');
+    if (storeErr) throw new Error(storeErr.message);
 
-    // 9) Update attempt evaluated_at
-    const { error: attemptUpdateErr } = await supabase
+    // 7) Mark attempt evaluated
+    const { error: attemptUpdErr } = await admin
       .from('writing_attempts')
       .update({ evaluated_at: new Date().toISOString() })
       .eq('id', attemptId);
 
-    if (attemptUpdateErr) throw new Error('Failed to update attempt evaluated_at');
+    if (attemptUpdErr) throw new Error(attemptUpdErr.message);
 
-    // 10) Mark job done
-    const { error: doneErr } = await supabase
+    // 8) Mark job done
+    const { error: doneErr } = await admin
       .from('writing_eval_jobs')
       .update({ status: 'done', last_error: null })
       .eq('attempt_id', attemptId);
 
-    if (doneErr) throw new Error('Failed to mark job done');
+    if (doneErr) throw new Error(doneErr.message);
 
     return res.status(200).json({
       ok: true,
@@ -258,7 +261,7 @@ export default async function handler(
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Worker failed';
 
-    await supabase
+    await admin
       .from('writing_eval_jobs')
       .update({ status: 'failed', last_error: msg })
       .eq('attempt_id', attemptId);

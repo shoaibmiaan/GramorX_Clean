@@ -2,16 +2,15 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
 
+import AuthLayout from '@/components/layouts/AuthLayout';
 import { SectionLabel } from '@/components/design-system/SectionLabel';
 import { PasswordInput } from '@/components/design-system/PasswordInput';
 import { Button } from '@/components/design-system/Button';
 import { Alert } from '@/components/design-system/Alert';
 
 export default function ChangePassword() {
-  const router = useRouter();
   const [pw, setPw] = React.useState('');
   const [pw2, setPw2] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -23,6 +22,7 @@ export default function ChangePassword() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+
     if (!match) {
       setErr('Passwords do not match.');
       return;
@@ -41,7 +41,10 @@ export default function ChangePassword() {
   }
 
   return (
-    <>
+    <AuthLayout
+      title="Change Password"
+      subtitle="Set a new password for your account."
+    >
       <SectionLabel>Change Password</SectionLabel>
 
       {err && (
@@ -85,6 +88,6 @@ export default function ChangePassword() {
           <Link href="/dashboard">Go to Dashboard</Link>
         </Button>
       </div>
-    </>
+    </AuthLayout>
   );
 }

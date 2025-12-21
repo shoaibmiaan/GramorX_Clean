@@ -4,19 +4,32 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { Session } from '@supabase/supabase-js';
+
 import { SectionLabel } from '@/components/design-system/SectionLabel';
 import { Input } from '@/components/design-system/Input';
 import { PasswordInput } from '@/components/design-system/PasswordInput';
 import { Button } from '@/components/design-system/Button';
 import { Alert } from '@/components/design-system/Alert';
+
 import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { destinationByRole } from '@/lib/routeAccess';
 import { isValidEmail } from '@/utils/validation';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 import useEmailLoginMFA from '@/hooks/useEmailLoginMFA';
 
+type LoginApiBody = {
+  session?: Session | null;
+  mfaRequired?: boolean;
+  error?: unknown;
+  code?: string;
+};
+
 export default function LoginWithEmail() {
   const router = useRouter();
+
+  // ✅ In your repo supabaseBrowser is NOT a function (it’s the client instance)
+  const supabase = supabaseBrowser;
+
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [emailErr, setEmailErr] = useState<string | null>(null);
@@ -34,6 +47,53 @@ export default function LoginWithEmail() {
     setError: setMfaErr,
   } = useEmailLoginMFA();
 
+  async function syncServerSession(session: Session | null) {
+    try {
+      const syncRes = await fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ event: 'SIGNED_IN', session }),
+      });
+
+      if (!syncRes.ok) {
+        console.error('Sync server session failed:', syncRes.status);
+        return false;
+      }
+
+      const syncBody = await syncRes.json().catch(() => ({}));
+      if (syncBody && typeof syncBody === 'object' && (syncBody as any).ok === false) {
+        console.error('Sync server session failed: response not ok');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Sync server session failed:', error);
+      return false;
+    }
+  }
+
+  async function recordLoginEvent(session: Session | null, allowResync = true) {
+    try {
+      const loginEventRes = await fetch('/api/auth/login-event', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+
+      if (loginEventRes.status === 401 && allowResync) {
+        const resynced = await syncServerSession(session);
+        if (resynced) return recordLoginEvent(session, false);
+      }
+
+      if (!loginEventRes.ok) {
+        console.error('Login event failed:', loginEventRes.status);
+      }
+    } catch (error) {
+      console.error('Error logging login event:', error);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -41,13 +101,17 @@ export default function LoginWithEmail() {
 
     const trimmedEmail = email.trim();
 
-    // If no email or password is provided, show an error
+    // quick offline hint (optional)
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setErr('You’re offline. Check your internet and try again.');
+      return;
+    }
+
     if (!trimmedEmail && !pw) {
       setErr('Email and password are required.');
       return;
     }
 
-    // If only email is provided, show error
     if (!trimmedEmail) {
       setErr('Email is required.');
       return;
@@ -64,54 +128,7 @@ export default function LoginWithEmail() {
     }
 
     setEmailErr(null);
-
     setLoading(true);
-    async function syncServerSession(session: Session | null) {
-      try {
-        const syncRes = await fetch('/api/auth/set-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ event: 'SIGNED_IN', session }),
-        });
-
-        if (!syncRes.ok) {
-          console.error('Sync server session failed:', syncRes.status);
-          return false;
-        }
-
-        const syncBody = await syncRes.json().catch(() => ({}));
-        if (syncBody && typeof syncBody === 'object' && syncBody.ok === false) {
-          console.error('Sync server session failed: response not ok');
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Sync server session failed:', error);
-        return false;
-      }
-    }
-
-    async function recordLoginEvent(session: Session | null, allowResync = true) {
-      try {
-        const loginEventRes = await fetch('/api/auth/login-event', {
-          method: 'POST',
-          credentials: 'same-origin',
-        });
-
-        if (loginEventRes.status === 401 && allowResync) {
-          const resynced = await syncServerSession(session);
-          if (resynced) return recordLoginEvent(session, false);
-        }
-
-        if (!loginEventRes.ok) {
-          console.error('Login event failed:', loginEventRes.status);
-        }
-      } catch (error) {
-        console.error('Error logging login event:', error);
-      }
-    }
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -119,40 +136,44 @@ export default function LoginWithEmail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: trimmedEmail, password: pw }),
       });
-      const body = await res.json().catch(() => ({}));
-      setLoading(false);
+
+      const body = (await res.json().catch(() => ({}))) as LoginApiBody;
+
+      // ✅ NEW: network-aware mapping (from your updated API)
+      if (res.status === 503 || body.code === 'NETWORK') {
+        setErr('Network issue — can’t reach the server. Check internet and try again.');
+        return;
+      }
 
       if (!res.ok || !body.session) {
         const msg =
-          typeof body.error === 'string'
-            ? body.error
-            : getAuthErrorMessage(body.error) ?? 'Unable to sign in. Please try again.';
+          typeof (body as any).error === 'string'
+            ? ((body as any).error as string)
+            : getAuthErrorMessage((body as any).error) ?? 'Unable to sign in. Please try again.';
         setErr(msg);
         return;
       }
 
-      // If login is successful, set session and proceed
-      await supabaseBrowser.auth
+      // Client session
+      await supabase.auth
         .setSession({
           access_token: body.session.access_token,
           refresh_token: body.session.refresh_token,
         })
-        .catch(err => console.error('Set session failed:', err));
+        .catch((e2) => console.error('Set session failed:', e2));
 
       const serverSynced = await syncServerSession(body.session);
 
       const {
         data: { user },
         error: userError,
-      } = await supabaseBrowser.auth.getUser();
+      } = await supabase.auth.getUser();
+
       if (userError) console.error('Get user failed:', userError);
 
-      // Skip OTP if both email and password are provided
+      // If MFA not required → redirect
       if (!body.mfaRequired) {
-        if (!serverSynced) {
-          await syncServerSession(body.session);
-        }
-
+        if (!serverSynced) await syncServerSession(body.session);
         await recordLoginEvent(body.session);
 
         const rawNext = typeof router.query.next === 'string' ? router.query.next : '';
@@ -163,21 +184,22 @@ export default function LoginWithEmail() {
 
         try {
           await router.replace(target);
-        } catch (err) {
-          console.error('Redirect after login failed:', err);
+        } catch (redirectErr) {
+          console.error('Redirect after login failed:', redirectErr);
           if (typeof window !== 'undefined') window.location.assign(target);
         }
         return;
       }
 
-      // If MFA (OTP) is required, trigger the challenge
-      const challenged = await createChallenge(user).catch(err => console.error('Create challenge failed:', err));
+      // MFA required → trigger challenge
+      const challenged = await createChallenge(user).catch((e3) =>
+        console.error('Create challenge failed:', e3)
+      );
       if (challenged) return;
-
-      // Rely on _app.tsx onAuthStateChange to redirect
-    } catch (err) {
-      console.error('Login error:', err);
-      setErr('Unable to sign in. Please try again.');
+    } catch (e4) {
+      console.error('Login error:', e4);
+      setErr('Network issue — check your internet and try again.');
+    } finally {
       setLoading(false);
     }
   }
@@ -208,6 +230,7 @@ export default function LoginWithEmail() {
             required
             error={emailErr ?? undefined}
           />
+
           <PasswordInput
             label="Password"
             placeholder="Your password"
@@ -216,14 +239,25 @@ export default function LoginWithEmail() {
             autoComplete="current-password"
             required
           />
+
           <Button type="submit" variant="primary" className="rounded-ds-xl" fullWidth disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
+
           <Button asChild variant="link" className="mt-2" fullWidth>
             <Link href="/forgot-password">Forgot password?</Link>
           </Button>
+
           <p className="mt-2 text-caption text-mutedText text-center">
-            By continuing you agree to our <Link href="/legal/terms" className="underline">Terms</Link> &amp; <Link href="/legal/privacy" className="underline">Privacy</Link>.
+            By continuing you agree to our{' '}
+            <Link href="/legal/terms" className="underline">
+              Terms
+            </Link>{' '}
+            &amp;{' '}
+            <Link href="/legal/privacy" className="underline">
+              Privacy
+            </Link>
+            .
           </p>
         </form>
       ) : (
