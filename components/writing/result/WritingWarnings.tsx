@@ -3,18 +3,10 @@ import * as React from 'react';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
 import Icon from '@/components/design-system/Icon';
-
-type TaskLabel = 'Task 1' | 'Task 2';
-
-type WritingAnswer = {
-  taskNumber: 1 | 2;
-  label: TaskLabel;
-  text: string;
-  wordCount: number;
-};
+import type { WarningType, WritingAnswer } from '@/lib/writing/types';
 
 type Props = {
-  warnings: string[];
+  warnings: WarningType[];
   answers: WritingAnswer[];
 };
 
