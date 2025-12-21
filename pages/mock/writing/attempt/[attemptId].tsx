@@ -2,7 +2,6 @@ import * as React from 'react';
 import Head from 'next/head';
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 
 import { Button } from '@/components/design-system/Button';
 import { Badge } from '@/components/design-system/Badge';
@@ -14,7 +13,7 @@ type TaskPrompt = {
   taskNumber: 1 | 2;
   title?: string | null;
   instruction?: string | null;
-  prompt?: string | null; // full question text
+  prompt?: string | null;
   wordLimit?: number | null;
 };
 
@@ -92,7 +91,6 @@ const WritingAttemptPage: NextPage = () => {
   const [startedAt, setStartedAt] = React.useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = React.useState<number>(3600);
 
-  // ✅ IELTS starts from Task 1
   const [activeTask, setActiveTask] = React.useState<1 | 2>(1);
 
   const [task1, setTask1] = React.useState<TaskPrompt | null>(null);
@@ -111,7 +109,6 @@ const WritingAttemptPage: NextPage = () => {
   const [now, setNow] = React.useState(Date.now());
   const isLocked = status === 'submitted' || status === 'evaluated';
 
-  // Tick clock
   React.useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -126,7 +123,6 @@ const WritingAttemptPage: NextPage = () => {
 
   const timeIsUp = timeLeftSeconds <= 0;
 
-  // Fetch attempt + answers (+ tasks if API returns)
   React.useEffect(() => {
     if (!attemptId) return;
 
@@ -176,7 +172,6 @@ const WritingAttemptPage: NextPage = () => {
     };
   }, [attemptId]);
 
-  // Leave page warning (only while editable)
   React.useEffect(() => {
     if (isLocked) return;
     const onBeforeUnload = (ev: BeforeUnloadEvent) => {
@@ -187,7 +182,6 @@ const WritingAttemptPage: NextPage = () => {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isLocked]);
 
-  // Debounced autosave (per task)
   const saveTimer = React.useRef<number | null>(null);
 
   React.useEffect(() => {
@@ -245,7 +239,6 @@ const WritingAttemptPage: NextPage = () => {
     }
   };
 
-  // ✅ FIX: submit function properly defined + redirect after success
   const submit = async () => {
     if (!attemptId) return;
 
@@ -262,11 +255,9 @@ const WritingAttemptPage: NextPage = () => {
       const json = (await r.json()) as SubmitResp;
       if (!json.ok) throw new Error(json.error);
 
-      // lock UI immediately
       setStatus('submitted');
       setSubmitOpen(false);
 
-      // ✅ GO RESULT PAGE (no more stuck here)
       await router.replace(`/mock/writing/result/${attemptId}`);
     } catch (e) {
       setErr((e as Error).message);
@@ -274,15 +265,6 @@ const WritingAttemptPage: NextPage = () => {
       setSubmitting(false);
     }
   };
-
-  const headerStatusLabel =
-    status === 'created'
-      ? 'Not started'
-      : status === 'in_progress'
-      ? 'In progress'
-      : status === 'submitted'
-      ? 'Submitted · Evaluating…'
-      : 'Evaluated';
 
   const activeText = activeTask === 1 ? t1 : t2;
   const activeWords = wordCount(activeText);
@@ -304,72 +286,13 @@ const WritingAttemptPage: NextPage = () => {
         <title>Writing Exam Room · GramorX</title>
       </Head>
 
-      <main className="min-h-[100dvh] bg-background text-foreground">
-        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <div className="flex min-w-[220px] flex-col gap-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Link href="/mock/writing" className="hover:text-foreground">
-                  Writing mocks
-                </Link>
-                <span>/</span>
-                <span className="text-foreground">Writing</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold">IELTS Writing</span>
-                <Badge tone="neutral" size="xs">
-                  {mode === 'academic' ? 'Academic' : 'General'}
-                </Badge>
-                <Badge tone={isLocked ? 'info' : 'success'} size="xs">
-                  {headerStatusLabel}
-                </Badge>
-
-                {timeLeftSeconds <= 300 ? (
-                  <Badge tone="warning" size="xs">
-                    <Icon name="AlertTriangle" size={14} className="mr-1" />
-                    &lt; 5 min
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-ds-xl border border-border/60 bg-card px-3 py-2">
-                <Icon name="Timer" size={16} />
-                <span className="text-sm font-semibold">
-                  {formatTimeLeft(timeLeftSeconds)}
-                </span>
-              </div>
-
-              <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-                {activeIsSaving ? (
-                  <>
-                    <Icon name="Loader2" size={14} className="animate-spin" />
-                    <span>Saving…</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon name="CheckCircle2" size={14} />
-                    <span>Saved {formatSavedAt(activeSavedAt)}</span>
-                  </>
-                )}
-              </div>
-
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={submitDisabled}
-                onClick={() => setSubmitOpen(true)}
-              >
-                <Icon name="Send" size={16} className="mr-1" />
-                Submit
-              </Button>
-            </div>
-          </div>
-
-          <div className="border-t border-border/60 bg-background/85">
-            <div className="mx-auto flex w-full max-w-[1200px] items-center gap-2 px-4 py-2">
+      {/* ✅ One-screen. No page scroll. */}
+      <main className="h-[100svh] overflow-hidden bg-background text-foreground">
+        {/* ✅ Body */}
+        <section className="h-full w-full px-2 py-3">
+          <div className="flex h-full min-h-0 flex-col gap-3">
+            {/* ✅ Controls row (NOT a header) */}
+            <div className="shrink-0 flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 variant={activeTask === 1 ? 'primary' : 'secondary'}
@@ -387,152 +310,205 @@ const WritingAttemptPage: NextPage = () => {
                 Task 2
               </Button>
 
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <Badge tone="neutral" size="xs">
+                  {mode === 'academic' ? 'Academic' : 'General'}
+                </Badge>
+
+                <div className="flex items-center gap-1 rounded-ds-xl border border-border/60 bg-card px-3 py-2">
+                  <Icon name="Timer" size={16} />
+                  <span className="text-sm font-semibold">
+                    {formatTimeLeft(timeLeftSeconds)}
+                  </span>
+                </div>
+
                 <Badge tone="neutral" size="xs">
                   {activeWords} words
                 </Badge>
-                {timeIsUp ? (
-                  <Badge tone="warning" size="xs">
-                    Time is up
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </header>
 
-        <section className="mx-auto w-full max-w-[1200px] px-4 py-4">
-          {loading ? (
-            <div className="rounded-ds-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
-              Loading attempt…
-            </div>
-          ) : err ? (
-            <div className="rounded-ds-2xl border border-border/60 bg-card p-5">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                  <Icon name="AlertTriangle" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">Something went wrong</p>
-                  <p className="mt-1 text-xs text-muted-foreground break-words">
-                    {err}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => router.reload()}>
-                      Retry
-                    </Button>
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link href="/mock/writing">Back</Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="rounded-ds-2xl border border-border/60 bg-card">
-                <div className="border-b border-border/60 px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {activeTask === 1 ? 'Writing Task 1' : 'Writing Task 2'}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {mode === 'academic'
-                          ? 'Read the task carefully and plan before you write.'
-                          : 'Make sure you cover all bullet points and keep the tone correct.'}
-                      </p>
-                    </div>
-                    <Badge tone="neutral" size="xs">
-                      {wordHint}+ words
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="max-h-[calc(100dvh-220px)] overflow-auto px-4 py-4">
-                  {activePrompt?.instruction ? (
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {activePrompt.instruction}
-                    </p>
-                  ) : null}
-
-                  {activePrompt?.prompt ? (
-                    <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
-                      {activePrompt.prompt}
-                    </div>
+                <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+                  {activeIsSaving ? (
+                    <>
+                      <Icon name="Loader2" size={14} className="animate-spin" />
+                      <span>Saving…</span>
+                    </>
                   ) : (
-                    <div className="mt-3 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-                      Prompt is not available yet.
-                      <br />
-                      Your API must return <span className="font-medium text-foreground">tasks</span> with{' '}
-                      <span className="font-medium text-foreground">prompt</span> for Task 1/2 in{' '}
-                      <span className="font-medium text-foreground">/api/writing/get-attempt</span>.
-                    </div>
+                    <>
+                      <Icon name="CheckCircle2" size={14} />
+                      <span>Saved {formatSavedAt(activeSavedAt)}</span>
+                    </>
                   )}
-
-                  {activePrompt?.wordLimit ? (
-                    <p className="mt-4 text-xs text-muted-foreground">
-                      Minimum word count:{' '}
-                      <span className="font-medium text-foreground">{activePrompt.wordLimit}</span>
-                    </p>
-                  ) : null}
                 </div>
-              </div>
 
-              <div className="rounded-ds-2xl border border-border/60 bg-card">
-                <div className="border-b border-border/60 px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Icon name="PenTool" size={16} />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold">Answer sheet</p>
-                        <p className="text-xs text-muted-foreground">
-                          {isLocked ? 'Locked after submission' : 'Write your answer below.'}
-                        </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={submitDisabled}
+                  onClick={() => setSubmitOpen(true)}
+                >
+                  <Icon name="Send" size={16} className="mr-1" />
+                  Submit
+                </Button>
+              </div>
+            </div>
+
+            {/* ✅ Content fills remaining height */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {loading ? (
+                <div className="h-full overflow-auto rounded-ds-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+                  Loading attempt…
+                </div>
+              ) : err ? (
+                <div className="h-full overflow-auto rounded-ds-2xl border border-border/60 bg-card p-5">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                      <Icon name="AlertTriangle" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">Something went wrong</p>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        {err}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => router.reload()}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => router.push('/mock/writing')}
+                        >
+                          Back
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
+                  {/* Prompt panel (internal scroll) */}
+                  <div className="flex h-full min-h-0 flex-col rounded-ds-2xl border border-border/60 bg-card">
+                    <div className="shrink-0 border-b border-border/60 px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {activeTask === 1 ? 'Writing Task 1' : 'Writing Task 2'}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {mode === 'academic'
+                              ? 'Read the task carefully and plan before you write.'
+                              : 'Make sure you cover all bullet points and keep the tone correct.'}
+                          </p>
+                        </div>
+                        <Badge tone="neutral" size="xs">
+                          {wordHint}+ words
+                        </Badge>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Word count</p>
-                      <p className="text-sm font-semibold">{activeWords}</p>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+                      {activePrompt?.instruction ? (
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {activePrompt.instruction}
+                        </p>
+                      ) : null}
+
+                      {activePrompt?.prompt ? (
+                        <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
+                          {activePrompt.prompt}
+                        </div>
+                      ) : (
+                        <div className="mt-3 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                          Prompt is not available yet.
+                          <br />
+                          Your API must return{' '}
+                          <span className="font-medium text-foreground">tasks</span>{' '}
+                          with <span className="font-medium text-foreground">prompt</span>{' '}
+                          for Task 1/2 in{' '}
+                          <span className="font-medium text-foreground">
+                            /api/writing/get-attempt
+                          </span>
+                          .
+                        </div>
+                      )}
+
+                      {activePrompt?.wordLimit ? (
+                        <p className="mt-4 text-xs text-muted-foreground">
+                          Minimum word count:{' '}
+                          <span className="font-medium text-foreground">
+                            {activePrompt.wordLimit}
+                          </span>
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Answer panel (textarea fills height) */}
+                  <div className="flex h-full min-h-0 flex-col rounded-ds-2xl border border-border/60 bg-card">
+                    <div className="shrink-0 border-b border-border/60 px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <Icon name="PenTool" size={16} />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold">Answer sheet</p>
+                            <p className="text-xs text-muted-foreground">
+                              {isLocked ? 'Locked after submission' : 'Write your answer below.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Word count</p>
+                          <p className="text-sm font-semibold">{activeWords}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-h-0 px-4 py-4 flex flex-col">
+                      <textarea
+                        value={activeText}
+                        onChange={(e) => onChangeActive(e.target.value)}
+                        disabled={isLocked || timeIsUp}
+                        className="flex-1 min-h-0 w-full resize-none rounded-ds-xl border border-border/60 bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                        placeholder={
+                          activeTask === 1
+                            ? 'Write your Task 1 response…'
+                            : 'Write your Task 2 essay…'
+                        }
+                      />
+
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>
+                          {activeTask === 1
+                            ? 'Task 1 recommended: 150+ words'
+                            : 'Task 2 recommended: 250+ words'}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          {activeIsSaving ? (
+                            <>
+                              <Icon name="Loader2" size={14} className="animate-spin" />
+                              Saving…
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="CheckCircle2" size={14} />
+                              Saved {formatSavedAt(activeSavedAt)}
+                            </>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="px-4 py-4">
-                  <textarea
-                    value={activeText}
-                    onChange={(e) => onChangeActive(e.target.value)}
-                    disabled={isLocked || timeIsUp}
-                    rows={20}
-                    className="w-full resize-none rounded-ds-xl border border-border/60 bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder={activeTask === 1 ? 'Write your Task 1 response…' : 'Write your Task 2 essay…'}
-                  />
-
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>
-                      {activeTask === 1 ? 'Task 1 recommended: 150+ words' : 'Task 2 recommended: 250+ words'}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {activeIsSaving ? (
-                        <>
-                          <Icon name="Loader2" size={14} className="animate-spin" />
-                          Saving…
-                        </>
-                      ) : (
-                        <>
-                          <Icon name="CheckCircle2" size={14} />
-                          Saved {formatSavedAt(activeSavedAt)}
-                        </>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </section>
 
         {submitOpen ? (
