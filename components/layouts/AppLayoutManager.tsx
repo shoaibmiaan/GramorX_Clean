@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import type { SubscriptionTier } from '@/lib/navigation/types';
 
 import Layout from '@/components/Layout';
 import { ImpersonationBanner } from '@/components/admin/ImpersonationBanner';
@@ -13,7 +12,6 @@ import { Input } from '@/components/design-system/Input';
 import { Textarea } from '@/components/design-system/Textarea';
 import { Button } from '@/components/design-system/Button';
 import UpgradeModal from '@/components/premium/UpgradeModal';
-import { RouteLoadingOverlay } from '@/components/common/RouteLoadingOverlay';
 import GlobalPlanGuard from '@/components/GlobalPlanGuard';
 
 import AdminLayout from '@/components/layouts/AdminLayout';
@@ -49,7 +47,7 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   if (hasError) {
     return (
-      <Card className="mx-auto max-w-md mt-8">
+      <Card className="mx-auto mt-8 max-w-md">
         <div className="p-4 text-center">
           <h3 className="text-h4 font-semibold mb-2">Layout Error</h3>
           <p className="text-small text-muted-foreground mb-4">
@@ -72,7 +70,10 @@ type AppLayoutManagerProps = {
   isAuthPage: boolean;
   isProctoringRoute: boolean;
   showLayout: boolean;
+
+  // caller may still pass this, but we will ignore it for auth screens
   forceLayoutOnAuthPage: boolean;
+
   isAdminRoute: boolean;
   isInstitutionsRoute: boolean;
   isDashboardRoute: boolean;
@@ -81,16 +82,12 @@ type AppLayoutManagerProps = {
   isCommunityRoute: boolean;
   isReportsRoute: boolean;
   isMarketingRoute: boolean;
-  subscriptionTier: SubscriptionTier;
-
-  // ✅ make optional so TS never blocks you if a caller forgets
-  isRouteLoading?: boolean;
 
   role?: string | null;
   isTeacherApproved?: boolean | null;
   guardFallback: () => ReactNode;
 
-  // ✅ new: strict exam route (IELTS room)
+  // strict exam room
   isExamRoute: boolean;
 };
 
@@ -105,7 +102,7 @@ function TeacherOnboardingGate() {
       event.preventDefault();
       void router.push('/teacher/register');
     },
-    [router]
+    [router],
   );
 
   return (
@@ -117,8 +114,8 @@ function TeacherOnboardingGate() {
           </p>
           <h2 className="text-h3 font-semibold text-foreground">Complete your profile</h2>
           <p className="text-small text-muted-foreground">
-            Your account is created but not approved yet. Share a quick profile so our team
-            can unlock the teacher workspace for you.
+            Your account is created but not approved yet. Share a quick profile so our team can
+            unlock the teacher workspace for you.
           </p>
         </div>
 
@@ -186,7 +183,7 @@ type LayoutConfig = {
     role?: string | null,
     isTeacherApproved?: boolean | null,
     children?: ReactNode,
-    guardFallback?: () => ReactNode
+    guardFallback?: () => ReactNode,
   ) => ReactNode;
 };
 
@@ -207,8 +204,6 @@ export function AppLayoutManager({
   isCommunityRoute,
   isReportsRoute,
   isMarketingRoute,
-  subscriptionTier,
-  isRouteLoading = false,
   role,
   isTeacherApproved,
   guardFallback,
@@ -216,6 +211,10 @@ export function AppLayoutManager({
 }: AppLayoutManagerProps) {
   const router = useRouter();
   const pathname = router.pathname;
+
+  // ✅ Treat all /auth/* as auth screens too
+  const isAuthScreen = isAuthPage || pathname === '/forgot-password' || pathname.startsWith('/auth/');
+
   const teacherAccess = useTeacherAccess(role, isTeacherApproved);
   const isTeacherRoute = pathname.startsWith('/teacher');
   const teacherAccessRole = role ?? 'guest';
@@ -311,7 +310,7 @@ export function AppLayoutManager({
       isMarketingRoute,
       pathname,
       getTeacherContent,
-    ]
+    ],
   );
 
   // -----------------------
@@ -319,21 +318,24 @@ export function AppLayoutManager({
   // -----------------------
   const activeLayout = useMemo(
     () => layoutConfigs.find((config) => config.guard?.(role, isTeacherApproved)) || null,
-    [layoutConfigs, role, isTeacherApproved]
+    [layoutConfigs, role, isTeacherApproved],
   );
 
   // -----------------------
   // Apply Wrappers
   // -----------------------
-  const getNakedContent = (auth: boolean, proctoring: boolean, content: ReactNode) => {
-    if (auth) return <AuthLayout>{content}</AuthLayout>;
-    if (proctoring) return <ProctoringLayout>{content}</ProctoringLayout>;
-    return content;
+  const getNakedContent = (auth: boolean, proctoring: boolean, contentNode: ReactNode) => {
+    if (auth) return <AuthLayout>{contentNode}</AuthLayout>;
+    if (proctoring) return <ProctoringLayout>{contentNode}</ProctoringLayout>;
+    return contentNode;
   };
 
   const content = useMemo(() => {
-    // ✅ strict exam mode: do not apply ANY layout wrappers
+    // ✅ exam mode: no wrappers
     if (isExamRoute) return children;
+
+    // ✅ auth screens: ALWAYS AuthLayout only
+    if (isAuthScreen) return <AuthLayout>{children}</AuthLayout>;
 
     if (!showLayout) {
       return getNakedContent(isAuthPage, isProctoringRoute, children);
@@ -343,7 +345,6 @@ export function AppLayoutManager({
       if (activeLayout.getContent) {
         return activeLayout.getContent(role, isTeacherApproved, children, guardFallback);
       }
-
       const LayoutComponent = activeLayout.component;
       return <LayoutComponent userRole={role}>{children}</LayoutComponent>;
     }
@@ -351,6 +352,7 @@ export function AppLayoutManager({
     return children;
   }, [
     isExamRoute,
+    isAuthScreen,
     showLayout,
     isAuthPage,
     isProctoringRoute,
@@ -364,12 +366,16 @@ export function AppLayoutManager({
   // -----------------------
   // Final Layout Wrap
   // -----------------------
-  const shouldWrapInMainLayout = forceLayoutOnAuthPage || showLayout;
+  // ✅ Never wrap Auth screens in main Layout, no matter what caller passes.
+  const shouldWrapInMainLayout =
+    (forceLayoutOnAuthPage || showLayout) && !isAuthScreen && !isExamRoute;
+
+  const hideGlobalWidgets = isExamRoute || isAuthScreen;
 
   return (
     <LayoutErrorBoundary>
-      {/* ✅ Also disable plan guard overlays inside exam room */}
-      {!isExamRoute && <GlobalPlanGuard />}
+      {/* ✅ Disable plan guard overlays on exam + auth */}
+      {!hideGlobalWidgets && <GlobalPlanGuard />}
 
       {isExamRoute ? (
         // ✅ EXAM ROOM = pure canvas
@@ -386,17 +392,14 @@ export function AppLayoutManager({
         </>
       )}
 
-      {/* ✅ Kill floating widgets in exam room */}
-      {!isExamRoute && (
+      {/* ✅ Kill floating widgets on exam + auth */}
+      {!hideGlobalWidgets && (
         <>
           <AuthAssistant />
           <SidebarAI />
           <UpgradeModal />
         </>
       )}
-
-      {/* Overlay is ok; it’s not “help/widget chrome” */}
-      <RouteLoadingOverlay active={isRouteLoading} tier={subscriptionTier} />
     </LayoutErrorBoundary>
   );
 }

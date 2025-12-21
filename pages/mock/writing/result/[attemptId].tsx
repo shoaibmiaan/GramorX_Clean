@@ -3,6 +3,7 @@ import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import type { GetServerSideProps, NextPage } from 'next';
+import { useRouter } from 'next/router';
 
 import { getServerClient } from '@/lib/supabaseServer';
 
@@ -44,7 +45,7 @@ type WritingEvaluation = {
 type AttemptMeta = {
   attemptId: string;
   testTitle: string;
-  testSlug: string;
+  testSlug: string | null; // ✅ allow null so UI can fall back safely
   submittedAt: string | null;
   autoSubmitted: boolean;
   status: string;
@@ -96,6 +97,11 @@ const getNullableIso = (obj: any, key: string | null) => {
   return v ? String(v) : null;
 };
 
+const isSubmittedLike = (statusRaw: string) => {
+  const s = (statusRaw ?? '').toLowerCase().trim();
+  return ['submitted', 'complete', 'completed', 'evaluating', 'queued', 'done', 'finished'].includes(s);
+};
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const attemptId = typeof ctx.params?.attemptId === 'string' ? ctx.params.attemptId : null;
   if (!attemptId) return { notFound: true };
@@ -118,18 +124,16 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   // ----------------------------
   const attemptTablesToTry = ['writing_attempts', 'attempts_writing'];
   let attemptRow: any | null = null;
-  let attemptTableFound: string | null = null;
 
   for (const table of attemptTablesToTry) {
     const res = await supabase.from(table as any).select('*').eq('id', attemptId).maybeSingle();
     if (res.data) {
       attemptRow = res.data;
-      attemptTableFound = table;
       break;
     }
   }
 
-  if (!attemptRow || !attemptTableFound) {
+  if (!attemptRow) {
     return {
       props: {
         attemptId,
@@ -151,6 +155,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const statusKey = pickFirstKey(attemptRow, ['status', 'attempt_status']);
   const submittedAtKey = pickFirstKey(attemptRow, ['submitted_at', 'submittedAt', 'submitted_on']);
   const autoSubmittedKey = pickFirstKey(attemptRow, ['auto_submitted', 'autoSubmitted', 'auto_submit']);
+
+  // ✅ extra: sometimes attempt row already has slug/title fields
+  const testSlugKey = pickFirstKey(attemptRow, ['test_slug', 'slug', 'writing_test_slug', 'mock_slug']);
+  const testTitleKey = pickFirstKey(attemptRow, ['test_title', 'title', 'mock_title']);
 
   const ownerId = getStr(attemptRow, ownerKey, '');
   const viewerHasAccess = ownerId && String(ownerId) === String(user.id);
@@ -178,22 +186,24 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   // ----------------------------
   // Test meta (flex schema)
   // ----------------------------
-  let testTitle = 'Writing Mock';
-  let testSlug = 'writing-mock';
+  let testTitle = getStr(attemptRow, testTitleKey, '') || 'Writing Mock';
+  let testSlug: string | null = (getStr(attemptRow, testSlugKey, '') || null) as string | null;
 
   const testId = getStr(attemptRow, testIdKey, '');
   if (testId) {
-    // try common tables
     const testTables = ['writing_tests', 'writing_mock_tests'];
     for (const t of testTables) {
       const tr = await supabase.from(t as any).select('slug, title').eq('id', testId).maybeSingle();
       if (tr.data) {
         testTitle = String((tr.data as any).title ?? testTitle);
-        testSlug = String((tr.data as any).slug ?? testSlug);
+        testSlug = String((tr.data as any).slug ?? testSlug ?? '');
         break;
       }
     }
   }
+
+  // ✅ normalize empty slug to null
+  if (testSlug && !String(testSlug).trim()) testSlug = null;
 
   const attempt: AttemptMeta = {
     attemptId,
@@ -278,7 +288,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     };
   }
 
-  const pending = attempt.status === 'submitted' && !evaluation;
+  const pending = isSubmittedLike(attempt.status) && !evaluation;
 
   return {
     props: {
@@ -308,22 +318,25 @@ const WritingResultPage: NextPage<PageProps> = ({
   pending,
   debug,
 }) => {
-  // Auto-refresh while pending (every 3s, max ~3 min)
+  const router = useRouter();
+  const [autoRefresh, setAutoRefresh] = React.useState(true);
+
   React.useEffect(() => {
-    if (!pending) return;
+    if (!pending || !autoRefresh) return;
 
     let ticks = 0;
     const id = window.setInterval(() => {
       ticks += 1;
       if (ticks > 60) {
         window.clearInterval(id);
+        setAutoRefresh(false);
         return;
       }
-      window.location.reload();
+      void router.replace(router.asPath, undefined, { scroll: false });
     }, 3000);
 
     return () => window.clearInterval(id);
-  }, [pending]);
+  }, [pending, autoRefresh, router]);
 
   if (!viewerHasAccess || !attempt) {
     return (
@@ -373,6 +386,9 @@ const WritingResultPage: NextPage<PageProps> = ({
 
   const overall = evaluation ? bandFmt(evaluation.overallBand) : '—';
 
+  // ✅ Retry link: if slug missing, go to writing hub (no more 404)
+  const retryHref = attempt.testSlug ? `/mock/writing/${encodeURIComponent(attempt.testSlug)}` : '/mock/writing';
+
   return (
     <>
       <Head>
@@ -414,7 +430,7 @@ const WritingResultPage: NextPage<PageProps> = ({
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button asChild variant="secondary" size="sm">
-                  <Link href={`/mock/writing/${encodeURIComponent(attempt.testSlug)}`}>
+                  <Link href={retryHref}>
                     <Icon name="RotateCcw" size={16} className="mr-1.5" />
                     Retry test
                   </Link>

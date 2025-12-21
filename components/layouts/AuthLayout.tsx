@@ -1,10 +1,11 @@
-'use client';
 // components/layouts/AuthLayout.tsx
+'use client';
 
-import React from 'react';
+import * as React from 'react';
 import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';
+
 import { ThemeToggle } from '@/components/design-system/ThemeToggle';
 
 type Props = {
@@ -12,10 +13,12 @@ type Props = {
   subtitle?: string;
   children: React.ReactNode;
   right?: React.ReactNode;
-  rightIllustration?: React.ReactNode;
-  showRightOnMobile?: boolean;
-  mobilePrimaryLabel?: string;
-  mobileSecondaryLabel?: string;
+  hideRightOnMobile?: boolean;
+  footerLink?: {
+    label: string;
+    href: string;
+  };
+  className?: string;
 };
 
 const DefaultRight = () => (
@@ -37,40 +40,10 @@ export default function AuthLayout({
   subtitle,
   children,
   right,
-  rightIllustration,
-  showRightOnMobile = false,
-  mobilePrimaryLabel,
-  mobileSecondaryLabel,
+  hideRightOnMobile = true,
+  footerLink,
+  className,
 }: Props) {
-  const rightContent = right ?? rightIllustration ?? <DefaultRight />;
-
-  // Mobile-only segmented toggle
-  const [mobileView, setMobileView] = React.useState<'left' | 'right'>('left');
-  const tabsId = React.useId();
-  const primaryLabel = mobilePrimaryLabel ?? 'Account';
-  const secondaryLabel = mobileSecondaryLabel ?? 'Highlights';
-  const leftTabId = `${tabsId}-left-tab`;
-  const rightTabId = `${tabsId}-right-tab`;
-  const leftPanelId = `${tabsId}-left-panel`;
-  const rightPanelId = `${tabsId}-right-panel`;
-
-  const leftPanelHidden = showRightOnMobile && mobileView !== 'left';
-  const rightPanelHidden = showRightOnMobile ? mobileView !== 'right' : true;
-
-  const leftPanelClassName = clsx(
-    'bg-background px-6 py-10 sm:px-10 md:px-12',
-    'flex flex-col justify-center',
-    'transition-opacity duration-200',
-    leftPanelHidden && 'hidden md:flex'
-  );
-
-  const rightPanelClassName = clsx(
-    'bg-muted',
-    'flex-col items-center justify-center',
-    'border-t border-border p-8 sm:p-10 md:border-t-0',
-    rightPanelHidden ? 'hidden md:flex' : 'flex md:flex'
-  );
-
   return (
     <div className="relative min-h-[100dvh] bg-background text-foreground">
       {/* Theme toggle */}
@@ -120,23 +93,25 @@ export default function AuthLayout({
               </button>
             </div>
           </div>
-        )}
 
-        <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card/10 shadow-xl md:min-h-[70vh] md:grid md:grid-cols-2">
-          {/* LEFT (form) */}
-          <section
-            role="tabpanel"
-            id={leftPanelId}
-            aria-labelledby={leftTabId}
-            aria-hidden={leftPanelHidden}
-            className={leftPanelClassName}
-          >
-            <div className="w-full max-w-md space-y-6">
-              {/* Brand header */}
-              <Link href="/" className="mb-6 flex items-center gap-3 transition-opacity hover:opacity-80">
-                <Image src="/brand/logo.png" alt="GramorX" width={40} height={40} priority />
-                <span className="font-slab text-h2 font-bold text-gradient-primary">GramorX</span>
-              </Link>
+          <div className="grid min-h-[680px] grid-cols-1 gap-0 md:grid-cols-2">
+            {/* LEFT PANEL — unchanged */}
+            <section className="flex flex-col justify-center px-5 py-10 md:px-10">
+              <div className="mb-6 flex items-center gap-3">
+                <Link href="/" className="inline-flex items-center gap-2">
+                  <Image
+                    src="/brand/logo.png"
+                    alt="GramorX"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 object-contain"
+                    priority
+                  />
+                  <span className="font-slab text-h3 text-gradient-primary">
+                    GramorX
+                  </span>
+                </Link>
+              </div>
 
               <div className="space-y-2">
                 <h1 className="font-slab text-h1 sm:text-display font-bold text-foreground dark:text-white">{title}</h1>
@@ -145,22 +120,32 @@ export default function AuthLayout({
                 )}
               </div>
 
-              <div>{children}</div>
-            </div>
-          </section>
+              <div className="w-full max-w-md">{children}</div>
 
-          {/* RIGHT (info/illustration) */}
-          <aside
-            role="tabpanel"
-            id={rightPanelId}
-            aria-labelledby={rightTabId}
-            aria-hidden={rightPanelHidden}
-            className={rightPanelClassName}
-          >
-            <div className="h-full w-full">{rightContent}</div>
-          </aside>
+              {footerLink ? (
+                <div className="mt-6 text-small text-muted-foreground">
+                  <Link
+                    href={footerLink.href}
+                    className="text-primary hover:underline"
+                  >
+                    {footerLink.label}
+                  </Link>
+                </div>
+              ) : null}
+            </section>
+
+            {/* RIGHT PANEL — unchanged except logo size */}
+            <section
+              className={clsx(
+                'p-6 md:p-8',
+                hideRightOnMobile ? 'hidden md:block' : 'block',
+              )}
+            >
+              {right ?? <DefaultRightPanel />}
+            </section>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
