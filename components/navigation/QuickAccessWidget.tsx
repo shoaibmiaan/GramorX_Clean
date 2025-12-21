@@ -51,7 +51,7 @@ export const QuickAccessWidget: React.FC = () => {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="font-slab text-h4">Quick actions</p>
-                <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Stay on track with a single tap.</p>
+                <p className="text-caption text-muted-foreground dark:text-muted-foreground-dark">Stay on track with a single tap.</p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -66,7 +66,7 @@ export const QuickAccessWidget: React.FC = () => {
                 <li key={item.id}>
                   <Link
                     href={item.href}
-                    className="flex items-center gap-3 rounded-xl border border-border/60 dark:border-border-dark/60 px-3 py-2.5 text-sm transition hover:border-border dark:hover:border-border-dark hover:bg-muted dark:hover:bg-muted-dark"
+                    className="flex items-center gap-3 rounded-xl border border-border/60 dark:border-border-dark/60 px-3 py-2.5 text-small transition hover:border-border dark:hover:border-border-dark hover:bg-muted dark:hover:bg-muted-dark"
                     onClick={() => setOpen(false)}
                   >
                     {item.icon && <Icon name={item.icon} className="h-5 w-5 text-primary dark:text-primary-dark" />}

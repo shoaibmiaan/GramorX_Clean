@@ -43,8 +43,8 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
       <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold text-foreground">Attempt insights</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h2 font-semibold text-foreground">Attempt insights</h2>
+            <p className="text-small text-muted-foreground">
               Track drafts in progress, revisit recent submissions, and spot opportunities for the next rewrite.
             </p>
           </div>
@@ -54,21 +54,21 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Words logged</p>
-            <p className="text-2xl font-semibold text-foreground">{totalWords.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Across the last {recent.length} attempts</p>
+            <p className="text-caption uppercase tracking-[0.16em] text-muted-foreground">Words logged</p>
+            <p className="text-h2 font-semibold text-foreground">{totalWords.toLocaleString()}</p>
+            <p className="text-caption text-muted-foreground">Across the last {recent.length} attempts</p>
           </div>
           <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Scored attempts</p>
-            <p className="text-2xl font-semibold text-foreground">{scoredAttempts.length}</p>
-            <p className="text-xs text-muted-foreground">{scoredAttempts.length > 0 ? 'Ready for deeper review' : 'Submit drafts for scoring'}</p>
+            <p className="text-caption uppercase tracking-[0.16em] text-muted-foreground">Scored attempts</p>
+            <p className="text-h2 font-semibold text-foreground">{scoredAttempts.length}</p>
+            <p className="text-caption text-muted-foreground">{scoredAttempts.length > 0 ? 'Ready for deeper review' : 'Submit drafts for scoring'}</p>
           </div>
           <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Average band</p>
-            <p className="text-2xl font-semibold text-foreground">
+            <p className="text-caption uppercase tracking-[0.16em] text-muted-foreground">Average band</p>
+            <p className="text-h2 font-semibold text-foreground">
               {averageBand ? averageBand.toFixed(1) : '—'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               {averageBand ? 'Based on scored attempts in the last 90 days' : 'Complete scored attempts to unlock band trends'}
             </p>
           </div>
@@ -79,8 +79,8 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
         <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Continue drafts</h3>
-              <p className="text-sm text-muted-foreground">Pick up where you left off with autosaved work.</p>
+              <h3 className="text-h3 font-semibold text-foreground">Continue drafts</h3>
+              <p className="text-small text-muted-foreground">Pick up where you left off with autosaved work.</p>
             </div>
             <Badge variant="soft" tone="default" size="sm">
               {drafts.length} active
@@ -100,14 +100,14 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{attempt.promptTopic}</p>
-                      <p className="text-xs text-muted-foreground">Updated {formatDateTime(attempt.updatedAt)}</p>
+                      <p className="text-small font-medium text-foreground">{attempt.promptTopic}</p>
+                      <p className="text-caption text-muted-foreground">Updated {formatDateTime(attempt.updatedAt)}</p>
                     </div>
                     <Badge variant="soft" tone="info" size="sm" className="capitalize">
                       {attempt.taskType === 'task1' ? 'Task 1' : 'Task 2'}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-small text-muted-foreground">
                     <span>{attempt.wordCount} words saved</span>
                     <span>{statusLabel[attempt.status]}</span>
                   </div>
@@ -128,8 +128,8 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
         <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Recent attempts</h3>
-              <p className="text-sm text-muted-foreground">See what you submitted recently and track your scores.</p>
+              <h3 className="text-h3 font-semibold text-foreground">Recent attempts</h3>
+              <p className="text-small text-muted-foreground">See what you submitted recently and track your scores.</p>
             </div>
             <Badge variant="soft" tone="default" size="sm">
               Last {recent.length}
@@ -149,14 +149,14 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{attempt.promptTopic}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(attempt.updatedAt)}</p>
+                      <p className="text-small font-medium text-foreground">{attempt.promptTopic}</p>
+                      <p className="text-caption text-muted-foreground">{formatDateTime(attempt.updatedAt)}</p>
                     </div>
                     <Badge variant="soft" tone={attempt.status === 'scored' ? 'success' : 'info'} size="sm">
                       {statusLabel[attempt.status]}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-small text-muted-foreground">
                     <span>{attempt.wordCount} words</span>
                     {attempt.overallBand ? (
                       <span className="font-semibold text-foreground">Band {attempt.overallBand.toFixed(1)}</span>
@@ -184,8 +184,8 @@ const WritingProgress = ({ drafts, recent, __plan }: ProgressPageProps) => {
       <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-foreground">Upgrade your analysis</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-h3 font-semibold text-foreground">Upgrade your analysis</h3>
+            <p className="text-small text-muted-foreground">
               Export writing history, compare drafts side-by-side, and unlock AI prompt generation with Owl.
             </p>
           </div>

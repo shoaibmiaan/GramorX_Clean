@@ -66,10 +66,10 @@ const ListeningReviewPage: NextPage<PageProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                  <p className="text-small font-semibold tracking-wide uppercase text-muted-foreground">
                     Review not available
                   </p>
-                  <p className="text-sm text-grayish">
+                  <p className="text-small text-grayish">
                     {isLoggedIn
                       ? "We couldn't find that attempt. Please retry a Listening mock."
                       : "You need to be logged in to view this review."}
@@ -117,7 +117,7 @@ const ListeningReviewPage: NextPage<PageProps> = ({
         {/* -------------------------------------------------------------- */}
         <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
           <Container className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
               <Icon name="Headphones" size={14} />
               <span>Listening Review</span>
             </div>
@@ -126,7 +126,7 @@ const ListeningReviewPage: NextPage<PageProps> = ({
               Check your answers for: {test.title}
             </h1>
 
-            <p className="text-sm text-muted-foreground max-w-xl">
+            <p className="text-small text-muted-foreground max-w-xl">
               Every question. Your answer vs correct answer. Clean and simple.
             </p>
 
@@ -162,18 +162,18 @@ const ListeningReviewPage: NextPage<PageProps> = ({
             <Card className="rounded-ds-2xl p-6 border border-border/60 bg-card/80">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-xs text-muted-foreground">Band</p>
-                  <p className="text-3xl font-bold">{attempt.bandScore ?? "—"}</p>
+                  <p className="text-caption text-muted-foreground">Band</p>
+                  <p className="text-h1 font-bold">{attempt.bandScore ?? "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Correct</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-caption text-muted-foreground">Correct</p>
+                  <p className="text-h1 font-bold">
                     {attempt.rawScore}/{attempt.questionCount ?? test.totalQuestions}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-lg font-semibold">
+                  <p className="text-caption text-muted-foreground">Date</p>
+                  <p className="text-h4 font-semibold">
                     {new Date(attempt.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -222,7 +222,7 @@ const ListeningReviewPage: NextPage<PageProps> = ({
                             </div>
 
                             {/* Answers */}
-                            <div className="flex flex-col gap-1 text-sm">
+                            <div className="flex flex-col gap-1 text-small">
                               <p className="text-muted-foreground">
                                 Your answer:{" "}
                                 <span
@@ -264,25 +264,25 @@ const ListeningReviewPage: NextPage<PageProps> = ({
               <div className="grid gap-6 md:grid-cols-2">
 
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-primary font-semibold">
+                  <p className="text-caption uppercase tracking-wide text-primary font-semibold">
                     Next smart move
                   </p>
 
                   <h3 className="font-slab text-h3">Fix your Listening weaknesses with AI.</h3>
 
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     AI Lab will highlight which sections, accents, and question formats
                     you consistently struggle with.
                   </p>
                 </div>
 
-                <div className="bg-muted rounded-ds-2xl p-4 text-sm space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                <div className="bg-muted rounded-ds-2xl p-4 text-small space-y-3">
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground font-medium">
                     <Icon name="Sparkles" size={14} />
                     <span>Recommended flow</span>
                   </div>
 
-                  <ol className="text-xs text-muted-foreground space-y-2">
+                  <ol className="text-caption text-muted-foreground space-y-2">
                     <li>1. Review your incorrect answers above.</li>
                     <li>2. Send this attempt to AI Lab.</li>
                     <li>3. Get analysis by section, accent & question type.</li>

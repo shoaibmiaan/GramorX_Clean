@@ -17,8 +17,8 @@ const typeMeta: Record<
   learning: {
     label: 'Learning',
     icon: <BookOpen className="h-3.5 w-3.5" />,
-    bg: 'bg-sky-50 dark:bg-sky-900/40',
-    text: 'text-sky-700 dark:text-sky-200',
+    bg: 'bg-electricBlue/10 dark:bg-electricBlue/95/40',
+    text: 'text-electricBlue dark:text-electricBlue/80',
   },
   practice: {
     label: 'Practice',
@@ -29,8 +29,8 @@ const typeMeta: Record<
   mock: {
     label: 'Mock exam',
     icon: <Mic className="h-3.5 w-3.5" />,
-    bg: 'bg-amber-50 dark:bg-amber-900/40',
-    text: 'text-amber-700 dark:text-amber-200',
+    bg: 'bg-warning/10 dark:bg-warning/95/40',
+    text: 'text-warning dark:text-warning/80',
   },
 };
 
@@ -57,14 +57,14 @@ export const TodayTasks: React.FC<TodayTasksProps> = ({ tasks }) => {
                   {meta.icon}
                   <span>{meta.label}</span>
                 </div>
-                <h3 className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                <h3 className="line-clamp-2 text-small font-semibold text-slate-900 dark:text-slate-50">
                   {task.title}
                 </h3>
-                <p className="line-clamp-3 text-xs text-slate-600 dark:text-slate-300">
+                <p className="line-clamp-3 text-caption text-slate-600 dark:text-slate-300">
                   {task.description}
                 </p>
               </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <div className="mt-3 flex items-center justify-between text-caption text-slate-500 dark:text-slate-400">
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
                   <span>{task.estimatedMinutes} min</span>

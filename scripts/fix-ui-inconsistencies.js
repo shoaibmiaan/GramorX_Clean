@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-// Color mapping from hard-coded values to design tokens
+// Base color mapping from hard-coded values to design tokens
 const colorMappings = {
   // Red variants -> danger
   'bg-red-500': 'bg-danger',
@@ -13,7 +13,7 @@ const colorMappings = {
   'text-red-600': 'text-danger',
   'border-red-500': 'border-danger',
   'border-red-600': 'border-danger',
-  
+
   // Green variants -> success
   'bg-emerald-500': 'bg-success',
   'bg-emerald-600': 'bg-success',
@@ -23,7 +23,7 @@ const colorMappings = {
   'text-emerald-600': 'text-success',
   'text-green-500': 'text-success',
   'text-green-600': 'text-success',
-  
+
   // Blue variants -> electricBlue
   'bg-blue-500': 'bg-electricBlue',
   'bg-blue-600': 'bg-electricBlue',
@@ -33,21 +33,108 @@ const colorMappings = {
   'text-blue-600': 'text-electricBlue',
   'text-sky-500': 'text-electricBlue',
   'text-sky-600': 'text-electricBlue',
-  
+
   // Yellow/Amber variants -> warning
   'bg-amber-500': 'bg-warning',
   'bg-yellow-500': 'bg-warning',
   'text-amber-500': 'text-warning',
   'text-yellow-500': 'text-warning',
-  
-  // Gray variants -> grayish
+
+  // Gray variants -> grayish/semantic neutrals
   'bg-gray-500': 'bg-grayish',
   'bg-gray-600': 'bg-grayish',
   'text-gray-500': 'text-grayish',
   'text-gray-600': 'text-grayish',
-  'border-gray-300': 'border-lightBorder',
+  'text-gray-400': 'text-grayish',
+  'text-gray-300': 'text-mutedText',
+  'text-gray-200': 'text-mutedText',
+  'text-gray-100': 'text-mutedText/80',
+  'text-gray-50': 'text-mutedText/80',
+  'text-gray-800': 'text-foreground',
+  'text-gray-900': 'text-foreground',
+  'text-gray-700': 'text-foreground/80',
+  'bg-gray-50': 'bg-lightCard',
+  'bg-gray-100': 'bg-lightBg',
+  'bg-gray-200': 'bg-lightBg',
+  'bg-gray-300': 'bg-lightBg',
+  'bg-gray-700': 'bg-dark/80',
+  'bg-gray-800': 'bg-dark/90',
+  'bg-gray-900': 'bg-darker',
+  'border-gray-50': 'border-lightBorder',
+  'border-gray-100': 'border-lightBorder',
   'border-gray-200': 'border-lightBorder',
+  'border-gray-300': 'border-lightBorder',
+  'border-gray-400': 'border-border',
+  'border-gray-700': 'border-border/70',
+  'border-gray-800': 'border-border/80',
+  'border-gray-900': 'border-border/90',
 };
+
+const bgOpacityMap = {
+  50: '/10',
+  100: '/15',
+  200: '/20',
+  300: '/30',
+  400: '/40',
+  500: '',
+  600: '',
+  700: '/85',
+  800: '/90',
+  900: '/95',
+};
+
+const textOpacityMap = {
+  50: '/80',
+  100: '/80',
+  200: '/80',
+  300: '/90',
+  400: '/90',
+  500: '',
+  600: '',
+  700: '',
+  800: '',
+  900: '',
+};
+
+const borderOpacityMap = {
+  50: '/20',
+  100: '/25',
+  200: '/30',
+  300: '/40',
+  400: '/50',
+  500: '',
+  600: '/70',
+  700: '/80',
+  800: '/90',
+  900: '/95',
+};
+
+const toneGroups = [
+  { token: 'danger', prefixes: ['red'] },
+  { token: 'success', prefixes: ['green', 'emerald'] },
+  { token: 'electricBlue', prefixes: ['blue', 'sky'] },
+  { token: 'warning', prefixes: ['amber', 'yellow'] },
+];
+
+const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+toneGroups.forEach(({ token, prefixes }) => {
+  prefixes.forEach((prefix) => {
+    shades.forEach((shade) => {
+      const bgKey = `bg-${prefix}-${shade}`;
+      const textKey = `text-${prefix}-${shade}`;
+      const borderKey = `border-${prefix}-${shade}`;
+
+      const bgValue = `bg-${token}${bgOpacityMap[shade] || ''}`;
+      const textValue = `text-${token}${textOpacityMap[shade] || ''}`;
+      const borderValue = `border-${token}${borderOpacityMap[shade] || ''}`;
+
+      if (!colorMappings[bgKey]) colorMappings[bgKey] = bgValue;
+      if (!colorMappings[textKey]) colorMappings[textKey] = textValue;
+      if (!colorMappings[borderKey]) colorMappings[borderKey] = borderValue;
+    });
+  });
+});
 
 // Typography mapping from Tailwind to semantic
 const typographyMappings = {
@@ -138,6 +225,7 @@ function scanForIssues(filePath) {
 function main() {
   const args = process.argv.slice(2);
   const mode = args[0] || 'scan';
+  const failOnIssues = args.includes('--fail-on-issues') || args.includes('--fail');
 
   console.log('🎨 Gramor_X UI Consistency Tool\\n');
 
@@ -181,6 +269,12 @@ function main() {
       console.log(`\\nFound ${totalIssues} UI inconsistencies across ${files.length} files.`);
       console.log('\\nTo automatically fix these issues, run:');
       console.log('   node scripts/fix-ui-inconsistencies.js fix');
+      if (failOnIssues) {
+        process.exitCode = 1;
+      } else {
+        console.log('\\nTo make CI fail on remaining issues, re-run with:');
+        console.log('   node scripts/fix-ui-inconsistencies.js scan --fail-on-issues');
+      }
     }
   }
 }

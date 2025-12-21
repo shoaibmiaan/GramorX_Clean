@@ -390,13 +390,13 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                   {sectionLabel} drill.
                 </h1>
 
-                <p className="text-sm text-muted-foreground max-w-2xl">
+                <p className="text-small text-muted-foreground max-w-2xl">
                   {sectionTagline} Practice mode only — no strict single-play rules,
                   but still close to real exam difficulty.
                 </p>
               </div>
 
-              <div className="flex flex-col items-start md:items-end gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-col items-start md:items-end gap-2 text-caption text-muted-foreground">
                 <div className="flex flex-wrap gap-2">
                   <Badge size="sm" variant="neutral">
                     Practice mode
@@ -421,7 +421,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
               {/* LEFT: Question player */}
               <Card className="rounded-ds-2xl border border-border/60 bg-card/90 p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground">
                     <Badge size="xs" variant="neutral">
                       Question {currentQuestion.number}
                     </Badge>
@@ -442,10 +442,10 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                 </div>
 
                 <div className="mb-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Listening prompt
                   </p>
-                  <p className="whitespace-pre-line text-sm text-foreground">
+                  <p className="whitespace-pre-line text-small text-foreground">
                     {currentQuestion.prompt}
                   </p>
                 </div>
@@ -453,7 +453,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                 <div className="space-y-4">
                   {currentQuestion.type === 'mcq' && currentQuestion.options && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Choose ONE letter (A, B, C or D).
                       </p>
                       <div className="grid gap-2">
@@ -468,7 +468,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                                 setSelectedOption(opt);
                               }}
                               className={[
-                                'flex w-full items-center justify-between rounded-ds-xl border px-3 py-2 text-left text-xs transition',
+                                'flex w-full items-center justify-between rounded-ds-xl border px-3 py-2 text-left text-caption transition',
                                 isActive
                                   ? 'border-primary bg-primary/10 text-foreground'
                                   : 'border-border/60 bg-muted/40 hover:bg-muted/70',
@@ -490,7 +490,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
 
                   {currentQuestion.type === 'short' && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Type your answer. Follow IELTS rules (spelling matters).
                       </p>
                       <input
@@ -500,19 +500,19 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                           if (isSubmitted) return;
                           setTypedAnswer(e.target.value);
                         }}
-                        className="w-full rounded-ds-xl border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/40"
+                        className="w-full rounded-ds-xl border border-border/60 bg-background px-3 py-2 text-small outline-none focus:border-primary focus:ring-1 focus:ring-primary/40"
                         placeholder="Type your answer here…"
                       />
                     </div>
                   )}
 
                   {isSubmitted && (
-                    <div className="mt-2 rounded-ds-xl border px-3 py-2 text-xs flex items-start gap-2">
+                    <div className="mt-2 rounded-ds-xl border px-3 py-2 text-caption flex items-start gap-2">
                       <Icon
                         name={isCorrect ? 'ThumbsUp' : 'AlertTriangle'}
                         className={
                           isCorrect
-                            ? 'h-4 w-4 text-emerald-500'
+                            ? 'h-4 w-4 text-success'
                             : 'h-4 w-4 text-destructive'
                         }
                       />
@@ -520,7 +520,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                         <p
                           className={
                             isCorrect
-                              ? 'font-medium text-emerald-500'
+                              ? 'font-medium text-success'
                               : 'font-medium text-destructive'
                           }
                         >
@@ -595,7 +595,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
 
               {/* RIGHT: Summary / progress */}
               <div className="space-y-6">
-                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs space-y-3">
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-caption space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">
                     Drill snapshot
                   </p>
@@ -615,7 +615,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
                   </p>
                 </Card>
 
-                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs space-y-3">
+                <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-caption space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-semibold">
                     What to focus on
                   </p>
@@ -669,7 +669,7 @@ const ListeningSectionDrillRunnerPage: NextPage<PageProps> = ({
 // -----------------------------------------------------------------------------
 
 const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between text-xs">
+  <div className="flex justify-between text-caption">
     <span className="text-muted-foreground">{label}</span>
     <span className="font-semibold text-foreground">{value}</span>
   </div>

@@ -112,10 +112,10 @@ const ModulesOverview: React.FC = () => {
         >
           IELTS four modules + AI stack
         </p>
-        <h2 className="mt-2 font-slab text-2xl md:text-3xl text-foreground">
+        <h2 className="mt-2 font-slab text-h2 md:text-h1 text-foreground">
           All parts of the exam, stitched together instead of four separate apps.
         </h2>
-        <p className="mt-2 mx-auto max-w-2xl text-xs md:text-sm text-muted-foreground">
+        <p className="mt-2 mx-auto max-w-2xl text-caption md:text-small text-muted-foreground">
           Learning, practice, mocks, AI feedback and analytics share one profile — your
           goal band, exam date, weak skills and time constraints.
         </p>
@@ -135,8 +135,8 @@ const ModulesOverview: React.FC = () => {
                     <Icon name={m.icon} size={20} />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{m.title}</p>
-                    <p className="text-xs text-muted-foreground">{m.label}</p>
+                    <p className="text-small font-semibold text-foreground">{m.title}</p>
+                    <p className="text-caption text-muted-foreground">{m.label}</p>
                   </div>
                 </div>
                 {m.tag ? (
@@ -146,7 +146,7 @@ const ModulesOverview: React.FC = () => {
                 ) : null}
               </div>
 
-              <p className="text-xs text-muted-foreground">{m.description}</p>
+              <p className="text-caption text-muted-foreground">{m.description}</p>
 
               <ul className="mt-2 space-y-2 text-[11px] text-muted-foreground">
                 {m.bullets.map((b) => (

@@ -99,7 +99,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
     <Container>
       <Section>
         <div className="mx-auto mb-6 max-w-2xl text-center">
-          <h1 className="text-3xl font-bold text-foreground">Welcome, Teacher 👩‍🏫</h1>
+          <h1 className="text-h1 font-bold text-foreground">Welcome, Teacher 👩‍🏫</h1>
           <p className="mt-2 text-mutedText">
             Your account is pending approval. Please complete the steps below.
           </p>
@@ -115,9 +115,9 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
         </Alert>
 
         <Card className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold">Onboarding Progress</h2>
+          <h2 className="mb-3 text-h4 font-semibold">Onboarding Progress</h2>
           <ProgressBar value={Number.isNaN(progress) ? 0 : progress} />
-          <p className="mt-2 text-sm text-mutedText">
+          <p className="mt-2 text-small text-mutedText">
             {Number.isNaN(progress) ? 0 : progress}% completed
           </p>
         </Card>
@@ -145,21 +145,21 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
               aria-label="Teacher profile form"
             >
               <div className="grid gap-1.5">
-                <label htmlFor="full-name" className="text-sm text-mutedText">
+                <label htmlFor="full-name" className="text-small text-mutedText">
                   Full Name
                 </label>
                 <Input id="full-name" name="fullName" placeholder="Your full name" required />
               </div>
 
               <div className="grid gap-1.5">
-                <label htmlFor="subject-expertise" className="text-sm text-mutedText">
+                <label htmlFor="subject-expertise" className="text-small text-mutedText">
                   Subject Expertise
                 </label>
                 <Input id="subject-expertise" name="subjectExpertise" placeholder="e.g., IELTS Writing" required />
               </div>
 
               <div className="grid gap-1.5">
-                <label htmlFor="experience" className="text-sm text-mutedText">
+                <label htmlFor="experience" className="text-small text-mutedText">
                   Experience
                 </label>
                 <Textarea
@@ -225,7 +225,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
         </div>
 
         <Card className="mt-8 text-center">
-          <h2 className="mb-2 text-lg font-semibold">What happens after submission?</h2>
+          <h2 className="mb-2 text-h4 font-semibold">What happens after submission?</h2>
           <p className="mb-4 text-mutedText">
             Our admin team will verify your profile. Once approved, you'll get access to student
             management, lesson publishing, and performance analytics.

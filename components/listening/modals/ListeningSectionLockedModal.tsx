@@ -31,7 +31,7 @@ export const ListeningSectionLockedModal: React.FC<ListeningSectionLockedModalPr
             </DialogDescription>
           </DialogHeader>
 
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-caption text-muted-foreground">
             IELTS Listening is strictly linear: once a section&apos;s audio
             starts, you must complete it before moving on. This keeps the mock
             experience realistic.

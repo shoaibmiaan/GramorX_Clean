@@ -33,11 +33,11 @@ const ExamExitPopup: React.FC<ExamExitPopupProps> = ({
             <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <Icon name="log-out" className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-h4 font-semibold">
               Exit test?
             </DialogTitle>
           </div>
-          <DialogDescription className="mt-3 text-sm text-muted-foreground">
+          <DialogDescription className="mt-3 text-small text-muted-foreground">
             If you exit now, this attempt may be{" "}
             <span className="font-semibold text-foreground">
               auto-submitted or lost
@@ -47,7 +47,7 @@ const ExamExitPopup: React.FC<ExamExitPopupProps> = ({
         </DialogHeader>
 
         {hasUnanswered && (
-          <div className="mt-3 rounded-md bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
+          <div className="mt-3 rounded-md bg-muted/70 px-3 py-2 text-caption text-muted-foreground">
             You still have{" "}
             <span className="font-semibold text-destructive">
               {unanswered} unanswered

@@ -57,7 +57,7 @@ export const WritingEditor = ({
         <WordCountBar taskType={taskType} wordCount={wordCount} />
         <TimerBar taskType={taskType} elapsedMs={elapsedMs} />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
         <span>
           Status: <span className="font-semibold text-foreground">{statusCopy[status]}</span>
         </span>
@@ -82,11 +82,11 @@ export const WritingEditor = ({
             }
           }}
           disabled={status !== 'draft'}
-          className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Begin your response here…"
         />
       </label>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-small text-muted-foreground">
         <Button
           variant="primary"
           size="md"

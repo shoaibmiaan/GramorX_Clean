@@ -39,14 +39,14 @@ export const AccessibilityHints: React.FC = () => {
       )}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
           {t('writing.accessibilityHints.badge')}
         </span>
-        <h2 id={headingId} className="text-lg font-semibold text-foreground">
+        <h2 id={headingId} className="text-h4 font-semibold text-foreground">
           {t('writing.accessibilityHints.title')}
         </h2>
       </div>
-      <p id={descriptionId} className="mt-2 text-sm text-muted-foreground">
+      <p id={descriptionId} className="mt-2 text-small text-muted-foreground">
         {t('writing.accessibilityHints.description')}
       </p>
       <ul className="mt-4 space-y-3" role="list">
@@ -64,13 +64,13 @@ export const AccessibilityHints: React.FC = () => {
               className="mt-1.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-primary"
             />
             <div className={clsx('space-y-1', isRTL ? 'text-right' : 'text-left')}>
-              <p className="text-sm font-medium text-foreground">{hint.title}</p>
-              <p className="text-sm text-muted-foreground">{hint.body}</p>
+              <p className="text-small font-medium text-foreground">{hint.title}</p>
+              <p className="text-small text-muted-foreground">{hint.body}</p>
             </div>
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-xs text-muted-foreground">
+      <p className="mt-4 text-caption text-muted-foreground">
         {t('writing.accessibilityHints.footer')}
       </p>
     </aside>

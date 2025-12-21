@@ -38,8 +38,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
     <aside className="hidden w-72 shrink-0 border-r border-border/60 dark:border-border-dark/60 bg-card/40 dark:bg-card-dark/40 backdrop-blur lg:block">
       <div className="sticky top-[72px] max-h-[calc(100vh-80px)] overflow-y-auto px-6 py-8">
         <div className="mb-6">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">Navigation</h2>
-          <p className="mt-1 text-sm text-muted-foreground/80 dark:text-muted-foreground-dark/80">
+          <h2 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">Navigation</h2>
+          <p className="mt-1 text-small text-muted-foreground/80 dark:text-muted-foreground-dark/80">
             Jump into the tools that accelerate your IELTS prep.
           </p>
         </div>
@@ -48,7 +48,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
         <nav aria-label="Dashboard sections" className="space-y-6">
           {sections.map((section) => (
             <div key={section.id}>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">
+              <div className="mb-2 flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark">
                 {section.icon && <Icon name={section.icon} className="h-4 w-4" />}
                 <span>{section.label}</span>
               </div>
@@ -60,7 +60,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
                       <Link
                         href={item.href}
                         className={`
-                          flex items-center justify-between rounded-xl px-3 py-2 text-sm transition
+                          flex items-center justify-between rounded-xl px-3 py-2 text-small transition
                           ${
                             active
                               ? 'bg-primary/10 dark:bg-primary-dark/10 text-primary dark:text-primary-dark font-semibold'
@@ -84,14 +84,14 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
 
           {/* Innovation section */}
           <div className="border-t border-border/60 dark:border-border-dark/60 my-4" />
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark mb-2">
+          <div className="text-caption font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark mb-2">
             Innovation
           </div>
           <ul className="space-y-1.5">
             <li>
               <Link
                 href="/ai/coach"
-                className={`block rounded-xl px-3 py-2 text-sm transition ${
+                className={`block rounded-xl px-3 py-2 text-small transition ${
                   isActive('/ai/coach')
                     ? 'bg-primary/10 dark:bg-primary-dark/10 text-primary dark:text-primary-dark font-semibold'
                     : 'text-muted-foreground dark:text-muted-foreground-dark hover:bg-muted dark:hover:bg-muted-dark'
@@ -103,7 +103,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
             <li>
               <Link
                 href="/study-buddy"
-                className={`block rounded-xl px-3 py-2 text-sm transition ${
+                className={`block rounded-xl px-3 py-2 text-small transition ${
                   isActive('/study-buddy')
                     ? 'bg-primary/10 dark:bg-primary-dark/10 text-primary dark:text-primary-dark font-semibold'
                     : 'text-muted-foreground dark:text-muted-foreground-dark hover:bg-muted dark:hover:bg-muted-dark'
@@ -115,7 +115,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
             <li>
               <Link
                 href="/mistakes-book"
-                className={`block rounded-xl px-3 py-2 text-sm transition ${
+                className={`block rounded-xl px-3 py-2 text-small transition ${
                   isActive('/mistakes-book')
                     ? 'bg-primary/10 dark:bg-primary-dark/10 text-primary dark:text-primary-dark font-semibold'
                     : 'text-muted-foreground dark:text-muted-foreground-dark hover:bg-muted dark:hover:bg-muted-dark'
@@ -127,7 +127,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ subscription
             <li>
               <Link
                 href="/whatsapp-tasks"
-                className={`block rounded-xl px-3 py-2 text-sm transition ${
+                className={`block rounded-xl px-3 py-2 text-small transition ${
                   isActive('/whatsapp-tasks')
                     ? 'bg-primary/10 dark:bg-primary-dark/10 text-primary dark:text-primary-dark font-semibold'
                     : 'text-muted-foreground dark:text-muted-foreground-dark hover:bg-muted dark:hover:bg-muted-dark'

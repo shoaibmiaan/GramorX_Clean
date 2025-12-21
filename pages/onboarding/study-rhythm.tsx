@@ -126,19 +126,19 @@ const OnboardingStudyRhythmPage: NextPage = () => {
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
           <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-h2 font-semibold tracking-tight sm:text-h1">
                 How do you prefer to study?
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              <p className="mt-2 text-small text-muted-foreground sm:text-body">
                 Your rhythm helps us shape daily tasks, reminders, rest days,
                 and mock-test scheduling. You can update it anytime.
               </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-caption font-medium text-muted-foreground">
               <Icon name="alarm-clock" className="h-3.5 w-3.5" />
               Consistency beats intensity.
             </div>
@@ -157,10 +157,10 @@ const OnboardingStudyRhythmPage: NextPage = () => {
           </div>
 
           {error && (
-            <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
+            <p className="mt-3 text-small font-medium text-destructive">{error}</p>
           )}
 
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-4 text-caption text-muted-foreground">
             Don’t worry — your study plan adapts automatically as your exam date
             gets closer.
           </p>
@@ -178,7 +178,7 @@ const OnboardingStudyRhythmPage: NextPage = () => {
             </Button>
 
             <div className="flex items-center gap-3">
-              <p className="hidden text-xs text-muted-foreground sm:inline">
+              <p className="hidden text-caption text-muted-foreground sm:inline">
                 Next: <span className="font-medium">Notifications</span>
               </p>
               <Button
@@ -216,7 +216,7 @@ const OnboardingProgress: React.FC<{
             >
               <div
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
+                  'flex h-7 w-7 items-center justify-center rounded-full border text-caption font-semibold',
                   completed &&
                     'border-primary bg-primary text-primary-foreground',
                   active &&
@@ -246,7 +246,7 @@ const OnboardingProgress: React.FC<{
         })}
       </div>
 
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         {steps.map((step, index) => (
           <span
             key={step.id}
@@ -281,7 +281,7 @@ const RhythmCard: React.FC<{
       )}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-base font-semibold sm:text-lg">
+        <span className="text-body font-semibold sm:text-h4">
           {option.label}
         </span>
 
@@ -297,7 +297,7 @@ const RhythmCard: React.FC<{
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground sm:text-sm">
+      <p className="text-caption text-muted-foreground sm:text-small">
         {option.subtitle}
       </p>
 

@@ -186,9 +186,9 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
             <Badge variant="soft" tone="info" size="sm" className="capitalize">
               {attempt.taskType === 'task1' ? 'Task 1' : 'Task 2'}
             </Badge>
-            <h1 className="text-3xl font-semibold text-foreground">{attempt.promptTopic}</h1>
-            <p className="text-sm text-muted-foreground">Submitted {formatDate(attempt.submittedAt)}</p>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            <h1 className="text-h1 font-semibold text-foreground">{attempt.promptTopic}</h1>
+            <p className="text-small text-muted-foreground">Submitted {formatDate(attempt.submittedAt)}</p>
+            {error && <p className="text-small text-danger">{error}</p>}
           </header>
 
         <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -196,12 +196,12 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
             <Card className="space-y-4" padding="lg">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">Overall band</span>
-                  <span className="text-3xl font-semibold text-foreground">
+                  <span className="text-small text-muted-foreground">Overall band</span>
+                  <span className="text-h1 font-semibold text-foreground">
                     {attempt.overallBand ? attempt.overallBand.toFixed(1) : 'Pending'}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-3 text-small text-muted-foreground">
                   <span>{attempt.wordCount} words</span>
                   <span>{Math.round(attempt.timeSpentMs / 60000)} min</span>
                   <Badge variant="soft" tone={attempt.status === 'scored' ? 'success' : 'info'} size="sm">
@@ -216,18 +216,18 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
             <DiffViewer previous={attempt.previousDraft} current={attempt.draftText} />
 
             <Card className="space-y-3" padding="lg">
-              <h2 className="text-lg font-semibold text-foreground">Submitted essay</h2>
+              <h2 className="text-h4 font-semibold text-foreground">Submitted essay</h2>
               <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{attempt.draftText}</p>
+                <p className="whitespace-pre-line text-small text-muted-foreground">{attempt.draftText}</p>
               </div>
             </Card>
           </div>
 
           <div className="flex flex-col gap-4">
             <Card className="space-y-3" padding="lg">
-              <h2 className="text-lg font-semibold text-foreground">Metrics</h2>
+              <h2 className="text-h4 font-semibold text-foreground">Metrics</h2>
               {attempt.metrics ? (
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <ul className="space-y-2 text-small text-muted-foreground">
                   <li>Words per minute: <span className="text-foreground">{attempt.metrics.wpm ?? '—'}</span></li>
                   <li>Type-token ratio: <span className="text-foreground">{attempt.metrics.ttr ?? '—'}</span></li>
                   <li>Cohesion density: <span className="text-foreground">{attempt.metrics.cohesionDensity ?? '—'}</span></li>
@@ -235,13 +235,13 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
                   <li>Originality score: <span className="text-foreground">{attempt.metrics.originalityScore ?? '—'}</span></li>
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">Metrics will appear once analysis finishes.</p>
+                <p className="text-small text-muted-foreground">Metrics will appear once analysis finishes.</p>
               )}
             </Card>
 
             <Card className="space-y-3" padding="lg">
-              <h2 className="text-lg font-semibold text-foreground">Next steps</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-h4 font-semibold text-foreground">Next steps</h2>
+              <p className="text-small text-muted-foreground">
                 Lock in improvements by running targeted drills, then start a redraft attempt.
               </p>
               <RetakeGuard initial={attempt.readiness} onRefreshError={(err) => setError(err.message)}>
@@ -265,9 +265,9 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
             <DrillChecklist items={drillItems} />
 
           <Card className="space-y-4" padding="lg">
-            <h2 className="text-lg font-semibold text-foreground">Peer &amp; teacher reviews</h2>
+            <h2 className="text-h4 font-semibold text-foreground">Peer &amp; teacher reviews</h2>
             {!hasCalibration && (
-              <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 text-small text-muted-foreground">
                 <p className="font-medium text-foreground">Calibrate with two anchored essays to unlock peer reviews.</p>
                 <Button size="xs" variant="ghost" href="/writing/reviews/calibrate" className="mt-2">
                   Start calibration
@@ -275,17 +275,17 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
               </div>
             )}
             {reviews.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No human reviews yet. Invite a peer or coach to review this attempt.</p>
+              <p className="text-small text-muted-foreground">No human reviews yet. Invite a peer or coach to review this attempt.</p>
             ) : (
                 <ul className="space-y-3">
                   {reviews.map((review) => (
                     <li key={review.id} className="rounded-2xl border border-border/60 bg-card p-4">
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between text-small text-muted-foreground">
                         <span className="capitalize">{review.role}</span>
                         <span>{formatDate(review.createdAt)}</span>
                       </div>
                       {review.scores && (
-                        <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                        <div className="mt-2 grid gap-2 text-small text-muted-foreground">
                           {Object.entries(review.scores).map(([criterion, value]) => (
                             <div key={criterion} className="flex justify-between">
                               <span className="capitalize">{criterion}</span>
@@ -295,10 +295,10 @@ const ReviewPage = ({ attempt, reviews, recommendedDrills, completedDrills }: Re
                         </div>
                       )}
                       {review.comments && review.comments.length > 0 && (
-                        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                        <ul className="mt-3 space-y-2 text-small text-muted-foreground">
                           {review.comments.map((comment) => (
                             <li key={`${review.id}-${comment.path}`} className="rounded-xl bg-muted/20 p-3">
-                              <p className="text-xs uppercase tracking-wide text-muted-foreground">{comment.path}</p>
+                              <p className="text-caption uppercase tracking-wide text-muted-foreground">{comment.path}</p>
                               <p>{comment.note}</p>
                             </li>
                           ))}

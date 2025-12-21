@@ -247,7 +247,7 @@ export default function PlanPicker({
 
         {error ? (
           <div className="md:col-span-3 rounded-xl p-3 ring-1 ring-red-500/40">
-            <div className="text-sm">{error}</div>
+            <div className="text-small">{error}</div>
           </div>
         ) : null}
       </div>

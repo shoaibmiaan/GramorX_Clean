@@ -893,11 +893,11 @@ export default function AdminIndex() {
                           <span
                             className={`rounded-full px-2 py-0.5 text-caption border ${
                               t.status === 'open'
-                                ? 'border-amber-400 text-amber-600 dark:text-amber-400'
+                                ? 'border-warning/50 text-warning dark:text-warning/90'
                                 : t.status === 'in_progress'
-                                ? 'border-blue-500 text-electricBlue dark:text-blue-400'
+                                ? 'border-electricBlue text-electricBlue dark:text-electricBlue/90'
                                 : t.status === 'resolved'
-                                ? 'border-green-500 text-success dark:text-green-400'
+                                ? 'border-success text-success dark:text-success/90'
                                 : 'border-muted-foreground text-muted-foreground'
                             }`}
                           >

@@ -71,10 +71,10 @@ export const FeaturePillars: React.FC = () => {
             <Icon name="Star" className="text-electricBlue" />
             4 Pillars of Success
           </Badge>
-          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="font-slab text-h1 md:text-display font-bold text-foreground mb-4">
             Everything You Need to Succeed
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-h4 text-muted-foreground max-w-2xl mx-auto">
             We combine AI technology with expert IELTS knowledge to create the most effective preparation platform.
           </p>
         </div>
@@ -93,10 +93,10 @@ export const FeaturePillars: React.FC = () => {
                   <Icon name={pillar.icon} size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                  <h3 className="text-h3 font-semibold text-foreground mb-2">
                     {pillar.title}
                   </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-muted-foreground text-small leading-relaxed">
                     {pillar.description}
                   </p>
                 </div>
@@ -107,7 +107,7 @@ export const FeaturePillars: React.FC = () => {
                 {pillar.features.map((feature, featureIndex) => (
                   <li
                     key={featureIndex}
-                    className="flex items-center gap-3 text-sm text-muted-foreground"
+                    className="flex items-center gap-3 text-small text-muted-foreground"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-electricBlue flex-shrink-0" />
                     {feature}
@@ -130,7 +130,7 @@ export const FeaturePillars: React.FC = () => {
         {/* Integration Note */}
         <div className="text-center mt-12" data-aos="fade-up">
           <Card className="inline-block border border-electricBlue/30 bg-electricBlue/5 px-6 py-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               <strong className="text-foreground">All features work together</strong> – Your adaptive plan informs your practice, which feeds into your progress analytics
             </p>
           </Card>

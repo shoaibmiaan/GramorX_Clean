@@ -161,7 +161,7 @@ export const StudyCalendar: React.FC = () => {
                 onDragStart={() => setDragTask(task.id)}
                 onClick={() => toggleCatchUp(task)}
                 className={`mt-1 w-full rounded px-1 text-[10px] cursor-pointer ${
-                  task.catch_up ? 'bg-yellow-300 text-black' : 'bg-white text-black'
+                  task.catch_up ? 'bg-warning/30 text-black' : 'bg-white text-black'
                 }`}
               >
                 {task.title}

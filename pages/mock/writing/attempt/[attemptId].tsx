@@ -308,7 +308,7 @@ const WritingAttemptPage: NextPage = () => {
         <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
           <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-3">
             <div className="flex min-w-[220px] flex-col gap-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 text-caption text-muted-foreground">
                 <Link href="/mock/writing" className="hover:text-foreground">
                   Writing mocks
                 </Link>
@@ -317,7 +317,7 @@ const WritingAttemptPage: NextPage = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold">IELTS Writing</span>
+                <span className="text-small font-semibold">IELTS Writing</span>
                 <Badge tone="neutral" size="xs">
                   {mode === 'academic' ? 'Academic' : 'General'}
                 </Badge>
@@ -337,12 +337,12 @@ const WritingAttemptPage: NextPage = () => {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 rounded-ds-xl border border-border/60 bg-card px-3 py-2">
                 <Icon name="Timer" size={16} />
-                <span className="text-sm font-semibold">
+                <span className="text-small font-semibold">
                   {formatTimeLeft(timeLeftSeconds)}
                 </span>
               </div>
 
-              <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+              <div className="hidden items-center gap-2 text-caption text-muted-foreground md:flex">
                 {activeIsSaving ? (
                   <>
                     <Icon name="Loader2" size={14} className="animate-spin" />
@@ -403,7 +403,7 @@ const WritingAttemptPage: NextPage = () => {
 
         <section className="mx-auto w-full max-w-[1200px] px-4 py-4">
           {loading ? (
-            <div className="rounded-ds-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+            <div className="rounded-ds-2xl border border-border/60 bg-card p-4 text-small text-muted-foreground">
               Loading attempt…
             </div>
           ) : err ? (
@@ -413,8 +413,8 @@ const WritingAttemptPage: NextPage = () => {
                   <Icon name="AlertTriangle" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">Something went wrong</p>
-                  <p className="mt-1 text-xs text-muted-foreground break-words">
+                  <p className="text-small font-semibold">Something went wrong</p>
+                  <p className="mt-1 text-caption text-muted-foreground break-words">
                     {err}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -434,10 +434,10 @@ const WritingAttemptPage: NextPage = () => {
                 <div className="border-b border-border/60 px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold">
+                      <p className="text-small font-semibold">
                         {activeTask === 1 ? 'Writing Task 1' : 'Writing Task 2'}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p className="mt-0.5 text-caption text-muted-foreground">
                         {mode === 'academic'
                           ? 'Read the task carefully and plan before you write.'
                           : 'Make sure you cover all bullet points and keep the tone correct.'}
@@ -451,17 +451,17 @@ const WritingAttemptPage: NextPage = () => {
 
                 <div className="max-h-[calc(100dvh-220px)] overflow-auto px-4 py-4">
                   {activePrompt?.instruction ? (
-                    <p className="text-xs font-medium text-muted-foreground">
+                    <p className="text-caption font-medium text-muted-foreground">
                       {activePrompt.instruction}
                     </p>
                   ) : null}
 
                   {activePrompt?.prompt ? (
-                    <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
+                    <div className="mt-3 whitespace-pre-wrap text-small leading-6">
                       {activePrompt.prompt}
                     </div>
                   ) : (
-                    <div className="mt-3 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                    <div className="mt-3 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-caption text-muted-foreground">
                       Prompt is not available yet.
                       <br />
                       Your API must return <span className="font-medium text-foreground">tasks</span> with{' '}
@@ -471,7 +471,7 @@ const WritingAttemptPage: NextPage = () => {
                   )}
 
                   {activePrompt?.wordLimit ? (
-                    <p className="mt-4 text-xs text-muted-foreground">
+                    <p className="mt-4 text-caption text-muted-foreground">
                       Minimum word count:{' '}
                       <span className="font-medium text-foreground">{activePrompt.wordLimit}</span>
                     </p>
@@ -487,16 +487,16 @@ const WritingAttemptPage: NextPage = () => {
                         <Icon name="PenTool" size={16} />
                       </span>
                       <div>
-                        <p className="text-sm font-semibold">Answer sheet</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-small font-semibold">Answer sheet</p>
+                        <p className="text-caption text-muted-foreground">
                           {isLocked ? 'Locked after submission' : 'Write your answer below.'}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Word count</p>
-                      <p className="text-sm font-semibold">{activeWords}</p>
+                      <p className="text-caption text-muted-foreground">Word count</p>
+                      <p className="text-small font-semibold">{activeWords}</p>
                     </div>
                   </div>
                 </div>
@@ -507,7 +507,7 @@ const WritingAttemptPage: NextPage = () => {
                     onChange={(e) => onChangeActive(e.target.value)}
                     disabled={isLocked || timeIsUp}
                     rows={20}
-                    className="w-full resize-none rounded-ds-xl border border-border/60 bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full resize-none rounded-ds-xl border border-border/60 bg-background px-3 py-3 text-small outline-none focus:ring-2 focus:ring-primary/30"
                     placeholder={activeTask === 1 ? 'Write your Task 1 response…' : 'Write your Task 2 essay…'}
                   />
 
@@ -540,8 +540,8 @@ const WritingAttemptPage: NextPage = () => {
             <div className="w-full max-w-lg rounded-ds-2xl border border-border/60 bg-card p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold">Submit your writing?</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-small font-semibold">Submit your writing?</p>
+                  <p className="mt-1 text-caption text-muted-foreground">
                     After submission, your answers are locked. No edits.
                   </p>
                 </div>
@@ -555,14 +555,14 @@ const WritingAttemptPage: NextPage = () => {
                 </Button>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-caption">
                 <div className="rounded-ds-xl border border-border/60 bg-background p-3">
                   <p className="text-[11px] text-muted-foreground">Task 1 words</p>
-                  <p className="text-sm font-semibold">{wordCount(t1)}</p>
+                  <p className="text-small font-semibold">{wordCount(t1)}</p>
                 </div>
                 <div className="rounded-ds-xl border border-border/60 bg-background p-3">
                   <p className="text-[11px] text-muted-foreground">Task 2 words</p>
-                  <p className="text-sm font-semibold">{wordCount(t2)}</p>
+                  <p className="text-small font-semibold">{wordCount(t2)}</p>
                 </div>
               </div>
 

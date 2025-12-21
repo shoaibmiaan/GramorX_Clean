@@ -75,7 +75,7 @@ const BackdropModal: React.FC<{
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-lg rounded-ds-2xl border border-border bg-card p-5 shadow-xl">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <div className="text-small font-semibold text-foreground">{title}</div>
         <div className="mt-3">{children}</div>
       </div>
     </div>
@@ -293,7 +293,7 @@ export const WritingExamShell: React.FC<Props> = ({
   return (
     <div className="flex min-h-screen flex-col bg-lightBg">
       <BackdropModal title="Exam rules" open={modal === 'strict'}>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-small text-muted-foreground">
           <p>
             You are in <span className="font-semibold text-foreground">IELTS-style strict mode</span>.
             Leaving the page can invalidate your attempt.
@@ -307,7 +307,7 @@ export const WritingExamShell: React.FC<Props> = ({
       </BackdropModal>
 
       <BackdropModal title="Time warning" open={modal === 'timeWarning'}>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-small text-muted-foreground">
           <p>
             Only <span className="font-semibold text-foreground">5 minutes</span> remaining.
             Finalize both tasks.
@@ -321,24 +321,24 @@ export const WritingExamShell: React.FC<Props> = ({
       </BackdropModal>
 
       <BackdropModal title="Confirm finish" open={modal === 'confirmSubmit'}>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-small text-muted-foreground">
           <div className="rounded-ds-xl border border-border bg-muted/40 p-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-semibold text-foreground">Task 1</div>
-              <div className={clsx('text-xs', belowMin1 ? 'text-destructive' : 'text-muted-foreground')}>
+              <div className="text-caption font-semibold text-foreground">Task 1</div>
+              <div className={clsx('text-caption', belowMin1 ? 'text-destructive' : 'text-muted-foreground')}>
                 Words: {wc1} / min {task1?.minWords ?? 150}
               </div>
             </div>
             <div className="mt-1 flex items-center justify-between">
-              <div className="text-xs font-semibold text-foreground">Task 2</div>
-              <div className={clsx('text-xs', belowMin2 ? 'text-destructive' : 'text-muted-foreground')}>
+              <div className="text-caption font-semibold text-foreground">Task 2</div>
+              <div className={clsx('text-caption', belowMin2 ? 'text-destructive' : 'text-muted-foreground')}>
                 Words: {wc2} / min {task2?.minWords ?? 250}
               </div>
             </div>
           </div>
 
           {hasEmptyTask ? (
-            <Alert tone="destructive" className="text-xs">
+            <Alert tone="destructive" className="text-caption">
               You must attempt both tasks before finishing.
             </Alert>
           ) : null}
@@ -359,7 +359,7 @@ export const WritingExamShell: React.FC<Props> = ({
       </BackdropModal>
 
       <BackdropModal title="Exit exam?" open={modal === 'exitWarning'}>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-small text-muted-foreground">
           <p>If you exit now, you may lose time and your attempt might not be counted.</p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={cancelExit}>
@@ -383,7 +383,7 @@ export const WritingExamShell: React.FC<Props> = ({
                 Attempt: {attemptId.slice(0, 8)}
               </span>
             </div>
-            <p className="text-sm font-semibold text-foreground">{testTitle}</p>
+            <p className="text-small font-semibold text-foreground">{testTitle}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -416,13 +416,13 @@ export const WritingExamShell: React.FC<Props> = ({
       <main className="flex-1">
         <div className="mx-auto max-w-6xl space-y-3 px-4 py-4">
           {submitError ? (
-            <Alert tone="destructive" className="text-xs">
+            <Alert tone="destructive" className="text-caption">
               {submitError}
             </Alert>
           ) : null}
 
           {locked ? (
-            <Alert tone="info" className="text-xs">
+            <Alert tone="info" className="text-caption">
               Attempt is locked. Your answers are now read-only.
             </Alert>
           ) : null}
@@ -439,7 +439,7 @@ export const WritingExamShell: React.FC<Props> = ({
                   type="button"
                   onClick={() => setActiveTaskId(task.id)}
                   className={clsx(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition',
+                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-caption transition',
                     activeTaskId === task.id
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted',
@@ -470,7 +470,7 @@ export const WritingExamShell: React.FC<Props> = ({
                 ) : null}
               </header>
 
-              <div className="flex-1 overflow-auto px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              <div className="flex-1 overflow-auto px-4 py-3 text-small leading-relaxed text-muted-foreground">
                 {(activeTask?.body ?? '')
                   .split('\n')
                   .filter((x) => x.length > 0)
@@ -523,7 +523,7 @@ export const WritingExamShell: React.FC<Props> = ({
                   }}
                   minRows={12}
                   readOnly={locked}
-                  className="w-full resize-none rounded-ds-xl border border-border bg-input px-3 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full resize-none rounded-ds-xl border border-border bg-input px-3 py-3 text-small text-foreground outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Start typing here…"
                   spellCheck={false}
                 />

@@ -70,9 +70,9 @@ export function PushOptInCard({ onGranted, onDismiss }: PushOptInCardProps) {
     return (
       <Card padding="lg" className="border-success/40 bg-success/10">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-success">Push ready</p>
-          <h3 className="text-base font-semibold text-foreground">You&apos;ll receive grading alerts</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-wide text-success">Push ready</p>
+          <h3 className="text-body font-semibold text-foreground">You&apos;ll receive grading alerts</h3>
+          <p className="text-small text-muted-foreground">
             Thanks! We&apos;ll let you know instantly when writing scores or AI feedback are available.
           </p>
         </div>
@@ -84,9 +84,9 @@ export function PushOptInCard({ onGranted, onDismiss }: PushOptInCardProps) {
     <Card padding="lg" className="border-border/70">
       <div className="flex flex-col gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stay notified</p>
-          <h3 className="text-lg font-semibold text-foreground">Enable push alerts</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Stay notified</p>
+          <h3 className="text-h4 font-semibold text-foreground">Enable push alerts</h3>
+          <p className="mt-1 text-small text-muted-foreground">
             We&apos;ll remind you when it&apos;s time to submit, and send writing score updates instantly.
           </p>
         </div>
@@ -98,7 +98,7 @@ export function PushOptInCard({ onGranted, onDismiss }: PushOptInCardProps) {
             Maybe later
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground" aria-live="polite">
+        <p className="text-caption text-muted-foreground" aria-live="polite">
           Status: {permissionLabel}
         </p>
       </div>

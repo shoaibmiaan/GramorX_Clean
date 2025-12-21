@@ -48,15 +48,15 @@ export default function SynonymLabPage() {
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {synonymSets.map((set) => (
               <Card key={set.basic} className="rounded-ds-2xl border border-border/60 bg-card/60 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Instead of
                 </p>
-                <p className="mt-1 text-sm font-medium text-foreground">{set.basic}</p>
+                <p className="mt-1 text-small font-medium text-foreground">{set.basic}</p>
 
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="mt-3 text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Try
                 </p>
-                <ul className="mt-1 space-y-1 text-sm">
+                <ul className="mt-1 space-y-1 text-small">
                   {set.better.map((w) => (
                     <li key={w} className="flex items-center gap-2">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
@@ -65,7 +65,7 @@ export default function SynonymLabPage() {
                   ))}
                 </ul>
 
-                <p className="mt-3 text-xs text-muted-foreground">{set.note}</p>
+                <p className="mt-3 text-caption text-muted-foreground">{set.note}</p>
               </Card>
             ))}
           </div>

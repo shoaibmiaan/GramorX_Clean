@@ -69,29 +69,29 @@ export const WritingKPIs: React.FC<Props> = ({ overview, loading = false }) => {
     <section className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card padding="lg" className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Total Attempts</p>
+          <p className="text-small font-medium text-muted-foreground">Total Attempts</p>
           {loading ? (
             <Skeleton className="h-9 w-24" />
           ) : (
-            <p className="text-3xl font-semibold tracking-tight text-foreground">
+            <p className="text-h1 font-semibold tracking-tight text-foreground">
               {numberFormatter.format(totalAttempts)}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {loading ? <Skeleton className="mt-1 h-4 w-32" /> : `Total words ${numberFormatter.format(totalWords)}`}
           </p>
         </Card>
 
         <Card padding="lg" className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Average Overall Band</p>
+          <p className="text-small font-medium text-muted-foreground">Average Overall Band</p>
           {loading ? (
             <Skeleton className="h-9 w-20" />
           ) : (
-            <p className="text-3xl font-semibold tracking-tight text-foreground">
+            <p className="text-h1 font-semibold tracking-tight text-foreground">
               {bandFormatter.format(averageBand)}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {loading ? (
               <Skeleton className="mt-1 h-4 w-40" />
             ) : (
@@ -103,29 +103,29 @@ export const WritingKPIs: React.FC<Props> = ({ overview, loading = false }) => {
         </Card>
 
         <Card padding="lg" className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Average Word Count</p>
+          <p className="text-small font-medium text-muted-foreground">Average Word Count</p>
           {loading ? (
             <Skeleton className="h-9 w-24" />
           ) : (
-            <p className="text-3xl font-semibold tracking-tight text-foreground">
+            <p className="text-h1 font-semibold tracking-tight text-foreground">
               {numberFormatter.format(Math.max(0, averageWordCount || 0))}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {loading ? <Skeleton className="mt-1 h-4 w-36" /> : 'Per graded attempt'}
           </p>
         </Card>
 
         <Card padding="lg" className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Average Time Per Task</p>
+          <p className="text-small font-medium text-muted-foreground">Average Time Per Task</p>
           {loading ? (
             <Skeleton className="h-9 w-28" />
           ) : (
-            <p className="text-3xl font-semibold tracking-tight text-foreground">
+            <p className="text-h1 font-semibold tracking-tight text-foreground">
               {formatDuration(averageDuration)}
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {loading ? (
               <Skeleton className="mt-1 h-4 w-32" />
             ) : lastAttemptAt ? (
@@ -139,22 +139,22 @@ export const WritingKPIs: React.FC<Props> = ({ overview, loading = false }) => {
 
       <Card padding="lg" insetBorder className="space-y-5">
         <div>
-          <h3 className="text-base font-semibold text-foreground">Criterion Breakdown</h3>
-          <p className="text-sm text-muted-foreground">Average band scores across your selected window.</p>
+          <h3 className="text-body font-semibold text-foreground">Criterion Breakdown</h3>
+          <p className="text-small text-muted-foreground">Average band scores across your selected window.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {breakdown.map((item) => (
             <div key={item.label} className="rounded-ds-xl border border-border/60 bg-muted/20 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
+              <p className="text-caption uppercase tracking-wide text-muted-foreground">{item.label}</p>
               {loading ? (
                 <Skeleton className="mt-2 h-7 w-16" />
               ) : (
-                <p className="mt-2 text-2xl font-semibold text-foreground">{bandFormatter.format(item.value)}</p>
+                <p className="mt-2 text-h2 font-semibold text-foreground">{bandFormatter.format(item.value)}</p>
               )}
             </div>
           ))}
         </div>
-        <div className="flex flex-col gap-2 rounded-ds-xl border border-dashed border-border/70 bg-muted/10 p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2 rounded-ds-xl border border-dashed border-border/70 bg-muted/10 p-4 text-small text-muted-foreground md:flex-row md:items-center md:justify-between">
           <span>
             {loading ? (
               <Skeleton className="h-4 w-48" />
@@ -163,7 +163,7 @@ export const WritingKPIs: React.FC<Props> = ({ overview, loading = false }) => {
             )}
           </span>
           {!loading && lastAttemptAt && (
-            <span className="text-xs uppercase tracking-wide text-foreground/70">
+            <span className="text-caption uppercase tracking-wide text-foreground/70">
               {numberFormatter.format(totalAttempts)} attempts analysed
             </span>
           )}

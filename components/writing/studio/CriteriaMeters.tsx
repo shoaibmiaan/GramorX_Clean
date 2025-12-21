@@ -12,8 +12,8 @@ export const CriteriaMeters = ({ scores }: CriteriaMetersProps) => {
   return (
     <Card className="space-y-4" padding="lg">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">Band breakdown</h2>
-        <p className="text-sm text-muted-foreground">Task response, cohesion, lexical range, and grammar accuracy.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Band breakdown</h2>
+        <p className="text-small text-muted-foreground">Task response, cohesion, lexical range, and grammar accuracy.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {CRITERIA_LABELS.map((criterion) => {
@@ -21,8 +21,8 @@ export const CriteriaMeters = ({ scores }: CriteriaMetersProps) => {
           return (
             <div key={criterion} className="space-y-2 rounded-2xl border border-border/60 bg-card p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-foreground">{criterion}</p>
-                <span className="text-sm font-medium text-foreground">{value != null ? value.toFixed(1) : '—'}</span>
+                <p className="text-small font-semibold text-foreground">{criterion}</p>
+                <span className="text-small font-medium text-foreground">{value != null ? value.toFixed(1) : '—'}</span>
               </div>
               <ProgressBar value={value ? Math.min(100, Math.round((value / 9) * 100)) : 0} tone={value ? 'success' : 'default'} ariaLabel={`${criterion} meter`} />
             </div>

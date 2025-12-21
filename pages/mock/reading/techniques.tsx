@@ -45,10 +45,10 @@ const ReadingTechniquesPage: React.FC = () => {
               <Badge size="xs" variant="outline">
                 Technique trainer
               </Badge>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-h3 font-semibold tracking-tight">
                 Fix the way you read, not just your score.
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Short, repeatable drills to sharpen skimming, scanning, and paraphrase recognition.
               </p>
             </div>
@@ -80,7 +80,7 @@ const ReadingTechniquesPage: React.FC = () => {
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)]">
             {/* Lesson list */}
             <Card className="p-3 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground mb-1">
+              <p className="text-caption font-medium text-muted-foreground mb-1">
                 Drills in this category
               </p>
               <div className="space-y-1 max-h-[60vh] overflow-auto">
@@ -90,7 +90,7 @@ const ReadingTechniquesPage: React.FC = () => {
                     type="button"
                     onClick={() => setActiveLessonId(l.id)}
                     className={
-                      'w-full text-left text-xs rounded-md border px-2 py-1.5 transition-colors ' +
+                      'w-full text-left text-caption rounded-md border px-2 py-1.5 transition-colors ' +
                       (activeLesson?.id === l.id
                         ? 'border-primary bg-primary/5'
                         : 'border-transparent hover:bg-muted')
@@ -124,14 +124,14 @@ const ReadingTechniquesPage: React.FC = () => {
                       <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
                         {activeLesson.category}
                       </p>
-                      <h2 className="text-sm font-semibold">{activeLesson.title}</h2>
+                      <h2 className="text-small font-semibold">{activeLesson.title}</h2>
                     </div>
                     <Badge size="xs" variant="outline">
                       {activeLesson.level}
                     </Badge>
                   </div>
 
-                  <p className="text-xs text-muted-foreground">{activeLesson.summary}</p>
+                  <p className="text-caption text-muted-foreground">{activeLesson.summary}</p>
 
                   <div className="space-y-1.5">
                     <p className="text-[11px] font-medium">Steps</p>
@@ -152,7 +152,7 @@ const ReadingTechniquesPage: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Pick a drill from the left to see the steps.
                 </p>
               )}

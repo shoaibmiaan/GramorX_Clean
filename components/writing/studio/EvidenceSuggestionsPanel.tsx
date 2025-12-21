@@ -20,8 +20,8 @@ export function EvidenceSuggestionsPanel({ suggestions, loading, onInsert, onRef
     <Card className="card-surface space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-foreground">Evidence suggestions</h3>
-          <p className="text-xs text-muted-foreground">Reuse facts from recent reading passages to strengthen your Task 2 arguments.</p>
+          <h3 className="text-body font-semibold text-foreground">Evidence suggestions</h3>
+          <p className="text-caption text-muted-foreground">Reuse facts from recent reading passages to strengthen your Task 2 arguments.</p>
         </div>
         {onRefresh && (
           <Button size="xs" variant="ghost" onClick={() => onRefresh()} loading={loading}>
@@ -33,8 +33,8 @@ export function EvidenceSuggestionsPanel({ suggestions, loading, onInsert, onRef
         <ul className="space-y-3">
           {topSuggestions.map((item) => (
             <li key={`${item.sourceSlug}-${item.statement}`} className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-              <p className="text-sm text-foreground">{item.statement}</p>
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <p className="text-small text-foreground">{item.statement}</p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-caption text-muted-foreground">
                 <Badge size="xs" variant="soft" tone="info">
                   {item.sourceTitle}
                 </Badge>
@@ -46,7 +46,7 @@ export function EvidenceSuggestionsPanel({ suggestions, loading, onInsert, onRef
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">Complete a reading passage to unlock tailored evidence suggestions.</p>
+        <p className="text-small text-muted-foreground">Complete a reading passage to unlock tailored evidence suggestions.</p>
       )}
     </Card>
   );

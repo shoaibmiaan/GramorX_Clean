@@ -20,12 +20,12 @@ export const ReadingReviewQuestionItem: React.FC<
   };
 
   const borderTone = isCorrect
-    ? 'border-emerald-500/50 bg-emerald-500/5'
+    ? 'border-success/50 bg-success/5'
     : 'border-destructive/40 bg-destructive/5';
 
   return (
     <Card
-      className={`p-3 space-y-2 text-sm border-l-4 ${
+      className={`p-3 space-y-2 text-small border-l-4 ${
         isCorrect ? 'border-l-emerald-500' : 'border-l-destructive'
       }`}
     >
@@ -46,10 +46,10 @@ export const ReadingReviewQuestionItem: React.FC<
       </div>
 
       {question.instruction && (
-        <p className="text-xs text-muted-foreground">{question.instruction}</p>
+        <p className="text-caption text-muted-foreground">{question.instruction}</p>
       )}
 
-      <div className="text-xs space-y-0.5">
+      <div className="text-caption space-y-0.5">
         <p>
           Your answer:{' '}
           <span className="font-medium">

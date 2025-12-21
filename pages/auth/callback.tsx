@@ -91,7 +91,7 @@ export default function AuthCallback() {
       <div className="grid min-h-[100dvh] place-items-center">
         {err ? (
           <div className="rounded-ds-2xl border border-destructive/40 p-6 max-w-md">
-            <h1 className="text-lg font-semibold text-destructive">Couldn’t verify your email</h1>
+            <h1 className="text-h4 font-semibold text-destructive">Couldn’t verify your email</h1>
             <p className="mt-2 text-muted-foreground">{err}</p>
             <button className="btn mt-4" onClick={() => router.replace('/login')}>Back to login</button>
           </div>

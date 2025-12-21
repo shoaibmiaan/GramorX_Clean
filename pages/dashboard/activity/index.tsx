@@ -349,13 +349,13 @@ export default function ActivityHomePage() {
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'login': return <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-        <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      case 'login': return <div className="p-2 bg-success/15 dark:bg-success/95/30 rounded-lg">
+        <svg className="w-5 h-5 text-success dark:text-success/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
         </svg>
       </div>;
-      case 'task_created': return <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      case 'task_created': return <div className="p-2 bg-electricBlue/15 dark:bg-electricBlue/95/30 rounded-lg">
+        <svg className="w-5 h-5 text-electricBlue dark:text-electricBlue/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       </div>;
@@ -368,8 +368,8 @@ export default function ActivityHomePage() {
       case 'listening_completed': return <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
         <Headphones className="w-5 h-5 text-orange-600 dark:text-orange-400" />
       </div>;
-      default: return <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <Activity className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+      default: return <div className="p-2 bg-lightBg dark:bg-dark/90 rounded-lg">
+        <Activity className="w-5 h-5 text-grayish dark:text-grayish" />
       </div>;
     }
   };
@@ -401,7 +401,7 @@ export default function ActivityHomePage() {
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                <h1 className="text-h1 font-bold text-foreground flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-xl">
                     <Activity className="h-8 w-8 text-primary" />
                   </div>
@@ -465,7 +465,7 @@ export default function ActivityHomePage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-small font-medium text-foreground mb-2">
                       Date Range
                     </label>
                     <select
@@ -482,7 +482,7 @@ export default function ActivityHomePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-small font-medium text-foreground mb-2">
                       Activity Type
                     </label>
                     <select
@@ -501,7 +501,7 @@ export default function ActivityHomePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-small font-medium text-foreground mb-2">
                       Task Status
                     </label>
                     <select
@@ -535,17 +535,17 @@ export default function ActivityHomePage() {
                       <CheckCircle className="h-5 w-5 text-success" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">7-Day Streak</p>
-                      <p className="text-xs text-muted-foreground">Keep it up!</p>
+                      <p className="font-medium text-small">7-Day Streak</p>
+                      <p className="text-caption text-muted-foreground">Keep it up!</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-lg">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <TrendingUp className="h-5 w-5 text-blue-500" />
+                  <div className="flex items-center gap-3 p-3 bg-electricBlue/10 rounded-lg">
+                    <div className="p-2 bg-electricBlue/20 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-electricBlue" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Writing Master</p>
-                      <p className="text-xs text-muted-foreground">10+ submissions</p>
+                      <p className="font-medium text-small">Writing Master</p>
+                      <p className="text-caption text-muted-foreground">10+ submissions</p>
                     </div>
                   </div>
                 </div>
@@ -558,7 +558,7 @@ export default function ActivityHomePage() {
               <div className="bg-card border border-border rounded-xl p-1">
                 <div className="flex space-x-1">
                   <button
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'timeline' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-small font-medium transition-colors ${activeTab === 'timeline' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setActiveTab('timeline')}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -567,7 +567,7 @@ export default function ActivityHomePage() {
                     </div>
                   </button>
                   <button
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tasks' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-small font-medium transition-colors ${activeTab === 'tasks' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setActiveTab('tasks')}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -576,7 +576,7 @@ export default function ActivityHomePage() {
                     </div>
                   </button>
                   <button
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`flex-1 py-3 px-4 rounded-lg text-small font-medium transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setActiveTab('analytics')}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -608,26 +608,26 @@ export default function ActivityHomePage() {
 
                 {activeTab === 'analytics' && (
                   <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Activity Analytics</h3>
+                    <h3 className="text-h4 font-semibold mb-4">Activity Analytics</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-blue-600 dark:text-blue-400">Most Active Day</p>
-                        <p className="text-2xl font-bold mt-1">Monday</p>
+                      <div className="bg-electricBlue/10 dark:bg-electricBlue/95/20 p-4 rounded-lg">
+                        <p className="text-small text-electricBlue dark:text-electricBlue/90">Most Active Day</p>
+                        <p className="text-h2 font-bold mt-1">Monday</p>
                       </div>
-                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-green-600 dark:text-green-400">Avg. Daily Activities</p>
-                        <p className="text-2xl font-bold mt-1">12</p>
+                      <div className="bg-success/10 dark:bg-success/95/20 p-4 rounded-lg">
+                        <p className="text-small text-success dark:text-success/90">Avg. Daily Activities</p>
+                        <p className="text-h2 font-bold mt-1">12</p>
                       </div>
                       <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-purple-600 dark:text-purple-400">Peak Hour</p>
-                        <p className="text-2xl font-bold mt-1">7 PM</p>
+                        <p className="text-small text-purple-600 dark:text-purple-400">Peak Hour</p>
+                        <p className="text-h2 font-bold mt-1">7 PM</p>
                       </div>
                       <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-orange-600 dark:text-orange-400">Task Completion Rate</p>
-                        <p className="text-2xl font-bold mt-1">78%</p>
+                        <p className="text-small text-orange-600 dark:text-orange-400">Task Completion Rate</p>
+                        <p className="text-h2 font-bold mt-1">78%</p>
                       </div>
                     </div>
-                    <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                    <div className="h-64 bg-lightBg dark:bg-dark/90 rounded-lg flex items-center justify-center">
                       <p className="text-muted-foreground">Activity charts coming soon...</p>
                     </div>
                   </Card>
@@ -649,24 +649,24 @@ export default function ActivityHomePage() {
                     .filter(task => task.status === 'pending' && task.due_date)
                     .slice(0, 3)
                     .map(task => (
-                      <div key={task.id} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <div key={task.id} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-lightCard dark:hover:bg-dark/90/50">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
-                            task.priority === 'urgent' ? 'bg-red-100 dark:bg-red-900/30' :
+                            task.priority === 'urgent' ? 'bg-danger/15 dark:bg-danger/95/30' :
                             task.priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/30' :
-                            task.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
-                            'bg-green-100 dark:bg-green-900/30'
+                            task.priority === 'medium' ? 'bg-warning/15 dark:bg-warning/95/30' :
+                            'bg-success/15 dark:bg-success/95/30'
                           }`}>
                             <AlertCircle className={`h-4 w-4 ${
-                              task.priority === 'urgent' ? 'text-red-600 dark:text-red-400' :
+                              task.priority === 'urgent' ? 'text-danger dark:text-danger/90' :
                               task.priority === 'high' ? 'text-orange-600 dark:text-orange-400' :
-                              task.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
-                              'text-green-600 dark:text-green-400'
+                              task.priority === 'medium' ? 'text-warning dark:text-warning/90' :
+                              'text-success dark:text-success/90'
                             }`} />
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{task.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="font-medium text-small">{task.title}</p>
+                            <p className="text-caption text-muted-foreground">
                               Due {new Date(task.due_date!).toLocaleDateString()}
                             </p>
                           </div>
@@ -700,28 +700,28 @@ export default function ActivityHomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">AI</span>
+                  <div className="w-8 h-8 bg-electricBlue/15 dark:bg-electricBlue/95 rounded-full flex items-center justify-center">
+                    <span className="text-electricBlue dark:text-electricBlue/90 font-semibold">AI</span>
                   </div>
                   <div>
-                    <p className="font-medium text-sm">AI Feedback</p>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
+                    <p className="font-medium text-small">AI Feedback</p>
+                    <p className="text-caption text-muted-foreground">2 hours ago</p>
                   </div>
                 </div>
-                <p className="text-sm">"Great vocabulary improvement in your last essay. Try varying sentence structures more."</p>
+                <p className="text-small">"Great vocabulary improvement in your last essay. Try varying sentence structures more."</p>
               </div>
 
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 dark:text-green-400 font-semibold">T</span>
+                  <div className="w-8 h-8 bg-success/15 dark:bg-success/95 rounded-full flex items-center justify-center">
+                    <span className="text-success dark:text-success/90 font-semibold">T</span>
                   </div>
                   <div>
-                    <p className="font-medium text-sm">Teacher Review</p>
-                    <p className="text-xs text-muted-foreground">Yesterday</p>
+                    <p className="font-medium text-small">Teacher Review</p>
+                    <p className="text-caption text-muted-foreground">Yesterday</p>
                   </div>
                 </div>
-                <p className="text-sm">"Your pronunciation has improved significantly. Focus on intonation patterns."</p>
+                <p className="text-small">"Your pronunciation has improved significantly. Focus on intonation patterns."</p>
               </div>
 
               <div className="border border-border rounded-lg p-4">
@@ -730,11 +730,11 @@ export default function ActivityHomePage() {
                     <span className="text-purple-600 dark:text-purple-400 font-semibold">C</span>
                   </div>
                   <div>
-                    <p className="font-medium text-sm">Codex System</p>
-                    <p className="text-xs text-muted-foreground">3 days ago</p>
+                    <p className="font-medium text-small">Codex System</p>
+                    <p className="text-caption text-muted-foreground">3 days ago</p>
                   </div>
                 </div>
-                <p className="text-sm">"Task #42 has been completed. New writing prompts are available in your queue."</p>
+                <p className="text-small">"Task #42 has been completed. New writing prompts are available in your queue."</p>
               </div>
             </div>
           </Card>

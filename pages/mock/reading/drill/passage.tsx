@@ -32,7 +32,7 @@ const PassageDrillPage: NextPage<PageProps> = ({ passage, questions }) => {
               <Badge variant="neutral" size="sm">
                 Passage drill
               </Badge>
-              <h1 className="text-lg font-semibold">
+              <h1 className="text-h4 font-semibold">
                 Passage {passage.passageOrder}
                 {passage.title ? `: ${passage.title}` : ''}
               </h1>
@@ -47,7 +47,7 @@ const PassageDrillPage: NextPage<PageProps> = ({ passage, questions }) => {
           </Card>
 
           <Card className="p-5 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold">
+            <div className="flex items-center gap-2 text-small font-semibold">
               <Icon name="BookOpen" className="h-4 w-4 text-primary" />
               Passage text
             </div>
@@ -58,8 +58,8 @@ const PassageDrillPage: NextPage<PageProps> = ({ passage, questions }) => {
           </Card>
 
           <Card className="p-5 space-y-3">
-            <h2 className="text-sm font-semibold">Questions</h2>
-            <pre className="text-xs text-muted-foreground overflow-auto">
+            <h2 className="text-small font-semibold">Questions</h2>
+            <pre className="text-caption text-muted-foreground overflow-auto">
               {/* Keep your existing question renderer here if you have one */}
               {JSON.stringify(questions, null, 2)}
             </pre>

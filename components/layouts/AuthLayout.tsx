@@ -28,7 +28,7 @@ const DefaultRight = () => (
       className="h-24 w-24 md:h-32 md:w-32 object-contain drop-shadow-lg"
       priority
     />
-    <h2 className="mt-6 text-h3 font-semibold text-grayish dark:text-gray-300">Your IELTS Companion</h2>
+    <h2 className="mt-6 text-h3 font-semibold text-grayish dark:text-mutedText">Your IELTS Companion</h2>
   </div>
 );
 
@@ -84,7 +84,7 @@ export default function AuthLayout({
             <div
               role="tablist"
               aria-label="Authentication layout views"
-              className="inline-flex w-full max-w-sm items-center justify-center gap-1 rounded-full bg-muted/70 p-1 text-sm font-medium shadow-sm backdrop-blur"
+              className="inline-flex w-full max-w-sm items-center justify-center gap-1 rounded-full bg-muted/70 p-1 text-small font-medium shadow-sm backdrop-blur"
             >
               <button
                 type="button"
@@ -139,9 +139,9 @@ export default function AuthLayout({
               </Link>
 
               <div className="space-y-2">
-                <h1 className="font-slab text-h1 sm:text-display font-bold text-gray-800 dark:text-white">{title}</h1>
+                <h1 className="font-slab text-h1 sm:text-display font-bold text-foreground dark:text-white">{title}</h1>
                 {subtitle && (
-                  <p className="text-small text-grayish dark:text-gray-400">{subtitle}</p>
+                  <p className="text-small text-grayish dark:text-grayish">{subtitle}</p>
                 )}
               </div>
 

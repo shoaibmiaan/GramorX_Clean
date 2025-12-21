@@ -141,20 +141,20 @@ const OnboardingExamDatePage: NextPage = () => {
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
           <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-h2 font-semibold tracking-tight sm:text-h1">
                 When is your IELTS exam?
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              <p className="mt-2 text-small text-muted-foreground sm:text-body">
                 We&apos;ll adjust the intensity of your study plan based on how
                 close your test date is. Shorter timelines get tighter, more
                 focused practice.
               </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-caption font-medium text-muted-foreground">
               <Icon name="calendar" className="h-3.5 w-3.5" />
               Smarter schedule, same 24 hours.
             </div>
@@ -176,10 +176,10 @@ const OnboardingExamDatePage: NextPage = () => {
           <div className="mt-5 rounded-2xl border border-dashed border-border bg-muted/40 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium">
+                <p className="text-small font-medium">
                   Do you already know the exact date?
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Optional, but it helps us align your milestones with the
                   calendar.
                 </p>
@@ -188,7 +188,7 @@ const OnboardingExamDatePage: NextPage = () => {
               <div className="mt-3 flex flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center">
                 <label
                   htmlFor="exam-date"
-                  className="text-xs font-medium text-muted-foreground sm:text-right"
+                  className="text-caption font-medium text-muted-foreground sm:text-right"
                 >
                   Exam date
                 </label>
@@ -197,18 +197,18 @@ const OnboardingExamDatePage: NextPage = () => {
                   type="date"
                   value={specificDate}
                   onChange={(e) => setSpecificDate(e.target.value)}
-                  className="min-w-[180px] rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="min-w-[180px] rounded-xl border border-border bg-background px-3 py-2 text-small outline-none ring-offset-background placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
             </div>
           </div>
 
           {error && (
-            <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
+            <p className="mt-3 text-small font-medium text-destructive">{error}</p>
           )}
 
           {/* Hint */}
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-4 text-caption text-muted-foreground">
             Not booked yet? No problem. Pick the option that feels closest and
             you can update the exact date anytime from{' '}
             <span className="font-medium">Settings → Study plan</span>.
@@ -227,7 +227,7 @@ const OnboardingExamDatePage: NextPage = () => {
             </Button>
 
             <div className="flex items-center gap-3">
-              <p className="hidden text-xs text-muted-foreground sm:inline">
+              <p className="hidden text-caption text-muted-foreground sm:inline">
                 Next:{' '}
                 <span className="font-medium">Choose your study rhythm</span>
               </p>
@@ -270,7 +270,7 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
             >
               <div
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
+                  'flex h-7 w-7 items-center justify-center rounded-full border text-caption font-semibold',
                   completed &&
                     'border-primary bg-primary text-primary-foreground',
                   active &&
@@ -300,7 +300,7 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
         })}
       </div>
 
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         {steps.map((step, index) => {
           const active = index === currentIndex;
           return (
@@ -343,7 +343,7 @@ const TimeframeCard: React.FC<TimeframeCardProps> = ({
       )}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-base font-semibold sm:text-lg">
+        <span className="text-body font-semibold sm:text-h4">
           {option.label}
         </span>
         <div
@@ -357,7 +357,7 @@ const TimeframeCard: React.FC<TimeframeCardProps> = ({
           {selected ? <Icon name="check" className="h-3 w-3" /> : ''}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground sm:text-sm">
+      <p className="text-caption text-muted-foreground sm:text-small">
         {option.subtitle}
       </p>
     </button>

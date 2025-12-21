@@ -30,15 +30,15 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
             <Badge size="xs" variant="outline">
               Reading · Challenges
             </Badge>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-h2 font-semibold tracking-tight">
               Reading Challenge Hub
             </h1>
-            <p className="text-sm text-muted-foreground max-w-2xl">
+            <p className="text-small text-muted-foreground max-w-2xl">
               Not just full mocks. Mix in speed runs, accuracy drills, question-type
               practice and weekly boss fights so Reading never feels boring.
             </p>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-caption">
               <Badge variant="subtle" className="rounded-ds-xl">
                 <Icon name="zap" className="mr-1 h-3 w-3" />
                 Game-style practice
@@ -87,14 +87,14 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   40 Q · Full test
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Daily Reading Challenge</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Daily Reading Challenge</h2>
+              <p className="text-caption text-muted-foreground">
                 One seed-based Reading test per day. Strict timer, band tracking,
                 perfect for anchoring your daily routine.
               </p>
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
-              <Button asChild size="sm" className="flex-1 rounded-ds-xl text-xs">
+              <Button asChild size="sm" className="flex-1 rounded-ds-xl text-caption">
                 <Link href="/mock/reading/daily">
                   <Icon name="play" className="mr-2 h-4 w-4" />
                   Start today&apos;s challenge
@@ -125,8 +125,8 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   3 min · 5 Q
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Speed Challenge</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Speed Challenge</h2>
+              <p className="text-caption text-muted-foreground">
                 3-minute micro tests to train quick scanning and skimming. Perfect
                 when you&apos;ve only got a few minutes.
               </p>
@@ -135,7 +135,7 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-ds-xl text-xs"
+                className="flex-1 rounded-ds-xl text-caption"
               >
                 <Link href="/mock/reading/challenges/speed">
                   <Icon name="zap" className="mr-2 h-4 w-4" />
@@ -159,8 +159,8 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   10 Q · 90% target
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Accuracy Drill (90% Mode)</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Accuracy Drill (90% Mode)</h2>
+              <p className="text-caption text-muted-foreground">
                 Short, high-focus sets. Hit 90%+ to clear the drill. Designed to
                 punish guess work and reward careful reading.
               </p>
@@ -169,7 +169,7 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-ds-xl text-xs"
+                className="flex-1 rounded-ds-xl text-caption"
               >
                 <Link href="/mock/reading/challenges/accuracy">
                   <Icon name="target" className="mr-2 h-4 w-4" />
@@ -193,8 +193,8 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   Type-based
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Question-Type Mastery</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Question-Type Mastery</h2>
+              <p className="text-caption text-muted-foreground">
                 Pick a question type – TF/NG, headings, matching, summary completion –
                 and grind only that until it feels easy.
               </p>
@@ -203,7 +203,7 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-ds-xl text-xs"
+                className="flex-1 rounded-ds-xl text-caption"
               >
                 <Link href="/mock/reading/challenges/mastery">
                   <Icon name="layers" className="mr-2 h-4 w-4" />
@@ -227,8 +227,8 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   20 Q · Event
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Weekly Boss Challenge</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Weekly Boss Challenge</h2>
+              <p className="text-caption text-muted-foreground">
                 Once-per-week curated challenge to test everything you&apos;ve been
                 grinding. Ideal for tracking real improvement.
               </p>
@@ -237,7 +237,7 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-ds-xl text-xs"
+                className="flex-1 rounded-ds-xl text-caption"
               >
                 <Link href="/mock/reading/challenges/weekly">
                   <Icon name="calendar" className="mr-2 h-4 w-4" />
@@ -261,8 +261,8 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
                   All modes
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold">Challenge History & Analytics</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="text-small font-semibold">Challenge History & Analytics</h2>
+              <p className="text-caption text-muted-foreground">
                 Review all your challenge attempts, see band deltas and spot which
                 modes actually push your Reading score up.
               </p>
@@ -271,7 +271,7 @@ const ReadingChallengeHubPage: NextPage<ChallengeHubProps> = ({ streakCurrent })
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-ds-xl text-xs"
+                className="flex-1 rounded-ds-xl text-caption"
               >
                 <Link href="/mock/reading/analytics">
                   <Icon name="activity" className="mr-2 h-4 w-4" />

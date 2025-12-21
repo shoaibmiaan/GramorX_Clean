@@ -73,7 +73,7 @@ export function CoachTips({ ipaTargets }: CoachTipsProps) {
   if (uniqueTargets.length === 0) {
     return (
       <Card className="p-6">
-        <p className="text-sm text-muted-foreground">Great job! No major weak phonemes detected in this attempt.</p>
+        <p className="text-small text-muted-foreground">Great job! No major weak phonemes detected in this attempt.</p>
       </Card>
     );
   }
@@ -87,8 +87,8 @@ export function CoachTips({ ipaTargets }: CoachTipsProps) {
 
   return (
     <Card className="flex flex-col gap-4 p-6">
-      <h3 className="text-lg font-semibold text-foreground">Targeted fixes</h3>
-      <p className="text-sm text-muted-foreground">
+      <h3 className="text-h4 font-semibold text-foreground">Targeted fixes</h3>
+      <p className="text-small text-muted-foreground">
         Focus on the sounds below in your next micro-drills. We matched each phoneme to a curated exercise.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
@@ -107,12 +107,12 @@ export function CoachTips({ ipaTargets }: CoachTipsProps) {
                   </Badge>
                 )}
               </div>
-              <p className="mt-2 text-sm font-semibold text-foreground">{tip?.summary ?? 'Sharpen this sound with slow, clear repetitions.'}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{tip?.action ?? 'Use the daily drills to reinforce accurate articulation.'}</p>
+              <p className="mt-2 text-small font-semibold text-foreground">{tip?.summary ?? 'Sharpen this sound with slow, clear repetitions.'}</p>
+              <p className="mt-2 text-small text-muted-foreground">{tip?.action ?? 'Use the daily drills to reinforce accurate articulation.'}</p>
               {(tip?.drillSlug || fallback?.slug) && (
                 <Link
                   href={`/speaking/coach/${tip?.drillSlug ?? fallback?.slug}`}
-                  className="mt-3 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  className="mt-3 inline-flex text-small font-medium text-primary underline-offset-4 hover:underline"
                 >
                   Open drill
                 </Link>

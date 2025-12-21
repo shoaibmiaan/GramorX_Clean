@@ -78,10 +78,10 @@ const PortalHub: React.FC = () => {
           >
             Portal hub
           </p>
-          <h2 className="font-slab text-2xl md:text-3xl text-foreground">
+          <h2 className="font-slab text-h2 md:text-h1 text-foreground">
             One page to jump anywhere in GramorX.
           </h2>
-          <p className="mt-1 max-w-xl text-xs md:text-sm text-muted-foreground">
+          <p className="mt-1 max-w-xl text-caption md:text-small text-muted-foreground">
             Use this section as your control panel: dashboard, modules, AI Lab, onboarding,
             billing — all one tap away.
           </p>
@@ -107,14 +107,14 @@ const PortalHub: React.FC = () => {
                 </span>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-small font-semibold text-foreground">{item.label}</p>
                     {item.tag ? (
                       <span className="rounded-full bg-primary/5 px-2 py-[2px] text-[10px] font-medium text-primary">
                         {item.tag}
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <p className="text-caption text-muted-foreground">{item.description}</p>
                 </div>
               </div>
 

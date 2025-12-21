@@ -236,10 +236,10 @@ function CommentNode({ node, canReply, onReply, activeReplyId }: CommentNodeProp
     <li className="rounded-xl border border-border bg-background/60 p-4 shadow-sm" aria-live="polite">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">{name}</p>
-          {role && <p className="text-xs uppercase tracking-wide text-muted-foreground">{role}</p>}
+          <p className="text-small font-semibold text-foreground">{name}</p>
+          {role && <p className="text-caption uppercase tracking-wide text-muted-foreground">{role}</p>}
         </div>
-        <time className="text-xs text-muted-foreground" dateTime={new Date(node.createdAt).toISOString()}>
+        <time className="text-caption text-muted-foreground" dateTime={new Date(node.createdAt).toISOString()}>
           {timestamp}
         </time>
       </header>

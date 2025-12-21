@@ -28,8 +28,8 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
         {[...Array(5)].map((_, i) => (
           <Card key={i} className="p-4">
             <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+              <div className="h-4 bg-lightBg dark:bg-dark/80 rounded w-1/2"></div>
+              <div className="h-6 bg-lightBg dark:bg-dark/80 rounded w-3/4"></div>
             </div>
           </Card>
         ))}
@@ -104,9 +104,9 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
 
   const getColorClasses = (color: string) => {
     const classes = {
-      blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
-      green: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
-      yellow: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
+      blue: "bg-electricBlue/15 dark:bg-electricBlue/95/30 text-electricBlue dark:text-electricBlue/90",
+      green: "bg-success/15 dark:bg-success/95/30 text-success dark:text-success/90",
+      yellow: "bg-warning/15 dark:bg-warning/95/30 text-warning dark:text-warning/90",
       purple: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
       orange: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
       indigo: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400",
@@ -119,8 +119,8 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Activity Overview</h2>
-        <div className="text-sm text-muted-foreground">
+        <h2 className="text-h3 font-semibold">Activity Overview</h2>
+        <div className="text-small text-muted-foreground">
           Last active: {stats.lastActive ? new Date(stats.lastActive).toLocaleDateString() : 'Never'}
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
                 {stat.icon}
               </div>
               {stat.change && (
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                <span className="text-caption font-medium text-success dark:text-success/90">
                   {stat.change}
                 </span>
               )}
@@ -143,10 +143,10 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold mt-3">{stat.value}</p>
-            <p className="text-sm text-muted-foreground mt-1">{stat.title}</p>
+            <p className="text-h2 font-bold mt-3">{stat.value}</p>
+            <p className="text-small text-muted-foreground mt-1">{stat.title}</p>
             {stat.subValue && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              <p className="text-caption text-danger dark:text-danger/90 mt-1">
                 {stat.subValue}
               </p>
             )}
@@ -162,8 +162,8 @@ export default function StatsDashboard({ stats, loading }: StatsDashboardProps) 
                 {module.icon}
               </div>
               <div>
-                <p className="text-2xl font-bold">{module.value}</p>
-                <p className="text-sm text-muted-foreground">{module.title}</p>
+                <p className="text-h2 font-bold">{module.value}</p>
+                <p className="text-small text-muted-foreground">{module.title}</p>
               </div>
             </div>
           </Card>

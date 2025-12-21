@@ -25,7 +25,7 @@ export const AISummaryCard: React.FC = () => {
 
   return (
     <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-      <div className="text-sm font-semibold inline-flex items-center gap-2">
+      <div className="text-small font-semibold inline-flex items-center gap-2">
         <Icon name="Lightbulb" /> Recent Activity — AI Summary
       </div>
       {loading ? (
@@ -34,7 +34,7 @@ export const AISummaryCard: React.FC = () => {
           <Skeleton className="h-4 w-3/5" />
         </div>
       ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{text || 'No sessions yet.'}</p>
+        <p className="mt-2 text-small text-muted-foreground">{text || 'No sessions yet.'}</p>
       )}
     </Card>
   );

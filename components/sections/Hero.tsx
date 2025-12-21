@@ -27,7 +27,7 @@ export const Hero: React.FC<HeroProps> = ({ serverNowMsUTC, launchMsUTC }) => {
         <div className="relative grid items-center gap-12 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           {/* LEFT: copy + CTAs */}
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-surface/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
+            <div className="inline-flex items-center gap-2 rounded-full bg-surface/80 px-3 py-1 text-caption font-medium text-muted-foreground ring-1 ring-border/60">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon name="Sparkles" size={14} />
               </span>
@@ -37,19 +37,19 @@ export const Hero: React.FC<HeroProps> = ({ serverNowMsUTC, launchMsUTC }) => {
             <div className="space-y-4">
               <h1
                 id="hero-heading"
-                className="font-slab text-3xl leading-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
+                className="font-slab text-h1 leading-tight text-foreground sm:text-display md:text-displayLg lg:text-6xl"
               >
                 IELTS prep that actually
                 <span className="text-gradient-primary block">respects your time.</span>
               </h1>
-              <p className="max-w-xl text-sm md:text-base text-muted-foreground">
+              <p className="max-w-xl text-small md:text-body text-muted-foreground">
                 Listening, Reading, Writing, Speaking — one workspace with AI-first feedback,
                 meaningful streaks, and a dashboard that tells you exactly what to do next
                 for your target band.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-caption text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Icon name="Target" size={14} /> Built for band 6.0 – 8.0 journeys
               </span>
@@ -97,7 +97,7 @@ export const Hero: React.FC<HeroProps> = ({ serverNowMsUTC, launchMsUTC }) => {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
                     Next cohort opens
                   </p>
-                  <p className="font-slab text-lg text-foreground">Early access window</p>
+                  <p className="font-slab text-h4 text-foreground">Early access window</p>
                 </div>
                 <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
                   Limited seats per batch
@@ -119,14 +119,14 @@ export const Hero: React.FC<HeroProps> = ({ serverNowMsUTC, launchMsUTC }) => {
             <Card className="rounded-ds-2xl border border-border/70 bg-surface/95 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground">
+                  <p className="text-caption font-semibold text-muted-foreground">
                     Realistic prep, real constraints
                   </p>
-                  <p className="text-sm text-foreground">
+                  <p className="text-small text-foreground">
                     Evening learners, uni students, full-time professionals.
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
+                <div className="flex flex-col items-end gap-1 text-caption text-muted-foreground">
                   <span className="inline-flex items-center gap-1 font-medium text-success">
                     <Icon name="TrendingUp" size={14} /> +1.5 avg band lift
                   </span>

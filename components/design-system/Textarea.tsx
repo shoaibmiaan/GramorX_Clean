@@ -20,8 +20,8 @@ const cx = (...xs: Array<string | false | null | undefined>) => xs.filter(Boolea
 
 const sizeMap: Record<Size, string> = {
   sm: 'min-h-[7.5rem] px-3 py-2 text-small rounded-ds-lg',
-  md: 'min-h-[9.5rem] px-4 py-3 text-base rounded-ds-xl',
-  lg: 'min-h-[12rem] px-5 py-4 text-base rounded-ds-2xl',
+  md: 'min-h-[9.5rem] px-4 py-3 text-body rounded-ds-xl',
+  lg: 'min-h-[12rem] px-5 py-4 text-body rounded-ds-2xl',
 };
 
 const baseField =

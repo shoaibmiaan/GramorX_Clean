@@ -94,10 +94,10 @@ const Pricing: React.FC = () => {
         >
           Pricing & plans
         </p>
-        <h2 className="mt-2 font-slab text-2xl md:text-3xl text-foreground">
+        <h2 className="mt-2 font-slab text-h2 md:text-h1 text-foreground">
           Start free. Upgrade to Rocket when you&apos;re serious.
         </h2>
-        <p className="mt-3 text-xs md:text-sm text-muted-foreground">
+        <p className="mt-3 text-caption md:text-small text-muted-foreground">
           Free gives you enough to get a feel for the platform. Rocket is where we unlock
           higher AI limits, more mocks, and deeper analytics. Institutional plans are for
           teachers and academies who need cohort-level visibility.
@@ -124,12 +124,12 @@ const Pricing: React.FC = () => {
 
             <div className="space-y-3">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
-                <p className="text-xs text-muted-foreground">{plan.tagline}</p>
+                <h3 className="text-h4 font-semibold text-foreground">{plan.name}</h3>
+                <p className="text-caption text-muted-foreground">{plan.tagline}</p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">{plan.priceLine}</p>
+                <p className="text-small font-medium text-foreground">{plan.priceLine}</p>
                 {plan.note ? (
                   <p className="text-[11px] text-muted-foreground">{plan.note}</p>
                 ) : null}

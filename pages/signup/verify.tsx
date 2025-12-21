@@ -151,7 +151,7 @@ export default function VerifyEmailPage() {
               : 'Resend verification email'}
         </Button>
 
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 text-small text-muted-foreground">
           <span>Quick links:</span>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">

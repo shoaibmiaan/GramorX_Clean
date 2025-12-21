@@ -56,23 +56,23 @@ export function PaperUploadPanel({ attemptId, onInsert }: PaperUploadPanelProps)
   return (
     <Card className="card-surface space-y-4 p-4">
       <div>
-        <h3 className="text-base font-semibold text-foreground">Upload handwritten essay</h3>
-        <p className="text-xs text-muted-foreground">Snap a clear photo of your paper response. We’ll OCR it and keep the original image for review.</p>
+        <h3 className="text-body font-semibold text-foreground">Upload handwritten essay</h3>
+        <p className="text-caption text-muted-foreground">Snap a clear photo of your paper response. We’ll OCR it and keep the original image for review.</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} disabled={!attemptId || loading} className="hidden" />
         <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={!attemptId || loading}>
           {loading ? 'Processing…' : 'Upload photo'}
         </Button>
-        {!attemptId && <p className="text-xs text-muted-foreground">Start the attempt to enable uploads.</p>}
+        {!attemptId && <p className="text-caption text-muted-foreground">Start the attempt to enable uploads.</p>}
       </div>
       {typeof legibility === 'number' && (
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Legibility score</p>
+          <p className="text-caption text-muted-foreground">Legibility score</p>
           <ProgressBar value={legibility * 100} ariaLabel="Legibility score" />
         </div>
       )}
-      {message && <p className="text-xs text-muted-foreground">{message}</p>}
+      {message && <p className="text-caption text-muted-foreground">{message}</p>}
     </Card>
   );
 }

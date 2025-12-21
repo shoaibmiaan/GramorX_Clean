@@ -311,7 +311,7 @@ export default function ReviewAttemptPage() {
                         <h3 id="share-review-heading" className="text-small font-semibold">
                           Share review link
                         </h3>
-                        <p className="text-xs opacity-70">
+                        <p className="text-caption opacity-70">
                           Generate a secure link to invite feedback. Links expire automatically.
                         </p>
                       </div>
@@ -328,7 +328,7 @@ export default function ReviewAttemptPage() {
 
                     {shareUrl && (
                       <div className="mt-4 space-y-2" aria-live="polite">
-                        <label htmlFor="review-share-link" className="text-xs font-medium opacity-80">
+                        <label htmlFor="review-share-link" className="text-caption font-medium opacity-80">
                           Shareable URL
                         </label>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -348,7 +348,7 @@ export default function ReviewAttemptPage() {
                             {shareCopied ? 'Copied!' : 'Copy link'}
                           </Button>
                         </div>
-                        <p id="review-share-hint" className="text-xs opacity-70">
+                        <p id="review-share-hint" className="text-caption opacity-70">
                           {shareExpiryLabel
                             ? `Expires ${shareExpiryLabel}`
                             : shareTtlHours
@@ -360,7 +360,7 @@ export default function ReviewAttemptPage() {
 
                     {(shareError || shareCopied) && (
                       <p
-                        className={`mt-2 text-xs ${shareError ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}
+                        className={`mt-2 text-caption ${shareError ? 'text-danger dark:text-danger/90' : 'text-success dark:text-success/90'}`}
                         role={shareError ? 'alert' : undefined}
                         aria-live="polite"
                       >

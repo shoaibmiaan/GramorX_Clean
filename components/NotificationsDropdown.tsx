@@ -28,7 +28,7 @@ export const NotificationsDropdown: React.FC = () => {
         <Button variant="ghost" size="sm" className="relative p-2">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-caption font-medium text-white">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -42,7 +42,7 @@ export const NotificationsDropdown: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={markAllAsRead}
-              className="text-xs"
+              className="text-caption"
             >
               Mark all read
             </Button>
@@ -52,11 +52,11 @@ export const NotificationsDropdown: React.FC = () => {
         
         <div className="max-h-96 overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
+            <div className="p-4 text-center text-small text-muted-foreground">
               Loading...
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
+            <div className="p-4 text-center text-small text-muted-foreground">
               No notifications
             </div>
           ) : (
@@ -73,17 +73,17 @@ export const NotificationsDropdown: React.FC = () => {
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex w-full items-start justify-between gap-2">
-                      <p className="text-sm font-medium flex-1">
+                      <p className="text-small font-medium flex-1">
                         {notification.message}
                       </p>
                       {!notification.read && (
                         <div className="flex items-center gap-1">
-                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="h-2 w-2 rounded-full bg-electricBlue" />
                           <Check className="h-3 w-3" />
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-caption text-muted-foreground mt-1">
                       {formatTimestamp(notification.createdAt)}
                     </p>
                   </Link>
@@ -93,14 +93,14 @@ export const NotificationsDropdown: React.FC = () => {
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex w-full items-start justify-between gap-2">
-                      <p className="text-sm font-medium flex-1">
+                      <p className="text-small font-medium flex-1">
                         {notification.message}
                       </p>
                       {!notification.read && (
                         <Check className="h-3 w-3" />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-caption text-muted-foreground mt-1">
                       {formatTimestamp(notification.createdAt)}
                     </p>
                   </div>
@@ -114,7 +114,7 @@ export const NotificationsDropdown: React.FC = () => {
         <DropdownMenuItem asChild>
           <Link
             href="/notifications"
-            className="flex items-center justify-center text-sm font-medium"
+            className="flex items-center justify-center text-small font-medium"
           >
             View all notifications
             <ExternalLink className="ml-1 h-3 w-3" />

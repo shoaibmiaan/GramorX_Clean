@@ -106,19 +106,19 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div className="relative bg-white dark:bg-darker rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-6">
+        <div className="sticky top-0 z-10 bg-white dark:bg-darker border-b border-lightBorder dark:border-border/80 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold">Create New Task</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h2 className="text-h3 font-bold">Create New Task</h2>
+              <p className="text-small text-muted-foreground mt-1">
                 Assign tasks to yourself, Codex AI, or other users
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              className="p-2 hover:bg-lightBg dark:hover:bg-dark/90 rounded-lg"
             >
               <X className="h-5 w-5" />
             </button>
@@ -129,7 +129,7 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Assignee Selection */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-small font-medium mb-3">
               <div className="flex items-center gap-2 mb-2">
                 <User className="h-4 w-4" />
                 Assign To
@@ -141,15 +141,15 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
                 className={`p-4 border rounded-lg text-center transition-colors ${
                   assignee === 'codex'
                     ? 'border-primary bg-primary/10'
-                    : 'border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'border-lightBorder dark:border-border/80 hover:bg-lightCard dark:hover:bg-dark/90'
                 }`}
                 onClick={() => setAssignee('codex')}
               >
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">AI</span>
+                <div className="w-8 h-8 bg-electricBlue/15 dark:bg-electricBlue/95 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <span className="text-electricBlue dark:text-electricBlue/90 font-semibold">AI</span>
                 </div>
-                <div className="text-sm font-medium">Codex AI</div>
-                <div className="text-xs text-muted-foreground">Automated tasks</div>
+                <div className="text-small font-medium">Codex AI</div>
+                <div className="text-caption text-muted-foreground">Automated tasks</div>
               </button>
 
               <button
@@ -157,15 +157,15 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
                 className={`p-4 border rounded-lg text-center transition-colors ${
                   assignee === 'self'
                     ? 'border-primary bg-primary/10'
-                    : 'border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'border-lightBorder dark:border-border/80 hover:bg-lightCard dark:hover:bg-dark/90'
                 }`}
                 onClick={() => setAssignee('self')}
               >
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div className="w-8 h-8 bg-success/15 dark:bg-success/95 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <User className="h-4 w-4 text-success dark:text-success/90" />
                 </div>
-                <div className="text-sm font-medium">Myself</div>
-                <div className="text-xs text-muted-foreground">Personal tasks</div>
+                <div className="text-small font-medium">Myself</div>
+                <div className="text-caption text-muted-foreground">Personal tasks</div>
               </button>
 
               <button
@@ -173,15 +173,15 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
                 className={`p-4 border rounded-lg text-center transition-colors ${
                   assignee === 'other'
                     ? 'border-primary bg-primary/10'
-                    : 'border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'border-lightBorder dark:border-border/80 hover:bg-lightCard dark:hover:bg-dark/90'
                 }`}
                 onClick={() => setAssignee('other')}
               >
                 <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-2">
                   <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div className="text-sm font-medium">Other User</div>
-                <div className="text-xs text-muted-foreground">Collaborate</div>
+                <div className="text-small font-medium">Other User</div>
+                <div className="text-caption text-muted-foreground">Collaborate</div>
               </button>
             </div>
 
@@ -190,7 +190,7 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
                 <input
                   type="email"
                   placeholder="Enter user's email address"
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={otherUserEmail}
                   onChange={(e) => setOtherUserEmail(e.target.value)}
                   required
@@ -202,12 +202,12 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
           {/* Task Details */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-small font-medium mb-2">
                 Task Title *
               </label>
               <input
                 type="text"
-                className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                 placeholder="e.g., Review writing submission #42"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -216,11 +216,11 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-small font-medium mb-2">
                 Description *
               </label>
               <textarea
-                className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg min-h-[100px]"
+                className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg min-h-[100px]"
                 placeholder="Describe the task in detail..."
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -230,12 +230,12 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                <label className="block text-small font-medium mb-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Priority
                 </label>
                 <select
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={formData.priority}
                   onChange={(e) => setFormData({...formData, priority: e.target.value as any})}
                 >
@@ -247,13 +247,13 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                <label className="block text-small font-medium mb-2 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Due Date
                 </label>
                 <input
                   type="date"
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={formData.due_date}
                   onChange={(e) => setFormData({...formData, due_date: e.target.value})}
                 />
@@ -262,12 +262,12 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                <label className="block text-small font-medium mb-2 flex items-center gap-2">
                   <Tag className="h-4 w-4" />
                   Module
                 </label>
                 <select
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={formData.module}
                   onChange={(e) => setFormData({...formData, module: e.target.value})}
                 >
@@ -282,11 +282,11 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-small font-medium mb-2">
                   Task Type
                 </label>
                 <select
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={formData.task_type}
                   onChange={(e) => setFormData({...formData, task_type: e.target.value})}
                 >
@@ -302,12 +302,12 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-small font-medium mb-2">
                   Reference ID (Optional)
                 </label>
                 <input
                   type="text"
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   placeholder="UUID of related item"
                   value={formData.reference_id}
                   onChange={(e) => setFormData({...formData, reference_id: e.target.value})}
@@ -315,11 +315,11 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-small font-medium mb-2">
                   Reference Table
                 </label>
                 <select
-                  className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="w-full p-3 border border-lightBorder dark:border-border/70 rounded-lg"
                   value={formData.reference_table}
                   onChange={(e) => setFormData({...formData, reference_table: e.target.value})}
                 >
@@ -335,7 +335,7 @@ export default function CreateTaskModal({ isOpen, onClose, onSuccess, userId }: 
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-6 border-t border-gray-200 dark:border-gray-800">
+          <div className="sticky bottom-0 bg-white dark:bg-darker pt-6 border-t border-lightBorder dark:border-border/80">
             <div className="flex justify-end gap-3">
               <Button
                 type="button"

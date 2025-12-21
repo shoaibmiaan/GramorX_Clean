@@ -36,13 +36,13 @@ const Stat: React.FC<StatProps> = ({ label, value, tone, loading = false }) => {
 
   return (
     <div className={cn('rounded-xl px-4 py-3 text-center sm:text-left', toneClass)}>
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">{label}</span>
+      <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground/80">{label}</span>
       {loading ? (
         <div className="mt-2 h-7 w-16 animate-pulse rounded-full bg-muted/60" aria-hidden="true" />
       ) : (
         <div className="mt-1 flex items-baseline justify-center gap-1 sm:justify-start">
           <span className="font-semibold tabular-nums text-h4">{value}</span>
-          <span className="text-xs font-medium uppercase tracking-wide">days</span>
+          <span className="text-caption font-medium uppercase tracking-wide">days</span>
         </div>
       )}
     </div>
@@ -94,7 +94,7 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
               role="tooltip"
               aria-hidden={!open}
               className={cn(
-                'absolute left-0 top-full z-10 mt-2 w-64 rounded-xl border border-border bg-card p-3 text-left text-xs text-muted-foreground shadow-lg transition-opacity duration-150',
+                'absolute left-0 top-full z-10 mt-2 w-64 rounded-xl border border-border bg-card p-3 text-left text-caption text-muted-foreground shadow-lg transition-opacity duration-150',
                 open ? 'opacity-100' : 'pointer-events-none opacity-0'
               )}
             >

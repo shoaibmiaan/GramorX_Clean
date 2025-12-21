@@ -99,7 +99,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
               type="button"
               size="sm"
               variant={picked ? 'primary' : 'outline'}
-              className="rounded-full px-3 text-xs"
+              className="rounded-full px-3 text-caption"
               onClick={() => onChange(picked ? '' : opt)}
             >
               {opt}
@@ -120,7 +120,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
           type="text"
           value={currentTextValue}
           onChange={handleTextChange}
-          className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
+          className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-small focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
           placeholder="Type your answer"
         />
       );
@@ -138,7 +138,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
               type="button"
               onClick={() => onChange(picked ? '' : letter)}
               className={[
-                'flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs transition',
+                'flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-caption transition',
                 picked
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-lightBorder bg-background hover:border-primary/60 dark:bg-dark dark:border-white/10',
@@ -162,7 +162,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
       type="text"
       value={currentTextValue}
       onChange={handleTextChange}
-      className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
+      className="w-full rounded-md border border-lightBorder bg-background px-2 py-1 text-small focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
       placeholder="Write your answer"
     />
   );
@@ -184,7 +184,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
         {Array.from({ length: blanks }).map((_, idx) => (
           <label
             key={idx}
-            className="flex items-center gap-2 text-xs text-muted-foreground"
+            className="flex items-center gap-2 text-caption text-muted-foreground"
           >
             <span className="w-6 text-right">{idx + 1}.</span>
             <input
@@ -196,7 +196,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
                   [idx]: e.target.value,
                 })
               }
-              className="flex-1 rounded-md border border-lightBorder bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
+              className="flex-1 rounded-md border border-lightBorder bg-background px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
               placeholder={labels[idx] ?? 'Type your answer'}
             />
           </label>
@@ -229,7 +229,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
         : {};
 
     return (
-      <div className="space-y-2 text-xs">
+      <div className="space-y-2 text-caption">
         {prompts.map((prompt, idx) => (
           <div
             key={`${prompt}-${idx}`}
@@ -239,7 +239,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
               {prompt}
             </span>
             <select
-              className="w-full rounded-md border border-lightBorder bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
+              className="w-full rounded-md border border-lightBorder bg-white px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
               value={currentObj[idx] ?? ''}
               onChange={(e) =>
                 onChange({
@@ -265,7 +265,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
     <textarea
       value={currentTextValue}
       onChange={handleTextChange}
-      className="w-full min-h-[60px] rounded-md border border-lightBorder bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
+      className="w-full min-h-[60px] rounded-md border border-lightBorder bg-background px-2 py-1 text-small focus:outline-none focus:ring-2 focus:ring-ring dark:bg-dark dark:border-white/10"
       placeholder="Answer"
     />
   );
@@ -280,10 +280,10 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
   else control = renderGeneric();
 
   return (
-    <Card className="space-y-3 rounded-ds-xl border border-lightBorder bg-background/95 p-4 text-sm shadow-sm dark:bg-dark/90 dark:border-white/10">
+    <Card className="space-y-3 rounded-ds-xl border border-lightBorder bg-background/95 p-4 text-small shadow-sm dark:bg-dark/90 dark:border-white/10">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-small font-semibold text-foreground">
             {question.questionOrder}
           </span>
           <div>
@@ -291,7 +291,7 @@ export const ReadingQuestionItem: React.FC<ReadingQuestionItemProps> = ({
               {question.prompt}
             </div>
             {question.instruction && (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-caption text-muted-foreground">
                 {question.instruction}
               </p>
             )}

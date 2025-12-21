@@ -26,10 +26,10 @@ const StatsGrid: React.FC<{ stats: ModuleMockShellStat[] }> = ({ stats }) => {
     <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {stats.map((item, index) => (
         <Card key={index} className="card-surface rounded-ds-2xl p-4 h-full">
-          <p className="text-sm text-muted-foreground">{item.label}</p>
+          <p className="text-small text-muted-foreground">{item.label}</p>
           <p className="mt-1 text-h4 font-semibold text-foreground">{item.value}</p>
           {item.helper ? (
-            <p className="mt-1 text-xs text-muted-foreground">{item.helper}</p>
+            <p className="mt-1 text-caption text-muted-foreground">{item.helper}</p>
           ) : null}
         </Card>
       ))}
@@ -61,7 +61,7 @@ export const ModuleMockShell: React.FC<ModuleMockShellProps> & {
       <h1 className="font-slab text-display text-gradient-primary">{title}</h1>
       <p className="text-grayish">{description}</p>
       {badges ? (
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">{badges}</div>
+        <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">{badges}</div>
       ) : null}
     </div>
   );

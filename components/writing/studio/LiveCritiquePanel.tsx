@@ -46,12 +46,12 @@ export const LiveCritiquePanel = ({ text, disabled, onApply }: LiveCritiquePanel
     <Card className="space-y-4" padding="lg">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Live critique</h2>
-          <p className="text-sm text-muted-foreground">Paragraph-level nudges to keep tone and cohesion sharp.</p>
+          <h2 className="text-h4 font-semibold text-foreground">Live critique</h2>
+          <p className="text-small text-muted-foreground">Paragraph-level nudges to keep tone and cohesion sharp.</p>
         </div>
         <Button size="sm" variant="outline" onClick={runCritique} disabled={disabled || loading}>
           {loading ? (
-            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="flex items-center gap-2 text-small text-muted-foreground">
               <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" aria-hidden />
               Analyzing…
             </span>
@@ -60,9 +60,9 @@ export const LiveCritiquePanel = ({ text, disabled, onApply }: LiveCritiquePanel
           )}
         </Button>
       </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-small text-danger">{error}</p>}
       {suggestions.length === 0 && !loading ? (
-        <p className="text-sm text-muted-foreground">Run a critique to surface cohesion and clarity suggestions.</p>
+        <p className="text-small text-muted-foreground">Run a critique to surface cohesion and clarity suggestions.</p>
       ) : (
         <ul className="space-y-3">
           {suggestions.map((item, index) => (
@@ -71,12 +71,12 @@ export const LiveCritiquePanel = ({ text, disabled, onApply }: LiveCritiquePanel
                 <Badge variant="soft" tone="info" size="sm">
                   Paragraph {item.paragraphIndex + 1}
                 </Badge>
-                <span className="text-sm font-medium text-foreground">{item.issue}</span>
+                <span className="text-small font-medium text-foreground">{item.issue}</span>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{item.suggestion}</p>
-              {item.reasoning && <p className="mt-2 text-xs text-muted-foreground">Why: {item.reasoning}</p>}
+              <p className="mt-2 text-small text-muted-foreground">{item.suggestion}</p>
+              {item.reasoning && <p className="mt-2 text-caption text-muted-foreground">Why: {item.reasoning}</p>}
               {item.example && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-caption text-muted-foreground">
                   Example: <span className="text-foreground">{item.example}</span>
                 </p>
               )}

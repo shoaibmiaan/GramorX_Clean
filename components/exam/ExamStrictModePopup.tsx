@@ -27,17 +27,17 @@ const ExamStrictModePopup: React.FC<ExamStrictModePopupProps> = ({
             <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <Icon name="shield-alert" className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-h4 font-semibold">
               Strict IELTS Computer-Based Mode
             </DialogTitle>
           </div>
-          <DialogDescription className="mt-3 text-sm text-muted-foreground">
+          <DialogDescription className="mt-3 text-small text-muted-foreground">
             This test runs in strict exam mode. Your time keeps running, and
             your actions are monitored for fairness.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+        <div className="mt-4 space-y-2 text-small text-muted-foreground">
           <div className="font-medium text-foreground">Please note:</div>
           <ul className="list-disc space-y-1 pl-5">
             <li>The timer never pauses, even if you switch tabs or windows.</li>
@@ -47,7 +47,7 @@ const ExamStrictModePopup: React.FC<ExamStrictModePopupProps> = ({
           </ul>
         </div>
 
-        <div className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+        <div className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-caption text-muted-foreground">
           Tip: Make sure your internet is stable and notifications are muted
           before you continue.
         </div>

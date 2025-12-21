@@ -130,7 +130,7 @@ export default function ReferralCard({ className = '', source, onCodeGenerated, 
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
             {summary.code ? (
-              <code className="rounded-lg border border-border bg-muted px-3 py-1.5 font-mono text-base tracking-[0.2em]">
+              <code className="rounded-lg border border-border bg-muted px-3 py-1.5 font-mono text-body tracking-[0.2em]">
                 {summary.code}
               </code>
             ) : (

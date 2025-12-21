@@ -99,7 +99,7 @@ const TranscriptReview: React.FC<Props> = ({
                 ) : null}
               </div>
 
-              <div className="mt-3 whitespace-pre-wrap text-small leading-relaxed text-gray-900 dark:text-white/80">
+              <div className="mt-3 whitespace-pre-wrap text-small leading-relaxed text-foreground dark:text-white/80">
                 {transcript || 'Transcript not available for this section.'}
               </div>
             </div>

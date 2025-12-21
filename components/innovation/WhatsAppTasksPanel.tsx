@@ -45,7 +45,7 @@ export default function WhatsAppTasksPanel({ userId, onClose }: { userId?: strin
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
           <h3 className="font-slab text-h3">WhatsApp Tasks</h3>
-          <div className="text-sm text-muted-foreground">Receive daily micro-tasks and reminders via WhatsApp.</div>
+          <div className="text-small text-muted-foreground">Receive daily micro-tasks and reminders via WhatsApp.</div>
         </div>
         <div>
           <button className="btn" onClick={onClose}>Close</button>
@@ -53,9 +53,9 @@ export default function WhatsAppTasksPanel({ userId, onClose }: { userId?: strin
       </div>
 
       <div className="p-4">
-        <label className="text-xs text-muted-foreground">Task text</label>
+        <label className="text-caption text-muted-foreground">Task text</label>
         <input className="w-full mt-2 p-2 rounded border" value={newText} onChange={(e) => setNewText(e.target.value)} />
-        <label className="text-xs text-muted-foreground mt-2 block">Schedule (optional ISO)</label>
+        <label className="text-caption text-muted-foreground mt-2 block">Schedule (optional ISO)</label>
         <input className="w-full mt-2 p-2 rounded border" value={sched} onChange={(e) => setSched(e.target.value)} placeholder="2025-11-10T09:00:00Z" />
         <div className="mt-2 flex gap-2">
           <button className="btn-primary" onClick={add}>Add Task</button>
@@ -64,14 +64,14 @@ export default function WhatsAppTasksPanel({ userId, onClose }: { userId?: strin
 
         <div className="mt-4">
           <h4 className="font-medium">Upcoming & recent</h4>
-          {loading ? <div>Loading…</div> : error ? <div className="text-red-500">{error}</div> : (
+          {loading ? <div>Loading…</div> : error ? <div className="text-danger">{error}</div> : (
             <ul className="mt-2 space-y-2">
               {tasks.map((t) => (
                 <li key={t.id} className="p-3 rounded border flex items-center justify-between gap-3">
                   <div>
                     <div className="font-medium">{t.text}</div>
-                    <div className="text-xs text-muted-foreground">Scheduled: {t.scheduled_at ?? '—'}</div>
-                    <div className="text-xs text-muted-foreground">Delivered: {t.delivered ? 'Yes' : 'No'}</div>
+                    <div className="text-caption text-muted-foreground">Scheduled: {t.scheduled_at ?? '—'}</div>
+                    <div className="text-caption text-muted-foreground">Delivered: {t.delivered ? 'Yes' : 'No'}</div>
                   </div>
                   <div className="flex gap-2">
                     <button className="btn" onClick={() => sendNow(t.id)} disabled={t.delivered}>Send now</button>

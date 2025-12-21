@@ -233,8 +233,8 @@ const VoiceDraftToggle: React.FC<Props> = ({ onToggle, onTranscript }) => {
   return (
     <div className="flex items-center justify-between rounded-ds-xl border border-border/70 bg-card/70 p-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Voice draft</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-small font-medium text-foreground">Voice draft</p>
+        <p className="text-caption text-muted-foreground">
           Dictate ideas hands-free. The autosave system will keep transcripts synced every few seconds.
         </p>
       </div>

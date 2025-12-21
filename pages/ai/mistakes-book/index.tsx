@@ -141,12 +141,12 @@ export default function MistakesBookPage() {
       <Container>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold">Mistakes Book</h1>
+            <h1 className="text-h2 font-semibold">Mistakes Book</h1>
             <p className="text-muted/70">Review, resolve, and revisit your recent mistakes.</p>
           </div>
           <div className="min-w-[220px]">
             <ProgressBar value={items.length ? ((items.length - unresolvedCount) / items.length) * 100 : 0} />
-            <p className="text-xs mt-1">
+            <p className="text-caption mt-1">
               Resolved {items.length - unresolvedCount}/{items.length}
             </p>
           </div>
@@ -205,9 +205,9 @@ export default function MistakesBookPage() {
                         <Badge variant="warning">Pending</Badge>
                       )}
                     </div>
-                    <h3 className="mt-2 text-base font-medium">{m.prompt}</h3>
+                    <h3 className="mt-2 text-body font-medium">{m.prompt}</h3>
                     {m.correction && (
-                      <p className="text-sm text-muted/80 mt-1">
+                      <p className="text-small text-muted/80 mt-1">
                         <span className="font-semibold">Correction:</span> {m.correction}
                       </p>
                     )}
@@ -229,7 +229,7 @@ export default function MistakesBookPage() {
                 )}
 
                 <div className="flex items-center justify-between mt-2">
-                  <div className="text-xs text-muted/70">
+                  <div className="text-caption text-muted/70">
                     Seen: {new Date(m.lastSeenAt).toLocaleDateString()} •
                     {m.nextReview ? ` Next: ${new Date(m.nextReview).toLocaleDateString()}` : '  No schedule'}
                   </div>

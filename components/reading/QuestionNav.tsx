@@ -100,7 +100,7 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
                 • Answered {answeredCount}/{safeTotal}
               </span>
               {flaggedCount > 0 ? (
-                <span className="ml-2 text-[11px] text-amber-600 dark:text-amber-400">
+                <span className="ml-2 text-[11px] text-warning dark:text-warning/90">
                   • Flagged {flaggedCount}
                 </span>
               ) : null}
@@ -154,9 +154,9 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
                   'transition-colors focus:outline-none focus:ring-1 focus:ring-primary',
                   'border border-border/60 bg-muted text-muted-foreground',
                   isAnswered &&
-                    'bg-emerald-500/20 border-emerald-500 text-emerald-700',
+                    'bg-success/20 border-success text-success',
                   isFlagged &&
-                    'bg-amber-500/20 border-amber-500 text-amber-700',
+                    'bg-warning/20 border-warning text-warning',
                   isCurrent &&
                     'bg-primary text-primary-foreground border-primary shadow-sm',
                 )}
@@ -174,11 +174,11 @@ export const QuestionNav: React.FC<QuestionNavProps> = ({
             <span>Not answered</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+            <span className="h-3 w-3 rounded-full bg-success/80" />
             <span>Answered</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-full bg-amber-500/80" />
+            <span className="h-3 w-3 rounded-full bg-warning/80" />
             <span>Flagged</span>
           </div>
           <div className="flex items-center gap-1">

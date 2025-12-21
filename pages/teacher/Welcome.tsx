@@ -125,7 +125,7 @@ export default function TeacherWelcome() {
   return (
     <div className="container mx-auto max-w-4xl py-10">
       <Section>
-        <h1 className="text-3xl font-bold text-foreground">👋 Welcome, Teacher!</h1>
+        <h1 className="text-h1 font-bold text-foreground">👋 Welcome, Teacher!</h1>
         <p className="mt-2 text-muted-foreground">
           We’re excited to have you join GramorX as an educator. To get started, please
           complete your onboarding so we can approve your profile and unlock your dashboard.
@@ -135,8 +135,8 @@ export default function TeacherWelcome() {
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         {/* Left: Profile Setup Form */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold text-foreground">Onboarding Form</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
+          <h2 className="text-h3 font-semibold text-foreground">Onboarding Form</h2>
+          <p className="mb-4 text-small text-muted-foreground">
             Provide accurate details to help us verify your teaching profile.
           </p>
           <form className="grid gap-4" onSubmit={handleSubmit}>
@@ -188,12 +188,12 @@ export default function TeacherWelcome() {
         {/* Right: Progress & Guidance */}
         <div className="flex flex-col gap-6">
           <Card className="p-6">
-            <h2 className="text-xl font-semibold text-foreground">Approval Progress</h2>
-            <p className="text-sm text-muted-foreground mb-3">
+            <h2 className="text-h3 font-semibold text-foreground">Approval Progress</h2>
+            <p className="text-small text-muted-foreground mb-3">
               Once you submit your details, our admin team will review and notify you.
             </p>
             <ProgressBar value={progress} tone="info" />
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-4 space-y-2 text-small">
               <li>
                 <Badge tone={status === 'pending' ? 'warning' : 'success'}>
                   {status === 'pending' ? 'Pending' : 'Completed'}
@@ -216,13 +216,13 @@ export default function TeacherWelcome() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-xl font-semibold text-foreground">Helpful Links</h2>
+            <h2 className="text-h3 font-semibold text-foreground">Helpful Links</h2>
             <Tabs
               items={[
                 {
                   label: 'Guidelines',
                   content: (
-                    <ul className="list-disc ml-5 text-sm space-y-1 text-muted-foreground">
+                    <ul className="list-disc ml-5 text-small space-y-1 text-muted-foreground">
                       <li>Complete all required fields honestly.</li>
                       <li>Attach certificates or references where possible.</li>
                       <li>Response time: typically 24–48 hours.</li>
@@ -232,7 +232,7 @@ export default function TeacherWelcome() {
                 {
                   label: 'FAQ',
                   content: (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       Need help? Visit the{' '}
                       <a href="/support" className="text-accent">
                         Support Center

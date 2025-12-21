@@ -45,12 +45,12 @@ export const CohesionHeatmapPanel = ({ text }: CohesionHeatmapPanelProps) => {
   return (
     <Card className="space-y-4" padding="lg">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">Cohesion heatmap</h2>
-        <p className="text-sm text-muted-foreground">See which linkers dominate your essay and where to diversify them.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Cohesion heatmap</h2>
+        <p className="text-small text-muted-foreground">See which linkers dominate your essay and where to diversify them.</p>
       </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-small text-danger">{error}</p>}
       {heatmap.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Write a paragraph or two, then refresh to reveal cohesion patterns.</p>
+        <p className="text-small text-muted-foreground">Write a paragraph or two, then refresh to reveal cohesion patterns.</p>
       ) : (
         <ul className="space-y-3">
           {heatmap.map((entry) => (
@@ -59,9 +59,9 @@ export const CohesionHeatmapPanel = ({ text }: CohesionHeatmapPanelProps) => {
                 <Badge variant="soft" tone="info" size="sm">
                   {entry.marker}
                 </Badge>
-                <span className="text-sm text-muted-foreground">{entry.count} use{entry.count === 1 ? '' : 's'}</span>
+                <span className="text-small text-muted-foreground">{entry.count} use{entry.count === 1 ? '' : 's'}</span>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-caption text-muted-foreground">
                 Appears in sentence{entry.sentences.length === 1 ? '' : 's'} {entry.sentences.map((index) => index + 1).join(', ')}
               </p>
             </li>

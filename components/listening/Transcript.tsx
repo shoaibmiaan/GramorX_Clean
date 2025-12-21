@@ -252,7 +252,7 @@ export const Transcript: React.FC<TranscriptProps> = ({
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <span className="flex-1 whitespace-pre-line break-words text-sm">
+                        <span className="flex-1 whitespace-pre-line break-words text-small">
                           {cue.text}
                         </span>
                         <span

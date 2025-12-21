@@ -143,7 +143,7 @@ export default function SettingsHomePage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-4 px-0 text-xs text-primary group-hover:underline"
+                            className="mt-4 px-0 text-caption text-primary group-hover:underline"
                           >
                             Open
                           </Button>

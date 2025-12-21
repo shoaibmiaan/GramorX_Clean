@@ -22,8 +22,8 @@ export type InputProps = Readonly<
 
 const sizeMap: Record<FieldSize, string> = {
   sm: 'h-9 px-3 text-small rounded-ds-lg',
-  md: 'h-11 px-4 text-base rounded-ds-xl',
-  lg: 'h-12 px-5 text-base rounded-ds-2xl',
+  md: 'h-11 px-4 text-body rounded-ds-xl',
+  lg: 'h-12 px-5 text-body rounded-ds-2xl',
 };
 
 const baseInput =

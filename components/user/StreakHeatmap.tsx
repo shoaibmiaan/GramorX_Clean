@@ -238,7 +238,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-caption text-muted-foreground">
           <span className="font-medium uppercase tracking-wide text-[10px] text-muted-foreground">Legend</span>
           {LEGEND_STEPS.map((step) => (
             <span key={step.label} className="flex items-center gap-1">
@@ -261,7 +261,7 @@ export const StreakHeatmap: React.FC<Props> = ({ data }) => {
           <div key={month.key} className="space-y-3">
             <div className="flex items-baseline justify-between">
               <h3 className="font-semibold text-small text-foreground">{month.label}</h3>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 {month.cells.filter((cell) => cell.completed > 0).length} productive days
               </span>
             </div>

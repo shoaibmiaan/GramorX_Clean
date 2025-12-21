@@ -263,9 +263,9 @@ export default function ListeningTestPage() {
     return (
       <main className="py-10">
         <Container>
-          <Card className="rounded-ds-2xl bg-amber-50 border border-amber-200 p-6">
-            <h1 className="font-slab text-h3 text-amber-900 mb-2">Something went wrong</h1>
-            <p className="text-sm text-amber-800">{testError}</p>
+          <Card className="rounded-ds-2xl bg-warning/10 border border-warning/30 p-6">
+            <h1 className="font-slab text-h3 text-warning mb-2">Something went wrong</h1>
+            <p className="text-small text-warning">{testError}</p>
             <div className="mt-4">
               <Button asChild size="sm" variant="primary" className="rounded-ds-xl">
                 <Link href="/listening">Back to Listening tests</Link>
@@ -319,7 +319,7 @@ export default function ListeningTestPage() {
                 asChild
                 size="sm"
                 variant="ghost"
-                className="rounded-ds-full px-3 text-xs text-muted-foreground"
+                className="rounded-ds-full px-3 text-caption text-muted-foreground"
               >
                 <Link href="/listening">
                   <Icon name="ArrowLeft" size={14} />
@@ -356,7 +356,7 @@ export default function ListeningTestPage() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Icon name="Headphones" size={16} className="text-primary" />
-                <p className="text-xs font-medium text-muted-foreground">
+                <p className="text-caption font-medium text-muted-foreground">
                   Audio (single play per section · IELTS-style)
                 </p>
               </div>
@@ -382,7 +382,7 @@ export default function ListeningTestPage() {
               }}
             />
 
-            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 text-caption text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Button
                   size="xs"
@@ -419,7 +419,7 @@ export default function ListeningTestPage() {
             </div>
 
             {transcriptOpen && currentSection.transcript && (
-              <div className="mt-2 rounded-ds-xl bg-muted px-3 py-2 text-xs text-muted-foreground max-h-56 overflow-y-auto">
+              <div className="mt-2 rounded-ds-xl bg-muted px-3 py-2 text-caption text-muted-foreground max-h-56 overflow-y-auto">
                 {currentSection.transcript.split('\n').map((line, idx) => (
                   <p key={idx} className="mb-1">
                     {line}
@@ -432,7 +432,7 @@ export default function ListeningTestPage() {
           {/* Questions */}
           <Card className="p-5 rounded-ds-2xl space-y-4">
             {currentSection.questions.length === 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 No questions found for this section. Check your seeding for{' '}
                 <code className="font-mono text-[11px]">
                   listening_questions.test_id = {test.id}
@@ -455,7 +455,7 @@ export default function ListeningTestPage() {
                   className="border-b border-border/60 pb-4 last:border-b-0 last:pb-0"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-small font-medium text-foreground">
                       Q{q.qNo}. {q.prompt}
                     </p>
                     {checked && (
@@ -475,7 +475,7 @@ export default function ListeningTestPage() {
                           key={opt}
                           type="button"
                           onClick={() => handleSetAnswer(q.id, opt)}
-                          className={`w-full text-left text-xs rounded-ds-xl border px-3 py-2 transition ${
+                          className={`w-full text-left text-caption rounded-ds-xl border px-3 py-2 transition ${
                             userAnswer === opt
                               ? 'border-primary bg-primary/10 text-foreground'
                               : 'border-border bg-card hover:border-primary/60'
@@ -509,7 +509,7 @@ export default function ListeningTestPage() {
 
           {/* Bottom controls */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-caption text-muted-foreground">
               <Button
                 size="sm"
                 variant="secondary"
@@ -540,7 +540,7 @@ export default function ListeningTestPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="rounded-ds-full text-xs"
+                className="rounded-ds-full text-caption"
                 onClick={() => setChecked((v) => !v)}
               >
                 {checked ? 'Hide check' : 'Quick check (local only)'}
@@ -549,7 +549,7 @@ export default function ListeningTestPage() {
               <Button
                 size="sm"
                 variant="primary"
-                className="rounded-ds-full text-xs"
+                className="rounded-ds-full text-caption"
                 onClick={handleSubmit}
                 disabled={attemptFinished}
               >

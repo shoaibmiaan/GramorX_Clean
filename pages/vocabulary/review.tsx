@@ -30,7 +30,7 @@ export default function VocabReviewPage() {
 
           <Card className="mx-auto max-w-xl rounded-ds-2xl border border-border/60 bg-card/70 p-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Card 1 of 10
               </p>
               <Badge size="xs" variant="neutral">
@@ -39,11 +39,11 @@ export default function VocabReviewPage() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-lg font-semibold">Substantially</p>
-              <p className="text-xs text-muted-foreground">Tap &quot;Show meaning&quot;</p>
+              <p className="text-h4 font-semibold">Substantially</p>
+              <p className="text-caption text-muted-foreground">Tap &quot;Show meaning&quot;</p>
             </div>
 
-            <div className="rounded-ds-2xl bg-background/70 p-3 text-sm">
+            <div className="rounded-ds-2xl bg-background/70 p-3 text-small">
               <p className="font-medium">Meaning:</p>
               <p className="text-muted-foreground">
                 To a large degree; considerably. (Hidden/revealed later with state)

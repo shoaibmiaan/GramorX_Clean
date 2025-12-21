@@ -72,20 +72,20 @@ export const Waitlist: React.FC = () => {
       <Section id="waitlist">
         <Container>
           <div className="text-center max-w-2xl mx-auto">
-            <Card className="p-12 border border-green-200 bg-green-50/30 dark:bg-green-900/10">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Icon name="CheckCircle" className="text-green-600" size={32} />
+            <Card className="p-12 border border-success/30 bg-success/10/30 dark:bg-success/95/10">
+              <div className="w-16 h-16 bg-success/15 dark:bg-success/95/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Icon name="CheckCircle" className="text-success" size={32} />
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-4">
+              <h2 className="text-h1 font-bold text-foreground mb-4">
                 You're on the List! 🎉
               </h2>
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-h4 text-muted-foreground mb-6">
                 Thank you for joining our waitlist. We'll send you early access invites
                 and founding member perks as we get closer to launch.
               </p>
               <div className="bg-white dark:bg-dark/50 p-6 rounded-lg border border-border/60">
                 <h3 className="font-semibold text-foreground mb-3">What's Next?</h3>
-                <ul className="text-sm text-muted-foreground space-y-2 text-left">
+                <ul className="text-small text-muted-foreground space-y-2 text-left">
                   <li className="flex items-center gap-2">
                     <Icon name="Mail" className="text-electricBlue" size={16} />
                     Check your email for confirmation
@@ -117,10 +117,10 @@ export const Waitlist: React.FC = () => {
               <Icon name="Star" className="text-electricBlue" />
               Limited Founding Member Spots
             </Badge>
-            <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h2 className="font-slab text-h1 md:text-display font-bold text-foreground mb-4">
               Ready to Transform Your IELTS Preparation?
             </h2>
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-h4 text-muted-foreground mb-6">
               Join the waitlist today and be among the first to experience our AI-powered platform.
               Founding members get special perks and early access.
             </p>
@@ -141,7 +141,7 @@ export const Waitlist: React.FC = () => {
                     <h3 className="font-semibold text-foreground mb-1">
                       {perk.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       {perk.description}
                     </p>
                   </div>
@@ -150,13 +150,13 @@ export const Waitlist: React.FC = () => {
             </div>
 
             {/* Trust Indicators */}
-            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-6 text-small text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Icon name="ShieldCheck" className="text-green-500" />
+                <Icon name="ShieldCheck" className="text-success" />
                 No spam, ever
               </div>
               <div className="flex items-center gap-2">
-                <Icon name="Clock" className="text-blue-500" />
+                <Icon name="Clock" className="text-electricBlue" />
                 One-click unsubscribe
               </div>
               <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export const Waitlist: React.FC = () => {
           {/* Right Content - Form */}
           <Card className="p-8 border border-electricBlue/30 bg-white/80 dark:bg-dark/70 shadow-xl backdrop-blur">
             <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-foreground mb-2">
+              <h3 className="text-h2 font-bold text-foreground mb-2">
                 Join the Waitlist
               </h3>
               <p className="text-muted-foreground">
@@ -179,7 +179,7 @@ export const Waitlist: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-semibold text-foreground mb-2">
+                <label htmlFor="name" className="block text-small font-semibold text-foreground mb-2">
                   Full Name
                 </label>
                 <Input
@@ -194,7 +194,7 @@ export const Waitlist: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">
+                <label htmlFor="email" className="block text-small font-semibold text-foreground mb-2">
                   Email Address
                 </label>
                 <Input
@@ -210,7 +210,7 @@ export const Waitlist: React.FC = () => {
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="targetBand" className="block text-sm font-semibold text-foreground mb-2">
+                  <label htmlFor="targetBand" className="block text-small font-semibold text-foreground mb-2">
                     Target Band
                   </label>
                   <select
@@ -231,7 +231,7 @@ export const Waitlist: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="testDate" className="block text-sm font-semibold text-foreground mb-2">
+                  <label htmlFor="testDate" className="block text-small font-semibold text-foreground mb-2">
                     Test Date
                   </label>
                   <Input
@@ -250,7 +250,7 @@ export const Waitlist: React.FC = () => {
                 variant="primary"
                 size="lg"
                 disabled={isSubmitting}
-                className="w-full justify-center py-3 text-lg font-semibold shadow-lg shadow-electricBlue/20 hover:shadow-electricBlue/30 transition-all duration-300"
+                className="w-full justify-center py-3 text-h4 font-semibold shadow-lg shadow-electricBlue/20 hover:shadow-electricBlue/30 transition-all duration-300"
               >
                 {isSubmitting ? (
                   <>
@@ -265,7 +265,7 @@ export const Waitlist: React.FC = () => {
                 )}
               </Button>
 
-              <p className="text-center text-xs text-muted-foreground">
+              <p className="text-center text-caption text-muted-foreground">
                 By joining, you agree to our Privacy Policy and Terms of Service.
                 We'll only send you launch updates and early access invites.
               </p>

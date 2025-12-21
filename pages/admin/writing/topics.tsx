@@ -277,7 +277,7 @@ export default function WritingTopicsAdmin({ initialTopics }: PageProps) {
                       ))}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 text-sm text-muted-foreground">
+                  <div className="flex flex-col items-end gap-2 text-small text-muted-foreground">
                     <span>Band {topic.bandTarget.toFixed(1)}</span>
                     <span className="capitalize">{topic.difficulty}</span>
                     <Button

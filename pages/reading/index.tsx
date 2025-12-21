@@ -234,7 +234,7 @@ export default function ReadingListPage() {
             <button
               role="tab"
               aria-selected={activeTab === 'practice'}
-              className={`flex-1 rounded-ds-xl px-4 py-2 text-sm transition-colors ${
+              className={`flex-1 rounded-ds-xl px-4 py-2 text-small transition-colors ${
                 activeTab === 'practice' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
               onClick={() => setActiveTab('practice')}
@@ -247,7 +247,7 @@ export default function ReadingListPage() {
             <button
               role="tab"
               aria-selected={activeTab === 'dashboard'}
-              className={`flex-1 rounded-ds-xl px-4 py-2 text-sm transition-colors ${
+              className={`flex-1 rounded-ds-xl px-4 py-2 text-small transition-colors ${
                 activeTab === 'dashboard' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
               onClick={() => setActiveTab('dashboard')}
@@ -260,7 +260,7 @@ export default function ReadingListPage() {
             <button
               role="tab"
               aria-selected={activeTab === 'resources'}
-              className={`flex-1 rounded-ds-xl px-4 py-2 text-sm transition-colors ${
+              className={`flex-1 rounded-ds-xl px-4 py-2 text-small transition-colors ${
                 activeTab === 'resources' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
               onClick={() => setActiveTab('resources')}
@@ -280,7 +280,7 @@ export default function ReadingListPage() {
 
               <div className="mb-6">
                 <Card className="px-4 py-3 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-3 text-small">
                     <span className="text-muted-foreground">Typical for this view:</span>
 
                     {summary.diff === 'Mixed' ? (
@@ -300,7 +300,7 @@ export default function ReadingListPage() {
                       {summary.topTypeLabel}{summary.plusN > 0 ? ` +${summary.plusN}` : ''}
                     </Badge>
 
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <span className="ml-auto text-caption text-muted-foreground">
                       Showing {filtered.length}{items ? ` / ${items.length}` : ''} passages
                     </span>
                   </div>
@@ -344,7 +344,7 @@ export default function ReadingListPage() {
                           interactive
                           padding="md"
                         >
-                          <h3 className="text-lg font-semibold leading-snug line-clamp-2">{t.title}</h3>
+                          <h3 className="text-h4 font-semibold leading-snug line-clamp-2">{t.title}</h3>
 
                           <div className="mt-4 flex gap-2">
                             <Link href={`/reading/${t.slug}`} className="flex-1" aria-label={`Start ${t.title}`}>
@@ -387,8 +387,8 @@ export default function ReadingListPage() {
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                   <Icon name="Search" />
                 </div>
-                <h3 className="text-xl font-semibold">Skim, then scan</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h3 className="text-h3 font-semibold">Skim, then scan</h3>
+                <p className="mt-1 text-small text-muted-foreground">
                   Read the first/last sentences for gist. Scan for names, numbers, and keywords.
                 </p>
                 <Link href="/resources/reading#skimming" className="mt-4 inline-flex items-center gap-2 text-electricBlue">
@@ -400,8 +400,8 @@ export default function ReadingListPage() {
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                   <Icon name="Clock" />
                 </div>
-                <h3 className="text-xl font-semibold">Use micro-timers</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h3 className="text-h3 font-semibold">Use micro-timers</h3>
+                <p className="mt-1 text-small text-muted-foreground">
                   Allocate time per passage and stick to it to avoid rushing the last set.
                 </p>
                 <Link href="/resources/reading#timing" className="mt-4 inline-flex items-center gap-2 text-electricBlue">
@@ -413,8 +413,8 @@ export default function ReadingListPage() {
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                   <Icon name="BookMarked" />
                 </div>
-                <h3 className="text-xl font-semibold">Trap decoders</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h3 className="text-h3 font-semibold">Trap decoders</h3>
+                <p className="mt-1 text-small text-muted-foreground">
                   Learn common distractors in TFNG and MCQ to raise accuracy quickly.
                 </p>
                 <Link href="/resources/reading#traps" className="mt-4 inline-flex items-center gap-2 text-electricBlue">

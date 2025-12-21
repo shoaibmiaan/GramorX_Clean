@@ -141,16 +141,16 @@ export default function AccountSetupWizard() {
   // Render a header and progress indicator
   const renderHeader = () => (
     <div className="mb-6">
-      <h1 className="text-2xl font-semibold text-foreground mb-1">Account setup</h1>
-      <p className="text-sm text-mutedText">Step {step + 1} of 4</p>
+      <h1 className="text-h2 font-semibold text-foreground mb-1">Account setup</h1>
+      <p className="text-small text-mutedText">Step {step + 1} of 4</p>
     </div>
   );
 
   // Step content components
   const renderTargetBandStep = () => (
     <>
-      <h2 className="text-lg font-medium mb-2">What is your target IELTS band?</h2>
-      <p className="text-sm text-mutedText mb-4">Pick the band score you hope to achieve.</p>
+      <h2 className="text-h4 font-medium mb-2">What is your target IELTS band?</h2>
+      <p className="text-small text-mutedText mb-4">Pick the band score you hope to achieve.</p>
       <select
         value={targetBand}
         onChange={(e) => setTargetBand(e.target.value)}
@@ -166,8 +166,8 @@ export default function AccountSetupWizard() {
 
   const renderExamDateStep = () => (
     <>
-      <h2 className="text-lg font-medium mb-2">When is your exam?</h2>
-      <p className="text-sm text-mutedText mb-4">Choose the date of your upcoming IELTS test.</p>
+      <h2 className="text-h4 font-medium mb-2">When is your exam?</h2>
+      <p className="text-small text-mutedText mb-4">Choose the date of your upcoming IELTS test.</p>
       <input
         type="date"
         value={examDate}
@@ -179,8 +179,8 @@ export default function AccountSetupWizard() {
 
   const renderStudyRhythmStep = () => (
     <>
-      <h2 className="text-lg font-medium mb-2">How often will you study?</h2>
-      <p className="text-sm text-mutedText mb-4">Select a study rhythm that matches your schedule.</p>
+      <h2 className="text-h4 font-medium mb-2">How often will you study?</h2>
+      <p className="text-small text-mutedText mb-4">Select a study rhythm that matches your schedule.</p>
       <select
         value={studyRhythm}
         onChange={(e) => setStudyRhythm(e.target.value)}
@@ -196,8 +196,8 @@ export default function AccountSetupWizard() {
 
   const renderLanguageStep = () => (
     <>
-      <h2 className="text-lg font-medium mb-2">Which interface language do you prefer?</h2>
-      <p className="text-sm text-mutedText mb-4">You can change this later in preferences.</p>
+      <h2 className="text-h4 font-medium mb-2">Which interface language do you prefer?</h2>
+      <p className="text-small text-mutedText mb-4">You can change this later in preferences.</p>
       <select
         value={locale}
         onChange={(e) => setLocale(e.target.value)}

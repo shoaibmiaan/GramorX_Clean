@@ -129,13 +129,13 @@ export default function LeaderboardPage() {
           {/* Header */}
           <header className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+              <p className="text-caption uppercase tracking-[0.2em] text-grayish dark:text-grayish">
                 Competitive mode
               </p>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="text-h2 font-semibold tracking-tight sm:text-h1">
                 Leaderboards
               </h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-1 text-small text-grayish dark:text-mutedText">
                 XP, bands, and streak rankings. Filter by time period and skill
                 to see where you stand.
               </p>
@@ -156,10 +156,10 @@ export default function LeaderboardPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-caption font-medium transition ${
                   activeTab === tab.key
                     ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:bg-black/40 dark:text-gray-200 dark:hover:border-indigo-400'
+                    : 'border-lightBorder bg-white text-foreground/80 hover:border-indigo-400 hover:text-indigo-600 dark:border-border/70 dark:bg-black/40 dark:text-mutedText dark:hover:border-indigo-400'
                 }`}
               >
                 {tab.key === 'global' && (
@@ -182,7 +182,7 @@ export default function LeaderboardPage() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
             {/* Main table */}
             <Card className="overflow-hidden p-0">
-              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3 text-xs dark:border-gray-800">
+              <div className="flex items-center justify-between border-b border-lightBorder px-5 py-3 text-caption dark:border-border/80">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
                     {activeTab === 'weekly'
@@ -193,14 +193,14 @@ export default function LeaderboardPage() {
                     {entries.length} entries
                   </Badge>
                 </div>
-                <span className="text-[0.7rem] text-gray-500 dark:text-gray-400">
+                <span className="text-[0.7rem] text-grayish dark:text-grayish">
                   Usernames are partially anonymised.
                 </span>
               </div>
 
               <div className="max-h-[520px] overflow-y-auto">
-                <table className="min-w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-gray-50 text-[0.7rem] uppercase tracking-[0.14em] text-gray-500 dark:bg-black/60 dark:text-gray-400">
+                <table className="min-w-full text-left text-caption">
+                  <thead className="sticky top-0 bg-lightCard text-[0.7rem] uppercase tracking-[0.14em] text-grayish dark:bg-black/60 dark:text-grayish">
                     <tr>
                       <th className="px-5 py-2">Rank</th>
                       <th className="px-3 py-2">Learner</th>
@@ -214,7 +214,7 @@ export default function LeaderboardPage() {
                     {entries.map((e) => (
                       <tr
                         key={`${activeTab}-${e.rank}-${e.name}`}
-                        className={`border-t border-gray-100 text-[0.8rem] dark:border-gray-800 ${
+                        className={`border-t border-lightBorder text-[0.8rem] dark:border-border/80 ${
                           e.you
                             ? 'bg-indigo-50/70 font-semibold dark:bg-indigo-900/40'
                             : 'bg-white dark:bg-black/40'
@@ -226,16 +226,16 @@ export default function LeaderboardPage() {
                               <span
                                 className={`flex h-6 w-6 items-center justify-center rounded-full text-[0.7rem] ${
                                   e.rank === 1
-                                    ? 'bg-yellow-500 text-white'
+                                    ? 'bg-warning text-white'
                                     : e.rank === 2
-                                    ? 'bg-gray-300 text-gray-900'
-                                    : 'bg-amber-700 text-amber-50'
+                                    ? 'bg-lightBg text-foreground'
+                                    : 'bg-warning/85 text-warning/80'
                                 }`}
                               >
                                 {e.rank}
                               </span>
                             ) : (
-                              <span className="text-xs text-gray-600 dark:text-gray-300">
+                              <span className="text-caption text-grayish dark:text-mutedText">
                                 #{e.rank}
                               </span>
                             )}
@@ -245,7 +245,7 @@ export default function LeaderboardPage() {
                           <div className="flex flex-col">
                             <span>
                               {e.you ? 'You' : e.name}{' '}
-                              <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                              <span className="ml-1 text-caption text-grayish dark:text-grayish">
                                 {e.country}
                               </span>
                             </span>
@@ -269,7 +269,7 @@ export default function LeaderboardPage() {
                           <span className="inline-flex items-center gap-1">
                             <Icon
                               name="flame"
-                              className="h-3.5 w-3.5 text-amber-500"
+                              className="h-3.5 w-3.5 text-warning"
                             />
                             {e.streakDays} days
                           </span>
@@ -284,27 +284,27 @@ export default function LeaderboardPage() {
             {/* Side panel: your snapshot + filters */}
             <div className="space-y-4">
               <Card className="p-5">
-                <p className="text-sm font-medium">Your snapshot</p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-small font-medium">Your snapshot</p>
+                <p className="mt-1 text-caption text-grayish dark:text-grayish">
                   How you currently rank on this leaderboard.
                 </p>
 
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 text-xs shadow-sm dark:border-gray-800 dark:bg-black/40">
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-lightBorder bg-white px-4 py-3 text-caption shadow-sm dark:border-border/80 dark:bg-black/40">
                   <div>
-                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-grayish dark:text-grayish">
                       Global rank
                     </p>
-                    <p className="mt-1 text-lg font-semibold">#{17}</p>
-                    <p className="text-[0.7rem] text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-h4 font-semibold">#{17}</p>
+                    <p className="text-[0.7rem] text-grayish dark:text-grayish">
                       Approx. top 10–15% this month
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-grayish dark:text-grayish">
                       Current band
                     </p>
-                    <p className="mt-1 text-lg font-semibold">7.0</p>
-                    <p className="text-[0.7rem] text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-h4 font-semibold">7.0</p>
+                    <p className="text-[0.7rem] text-grayish dark:text-grayish">
                       Reading-heavy performance
                     </p>
                   </div>
@@ -320,15 +320,15 @@ export default function LeaderboardPage() {
                 </Button>
               </Card>
 
-              <Card className="p-5 text-xs">
-                <p className="text-sm font-medium">Filters</p>
-                <p className="mt-1 text-[0.7rem] text-gray-500 dark:text-gray-400">
+              <Card className="p-5 text-caption">
+                <p className="text-small font-medium">Filters</p>
+                <p className="mt-1 text-[0.7rem] text-grayish dark:text-grayish">
                   Placeholder filters – wire to query params / Supabase later.
                 </p>
 
                 <div className="mt-3 space-y-3">
                   <div>
-                    <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                    <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-grayish dark:text-grayish">
                       Region
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -337,7 +337,7 @@ export default function LeaderboardPage() {
                           <button
                             key={label}
                             type="button"
-                            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-[0.7rem] text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:bg-black/40 dark:text-gray-200 dark:hover:border-indigo-400"
+                            className="rounded-full border border-lightBorder bg-white px-3 py-1 text-[0.7rem] text-foreground/80 hover:border-indigo-400 hover:text-indigo-600 dark:border-border/70 dark:bg-black/40 dark:text-mutedText dark:hover:border-indigo-400"
                           >
                             {label}
                           </button>
@@ -347,7 +347,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div>
-                    <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                    <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-grayish dark:text-grayish">
                       Time window
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -358,7 +358,7 @@ export default function LeaderboardPage() {
                           className={`rounded-full border px-3 py-1 text-[0.7rem] ${
                             label === 'This month'
                               ? 'border-indigo-500 bg-indigo-500 text-white'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:bg-black/40 dark:text-gray-200 dark:hover:border-indigo-400'
+                              : 'border-lightBorder bg-white text-foreground/80 hover:border-indigo-400 hover:text-indigo-600 dark:border-border/70 dark:bg-black/40 dark:text-mutedText dark:hover:border-indigo-400'
                           }`}
                         >
                           {label}
@@ -371,7 +371,7 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[0.7rem] text-gray-500 dark:text-gray-400">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[0.7rem] text-grayish dark:text-grayish">
             <p>
               Leaderboards update periodically. Band scores are estimated from
               your latest graded mocks.

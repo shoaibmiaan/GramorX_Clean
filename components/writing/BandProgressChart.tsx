@@ -72,14 +72,14 @@ const BandProgressChart: React.FC<Props> = ({ points, deltas }) => {
   return (
     <Card padding="lg" insetBorder className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">Your Improvement Journey</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-h4 font-semibold text-foreground">Your Improvement Journey</h2>
+        <p className="text-small text-muted-foreground">
           Track how each criterion has evolved across your last {points.length} attempts.
         </p>
       </div>
 
       {chartData.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Not enough data yet. Complete another attempt to unlock trends.</p>
+        <p className="text-small text-muted-foreground">Not enough data yet. Complete another attempt to unlock trends.</p>
       ) : (
         <div className="h-64 w-full">
           <ResponsiveContainer>
@@ -147,9 +147,9 @@ const BandProgressChart: React.FC<Props> = ({ points, deltas }) => {
           return (
             <div key={key} className="rounded-ds-xl border border-border/60 bg-card/80 p-4">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-medium text-foreground">{formattedKey}</p>
+                <p className="text-small font-medium text-foreground">{formattedKey}</p>
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-small font-semibold ${
                     delta.delta === 0 ? 'text-muted-foreground' : isPositive ? 'text-success' : 'text-danger'
                   }`}
                 >
@@ -157,7 +157,7 @@ const BandProgressChart: React.FC<Props> = ({ points, deltas }) => {
                   {delta.delta.toFixed(1)}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-caption text-muted-foreground">
                 Current band {delta.current.toFixed(1)}
                 {typeof delta.previous === 'number' ? ` · Previous ${delta.previous.toFixed(1)}` : ''}
               </p>

@@ -70,8 +70,8 @@ export const DiffViewer = ({ previous, current }: DiffViewerProps) => {
   if (!previous || !diff) {
     return (
       <Card className="space-y-2" padding="lg">
-        <h2 className="text-lg font-semibold text-foreground">Draft comparison</h2>
-        <p className="text-sm text-muted-foreground">Write a redraft to compare paragraph-by-paragraph improvements.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Draft comparison</h2>
+        <p className="text-small text-muted-foreground">Write a redraft to compare paragraph-by-paragraph improvements.</p>
       </Card>
     );
   }
@@ -81,10 +81,10 @@ export const DiffViewer = ({ previous, current }: DiffViewerProps) => {
   return (
     <Card className="space-y-4" padding="lg">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">Diff vs. previous attempt</h2>
-        <p className="text-sm text-muted-foreground">New or revised sentences are highlighted to show progress.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Diff vs. previous attempt</h2>
+        <p className="text-small text-muted-foreground">New or revised sentences are highlighted to show progress.</p>
       </div>
-      <div className="space-y-2 rounded-2xl border border-border/60 bg-card/70 p-4 text-sm leading-relaxed text-foreground">
+      <div className="space-y-2 rounded-2xl border border-border/60 bg-card/70 p-4 text-small leading-relaxed text-foreground">
         {diff
           .filter((chunk) => chunk.type !== 'removed')
           .map((chunk, index) =>
@@ -98,7 +98,7 @@ export const DiffViewer = ({ previous, current }: DiffViewerProps) => {
           )}
       </div>
       {removals.length > 0 && (
-        <div className="space-y-2 rounded-2xl border border-border/60 bg-card/50 p-4 text-xs text-muted-foreground">
+        <div className="space-y-2 rounded-2xl border border-border/60 bg-card/50 p-4 text-caption text-muted-foreground">
           <p className="font-semibold text-foreground">Removed sentences</p>
           <ul className="list-disc space-y-1 pl-5">
             {removals.map((chunk, index) => (

@@ -183,11 +183,11 @@ const FreeCoachPage = ({ prompts }: PageProps) => {
               <Badge variant="info" size="sm">
                 Cue card practice · Level {prompt.level}
               </Badge>
-              <h1 className="text-3xl font-semibold text-foreground md:text-4xl">{prompt.prompt}</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-h1 font-semibold text-foreground md:text-display">{prompt.prompt}</h1>
+              <p className="text-small text-muted-foreground">
                 Speak for two minutes. Use the notes panel to jot key points before recording.
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
                 {promptTags.map((tag) => (
                   <Badge key={tag} variant="neutral" size="xs">
                     {tag.toLowerCase()}
@@ -199,7 +199,7 @@ const FreeCoachPage = ({ prompts }: PageProps) => {
               </Button>
             </div>
             <Card className="w-full max-w-sm space-y-3 p-5">
-              <h2 className="text-base font-semibold text-foreground">Preparation notes</h2>
+              <h2 className="text-body font-semibold text-foreground">Preparation notes</h2>
               <Textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -221,7 +221,7 @@ const FreeCoachPage = ({ prompts }: PageProps) => {
                 </Button>
               </div>
               {error && (
-                <p className="rounded-ds-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                <p className="rounded-ds-xl bg-danger/10 px-3 py-2 text-small text-danger" role="alert">
                   {error}
                 </p>
               )}
@@ -235,7 +235,7 @@ const FreeCoachPage = ({ prompts }: PageProps) => {
                 <CoachTips ipaTargets={feedback.weakIPA} />
               </div>
             ) : (
-              <Card className="flex min-h-[320px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
+              <Card className="flex min-h-[320px] items-center justify-center p-6 text-center text-small text-muted-foreground">
                 Submit a recording to unlock personalised feedback and weak-sound drills.
               </Card>
             )}

@@ -9,9 +9,9 @@ export const RegistrationComplete: React.FC = () => {
     <Card className="p-8 space-y-4 card-surface">
       <div className="flex items-center gap-3">
         <Badge variant="success">Pending Approval</Badge>
-        <h1 className="text-xl font-semibold">Thanks! Your application is under review.</h1>
+        <h1 className="text-h3 font-semibold">Thanks! Your application is under review.</h1>
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-small text-muted-foreground">
         We’ll email you once an admin approves your profile. Until then, you can update your info from the registration page.
       </p>
       <div className="flex gap-3">

@@ -56,7 +56,7 @@ export default function ExamShell({
               {headerPills.map((p) => (
                 <span
                   key={p.id}
-                  className={`rounded-full px-2.5 py-1 text-xs ${toneClass(p.tone)}`}
+                  className={`rounded-full px-2.5 py-1 text-caption ${toneClass(p.tone)}`}
                 >
                   {p.label}
                 </span>
@@ -65,7 +65,7 @@ export default function ExamShell({
           </div>
 
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="text-h3 font-semibold tracking-tight">{title}</h1>
           </div>
         </div>
       </header>
@@ -74,7 +74,7 @@ export default function ExamShell({
       <div className="mx-auto grid max-w-5xl grid-cols-12 gap-4 px-4 py-4">
         {/* Left rail */}
         <aside className="col-span-12 h-full rounded-2xl border border-border/40 bg-elevated p-3 md:sticky md:top-16 md:col-span-3 md:self-start">
-          <div className="mb-2 text-sm font-medium text-muted-foreground">Tasks</div>
+          <div className="mb-2 text-small font-medium text-muted-foreground">Tasks</div>
           <div className="space-y-1">
             {leftRail.map((item) => (
               <button
@@ -85,16 +85,16 @@ export default function ExamShell({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">{item.label}</span>
+                  <span className="text-small">{item.label}</span>
                   {item.meta && (
-                    <span className="text-xs text-muted-foreground">{item.meta}</span>
+                    <span className="text-caption text-muted-foreground">{item.meta}</span>
                   )}
                 </div>
               </button>
             ))}
           </div>
 
-          <div className="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+          <div className="mt-4 rounded-xl bg-muted p-3 text-caption text-muted-foreground">
             Complete both tasks in 60 minutes. Your timer pauses if you leave the tab.
           </div>
         </aside>
@@ -115,7 +115,7 @@ export default function ExamShell({
       {/* Footer */}
       <footer className="sticky bottom-0 z-40 border-t border-border/40 bg-elevated/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3">
-          <div className="hidden text-sm text-muted-foreground md:block">
+          <div className="hidden text-small text-muted-foreground md:block">
             {footerNote}
           </div>
           <div className="ml-auto flex items-center gap-2">

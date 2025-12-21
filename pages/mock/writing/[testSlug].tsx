@@ -142,7 +142,7 @@ const WritingMockRunBySlugPage: NextPage<PageProps> = ({ test, tasks }) => {
         <main className="flex min-h-screen items-center bg-lightBg">
           <Container className="max-w-3xl py-10">
             <div className="space-y-4 rounded-ds-xl border border-border bg-card p-6 text-center shadow-sm">
-              <h2 className="text-lg font-semibold">Writing mock not found</h2>
+              <h2 className="text-h4 font-semibold">Writing mock not found</h2>
               <Button asChild>
                 <Link href="/mock/writing">
                   <Icon name="ArrowLeft" className="mr-1.5 h-4 w-4" />
@@ -165,8 +165,8 @@ const WritingMockRunBySlugPage: NextPage<PageProps> = ({ test, tasks }) => {
         <main className="flex min-h-screen items-center bg-lightBg">
           <Container className="max-w-3xl py-10">
             <div className="space-y-4 rounded-ds-xl border border-destructive/40 bg-destructive/10 p-6 text-center">
-              <h2 className="text-lg font-semibold text-destructive">Failed to start attempt</h2>
-              <p className="text-sm text-muted-foreground">{startError}</p>
+              <h2 className="text-h4 font-semibold text-destructive">Failed to start attempt</h2>
+              <p className="text-small text-muted-foreground">{startError}</p>
               <div className="flex justify-center gap-2">
                 <Button asChild variant="secondary">
                   <Link href="/mock/writing">Back</Link>
@@ -189,8 +189,8 @@ const WritingMockRunBySlugPage: NextPage<PageProps> = ({ test, tasks }) => {
         <main className="flex min-h-screen items-center bg-lightBg">
           <Container className="max-w-3xl py-10">
             <div className="space-y-3 rounded-ds-xl border border-border bg-card p-6 text-center shadow-sm">
-              <p className="text-sm font-semibold">Starting your attempt…</p>
-              <p className="text-xs text-muted-foreground">This should take a second.</p>
+              <p className="text-small font-semibold">Starting your attempt…</p>
+              <p className="text-caption text-muted-foreground">This should take a second.</p>
             </div>
           </Container>
         </main>
@@ -244,7 +244,7 @@ const WritingMockRunBySlugPage: NextPage<PageProps> = ({ test, tasks }) => {
       {submitError ? (
         <div className="bg-lightBg">
           <Container className="max-w-6xl pt-4">
-            <div className="rounded-ds-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-ds-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-small text-destructive">
               {submitError}
             </div>
           </Container>

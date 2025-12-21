@@ -68,12 +68,12 @@ export function FeedbackRadial({ overall }: FeedbackRadialProps) {
                   y="52%"
                   dominantBaseline="middle"
                   textAnchor="middle"
-                  className="text-lg font-semibold text-foreground"
+                  className="text-h4 font-semibold text-foreground"
                 >
                   {(clamped * 100).toFixed(0)}%
                 </text>
               </svg>
-              <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
+              <span className="text-small font-medium text-muted-foreground">{metric.label}</span>
             </div>
           );
         })}
@@ -81,23 +81,23 @@ export function FeedbackRadial({ overall }: FeedbackRadialProps) {
 
       <div className="flex flex-col justify-center gap-4">
         <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-          <p className="text-sm font-medium text-muted-foreground">Band estimate</p>
-          <p className="text-3xl font-semibold text-foreground">{overall.band.toFixed(1)}</p>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-small font-medium text-muted-foreground">Band estimate</p>
+          <p className="text-h1 font-semibold text-foreground">{overall.band.toFixed(1)}</p>
+          <p className="mt-2 text-small text-muted-foreground">
             Based on your current pronunciation and fluency profile. Track how this changes with each reattempt.
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Words per minute</p>
-            <p className="text-2xl font-semibold text-foreground">{overall.wpm}</p>
-            <p className="text-xs text-muted-foreground">Target 140–160 wpm for Part 2 cue cards.</p>
+            <p className="text-caption uppercase tracking-wide text-muted-foreground">Words per minute</p>
+            <p className="text-h2 font-semibold text-foreground">{overall.wpm}</p>
+            <p className="text-caption text-muted-foreground">Target 140–160 wpm for Part 2 cue cards.</p>
           </div>
           <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Fillers detected</p>
-            <p className="text-2xl font-semibold text-foreground">{overall.fillers}</p>
-            <p className="text-xs text-muted-foreground">Aim for fewer than 3 filler sounds per minute.</p>
+            <p className="text-caption uppercase tracking-wide text-muted-foreground">Fillers detected</p>
+            <p className="text-h2 font-semibold text-foreground">{overall.fillers}</p>
+            <p className="text-caption text-muted-foreground">Aim for fewer than 3 filler sounds per minute.</p>
           </div>
         </div>
       </div>

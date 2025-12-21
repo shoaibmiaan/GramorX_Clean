@@ -42,9 +42,9 @@ const ListeningMockRunPage: NextPage<PageProps> = ({
           <Card className="mx-auto max-w-xl space-y-4 p-8 text-center">
             <div className="flex flex-col items-center gap-2">
               <Icon name="AlertCircle" className="h-8 w-8 text-destructive" />
-              <h1 className="text-lg font-semibold">Listening mock not found</h1>
+              <h1 className="text-h4 font-semibold">Listening mock not found</h1>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               This listening mock is not available anymore or the link is incorrect.
             </p>
             <div className="flex justify-center">

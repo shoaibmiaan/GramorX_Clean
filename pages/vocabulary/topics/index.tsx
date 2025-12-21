@@ -59,7 +59,7 @@ export default function VocabTopicsIndexPage() {
                       {topic.level}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     {topic.count}+ band 6–8 words with examples for both Writing and Speaking.
                   </p>
                 </div>

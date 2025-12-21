@@ -76,7 +76,7 @@ const ForgotPassword: NextPage = () => {
                     </Button>
                   </div>
 
-                  <p className="text-xs text-muted mt-2">
+                  <p className="text-caption text-muted mt-2">
                     Didn’t get it? Check spam/junk or try another email you might have used.
                   </p>
                 </div>

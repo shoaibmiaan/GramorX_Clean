@@ -38,7 +38,7 @@ export const ListeningAutoSubmitModal: React.FC<ListeningAutoSubmitModalProps> =
           </DialogDescription>
         </DialogHeader>
 
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-caption text-muted-foreground">
           You can&apos;t change your answers anymore, but you can review your
           performance, see band estimates, and analyse your weak areas.
         </p>

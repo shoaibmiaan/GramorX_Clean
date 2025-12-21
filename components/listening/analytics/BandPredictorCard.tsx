@@ -21,8 +21,8 @@ export function BandPredictorCard({ attempts }: Props) {
         <div className="flex items-center gap-3">
           <Icon name="TrendingUp" className="h-6 w-6 text-muted-foreground" />
           <div>
-            <p className="text-sm font-medium">Band Predictor</p>
-            <p className="text-xs text-muted-foreground">Complete your first mock to see predictions</p>
+            <p className="text-small font-medium">Band Predictor</p>
+            <p className="text-caption text-muted-foreground">Complete your first mock to see predictions</p>
           </div>
         </div>
       </Card>
@@ -44,12 +44,12 @@ export function BandPredictorCard({ attempts }: Props) {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">{lastBand}</p>
-            <p className="text-xs text-muted-foreground">Latest</p>
+            <p className="text-h1 font-bold text-primary">{lastBand}</p>
+            <p className="text-caption text-muted-foreground">Latest</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">{avgBand}</p>
-            <p className="text-xs text-muted-foreground">Recent Avg (last 5)</p>
+            <p className="text-h1 font-bold text-primary">{avgBand}</p>
+            <p className="text-caption text-muted-foreground">Recent Avg (last 5)</p>
           </div>
         </div>
 
@@ -57,12 +57,12 @@ export function BandPredictorCard({ attempts }: Props) {
           {recent.map((a, i) => (
             <div
               key={i}
-              className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+              className={`h-8 w-8 rounded-full flex items-center justify-center text-caption font-medium transition-all ${
                 a.bandScore
                   ? a.bandScore >= 7
-                    ? 'bg-emerald-500 text-white'
+                    ? 'bg-success text-white'
                     : a.bandScore >= 6
-                    ? 'bg-yellow-500 text-white'
+                    ? 'bg-warning text-white'
                     : 'bg-orange-500 text-white'
                   : 'bg-muted text-muted-foreground'
               }`}

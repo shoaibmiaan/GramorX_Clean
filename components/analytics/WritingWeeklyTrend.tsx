@@ -52,13 +52,13 @@ export const WritingWeeklyTrend: React.FC<Props> = ({ series, loading = false })
     <Card padding="lg" insetBorder className="space-y-6">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Weekly Attempt Trends</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-h4 font-semibold text-foreground">Weekly Attempt Trends</h2>
+          <p className="text-small text-muted-foreground">
             Compare how many essays you submit each week and how your average band shifts over time.
           </p>
         </div>
         {!loading && latestPoint && (
-          <div className="rounded-ds-xl border border-border/60 bg-muted/10 px-4 py-2 text-sm text-muted-foreground">
+          <div className="rounded-ds-xl border border-border/60 bg-muted/10 px-4 py-2 text-small text-muted-foreground">
             Last week · {numberFormatter.format(latestPoint.attempts)} attempts · band {latestPoint.band.toFixed(1)}
           </div>
         )}
@@ -67,7 +67,7 @@ export const WritingWeeklyTrend: React.FC<Props> = ({ series, loading = false })
       {loading ? (
         <Skeleton className="h-72 w-full rounded-ds-2xl" />
       ) : chartData.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           Complete at least one graded attempt to unlock week-over-week insights.
         </p>
       ) : (
@@ -123,7 +123,7 @@ export const WritingWeeklyTrend: React.FC<Props> = ({ series, loading = false })
       )}
 
       {!loading && latestPoint && (
-        <div className="flex flex-col gap-2 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2 text-caption text-muted-foreground md:flex-row md:items-center md:justify-between">
           <span>
             Average words per attempt last week: {numberFormatter.format(latestPoint.words ?? 0)}
           </span>

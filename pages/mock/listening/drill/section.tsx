@@ -58,7 +58,7 @@ const ListeningSectionDrillPage: React.FC = () => {
         <section className="border-b border-border/40 bg-card/70 backdrop-blur py-10 md:py-14">
           <Container>
             <div className="space-y-3 max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
                 <Icon name="Headphones" size={14} />
                 <span>Listening · Section drills</span>
                 <Badge size="xs" variant="neutral">
@@ -70,13 +70,13 @@ const ListeningSectionDrillPage: React.FC = () => {
                 Train one Listening section at a time.
               </h1>
 
-              <p className="text-sm text-muted-foreground max-w-2xl">
+              <p className="text-small text-muted-foreground max-w-2xl">
                 Use this room when you don’t have energy for a full mock. Pick a
                 section, drill its style, and stack small wins without breaking
                 exam rules.
               </p>
 
-              <div className="flex flex-wrap gap-3 pt-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-3 pt-2 text-caption text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <Icon name="Info" className="h-3.5 w-3.5" />
                   <span>
@@ -106,7 +106,7 @@ const ListeningSectionDrillPage: React.FC = () => {
                   Pick a section
                 </p>
                 <h2 className="font-slab text-h2">Where do you want pain today?</h2>
-                <p className="mt-1 text-xs sm:text-sm text-muted-foreground max-w-2xl">
+                <p className="mt-1 text-caption sm:text-small text-muted-foreground max-w-2xl">
                   Start with the section that usually ruins your band. You can always
                   come back and rotate through all four.
                 </p>
@@ -148,7 +148,7 @@ const ListeningSectionDrillPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-small font-semibold text-foreground">
                       {section.title}
                     </h3>
 
@@ -191,7 +191,7 @@ const ListeningSectionDrillPage: React.FC = () => {
                   <h3 className="font-slab text-h4">
                     Auto-build section drills from your mistakes.
                   </h3>
-                  <p className="text-xs md:text-sm text-muted-foreground max-w-xl">
+                  <p className="text-caption md:text-small text-muted-foreground max-w-xl">
                     Soon, this page will pull your weakest sections from history and
                     build targeted drill sets automatically — so you’re not guessing
                     what to practise.

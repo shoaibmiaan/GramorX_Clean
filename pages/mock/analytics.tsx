@@ -34,11 +34,11 @@ const MockTestAnalytics: NextPage<PageProps> = ({ results, error }) => {
       <section className="py-10">
         <Container className="max-w-3xl">
           <Card className="p-6 rounded-ds-2xl border border-border/60 bg-card/70 space-y-3">
-            <h1 className="text-xl font-semibold">Unable to load Mock analytics</h1>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <h1 className="text-h3 font-semibold">Unable to load Mock analytics</h1>
+            <p className="text-small text-muted-foreground">{error}</p>
             <div className="flex gap-2">
-              <Link href="/mock" className="text-primary text-sm underline">Back to Mock hub</Link>
-              <Link href="/mock/analytics" className="text-sm text-muted-foreground underline">Retry</Link>
+              <Link href="/mock" className="text-primary text-small underline">Back to Mock hub</Link>
+              <Link href="/mock/analytics" className="text-small text-muted-foreground underline">Retry</Link>
             </div>
           </Card>
         </Container>
@@ -172,8 +172,8 @@ export default MockTestAnalytics;
 function KPI({ title, value }) {
   return (
     <div className="p-4 border border-border/60 rounded-ds-xl bg-background/40">
-      <p className="text-sm text-muted mb-1">{title}</p>
-      <p className="text-2xl font-slab">{value}</p>
+      <p className="text-small text-muted mb-1">{title}</p>
+      <p className="text-h2 font-slab">{value}</p>
     </div>
   );
 }
@@ -212,7 +212,7 @@ function computeSectionStats(rows: ResultRow[]): SectionStat[] {
 
 function TrendChart({ data }: { data: any[] }) {
   if (!data.length) {
-    return <div className="text-sm text-muted p-4">No data available.</div>;
+    return <div className="text-small text-muted p-4">No data available.</div>;
   }
 
   const sections = ["listening", "reading", "writing", "speaking"];
@@ -269,7 +269,7 @@ function TrendChart({ data }: { data: any[] }) {
 
 function TimeChart({ data }: { data: SectionStat[] }) {
   if (!data.length) {
-    return <div className="text-sm text-muted p-4">No data available.</div>;
+    return <div className="text-small text-muted p-4">No data available.</div>;
   }
 
   const max = Math.max(...data.map((d) => d.totalTime));
@@ -278,7 +278,7 @@ function TimeChart({ data }: { data: SectionStat[] }) {
     <div className="space-y-3">
       {data.map((d) => (
         <div key={d.section} className="flex items-center gap-4">
-          <div className="w-28 text-sm font-medium">{d.section}</div>
+          <div className="w-28 text-small font-medium">{d.section}</div>
 
           <div className="flex-1 h-3 bg-border/40 rounded-full overflow-hidden">
             <div
@@ -289,7 +289,7 @@ function TimeChart({ data }: { data: SectionStat[] }) {
             />
           </div>
 
-          <div className="text-xs text-muted">{Math.round(d.totalTime)}s</div>
+          <div className="text-caption text-muted">{Math.round(d.totalTime)}s</div>
         </div>
       ))}
     </div>

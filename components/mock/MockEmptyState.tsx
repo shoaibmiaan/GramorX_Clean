@@ -30,9 +30,9 @@ export const MockEmptyState: React.FC<MockEmptyStateProps> = ({
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-base font-semibold text-foreground">{title}</p>
+            <p className="text-body font-semibold text-foreground">{title}</p>
             {description ? (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-small text-muted-foreground">{description}</p>
             ) : null}
           </div>
 

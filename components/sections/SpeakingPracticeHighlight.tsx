@@ -23,10 +23,10 @@ export function SpeakingPracticeHighlight() {
               <Icon name="Mic" size={16} />
               Speaking practice hub
             </Badge>
-            <h2 className="mt-4 font-slab text-3xl font-semibold text-foreground sm:text-4xl">
+            <h2 className="mt-4 font-slab text-h1 font-semibold text-foreground sm:text-display">
               One launchpad for every speaking workout
             </h2>
-            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+            <p className="mt-3 text-body text-muted-foreground sm:text-h4">
               Jump into the simulator, coach, live rooms, adaptive next steps, and community reviews from a single, plan-aware hub.
               Bookmark it and reach it from Practice, Dashboard, or the app home.
             </p>
@@ -35,7 +35,7 @@ export function SpeakingPracticeHighlight() {
               {featurePills.map((feature) => (
                 <span
                   key={feature.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-electricBlue/30 bg-electricBlue/5 px-4 py-2 text-sm font-medium text-electricBlue"
+                  className="inline-flex items-center gap-2 rounded-full border border-electricBlue/30 bg-electricBlue/5 px-4 py-2 text-small font-medium text-electricBlue"
                 >
                   <Icon name={feature.icon} size={16} />
                   {feature.label}
@@ -53,20 +53,20 @@ export function SpeakingPracticeHighlight() {
             </div>
           </div>
 
-          <div className="grid w-full max-w-sm gap-3 self-center rounded-ds-2xl bg-muted/40 p-4 text-left text-sm text-muted-foreground">
+          <div className="grid w-full max-w-sm gap-3 self-center rounded-ds-2xl bg-muted/40 p-4 text-left text-small text-muted-foreground">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground/80">Adaptive card preview</p>
+              <p className="text-caption uppercase tracking-wide text-muted-foreground/80">Adaptive card preview</p>
               <p className="mt-1 font-semibold text-foreground">Next task: Pronunciation drill /θ/</p>
               <p className="mt-1">90 seconds • Based on your last attempt from yesterday</p>
             </div>
             <div className="rounded-ds-2xl bg-background/80 p-3 shadow-sm">
               <p className="font-semibold text-foreground">Live sessions today</p>
-              <p className="mt-1 text-sm">1 peer review circle • 1 AI coach replay</p>
+              <p className="mt-1 text-small">1 peer review circle • 1 AI coach replay</p>
             </div>
             <div className="rounded-ds-2xl bg-background/80 p-3 shadow-sm">
               <p className="font-semibold text-foreground">Prompt spotlight</p>
-              <p className="mt-1 text-sm">Part 2 • Describe a time you solved a tricky problem at work</p>
-              <Button href="/speaking/library" variant="ghost" className="mt-3 rounded-ds-xl px-3 py-2 text-sm">
+              <p className="mt-1 text-small">Part 2 • Describe a time you solved a tricky problem at work</p>
+              <Button href="/speaking/library" variant="ghost" className="mt-3 rounded-ds-xl px-3 py-2 text-small">
                 Browse prompts
               </Button>
             </div>

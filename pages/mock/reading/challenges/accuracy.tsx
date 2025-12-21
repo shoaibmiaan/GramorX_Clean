@@ -28,7 +28,7 @@ const AccuracyChallengePage: NextPage<Props> = ({ slug, error }) => {
         {error && (
           <Card className="p-6 text-center space-y-3">
             <Icon name="alert-triangle" className="h-8 w-8 text-destructive mx-auto" />
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-small text-muted-foreground">{error}</p>
             <Button asChild>
               <Link href="/mock/reading">
                 <Icon name="arrow-left" className="h-4 w-4 mr-2" />
@@ -42,8 +42,8 @@ const AccuracyChallengePage: NextPage<Props> = ({ slug, error }) => {
           <Card className="p-6 space-y-4">
             <Badge size="xs" variant="outline">Accuracy Drill</Badge>
 
-            <h1 className="text-xl font-semibold">90% Accuracy Reading Drill</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-h3 font-semibold">90% Accuracy Reading Drill</h1>
+            <p className="text-small text-muted-foreground">
               10 targeted questions. Score 90%+ to clear the drill. Designed to eliminate careless mistakes.
             </p>
 

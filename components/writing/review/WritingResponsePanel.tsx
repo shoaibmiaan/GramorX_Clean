@@ -23,10 +23,10 @@ export const WritingResponsePanel: React.FC<Props> = ({ taskNumber, text, wordCo
     <Card className="rounded-ds-2xl border border-border bg-card/70 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Task {taskNumber} response
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-small text-muted-foreground">
             Word count: <span className="font-semibold text-foreground">{wordCount}</span>
           </p>
         </div>
@@ -37,7 +37,7 @@ export const WritingResponsePanel: React.FC<Props> = ({ taskNumber, text, wordCo
         </Button>
       </div>
 
-      <div className="mt-4 whitespace-pre-wrap rounded-ds-xl border border-border bg-muted/40 p-4 text-sm leading-relaxed text-foreground">
+      <div className="mt-4 whitespace-pre-wrap rounded-ds-xl border border-border bg-muted/40 p-4 text-small leading-relaxed text-foreground">
         {text?.trim() ? text : <span className="text-muted-foreground">No answer saved for this task.</span>}
       </div>
     </Card>

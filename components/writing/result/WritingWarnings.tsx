@@ -43,8 +43,8 @@ export const WritingWarnings: React.FC<Props> = ({ warnings, answers }) => {
             <Icon name="AlertCircle" size={18} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-foreground">Warnings</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small font-semibold text-foreground">Warnings</p>
+            <p className="text-caption text-muted-foreground">
               These issues can drag your band down fast.
             </p>
           </div>
@@ -54,7 +54,7 @@ export const WritingWarnings: React.FC<Props> = ({ warnings, answers }) => {
         </Badge>
       </div>
 
-      <ul className="mt-4 space-y-2 text-sm text-foreground">
+      <ul className="mt-4 space-y-2 text-small text-foreground">
         {all.slice(0, 6).map((w) => (
           <li key={w} className="flex items-start gap-2">
             <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-foreground/60" />

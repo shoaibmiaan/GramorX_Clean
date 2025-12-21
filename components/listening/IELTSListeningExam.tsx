@@ -659,7 +659,7 @@ const IELTSListeningExam: React.FC<Props> = ({
             <div className="border-b border-border/60 bg-card/70 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold text-primary">
+                  <p className="text-caption font-semibold text-primary">
                     SECTION {currentSectionIndex + 1}
                   </p>
                   {sectionStart && sectionEnd && (
@@ -759,7 +759,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                             </span>
                           )}
                           {isFlagged && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-amber-600">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-warning">
                               <Icon name="Flag" className="h-3.5 w-3.5" />
                               Flagged
                             </span>
@@ -781,7 +781,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                       </div>
 
                       {label && (
-                        <p className="mb-2 text-sm text-foreground">{label}</p>
+                        <p className="mb-2 text-small text-foreground">{label}</p>
                       )}
 
                       {isMCQ ? (
@@ -792,7 +792,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                               return (
                                 <label
                                   key={i}
-                                  className="flex cursor-pointer items-center gap-2 rounded-md border border-transparent px-2 py-1 text-sm hover:bg-muted"
+                                  className="flex cursor-pointer items-center gap-2 rounded-md border border-transparent px-2 py-1 text-small hover:bg-muted"
                                 >
                                   <input
                                     type="radio"
@@ -820,7 +820,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                           </label>
                           <input
                             type="text"
-                            className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                            className="h-9 w-full rounded-md border border-border bg-background px-3 text-small text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
                             value={value}
                             disabled={status !== 'active'}
                             onChange={(e) =>
@@ -895,7 +895,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                   />
                 </div>
                 <textarea
-                  className="h-full min-h-[100px] w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                  className="h-full min-h-[100px] w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-small text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
                   placeholder="Use this area for rough notes."
                 />
               </div>
@@ -1025,24 +1025,24 @@ const IELTSListeningExam: React.FC<Props> = ({
       {status === 'starting' && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/90">
           <div className="w-full max-w-sm rounded-lg border border-border bg-card px-5 py-6 text-center shadow-lg">
-            <h2 className="text-base font-semibold">
+            <h2 className="text-body font-semibold">
               Get ready for your Listening mock
             </h2>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-caption text-muted-foreground">
               When you start, the timer will begin and the audio will be
               available. <strong>One continuous audio file</strong> will play for all 4 sections.
               Avoid refreshing or closing the tab while the test is in progress.
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <div className="rounded-md bg-primary/5 p-2">
-                <p className="text-xs text-primary">
+                <p className="text-caption text-primary">
                   🔊 <strong>Audio Note:</strong> The audio plays continuously without stopping between sections.
                 </p>
               </div>
               <Button
                 size="sm"
                 variant="primary"
-                className="mt-2 rounded-full text-xs"
+                className="mt-2 rounded-full text-caption"
                 onClick={() => setStatus('active')}
               >
                 I&apos;m ready — start the test
@@ -1057,7 +1057,7 @@ const IELTSListeningExam: React.FC<Props> = ({
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/90">
           <div className="flex w-full max-w-2xl flex-col rounded-lg border border-border bg-card px-5 py-5 shadow-lg">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold">
+              <h2 className="text-body font-semibold">
                 {reviewFlaggedOnly
                   ? 'Review flagged questions'
                   : 'Review questions'}
@@ -1073,7 +1073,7 @@ const IELTSListeningExam: React.FC<Props> = ({
             </div>
             <div className="max-h-[60vh] space-y-2 overflow-y-auto">
               {reviewItems.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   {reviewFlaggedOnly
                     ? 'No flagged questions yet.'
                     : 'No questions to review.'}
@@ -1092,7 +1092,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                       }
                       setShowReviewPanel(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-xl border border-border bg-white/70 px-4 py-3 text-sm shadow-sm transition hover:bg-muted"
+                    className="flex w-full items-center justify-between rounded-xl border border-border bg-white/70 px-4 py-3 text-small shadow-sm transition hover:bg-muted"
                   >
                     <div className="flex items-center gap-3">
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-[13px] font-semibold text-primary">
@@ -1106,13 +1106,13 @@ const IELTSListeningExam: React.FC<Props> = ({
                       {item.isFlagged && (
                         <Icon
                           name="Flag"
-                          className="h-4 w-4 text-amber-500"
+                          className="h-4 w-4 text-warning"
                         />
                       )}
                       <span
                         className={`text-[11px] ${
                           item.isAnswered
-                            ? 'text-emerald-600'
+                            ? 'text-success'
                             : 'text-muted-foreground'
                         }`}
                       >
@@ -1131,8 +1131,8 @@ const IELTSListeningExam: React.FC<Props> = ({
       {showExitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90">
           <div className="w-full max-w-sm rounded-lg border border-border bg-card px-5 py-5 text-center shadow-lg">
-            <h2 className="text-base font-semibold">Leave Listening mock?</h2>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <h2 className="text-body font-semibold">Leave Listening mock?</h2>
+            <p className="mt-2 text-caption text-muted-foreground">
               If you exit now, your current attempt will be ended. You can start
               again later, but this timer will not resume.
             </p>
@@ -1140,7 +1140,7 @@ const IELTSListeningExam: React.FC<Props> = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full text-xs"
+                className="rounded-full text-caption"
                 onClick={() => setShowExitConfirm(false)}
               >
                 Stay in test
@@ -1149,7 +1149,7 @@ const IELTSListeningExam: React.FC<Props> = ({
                 size="sm"
                 variant="ghost"
                 tone="danger"
-                className="rounded-full text-xs"
+                className="rounded-full text-caption"
                 onClick={async () => {
                   setShowExitConfirm(false);
                   setStatus('finished');
@@ -1167,8 +1167,8 @@ const IELTSListeningExam: React.FC<Props> = ({
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90">
           <div className="w-full max-w-sm rounded-lg border border-border bg-card px-5 py-5 text-center shadow-lg">
-            <h2 className="text-base font-semibold">Submit your answers?</h2>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <h2 className="text-body font-semibold">Submit your answers?</h2>
+            <p className="mt-2 text-caption text-muted-foreground">
               Once you submit, you won&apos;t be able to change your answers in
               this attempt.
             </p>
@@ -1176,7 +1176,7 @@ const IELTSListeningExam: React.FC<Props> = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full text-xs"
+                className="rounded-full text-caption"
                 onClick={() => setShowSubmitConfirm(false)}
               >
                 Cancel
@@ -1184,7 +1184,7 @@ const IELTSListeningExam: React.FC<Props> = ({
               <Button
                 size="sm"
                 variant="primary"
-                className="rounded-full text-xs"
+                className="rounded-full text-caption"
                 onClick={async () => {
                   setShowSubmitConfirm(false);
                   await submitAttempt(false);

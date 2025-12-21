@@ -90,17 +90,17 @@ const EvaluatingPage: React.FC = () => {
     <Container className="py-16">
       <div className="mx-auto flex max-w-2xl flex-col gap-6 text-center">
         <div className="space-y-3">
-          <h1 className="text-3xl font-semibold text-foreground">We&apos;re grading your attempt</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-h1 font-semibold text-foreground">We&apos;re grading your attempt</h1>
+          <p className="text-small text-muted-foreground">
             Hang tight while our AI examiners process your essays. This usually takes less than a minute.
           </p>
         </div>
 
         <Card className="rounded-ds-2xl border border-border/60 bg-background/80 p-6 text-left">
-          <dl className="grid gap-4 text-sm text-muted-foreground">
+          <dl className="grid gap-4 text-small text-muted-foreground">
             <div>
               <dt className="font-medium text-foreground">Attempt ID</dt>
-              <dd className="font-mono text-xs text-muted-foreground">{mockId}</dd>
+              <dd className="font-mono text-caption text-muted-foreground">{mockId}</dd>
             </div>
             <div>
               <dt className="font-medium text-foreground">Status</dt>
@@ -115,7 +115,7 @@ const EvaluatingPage: React.FC = () => {
               <dd>{submittedLabel}</dd>
             </div>
           </dl>
-          {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="mt-4 text-small text-destructive">{error}</p> : null}
         </Card>
 
         <div className="flex flex-wrap justify-center gap-3">

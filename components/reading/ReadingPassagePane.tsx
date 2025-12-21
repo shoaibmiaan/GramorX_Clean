@@ -43,7 +43,7 @@ export const ReadingPassagePane: React.FC<Props> = ({
     try {
       const range = sel.getRangeAt(0);
       const span = document.createElement('span');
-      span.className = 'bg-yellow-300/40';
+      span.className = 'bg-warning/30/40';
       range.surroundContents(span);
     } catch {
       // ignore
@@ -90,7 +90,7 @@ export const ReadingPassagePane: React.FC<Props> = ({
             variant={highlightMode ? 'secondary' : 'outline'}
             className={cn(
               'h-7 px-2 text-[11px]',
-              highlightMode && 'bg-yellow-300/30 text-primary'
+              highlightMode && 'bg-warning/30/30 text-primary'
             )}
             onClick={toggleHighlight}
           >
@@ -116,9 +116,9 @@ export const ReadingPassagePane: React.FC<Props> = ({
         className={cn(
           'flex-1 overflow-y-auto px-5 py-5 leading-7',
           'scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent',
-          zoom === 'sm' && 'text-xs',
-          zoom === 'md' && 'text-sm',
-          zoom === 'lg' && 'text-base'
+          zoom === 'sm' && 'text-caption',
+          zoom === 'md' && 'text-small',
+          zoom === 'lg' && 'text-body'
         )}
         onMouseUp={() => highlightMode && handleHighlight()}
       >

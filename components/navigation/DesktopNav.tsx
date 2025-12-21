@@ -147,7 +147,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
   return (
     <nav
       className={cn(
-        'flex items-center justify-between gap-4 text-sm',
+        'flex items-center justify-between gap-4 text-small',
         className
       )}
       aria-label="Primary"
@@ -274,22 +274,22 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
               {hasPremiumAccess && (
                 <div className="absolute top-full right-0 z-50 mt-2 hidden w-64 group-hover:block">
                   <div className="rounded-xl border border-border dark:border-border-dark bg-card dark:bg-card-dark p-3 shadow-lg">
-                    <div className="mb-1 text-xs font-medium text-success dark:text-success-dark">
+                    <div className="mb-1 text-caption font-medium text-success dark:text-success-dark">
                       Premium Access Active
                     </div>
-                    <div className="mb-2 text-xs text-foreground-muted dark:text-foreground-muted-dark">
+                    <div className="mb-2 text-caption text-foreground-muted dark:text-foreground-muted-dark">
                       Access to {premiumRooms.length} room{premiumRooms.length !== 1 ? 's' : ''}
                     </div>
 
                     {premiumRooms.length > 0 && (
-                      <div className="max-h-24 overflow-y-auto text-xs text-foreground-muted dark:text-foreground-muted-dark">
+                      <div className="max-h-24 overflow-y-auto text-caption text-foreground-muted dark:text-foreground-muted-dark">
                         {premiumRooms.slice(0, 3).map((room, idx) => (
                           <div key={idx} className="truncate">
                             • {room}
                           </div>
                         ))}
                         {premiumRooms.length > 3 && (
-                          <div className="text-xs">+{premiumRooms.length - 3} more</div>
+                          <div className="text-caption">+{premiumRooms.length - 3} more</div>
                         )}
                       </div>
                     )}
@@ -298,7 +298,7 @@ export const DesktopNav: React.FC<DesktopNavProps> = ({
                       <button
                         type="button"
                         onClick={onClearPremiumAccess}
-                        className="mt-2 text-xs text-destructive dark:text-destructive-dark hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark rounded"
+                        className="mt-2 text-caption text-destructive dark:text-destructive-dark hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus dark:focus-visible:ring-focus-dark rounded"
                       >
                         Clear All Access
                       </button>

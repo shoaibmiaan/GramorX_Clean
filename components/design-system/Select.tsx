@@ -10,9 +10,9 @@ type FieldVariant = 'solid' | 'subtle' | 'ghost' | 'underline';
 
 // Shared size mapping
 const sizeMap: Record<FieldSize, string> = {
-  sm: 'h-9 px-3 text-sm rounded-ds-lg',
-  md: 'h-11 px-4 text-base rounded-ds-xl',
-  lg: 'h-12 px-5 text-base rounded-ds-2xl',
+  sm: 'h-9 px-3 text-small rounded-ds-lg',
+  md: 'h-11 px-4 text-body rounded-ds-xl',
+  lg: 'h-12 px-5 text-body rounded-ds-2xl',
 };
 
 // Shared base styles
@@ -72,7 +72,7 @@ const FieldWrapper: React.FC<{
     {label && (
       <label
         htmlFor={id}
-        className="mb-1 block text-sm font-medium text-muted-foreground"
+        className="mb-1 block text-small font-medium text-muted-foreground"
       >
         {label}
         {required && <span className="ml-1 text-sunsetOrange" aria-hidden>*</span>}
@@ -82,7 +82,7 @@ const FieldWrapper: React.FC<{
     {(hint || error) && (
       <p
         id={error ? errorId : hintId}
-        className={cn('mt-1 text-xs', error ? 'text-sunsetOrange' : 'text-muted-foreground')}
+        className={cn('mt-1 text-caption', error ? 'text-sunsetOrange' : 'text-muted-foreground')}
       >
         {error || hint}
       </p>

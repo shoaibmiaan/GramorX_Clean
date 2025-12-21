@@ -33,10 +33,10 @@ export const DailyChallengeBanner: React.FC<DailyChallengeBannerProps> = ({
             <span className="text-[11px] text-muted-foreground">{streakLabel}</span>
           </div>
 
-          <h2 className="font-slab text-base md:text-lg">
+          <h2 className="font-slab text-body md:text-h4">
             Daily Listening Challenge — 15 minutes to keep the streak alive.
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             One short Listening set every day. Keep the streak, keep your ears tuned to
             IELTS audio speed and accent patterns.
           </p>
@@ -47,7 +47,7 @@ export const DailyChallengeBanner: React.FC<DailyChallengeBannerProps> = ({
             asChild
             size="sm"
             variant="primary"
-            className="rounded-ds-xl px-4 text-xs font-semibold"
+            className="rounded-ds-xl px-4 text-caption font-semibold"
           >
             <Link href="/mock/listening/daily">
               Start today&apos;s challenge

@@ -139,7 +139,7 @@ export default function AdminTeachersPage() {
           ) : rows.length === 0 ? (
             <div className="p-6 text-muted-foreground">No pending teacher requests 🎉</div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-small">
               <thead className="text-left">
                 <tr className="border-b">
                   <th className="p-3">Teacher</th>

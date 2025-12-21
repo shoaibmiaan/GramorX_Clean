@@ -172,8 +172,8 @@ export function Recorder({ disabled, onComplete, onReset, maxDurationMs = MAX_DU
     <Card className="flex flex-col gap-4 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Recording duration</p>
-          <p className="text-2xl font-semibold text-foreground">{formattedDuration}</p>
+          <p className="text-small font-medium text-muted-foreground">Recording duration</p>
+          <p className="text-h2 font-semibold text-foreground">{formattedDuration}</p>
         </div>
         <div className="flex gap-2">
           {isRecording ? (
@@ -195,7 +195,7 @@ export function Recorder({ disabled, onComplete, onReset, maxDurationMs = MAX_DU
       <ProgressBar value={(durationMs / maxDurationMs) * 100} aria-label="Recording progress" />
 
       {permissionError && (
-        <p className="rounded-ds-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+        <p className="rounded-ds-lg bg-danger/10 px-3 py-2 text-small text-danger" role="alert">
           {permissionError}
         </p>
       )}
@@ -208,7 +208,7 @@ export function Recorder({ disabled, onComplete, onReset, maxDurationMs = MAX_DU
       )}
 
       {!supported && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           Your browser does not support in-app recording. Please update your browser or try a different device.
         </p>
       )}

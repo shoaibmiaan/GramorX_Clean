@@ -136,7 +136,7 @@ export default function CheckoutForm({
           >
             {loading === 'crypto' ? 'Preparing…' : 'Continue with Crypto'}
           </button>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-caption text-muted-foreground">
             You&apos;ll see wallet details and submit proof after initiating the crypto checkout.
           </p>
         </div>

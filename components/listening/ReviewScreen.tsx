@@ -453,7 +453,7 @@ export default function ReviewScreen({
               {attempt?.id ? (
                 <div className="flex items-center justify-between gap-2">
                   <dt>Attempt ID</dt>
-                  <dd className="text-xs font-mono text-muted-foreground">
+                  <dd className="text-caption font-mono text-muted-foreground">
                     {attempt.id}
                   </dd>
                 </div>

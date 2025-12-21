@@ -10,7 +10,7 @@ export function ListeningHero() {
       <Badge tone="info" size="sm">
         IELTS • Listening
       </Badge>
-      <h1 className="text-2xl font-semibold md:text-3xl">
+      <h1 className="text-h2 font-semibold md:text-h1">
         Listening Tips &amp; Resources
       </h1>
       <p className="max-w-2xl opacity-80">

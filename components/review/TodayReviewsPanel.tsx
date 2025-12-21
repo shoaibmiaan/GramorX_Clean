@@ -237,7 +237,7 @@ function SkillProgressRing({
         role="img"
         aria-label={`${label} attempts ${attempts} of ${target}`}
       >
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-xs font-semibold text-foreground">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-caption font-semibold text-foreground">
           {percent}%
         </div>
       </div>
@@ -809,7 +809,7 @@ export function TodayReviewsPanel() {
 
       const skillsRibbon = skills ? (
         <div className="space-y-3 rounded-xl border border-border/50 bg-muted/30 p-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             <Icon name="Sparkles" size={14} aria-hidden />
             Use it in all 4
             <span className="text-[10px] font-normal text-muted-foreground/80">
@@ -886,9 +886,9 @@ export function TodayReviewsPanel() {
               </Button>
             </div>
             {pronFeedback && (
-              <p className={`text-sm ${feedbackTone}`}>{pronFeedback}</p>
+              <p className={`text-small ${feedbackTone}`}>{pronFeedback}</p>
             )}
-            {dueLabel && <p className="text-xs text-muted-foreground">Due since {dueLabel}</p>}
+            {dueLabel && <p className="text-caption text-muted-foreground">Due since {dueLabel}</p>}
           </div>
         );
       } else if (card.type === 'collocation') {
@@ -925,11 +925,11 @@ export function TodayReviewsPanel() {
               )}
             </div>
             {card.word?.headword && (
-              <p className="text-xs text-muted-foreground">Linked headword: {card.word.headword}</p>
+              <p className="text-caption text-muted-foreground">Linked headword: {card.word.headword}</p>
             )}
             {revealed && card.examples && card.examples.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
                   Context examples
                 </p>
                 <ul className="space-y-1 text-body text-muted-foreground">
@@ -956,7 +956,7 @@ export function TodayReviewsPanel() {
                 </ul>
               </div>
             )}
-            {dueLabel && <p className="text-xs text-muted-foreground">Due since {dueLabel}</p>}
+            {dueLabel && <p className="text-caption text-muted-foreground">Due since {dueLabel}</p>}
           </div>
         );
       } else {
@@ -986,7 +986,7 @@ export function TodayReviewsPanel() {
                 {revealed ? revealedText : gapPrompt}
               </p>
               {revealed && solution && (
-                <p className="mt-2 text-sm font-semibold text-foreground">Answer: {solution}</p>
+                <p className="mt-2 text-small font-semibold text-foreground">Answer: {solution}</p>
               )}
             </div>
             <AudioPlayButton
@@ -995,9 +995,9 @@ export function TodayReviewsPanel() {
               onPlay={(url) => void handleListeningAttempt(item, url)}
             />
             {card.word?.headword && (
-              <p className="text-xs text-muted-foreground">Target headword: {card.word.headword}</p>
+              <p className="text-caption text-muted-foreground">Target headword: {card.word.headword}</p>
             )}
-            {dueLabel && <p className="text-xs text-muted-foreground">Due since {dueLabel}</p>}
+            {dueLabel && <p className="text-caption text-muted-foreground">Due since {dueLabel}</p>}
           </div>
         );
       }
@@ -1006,15 +1006,15 @@ export function TodayReviewsPanel() {
         ? (
             <div className="space-y-3 rounded-xl border border-border/60 bg-background/60 p-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-foreground">Reading mini-cloze</h4>
-                <span className="text-xs text-muted-foreground">
+                <h4 className="text-small font-semibold text-foreground">Reading mini-cloze</h4>
+                <span className="text-caption text-muted-foreground">
                   Attempts {getAttempts('reading')} / {SKILL_TARGETS.reading}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 Fill the blanks with the headword and collocations.
               </p>
-              <p className="rounded-lg bg-muted/30 p-3 text-sm leading-relaxed text-foreground/80">
+              <p className="rounded-lg bg-muted/30 p-3 text-small leading-relaxed text-foreground/80">
                 {skills.reading.segments.map((segment, index) => {
                   if (segment.type === 'text') {
                     return <React.Fragment key={`reading-text-${index}`}>{segment.content}</React.Fragment>;
@@ -1047,9 +1047,9 @@ export function TodayReviewsPanel() {
                   Check blanks
                 </Button>
               </div>
-              {readingFeedback && <p className="text-sm text-muted-foreground">{readingFeedback}</p>}
+              {readingFeedback && <p className="text-small text-muted-foreground">{readingFeedback}</p>}
               {readingResults.length > 0 && (
-                <ul className="space-y-1 text-xs">
+                <ul className="space-y-1 text-caption">
                   {readingResults.map((result, idx) => (
                     <li
                       key={result.id ?? `reading-result-${idx}`}
@@ -1076,18 +1076,18 @@ export function TodayReviewsPanel() {
         ? (
             <div className="space-y-3 rounded-xl border border-border/60 bg-background/60 p-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-foreground">Writing micro-drill</h4>
-                <span className="text-xs text-muted-foreground">
+                <h4 className="text-small font-semibold text-foreground">Writing micro-drill</h4>
+                <span className="text-caption text-muted-foreground">
                   Attempts {getAttempts('writing')} / {SKILL_TARGETS.writing}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">{skills.writing.prompt}</p>
-              <ul className="ml-4 list-disc text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">{skills.writing.prompt}</p>
+              <ul className="ml-4 list-disc text-small text-muted-foreground">
                 {skills.writing.scenarios.map((scenario) => (
                   <li key={scenario}>{scenario}</li>
                 ))}
               </ul>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
                 {skills.writing.suggestedCollocations.map((chunk) => (
                   <Badge key={chunk} size="sm" variant="neutral">
                     {chunk}
@@ -1113,10 +1113,10 @@ export function TodayReviewsPanel() {
                   Evaluate writing
                 </Button>
                 {writingScore !== null && (
-                  <span className="text-sm text-muted-foreground">{writingScore}%</span>
+                  <span className="text-small text-muted-foreground">{writingScore}%</span>
                 )}
               </div>
-              {writingFeedback && <p className="text-sm text-muted-foreground">{writingFeedback}</p>}
+              {writingFeedback && <p className="text-small text-muted-foreground">{writingFeedback}</p>}
             </div>
           )
         : null;
@@ -1157,7 +1157,7 @@ export function TodayReviewsPanel() {
         <div>
           <h2 className="text-h4 font-semibold text-foreground">Today&apos;s Reviews</h2>
           <p className="text-small text-muted-foreground">{headerSubtitle}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
             <Badge size="sm" variant="neutral">
               Words {totals.word}
             </Badge>
@@ -1221,7 +1221,7 @@ export function TodayReviewsPanel() {
                   aria-label={`${option.label} (${option.shortcut})`}
                 >
                   <span className="font-semibold">{option.label}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                  <span className="text-caption text-muted-foreground">{option.description}</span>
                 </Button>
               ))}
               <Button
@@ -1236,7 +1236,7 @@ export function TodayReviewsPanel() {
                 Suspend
               </Button>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
               <span>
                 Session progress: {Math.min(sessionCount, sessionGoal)} / {sessionGoal}
               </span>
@@ -1255,7 +1255,7 @@ export function TodayReviewsPanel() {
         )}
       </CardContent>
       {data && data.items.length > 0 && (
-        <CardFooter className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+        <CardFooter className="flex flex-wrap items-center justify-between gap-3 text-caption text-muted-foreground">
           <span>Mix: {mixSummary}</span>
           <span>Daily goal: {sessionGoal} cards</span>
         </CardFooter>

@@ -36,8 +36,8 @@ export const WritingAnswerReview: React.FC<Props> = ({ answers }) => {
           <Icon name="FileText" size={18} />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Your answers</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-small font-semibold text-foreground">Your answers</p>
+          <p className="text-caption text-muted-foreground">
             Read-only review. Task 2 matters more — check it first.
           </p>
         </div>
@@ -61,7 +61,7 @@ export const WritingAnswerReview: React.FC<Props> = ({ answers }) => {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">{a.label}</span>
+                      <span className="text-small font-semibold text-foreground">{a.label}</span>
                       {taskIs2 ? (
                         <Badge variant="accent" size="sm">
                           Higher weight
@@ -73,7 +73,7 @@ export const WritingAnswerReview: React.FC<Props> = ({ answers }) => {
                       )}
                     </div>
 
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="mt-1 text-caption text-muted-foreground">
                       Word count:{' '}
                       <span className={under ? 'font-semibold text-destructive' : 'font-semibold text-foreground'}>
                         {a.wordCount}
@@ -89,7 +89,7 @@ export const WritingAnswerReview: React.FC<Props> = ({ answers }) => {
                 </div>
               </summary>
 
-              <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              <div className="mt-4 whitespace-pre-wrap text-small leading-relaxed text-foreground">
                 {a.text?.trim() ? a.text : (
                   <span className="text-muted-foreground">No answer saved.</span>
                 )}

@@ -69,11 +69,11 @@ export default function RoadmapPage() {
 
       <Section className="bg-gradient-to-b from-background via-background to-background/90">
         <Container className="max-w-3xl text-center space-y-6">
-          <p className="inline-flex items-center rounded-full border border-border px-4 py-1 text-xs uppercase tracking-wider text-muted-foreground">
+          <p className="inline-flex items-center rounded-full border border-border px-4 py-1 text-caption uppercase tracking-wider text-muted-foreground">
             Product roadmap
           </p>
           <h1 className="font-slab text-display">What&apos;s next for IELTS Mission Control</h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-h4 text-muted-foreground">
             We share our high-level plans so learners, teachers, and partners know what to expect as we grow the platform.
             Timelines may shift as we incorporate feedback from the private beta.
           </p>
@@ -93,12 +93,12 @@ export default function RoadmapPage() {
           {roadmapPhases.map((phase) => (
             <Card key={phase.title} className="h-full">
               <CardHeader className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-electricBlue">{phase.timeframe}</p>
+                <p className="text-caption font-semibold uppercase tracking-wide text-electricBlue">{phase.timeframe}</p>
                 <h2 className="font-slab text-h3">{phase.title}</h2>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{phase.description}</p>
-                <ul className="space-y-2 text-sm text-foreground">
+                <p className="text-small text-muted-foreground">{phase.description}</p>
+                <ul className="space-y-2 text-small text-foreground">
                   {phase.highlights.map((highlight) => (
                     <li key={highlight} className="flex items-start gap-2">
                       <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-electricBlue" aria-hidden />

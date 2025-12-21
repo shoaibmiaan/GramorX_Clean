@@ -204,7 +204,7 @@ export function ModuleMenu({ open, setOpen, modulesRef, label = 'Practice' }: Mo
               </Link>
 
               <div className="mt-6 rounded-xl border border-border/60 bg-background/60 p-4 text-left shadow-sm">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">What&apos;s inside</div>
+                <div className="mb-2 text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">What&apos;s inside</div>
                 <ul className="space-y-2 text-small text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-electricBlue/15 text-electricBlue">•</span>

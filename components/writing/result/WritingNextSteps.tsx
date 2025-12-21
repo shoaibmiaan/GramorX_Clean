@@ -109,18 +109,18 @@ export const WritingNextSteps: React.FC<Props> = ({ nextSteps, exampleBand = 6.5
         </span>
         <div className="flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-foreground">What to improve next</p>
+            <p className="text-small font-semibold text-foreground">What to improve next</p>
             <Badge variant="neutral" size="sm">
               Focus list
             </Badge>
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-caption text-muted-foreground">
             Priority order. Each step is tagged + has a mini example you can copy.
           </p>
         </div>
       </div>
 
-      <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+      <ul className="mt-4 space-y-3 text-small text-muted-foreground">
         {list.map((s, idx) => {
           const tags = detectTags(s);
           const safeTags = tags.length ? tags : (['TR'] as CriteriaKey[]);
@@ -137,7 +137,7 @@ export const WritingNextSteps: React.FC<Props> = ({ nextSteps, exampleBand = 6.5
 
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="text-sm text-foreground">{s}</p>
+                    <p className="text-small text-foreground">{s}</p>
 
                     <div className="flex flex-wrap items-center gap-1.5">
                       {safeTags.map((t) => (
@@ -153,7 +153,7 @@ export const WritingNextSteps: React.FC<Props> = ({ nextSteps, exampleBand = 6.5
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         Quick example ({primary})
                       </p>
-                      <p className="mt-1 text-sm text-foreground">{example}</p>
+                      <p className="mt-1 text-small text-foreground">{example}</p>
                     </div>
                   ) : null}
                 </div>
@@ -165,7 +165,7 @@ export const WritingNextSteps: React.FC<Props> = ({ nextSteps, exampleBand = 6.5
 
       <div className="mt-4 flex items-start gap-2 rounded-ds-xl border border-border bg-muted/40 p-3">
         <Icon name="Sparkles" className="mt-0.5 h-4 w-4 text-muted-foreground" />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Tip: fix <span className="font-semibold text-foreground">TR</span> +{' '}
           <span className="font-semibold text-foreground">CC</span> first — fastest band gains.
         </p>

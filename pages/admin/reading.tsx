@@ -265,7 +265,7 @@ const AdminReadingContent: React.FC = () => {
       <Container className="py-10">
         <div className="mb-10 space-y-2">
           <p className="text-small uppercase tracking-wide text-mutedText">Reading</p>
-          <h1 className="text-3xl font-semibold">Create Reading Mock Tests</h1>
+          <h1 className="text-h1 font-semibold">Create Reading Mock Tests</h1>
           <p className="max-w-2xl text-muted-foreground">
             Draft a passage, add comprehension questions, and publish them for students. Teachers and admins share this
             workspace.
@@ -278,7 +278,7 @@ const AdminReadingContent: React.FC = () => {
         >
           <div className="space-y-6">
             <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
-              <h2 className="text-xl font-semibold">Passage details</h2>
+              <h2 className="text-h3 font-semibold">Passage details</h2>
               <p className="mt-1 text-small text-muted-foreground">
                 Set the title, difficulty, and passage body. We auto-calculate an estimated slug and word count.
               </p>
@@ -328,7 +328,7 @@ const AdminReadingContent: React.FC = () => {
             <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold">Questions</h2>
+                  <h2 className="text-h3 font-semibold">Questions</h2>
                   <p className="mt-1 text-small text-muted-foreground">
                     Support MCQ, True/False/Not Given, and short answers. More types can be added later.
                   </p>
@@ -343,7 +343,7 @@ const AdminReadingContent: React.FC = () => {
                   <div key={q.id} className="rounded-2xl border border-border/60 bg-background/50 p-5 shadow-sm">
                     <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-muted-foreground">Question {index + 1}</p>
+                        <p className="text-small font-semibold text-muted-foreground">Question {index + 1}</p>
                         <Select
                           className="mt-2"
                           value={q.type}
@@ -471,7 +471,7 @@ const AdminReadingContent: React.FC = () => {
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold">Existing passages</h3>
+              <h3 className="text-h4 font-semibold">Existing passages</h3>
               <p className="mt-1 text-small text-muted-foreground">
                 Recent passages saved to Supabase. Refresh to see updates from other teammates.
               </p>

@@ -143,7 +143,7 @@ const CryptoCheckoutPage: NextPage = () => {
                         <code className="mt-3 block break-words rounded-lg bg-muted px-3 py-2 text-small">
                           {entry.address}
                         </code>
-                        <p className="mt-2 text-xs text-muted-foreground">
+                        <p className="mt-2 text-caption text-muted-foreground">
                           Only send {entry.name} on {entry.network}. Transfers on other networks may be lost.
                         </p>
                       </div>

@@ -116,7 +116,7 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
                 <Icon name="TriangleAlert" className="h-6 w-6" />
               </div>
               <h2 className="font-slab text-h3 text-foreground">Unable to load weekly challenge</h2>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <p className="text-small text-muted-foreground">{error}</p>
 
               <Button asChild className="rounded-ds-2xl">
                 <Link href="/mock/reading/drill">
@@ -166,13 +166,13 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Weekly Plan · Week {weekNumber}, {year} · {weekLabel}
                 </p>
                 <h1 className="font-slab text-h1 leading-tight text-foreground">
                   Weekly Reading Challenge
                 </h1>
-                <p className="max-w-[70ch] text-sm text-muted-foreground">
+                <p className="max-w-[70ch] text-small text-muted-foreground">
                   Your one full Reading mock for the week. Exam-room rules apply. Review is mandatory.
                 </p>
               </div>
@@ -223,7 +223,7 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
                   )}
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Complete once per ISO week (Mon → Sun).
                 </p>
               </div>
@@ -277,7 +277,7 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
 
                       <h2 className="font-slab text-h2 text-foreground">{test.title}</h2>
                       {test.description && (
-                        <p className="text-sm text-muted-foreground max-w-[80ch]">
+                        <p className="text-small text-muted-foreground max-w-[80ch]">
                           {test.description}
                         </p>
                       )}
@@ -291,24 +291,24 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
                   {/* Metrics */}
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
                     <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                      <div className="text-xs text-muted-foreground">Passages</div>
-                      <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <div className="text-caption text-muted-foreground">Passages</div>
+                      <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                         <Icon name="Layers" className="h-4 w-4 text-primary" />
                         {test.totalPassages || 3}
                       </div>
                     </div>
 
                     <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                      <div className="text-xs text-muted-foreground">Questions</div>
-                      <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <div className="text-caption text-muted-foreground">Questions</div>
+                      <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                         <Icon name="ListChecks" className="h-4 w-4 text-primary" />
                         {test.totalQuestions || 40}
                       </div>
                     </div>
 
                     <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                      <div className="text-xs text-muted-foreground">Time</div>
-                      <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <div className="text-caption text-muted-foreground">Time</div>
+                      <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                         <Icon name="Clock" className="h-4 w-4 text-primary" />
                         {safeMinutes(test.durationSeconds)} min
                       </div>
@@ -363,7 +363,7 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
                     )}
                   </div>
 
-                  <p className="mt-4 text-xs text-muted-foreground">
+                  <p className="mt-4 text-caption text-muted-foreground">
                     Tip: finishing is step 1. Review is where band score actually moves.
                   </p>
                 </Card>
@@ -376,7 +376,7 @@ const WeeklyChallengePage: NextPage<PageProps> = ({
                   </div>
                   <div>
                     <h2 className="font-slab text-h3 text-foreground">No weekly challenge yet</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-small text-muted-foreground">
                       We couldn’t find this week’s challenge. Start any Reading mock from the library.
                     </p>
                     <Button asChild className="mt-4 rounded-ds-2xl">

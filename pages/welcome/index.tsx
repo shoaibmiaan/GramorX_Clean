@@ -388,7 +388,7 @@ export default function WelcomePage() {
                 <h2 className="font-slab text-h2 leading-tight text-foreground">
                   Stay motivated with our Daily & Weekly Challenge lane
                 </h2>
-                <p className="text-mutedText text-base md:text-lg max-w-xl">
+                <p className="text-mutedText text-body md:text-h4 max-w-xl">
                   Master high-value collocations, protect your streak with
                   forgiveness tokens, and collect XP bursts designed to keep
                   your IELTS momentum unstoppable.

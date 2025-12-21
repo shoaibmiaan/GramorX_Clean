@@ -75,7 +75,7 @@ export default function MistakesBookPanel({ userId, onClose }: { userId?: string
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
           <h3 className="font-slab text-h3">Mistakes Book</h3>
-          <div className="text-sm text-muted-foreground">Collect errors, auto-categorise, and generate remediation drills.</div>
+          <div className="text-small text-muted-foreground">Collect errors, auto-categorise, and generate remediation drills.</div>
         </div>
         <div>
           <button className="btn" onClick={onClose}>Close</button>
@@ -84,7 +84,7 @@ export default function MistakesBookPanel({ userId, onClose }: { userId?: string
 
       <div className="p-4">
         <div className="mb-3">
-          <label className="text-xs text-muted-foreground">New mistake</label>
+          <label className="text-caption text-muted-foreground">New mistake</label>
           <textarea className="w-full mt-2 p-2 rounded border" value={newText} onChange={(e) => setNewText(e.target.value)} placeholder="Paste the sentence, mark the error, and add context..." />
           <div className="mt-2 flex gap-2">
             <select className="p-2 rounded border" value={newType} onChange={(e) => setNewType(e.target.value)}>
@@ -102,7 +102,7 @@ export default function MistakesBookPanel({ userId, onClose }: { userId?: string
           {loading ? (
             <div className="mt-2">Loading…</div>
           ) : error ? (
-            <div className="mt-2 text-red-500">{error}</div>
+            <div className="mt-2 text-danger">{error}</div>
           ) : items.length === 0 ? (
             <div className="mt-2 text-muted-foreground">No mistakes yet — add one above.</div>
           ) : (
@@ -111,8 +111,8 @@ export default function MistakesBookPanel({ userId, onClose }: { userId?: string
                 <li key={it.id} className="p-3 rounded border flex items-start justify-between gap-3">
                   <div>
                     <div className="font-medium">{it.type} {it.resolved ? '— Resolved' : ''}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{it.excerpt}</div>
-                    <div className="text-xs text-muted-foreground mt-2">Source: {it.source ?? 'manual'} • {new Date(it.created_at ?? Date.now()).toLocaleString()}</div>
+                    <div className="text-small text-muted-foreground mt-1">{it.excerpt}</div>
+                    <div className="text-caption text-muted-foreground mt-2">Source: {it.source ?? 'manual'} • {new Date(it.created_at ?? Date.now()).toLocaleString()}</div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <button className="btn" onClick={() => toggleResolved(it.id)}>{it.resolved ? 'Reopen' : 'Resolve'}</button>

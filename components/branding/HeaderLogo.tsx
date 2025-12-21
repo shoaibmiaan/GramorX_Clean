@@ -70,7 +70,7 @@ export function HeaderLogo({
       {/* @ts-expect-error React.Fragment vs Link */}
       <Tag {...tagProps}>{img}</Tag>
       {tagline ? (
-        <span className="text-xs md:text-sm text-muted-foreground">
+        <span className="text-caption md:text-small text-muted-foreground">
           {tagline}
         </span>
       ) : null}

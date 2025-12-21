@@ -71,8 +71,8 @@ const PricingPage: React.FC = () => (
       <Container className="space-y-12 py-12">
         <div className="space-y-4 text-center">
           <Badge tone="info">Flexible tiers</Badge>
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Plans for every stage</h1>
-          <p className="text-lg text-muted-foreground">
+          <h1 className="text-h1 font-bold text-foreground sm:text-display">Plans for every stage</h1>
+          <p className="text-h4 text-muted-foreground">
             Start free and upgrade when you need more feedback, analytics, and coaching support.
           </p>
         </div>
@@ -86,15 +86,15 @@ const PricingPage: React.FC = () => (
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{plan.name}</p>
-                  <p className="text-3xl font-bold text-foreground">{plan.price}<span className="text-base font-medium text-muted-foreground">/mo</span></p>
+                  <p className="text-small font-semibold uppercase tracking-wide text-muted-foreground">{plan.name}</p>
+                  <p className="text-h1 font-bold text-foreground">{plan.price}<span className="text-body font-medium text-muted-foreground">/mo</span></p>
                 </div>
                 {plan.highlight ? <Badge tone="primary">Most popular</Badge> : null}
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="mt-3 text-small text-muted-foreground">{plan.description}</p>
               <div className="mt-6 space-y-2">
                 {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                  <div key={feature} className="flex items-start gap-2 text-small text-foreground">
                     <span className="mt-1 inline-block h-2 w-2 rounded-full bg-primary" aria-hidden />
                     <span>{feature}</span>
                   </div>
@@ -112,12 +112,12 @@ const PricingPage: React.FC = () => (
         <Card padding="lg" className="border-dashed border-border bg-card/60">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-foreground">Need help choosing?</h2>
+              <h2 className="text-h2 font-semibold text-foreground">Need help choosing?</h2>
               <p className="text-muted-foreground">
                 Every plan includes the essentials below. Start with Free and upgrade anytime from your dashboard.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-3 text-small text-muted-foreground">
               {featureList.map((feature) => (
                 <span key={feature} className="rounded-full bg-muted px-3 py-1 text-foreground">
                   {feature}

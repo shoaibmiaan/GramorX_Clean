@@ -60,7 +60,7 @@ export default function WritingActivityReport(_props: Props) {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin • Writing Activity</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Admin • Writing Activity</h1>
         <p className="text-muted mt-1">
           Completions of Tips & Micro-practice (last {days} days). Total events: {totalEvents}.
         </p>
@@ -78,7 +78,7 @@ export default function WritingActivityReport(_props: Props) {
         )}
 
         <Card className="mt-6 p-0 overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-small">
             <thead>
               <tr className="text-left">
                 <th className="px-4 py-3">User</th>
@@ -101,7 +101,7 @@ export default function WritingActivityReport(_props: Props) {
                     {r.full_name || <span className="text-muted">—</span>}
                   </td>
                   <td className="px-4 py-2">
-                    <code className="text-xs">{r.user_id}</code>
+                    <code className="text-caption">{r.user_id}</code>
                   </td>
                   <td className="px-4 py-2">
                     <Badge variant="neutral">{r.total}</Badge>

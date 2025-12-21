@@ -71,7 +71,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
           <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-caption text-mutedText">Live speaking</p>
-              <h1 className="text-3xl font-semibold leading-tight md:text-4xl">Manage live sessions</h1>
+              <h1 className="text-h1 font-semibold leading-tight md:text-display">Manage live sessions</h1>
               <p className="text-small text-mutedText md:text-body">
                 Schedule tutor-led or AI sessions, join rooms, and review your recordings in one place.
               </p>
@@ -85,7 +85,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
           <section className="mt-10 grid gap-6 lg:grid-cols-[2fr,1fr]">
             <Card className="flex flex-col gap-6" padding="lg">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-2xl font-semibold">Upcoming sessions</h2>
+                <h2 className="text-h2 font-semibold">Upcoming sessions</h2>
                 <Badge variant="info">Beta</Badge>
               </div>
 
@@ -113,7 +113,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
                               <Badge variant="neutral">{sessionTypeLabel[session.type]}</Badge>
                               <Badge variant="subtle">{viewerBadge}</Badge>
                             </div>
-                            <h3 className="text-xl font-semibold text-foreground">{topic ?? 'Live speaking session'}</h3>
+                            <h3 className="text-h3 font-semibold text-foreground">{topic ?? 'Live speaking session'}</h3>
                             <p className="text-small text-mutedText">
                               {session.status === 'pending'
                                 ? `Starts ${formatDate(session.scheduledAt)} (room opens 5 minutes before).`
@@ -134,7 +134,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
             </Card>
 
             <Card className="flex flex-col gap-4" padding="lg">
-              <h2 className="text-xl font-semibold">How it works</h2>
+              <h2 className="text-h3 font-semibold">How it works</h2>
               <ul className="space-y-3 text-small text-mutedText">
                 <li className="flex items-start gap-2">
                   <span aria-hidden="true" className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
@@ -156,7 +156,7 @@ const LiveSessionsIndex: NextPage<LiveSessionsIndexProps> = ({ sessions, viewer 
           </section>
 
           <section className="mt-12">
-            <h2 className="text-2xl font-semibold">Past sessions</h2>
+            <h2 className="text-h2 font-semibold">Past sessions</h2>
             {history.length === 0 ? (
               <p className="mt-3 text-small text-mutedText">Your completed sessions will appear here once you finish them.</p>
             ) : (

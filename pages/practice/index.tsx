@@ -59,19 +59,19 @@ export default function PracticeHomePage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="card-surface rounded-ds-2xl p-4">
-              <p className="text-sm text-muted-foreground">Smart scheduling</p>
+              <p className="text-small text-muted-foreground">Smart scheduling</p>
               <p className="mt-1 text-h4 font-semibold text-foreground">Adaptive</p>
-              <p className="mt-1 text-xs text-muted-foreground">Daily plan adjusts to your results</p>
+              <p className="mt-1 text-caption text-muted-foreground">Daily plan adjusts to your results</p>
             </Card>
             <Card className="card-surface rounded-ds-2xl p-4">
-              <p className="text-sm text-muted-foreground">Review insights</p>
+              <p className="text-small text-muted-foreground">Review insights</p>
               <p className="mt-1 text-h4 font-semibold text-foreground">Deep-dive</p>
-              <p className="mt-1 text-xs text-muted-foreground">AI & tutor notes side-by-side</p>
+              <p className="mt-1 text-caption text-muted-foreground">AI & tutor notes side-by-side</p>
             </Card>
             <Card className="card-surface rounded-ds-2xl p-4">
-              <p className="text-sm text-muted-foreground">Progress tracking</p>
+              <p className="text-small text-muted-foreground">Progress tracking</p>
               <p className="mt-1 text-h4 font-semibold text-foreground">Skill heatmaps</p>
-              <p className="mt-1 text-xs text-muted-foreground">Spot trends across attempts</p>
+              <p className="mt-1 text-caption text-muted-foreground">Spot trends across attempts</p>
             </Card>
           </div>
         </header>
@@ -84,7 +84,7 @@ export default function PracticeHomePage() {
                 <Badge variant="outline" size="sm">Module</Badge>
               </div>
               <h2 className="mt-4 text-h4 font-semibold text-foreground">{skill.title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground flex-1">{skill.description}</p>
+              <p className="mt-2 text-small text-muted-foreground flex-1">{skill.description}</p>
 
               <Button href={`/practice/${skill.slug}`} variant="primary" className="mt-6 rounded-ds">
                 Enter {skill.title}
@@ -103,7 +103,7 @@ export default function PracticeHomePage() {
             {competitiveEdge.map((item) => (
               <Card key={item.title} className="card-surface rounded-ds-2xl p-6 h-full">
                 <h3 className="text-h5 font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+                <p className="mt-2 text-small text-muted-foreground">{item.description}</p>
               </Card>
             ))}
           </div>

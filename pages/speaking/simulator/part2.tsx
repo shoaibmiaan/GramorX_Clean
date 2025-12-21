@@ -308,7 +308,7 @@ export default function SpeakingPart2() {
             </label>
             <button
               onClick={startFlow}
-              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-gray-300"
+              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-lightBg"
               disabled={stage !== 'idle' && stage !== 'done' && stage !== 'error'}
             >
               {stage === 'done' ? 'Restart' : 'Start Part 2'}
@@ -325,7 +325,7 @@ export default function SpeakingPart2() {
               <h2 className="mt-1 text-h4 font-medium">{cue.topic}</h2>
               <ul className="mt-3 list-disc pl-5 space-y-1">
                 {cue.points.map((p, i) => (
-                  <li key={i} className="text-gray-700 dark:text-gray-100">{p}</li>
+                  <li key={i} className="text-foreground/80 dark:text-mutedText/80">{p}</li>
                 ))}
               </ul>
 
@@ -401,7 +401,7 @@ export default function SpeakingPart2() {
                     <div>Grammar: <strong>{result.grammar ?? '—'}</strong></div>
                   </div>
                   {result.feedback && (
-                    <p className="mt-3 text-small text-gray-700 dark:text-gray-200 whitespace-pre-wrap">
+                    <p className="mt-3 text-small text-foreground/80 dark:text-mutedText whitespace-pre-wrap">
                       {result.feedback}
                     </p>
                   )}

@@ -99,7 +99,7 @@ export const Modules: React.FC = () => {
             End-to-end IELTS journey
           </Badge>
           <h2 className="font-slab text-display mb-3 text-gradient-primary">All the key rooms, one platform</h2>
-          <p className="text-muted-foreground text-lg sm:text-xl">
+          <p className="text-muted-foreground text-h4 sm:text-h3">
             Jump into focused drills without juggling apps.
           </p>
         </div>
@@ -124,10 +124,10 @@ export const Modules: React.FC = () => {
                 <Icon name={module.icon} size={28} />
               </div>
 
-              <h3 className="text-2xl font-semibold text-foreground">{module.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{module.subtitle}</p>
+              <h3 className="text-h2 font-semibold text-foreground">{module.title}</h3>
+              <p className="mt-2 text-small text-muted-foreground">{module.subtitle}</p>
 
-              <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
+              <ul className="mt-5 space-y-3 text-small text-muted-foreground">
                 {module.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2">
                     <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-electricBlue/15 text-electricBlue">
@@ -154,7 +154,7 @@ export const Modules: React.FC = () => {
                     return (
                       <Link
                         href={href || '#'}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-electricBlue hover:text-electricBlue/80"
+                        className="inline-flex items-center gap-2 text-small font-semibold text-electricBlue hover:text-electricBlue/80"
                       >
                         {label} <Icon name="ArrowRight" size={18} />
                       </Link>

@@ -22,17 +22,17 @@ export const WritingTaskBreakdown: React.FC<Props> = ({
       <Card className="rounded-ds-2xl border border-border bg-card/70 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Task 1
             </p>
-            <p className="mt-1 text-2xl font-slab text-foreground">{task1Band}</p>
+            <p className="mt-1 text-h2 font-slab text-foreground">{task1Band}</p>
           </div>
           <Badge variant="neutral" size="sm">
             Lower weight
           </Badge>
         </div>
 
-        <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+        <div className="mt-3 flex items-start gap-2 text-small text-muted-foreground">
           <Icon name="ClipboardCheck" size={16} className="mt-0.5" />
           <p>{verdictTask1 || 'Verdict not provided.'}</p>
         </div>
@@ -41,22 +41,22 @@ export const WritingTaskBreakdown: React.FC<Props> = ({
       <Card className="rounded-ds-2xl border border-border bg-card/80 p-5 ring-1 ring-accent/40">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Task 2
             </p>
-            <p className="mt-1 text-3xl font-slab text-foreground">{task2Band}</p>
+            <p className="mt-1 text-h1 font-slab text-foreground">{task2Band}</p>
           </div>
           <Badge variant="accent" size="sm">
             Higher weight
           </Badge>
         </div>
 
-        <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+        <div className="mt-3 flex items-start gap-2 text-small text-muted-foreground">
           <Icon name="Sparkles" size={16} className="mt-0.5" />
           <p>{verdictTask2 || 'Verdict not provided.'}</p>
         </div>
 
-        <div className="mt-3 text-xs text-muted-foreground">
+        <div className="mt-3 text-caption text-muted-foreground">
           Task 2 impacts your overall score more. Fix this first.
         </div>
       </Card>

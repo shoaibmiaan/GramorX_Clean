@@ -215,8 +215,8 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
       <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold text-foreground">Prompt library</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h2 font-semibold text-foreground">Prompt library</h2>
+            <p className="text-small text-muted-foreground">
               Filter writing prompts by task and difficulty, then jump straight into the studio.
             </p>
           </div>
@@ -282,9 +282,9 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
           </div>
         </div>
 
-        {libraryError && <p className="text-sm text-danger">{libraryError}</p>}
+        {libraryError && <p className="text-small text-danger">{libraryError}</p>}
 
-        <p className="text-xs text-muted-foreground">{planCopy}</p>
+        <p className="text-caption text-muted-foreground">{planCopy}</p>
 
         {filteredPrompts.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -293,7 +293,7 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
                 key={prompt.id}
                 className="flex h-full flex-col gap-5 rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/50"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-caption uppercase tracking-[0.18em] text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Badge variant="soft" tone="info" size="sm" className="capitalize">
                       {prompt.taskType === 'task1' ? 'Task 1' : 'Task 2'}
@@ -309,10 +309,10 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
                   </Badge>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">{prompt.topic}</h3>
-                  {prompt.outlineSummary && <p className="line-clamp-4 text-sm text-muted-foreground">{prompt.outlineSummary}</p>}
+                  <h3 className="text-h4 font-semibold text-foreground">{prompt.topic}</h3>
+                  {prompt.outlineSummary && <p className="line-clamp-4 text-small text-muted-foreground">{prompt.outlineSummary}</p>}
                   {rocketUnlocked && prompt.outlineItems && prompt.outlineItems.length > 0 && (
-                    <ul className="space-y-1 text-xs text-muted-foreground">
+                    <ul className="space-y-1 text-caption text-muted-foreground">
                       {prompt.outlineItems.slice(0, 3).map((item, index) => (
                         <li key={`${prompt.id}-outline-${index}`} className="flex items-start gap-2">
                           <Icon name="check" size={12} className="mt-0.5 text-primary" />
@@ -322,7 +322,7 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
                     </ul>
                   )}
                   {rocketUnlocked && prompt.createdAt && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       Updated {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(prompt.createdAt))}
                     </p>
                   )}
@@ -349,8 +349,8 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
       <Card className="card-surface flex flex-col gap-6 p-6 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold text-foreground">AI prompt generator</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h2 font-semibold text-foreground">AI prompt generator</h2>
+            <p className="text-small text-muted-foreground">
               Craft fresh prompts tailored to your focus area. New prompts appear at the top of your library instantly.
             </p>
           </div>
@@ -359,7 +359,7 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
           </Badge>
         </div>
         {!aiUnlocked && (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 p-4 text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border/60 bg-muted/40 p-4 text-small text-muted-foreground">
             Upgrade to Owl for unlimited prompt generation with Groq/OpenAI models and curated fallbacks.
           </div>
         )}
@@ -436,10 +436,10 @@ const WritingPromptLibrary = ({ prompts, total, __plan }: LibraryPageProps) => {
             </Button>
           </div>
         </form>
-        {generatorError && <p className="text-sm text-danger">{generatorError}</p>}
-        {generatorMessage && <p className="text-sm text-success">{generatorMessage}</p>}
+        {generatorError && <p className="text-small text-danger">{generatorError}</p>}
+        {generatorMessage && <p className="text-small text-success">{generatorMessage}</p>}
         <Separator />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Generated prompts are stored in your personal library. Refresh above to ensure filters include the latest additions.
         </p>
       </Card>

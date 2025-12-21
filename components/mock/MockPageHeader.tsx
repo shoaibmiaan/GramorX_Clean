@@ -38,8 +38,8 @@ export const MockPageHeader: React.FC<MockPageHeaderProps> = ({
           ) : null}
           {badge ? <Badge tone={badge.tone ?? 'info'}>{badge.label}</Badge> : null}
         </div>
-        <h1 className="font-slab text-xl text-foreground sm:text-2xl">{title}</h1>
-        {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
+        <h1 className="font-slab text-h3 text-foreground sm:text-h2">{title}</h1>
+        {subtitle ? <p className="text-small text-muted-foreground">{subtitle}</p> : null}
       </div>
 
       {actions && actions.length > 0 ? (

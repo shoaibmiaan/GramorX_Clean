@@ -36,7 +36,7 @@ export default function QuotaBanner({ reason, module, remaining, resetAt, from }
             </p>
           )}
           {from && (
-            <p className="mt-1 text-sm opacity-75">
+            <p className="mt-1 text-small opacity-75">
               You came from <code className="px-1 py-0.5 rounded bg-muted">{from}</code>
             </p>
           )}

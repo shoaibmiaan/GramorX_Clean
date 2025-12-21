@@ -163,18 +163,18 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
 
           {tabOrder.map((key) => (
             <TabsContent key={key} value={key}>
-              <p className="text-sm text-muted-foreground">{tabs[key].helper}</p>
+              <p className="text-small text-muted-foreground">{tabs[key].helper}</p>
               <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {filterSummaries(key).map((paper) => (
                   <Card key={paper.id} className="card-surface h-full rounded-ds-2xl p-6">
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold text-foreground">{paper.title}</h2>
+                        <h2 className="text-h4 font-semibold text-foreground">{paper.title}</h2>
                         <Badge variant="info" size="sm">{paper.task1Type}</Badge>
                         {paper.register ? <Badge variant="outline" size="sm">{paper.register}</Badge> : null}
                       </div>
-                      <p className="text-sm text-muted-foreground">{paper.description}</p>
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <p className="text-small text-muted-foreground">{paper.description}</p>
+                      <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
                         {key !== 'task2' ? (
                           <Badge variant="neutral" size="sm">Task 1: {paper.task1Focus}</Badge>
                         ) : null}
@@ -199,7 +199,7 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-h3 font-semibold text-foreground">Recent attempts</h2>
-            <p className="text-sm text-muted-foreground">Track submissions, AI scores, and review progress.</p>
+            <p className="text-small text-muted-foreground">Track submissions, AI scores, and review progress.</p>
           </div>
           <Button href="/writing/progress" variant="ghost" size="sm" className="rounded-ds">
             View analytics
@@ -208,12 +208,12 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
 
         <Card className="card-surface rounded-ds-2xl p-0">
           {history.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">
+            <div className="p-6 text-small text-muted-foreground">
               No attempts yet. Start a mock to see your scores and feedback here.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border/60 text-left text-sm">
+              <table className="min-w-full divide-y divide-border/60 text-left text-small">
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-4 py-3 font-medium text-muted-foreground">Test</th>
@@ -233,15 +233,15 @@ const WritingMockIndexPage: React.FC<PageProps> = ({ history }) => {
                         <td className="px-4 py-3">
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">{entry.title}</span>
-                            <span className="text-xs text-muted-foreground">{entry.taskLabel}</span>
+                            <span className="text-caption text-muted-foreground">{entry.taskLabel}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(entry.startedAt)}</td>
+                        <td className="px-4 py-3 text-small text-muted-foreground">{formatDate(entry.startedAt)}</td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone} size="sm">{statusLabelText[entry.status]}</Badge>
                         </td>
-                        <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.aiBand)}</td>
-                        <td className="px-4 py-3 text-sm text-foreground">{formatBand(entry.teacherBand)}</td>
+                        <td className="px-4 py-3 text-small text-foreground">{formatBand(entry.aiBand)}</td>
+                        <td className="px-4 py-3 text-small text-foreground">{formatBand(entry.teacherBand)}</td>
                         <td className="px-4 py-3 text-right">
                           <Button
                             href={action.href(entry.attemptId, entry.mockId)}

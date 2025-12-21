@@ -73,10 +73,10 @@ export const Testimonials: React.FC = () => {
             <Icon name="Star" className="text-electricBlue" />
             Real Stories, Real Results
           </Badge>
-          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="font-slab text-h1 md:text-display font-bold text-foreground mb-4">
             Join Thousands Who've Achieved Their Target Band
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-h4 text-muted-foreground max-w-2xl mx-auto">
             Don't just take our word for it. See how our AI-powered platform has helped real test-takers succeed.
           </p>
         </div>
@@ -90,13 +90,13 @@ export const Testimonials: React.FC = () => {
               data-aos="fade-up"
               data-aos-delay={index * 100}
             >
-              <div className="font-slab text-3xl font-bold text-gradient-primary mb-2">
+              <div className="font-slab text-h1 font-bold text-gradient-primary mb-2">
                 {stat.value}
               </div>
               <div className="font-semibold text-foreground mb-2">
                 {stat.label}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-small text-muted-foreground">
                 {stat.description}
               </div>
             </Card>
@@ -119,9 +119,9 @@ export const Testimonials: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground">{testimonial.name}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-small text-muted-foreground">
                     <span>{testimonial.previousBand} → {testimonial.band}</span>
-                    <Badge variant="success" size="xs" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                    <Badge variant="success" size="xs" className="bg-success/15 text-success dark:bg-success/95/30 dark:text-success/90">
                       {testimonial.improvement}
                     </Badge>
                   </div>
@@ -134,13 +134,13 @@ export const Testimonials: React.FC = () => {
               </blockquote>
 
               {/* Metadata */}
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-small text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Icon name="Clock" size={14} />
                   {testimonial.time}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Icon name="CheckCircle" size={14} className="text-green-500" />
+                  <Icon name="CheckCircle" size={14} className="text-success" />
                   Target Achieved
                 </div>
               </div>
@@ -151,7 +151,7 @@ export const Testimonials: React.FC = () => {
                   {testimonial.modules.map(module => (
                     <span
                       key={module}
-                      className="inline-block px-2 py-1 bg-electricBlue/10 text-electricBlue text-xs rounded-full"
+                      className="inline-block px-2 py-1 bg-electricBlue/10 text-electricBlue text-caption rounded-full"
                     >
                       {module}
                     </span>
@@ -168,7 +168,7 @@ export const Testimonials: React.FC = () => {
           data-aos="fade-up"
         >
           <Card className="inline-block border border-electricBlue/30 bg-electricBlue/5 px-8 py-6 max-w-2xl">
-            <h3 className="text-xl font-semibold text-foreground mb-3">
+            <h3 className="text-h3 font-semibold text-foreground mb-3">
               Ready to Write Your Success Story?
             </h3>
             <p className="text-muted-foreground mb-4">

@@ -57,8 +57,8 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
             <Icon name="LoaderCircle" size={18} />
           </span>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Evaluation pending</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small font-semibold text-foreground">Evaluation pending</p>
+            <p className="text-small text-muted-foreground">
               This review page won’t rerun AI. It will show feedback once stored.
             </p>
           </div>
@@ -91,13 +91,13 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
       <Card className="rounded-ds-2xl border border-border bg-card/70 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Feedback • Task {activeTask}
             </p>
-            <p className="mt-1 text-sm font-semibold text-foreground">
+            <p className="mt-1 text-small font-semibold text-foreground">
               Task band: {bandFmt(taskBand)}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-small text-muted-foreground">
               {taskVerdict?.trim() ? taskVerdict : 'No task verdict provided.'}
             </p>
           </div>
@@ -116,17 +116,17 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
               <div key={k} className="rounded-ds-xl border border-border bg-muted/40 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       {k}
                     </p>
-                    <p className="text-sm font-semibold text-foreground">Band {bandFmt(band)}</p>
+                    <p className="text-small font-semibold text-foreground">Band {bandFmt(band)}</p>
                   </div>
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-card">
                     <Icon name="ClipboardCheck" size={16} />
                   </span>
                 </div>
 
-                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <ul className="mt-3 space-y-2 text-small text-muted-foreground">
                   {(notes.length ? notes : ['No notes provided.']).map((n) => (
                     <li key={n} className="flex items-start gap-2">
                       <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />
@@ -141,10 +141,10 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
 
         {taskNotes.length ? (
           <div className="mt-4 rounded-ds-xl border border-border bg-muted/40 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Task-specific notes
             </p>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <ul className="mt-3 space-y-2 text-small text-muted-foreground">
               {taskNotes.slice(0, 4).map((n) => (
                 <li key={n} className="flex items-start gap-2">
                   <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />
@@ -164,12 +164,12 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
                 <Icon name="AlertCircle" size={18} />
               </span>
               <div>
-                <p className="text-sm font-semibold text-foreground">Warnings</p>
-                <p className="text-xs text-muted-foreground">Fix these first.</p>
+                <p className="text-small font-semibold text-foreground">Warnings</p>
+                <p className="text-caption text-muted-foreground">Fix these first.</p>
               </div>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm text-foreground">
+            <ul className="mt-4 space-y-2 text-small text-foreground">
               {warnings.map((w) => (
                 <li key={w} className="flex items-start gap-2">
                   <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-foreground/60" />
@@ -186,12 +186,12 @@ export const WritingFeedbackPanel: React.FC<Props> = ({ activeTask, evaluation, 
               <Icon name="ListChecks" size={18} />
             </span>
             <div>
-              <p className="text-sm font-semibold text-foreground">Next steps</p>
-              <p className="text-xs text-muted-foreground">Max 4. Keep it brutal and actionable.</p>
+              <p className="text-small font-semibold text-foreground">Next steps</p>
+              <p className="text-caption text-muted-foreground">Max 4. Keep it brutal and actionable.</p>
             </div>
           </div>
 
-          <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <ul className="mt-4 space-y-2 text-small text-muted-foreground">
             {(evaluation.nextSteps?.length ? evaluation.nextSteps : ['No next steps provided.'])
               .slice(0, 4)
               .map((s) => (

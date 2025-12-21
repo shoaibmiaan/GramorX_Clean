@@ -91,11 +91,11 @@ export default function AICoachPanel({ profile, onClose, onOpenStudyBuddy }: {
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
           <h3 className="font-slab text-h3">AI Coach</h3>
-          <div className="text-sm text-muted-foreground">Personalized feedback & next-step micro-actions</div>
+          <div className="text-small text-muted-foreground">Personalized feedback & next-step micro-actions</div>
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="text-sm px-3 py-1 rounded-ds-lg border"
+            className="text-small px-3 py-1 rounded-ds-lg border"
             onClick={() => {
               setContext('');
               setResponse(null);
@@ -110,9 +110,9 @@ export default function AICoachPanel({ profile, onClose, onOpenStudyBuddy }: {
       </div>
 
       <div className="p-4">
-        <label className="text-xs text-muted-foreground">Prompt / context</label>
+        <label className="text-caption text-muted-foreground">Prompt / context</label>
         <textarea
-          className="w-full mt-2 p-3 rounded border min-h-[80px] text-sm"
+          className="w-full mt-2 p-3 rounded border min-h-[80px] text-small"
           value={context}
           onChange={(e) => setContext(e.target.value)}
         />
@@ -126,7 +126,7 @@ export default function AICoachPanel({ profile, onClose, onOpenStudyBuddy }: {
           </button>
         </div>
 
-        {error && <div className="mt-3 text-red-500">{error}</div>}
+        {error && <div className="mt-3 text-danger">{error}</div>}
 
         {response && (
           <div className="mt-4">
@@ -141,9 +141,9 @@ export default function AICoachPanel({ profile, onClose, onOpenStudyBuddy }: {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="font-medium">{s.title}</div>
-                        {s.detail && <div className="text-sm text-muted-foreground mt-1">{s.detail}</div>}
+                        {s.detail && <div className="text-small text-muted-foreground mt-1">{s.detail}</div>}
                         {s.estimatedMinutes && (
-                          <div className="text-xs text-muted-foreground mt-1">~{s.estimatedMinutes} mins</div>
+                          <div className="text-caption text-muted-foreground mt-1">~{s.estimatedMinutes} mins</div>
                         )}
                       </div>
                       <div className="flex flex-col gap-2">
@@ -163,7 +163,7 @@ export default function AICoachPanel({ profile, onClose, onOpenStudyBuddy }: {
             {response.reasoning && (
               <div className="mt-4">
                 <div className="text-small text-muted-foreground">How the coach thought</div>
-                <pre className="mt-2 p-3 rounded bg-muted/20 text-xs overflow-auto">{response.reasoning}</pre>
+                <pre className="mt-2 p-3 rounded bg-muted/20 text-caption overflow-auto">{response.reasoning}</pre>
               </div>
             )}
           </div>

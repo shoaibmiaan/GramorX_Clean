@@ -97,7 +97,7 @@ export function RouteLoadingOverlay({
             aria-live="polite"
           >
             <Spinner themeMode={themeMode} />
-            <p className="mt-6 text-sm font-medium text-foreground/80 sm:text-base">
+            <p className="mt-6 text-small font-medium text-foreground/80 sm:text-body">
               {getMessage(targetLayout)}
             </p>
           </motion.div>

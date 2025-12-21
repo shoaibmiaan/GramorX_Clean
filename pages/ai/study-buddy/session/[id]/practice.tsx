@@ -377,10 +377,10 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <Badge variant="info">Guided practice</Badge>
-            <h1 className="mt-3 text-3xl font-semibold">Focus session</h1>
-            <p className="text-sm text-muted-foreground">Session ID: {id}</p>
+            <h1 className="mt-3 text-h1 font-semibold">Focus session</h1>
+            <p className="text-small text-muted-foreground">Session ID: {id}</p>
           </div>
-          <Link href="/ai/study-buddy" className="text-sm text-primary underline">
+          <Link href="/ai/study-buddy" className="text-small text-primary underline">
             ← Back to builder
           </Link>
         </div>
@@ -388,7 +388,7 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!session ? (
-          <Card className="p-6 text-sm">
+          <Card className="p-6 text-small">
             <p className="mb-4 text-muted-foreground">
               Session not found or no longer accessible. Try creating a new Study Buddy session from the builder.
             </p>
@@ -401,18 +401,18 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
               <div className="relative flex flex-col gap-6 p-8">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm uppercase tracking-wide text-white/80">Current block</p>
-                    <h2 className="mt-2 text-3xl font-semibold">
+                    <p className="text-small uppercase tracking-wide text-white/80">Current block</p>
+                    <h2 className="mt-2 text-h1 font-semibold">
                       {currentItem ? currentItem.skill : 'All done!'}
                     </h2>
-                    <p className="text-sm text-white/70">
+                    <p className="text-small text-white/70">
                       {currentItem
                         ? currentItem.topic
                           ? `Stay on “${currentItem.topic}” for ${currentItem.minutes} minutes.`
                           : `Stay focused for ${currentItem.minutes} minutes.`
                         : 'Review your notes or celebrate a streak-safe day.'}
                     </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-caption">
                       <Badge
                         variant={
                           isCompleted ? 'success' : session.state === 'started' ? 'info' : 'neutral'
@@ -427,12 +427,12 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
                     </div>
                   </div>
                   <div className="rounded-ds-2xl border border-white/20 bg-white/10 px-6 py-4 text-center">
-                    <p className="text-xs uppercase tracking-wide text-white/70">Time remaining</p>
-                    <p className="mt-2 font-mono text-3xl font-semibold">{fmt(remaining)}</p>
+                    <p className="text-caption uppercase tracking-wide text-white/70">Time remaining</p>
+                    <p className="mt-2 font-mono text-h1 font-semibold">{fmt(remaining)}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                <div className="flex flex-wrap items-center gap-3 text-small text-white/80">
                   <div className="rounded-ds-xl border border-white/20 bg-white/10 px-4 py-2">
                     Block {Math.min(currentIndex + 1, totalBlocks) || (totalBlocks ? totalBlocks : 1)} / {totalBlocks || '—'}
                   </div>
@@ -490,12 +490,12 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
             <div className="flex flex-col gap-6">
               <Card className="p-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Progress</h2>
-                  <span className="text-sm text-muted-foreground">{progress}% complete</span>
+                  <h2 className="text-h4 font-semibold">Progress</h2>
+                  <span className="text-small text-muted-foreground">{progress}% complete</span>
                 </div>
                 <ProgressBar value={progress} className="mt-3" />
 
-                <div className="mt-6 space-y-3 text-sm">
+                <div className="mt-6 space-y-3 text-small">
                   {items.length === 0 ? (
                     <p className="text-muted-foreground">No blocks scheduled for this session.</p>
                   ) : (
@@ -511,12 +511,12 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
                         }`}
                       >
                         <div>
-                          <p className="text-xs uppercase tracking-wide">Block {i + 1}</p>
-                          <p className="text-base font-semibold text-foreground">{it.skill}</p>
-                          {it.topic && <p className="text-xs text-muted-foreground">{it.topic}</p>}
+                          <p className="text-caption uppercase tracking-wide">Block {i + 1}</p>
+                          <p className="text-body font-semibold text-foreground">{it.skill}</p>
+                          {it.topic && <p className="text-caption text-muted-foreground">{it.topic}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-foreground">{it.minutes} min</span>
+                          <span className="text-small font-medium text-foreground">{it.minutes} min</span>
                           <Badge
                             variant={
                               it.status === 'completed'
@@ -539,22 +539,22 @@ const PracticePage: NextPage<Props> = ({ id, initial }) => {
                 </div>
               </Card>
 
-              <Card className="p-6 text-sm text-muted-foreground">
-                <h2 className="text-lg font-semibold text-foreground">AI tips</h2>
+              <Card className="p-6 text-small text-muted-foreground">
+                <h2 className="text-h4 font-semibold text-foreground">AI tips</h2>
                 <ul className="mt-3 list-disc space-y-2 pl-5">
                   {(activeTips.length ? activeTips : ['Stay hydrated and take a mindful breath between blocks.']).map((tip) => (
                     <li key={tip}>{tip}</li>
                   ))}
                 </ul>
-                <div className="mt-4 rounded-ds-lg bg-muted/50 p-3 text-xs">
+                <div className="mt-4 rounded-ds-lg bg-muted/50 p-3 text-caption">
                   <p>
                     Need a breather? Pausing for more than 3 minutes auto-saves your streak and pauses the timer.
                   </p>
                 </div>
               </Card>
 
-              <Card className="p-6 text-sm text-muted-foreground">
-                <h2 className="text-lg font-semibold text-foreground">Session log</h2>
+              <Card className="p-6 text-small text-muted-foreground">
+                <h2 className="text-h4 font-semibold text-foreground">Session log</h2>
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between">
                     <span>Started at</span>

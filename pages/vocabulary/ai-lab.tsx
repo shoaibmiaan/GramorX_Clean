@@ -110,7 +110,7 @@ const VocabularyAiLabPage: NextPage = () => {
                 </p>
               </div>
               <Alert variant="info">
-                <div className="flex flex-col gap-1 text-sm">
+                <div className="flex flex-col gap-1 text-small">
                   <span>
                     Use this for{' '}
                     <span className="font-semibold">
@@ -129,7 +129,7 @@ const VocabularyAiLabPage: NextPage = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-1">
                     <h2 className="font-slab text-h2">Your text</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       Paste one or a few sentences that you want to sound more “band 7+”.
                     </p>
                   </div>
@@ -153,7 +153,7 @@ const VocabularyAiLabPage: NextPage = () => {
                       setResult(null);
                     }}
                     rows={6}
-                    className="w-full resize-none rounded-ds-2xl border border-border/60 bg-card/70 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full resize-none rounded-ds-2xl border border-border/60 bg-card/70 px-4 py-3 text-small text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                     placeholder="Paste your sentence or short paragraph here…"
                   />
                   <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -165,7 +165,7 @@ const VocabularyAiLabPage: NextPage = () => {
                 {/* CONTROLS */}
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-ds-2xl bg-muted/40 px-4 py-3">
                   {/* Band target */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-caption sm:text-small">
                     <span className="font-medium text-foreground">Target band:</span>
                     <div className="flex flex-wrap gap-1">
                       {(['6.0', '6.5', '7.0', '7.5', '8.0'] as const).map((b) => (
@@ -174,7 +174,7 @@ const VocabularyAiLabPage: NextPage = () => {
                           type="button"
                           onClick={() => setBandTarget(b)}
                           className={[
-                            'rounded-full px-2.5 py-1 text-xs font-medium transition',
+                            'rounded-full px-2.5 py-1 text-caption font-medium transition',
                             bandTarget === b
                               ? 'bg-primary text-white shadow-sm'
                               : 'bg-background text-muted-foreground hover:bg-card',
@@ -187,14 +187,14 @@ const VocabularyAiLabPage: NextPage = () => {
                   </div>
 
                   {/* Module */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-caption sm:text-small">
                     <span className="font-medium text-foreground">Module:</span>
                     <div className="flex flex-wrap gap-1">
                       <button
                         type="button"
                         onClick={() => setModule('writing')}
                         className={[
-                          'rounded-full px-2.5 py-1 text-xs font-medium transition',
+                          'rounded-full px-2.5 py-1 text-caption font-medium transition',
                           module === 'writing'
                             ? 'bg-secondary text-white shadow-sm'
                             : 'bg-background text-muted-foreground hover:bg-card',
@@ -206,7 +206,7 @@ const VocabularyAiLabPage: NextPage = () => {
                         type="button"
                         onClick={() => setModule('speaking')}
                         className={[
-                          'rounded-full px-2.5 py-1 text-xs font-medium transition',
+                          'rounded-full px-2.5 py-1 text-caption font-medium transition',
                           module === 'speaking'
                             ? 'bg-secondary text-white shadow-sm'
                             : 'bg-background text-muted-foreground hover:bg-card',
@@ -232,11 +232,11 @@ const VocabularyAiLabPage: NextPage = () => {
                   </Button>
                   {error && (
                     <Alert variant="danger">
-                      <span className="text-sm">{error}</span>
+                      <span className="text-small">{error}</span>
                     </Alert>
                   )}
                   {!error && !result && !isSubmitting && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       After the rewrite, you’ll see:
                       <span className="font-medium">
                         {' '}
@@ -259,7 +259,7 @@ const VocabularyAiLabPage: NextPage = () => {
                   </div>
 
                   {!result && !isSubmitting && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       Rewrite result will appear here. Paste a sentence on the left and hit{' '}
                       <span className="font-medium">“Rewrite with better vocabulary”</span>.
                     </p>
@@ -281,11 +281,11 @@ const VocabularyAiLabPage: NextPage = () => {
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                             <Icon name="ArrowUpRight" size={16} />
                           </span>
-                          <h3 className="text-sm font-semibold text-foreground">
+                          <h3 className="text-small font-semibold text-foreground">
                             Improved version
                           </h3>
                         </div>
-                        <p className="rounded-ds-2xl border border-border/60 bg-card/70 p-3 text-sm leading-relaxed text-foreground">
+                        <p className="rounded-ds-2xl border border-border/60 bg-card/70 p-3 text-small leading-relaxed text-foreground">
                           {result.improved}
                         </p>
                       </div>
@@ -297,11 +297,11 @@ const VocabularyAiLabPage: NextPage = () => {
                             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-secondary/10 text-secondary">
                               <Icon name="Sparkles" size={16} />
                             </span>
-                            <h3 className="text-sm font-semibold text-foreground">
+                            <h3 className="text-small font-semibold text-foreground">
                               Why this is better
                             </h3>
                           </div>
-                          <p className="rounded-ds-2xl bg-muted/40 p-3 text-sm text-muted-foreground">
+                          <p className="rounded-ds-2xl bg-muted/40 p-3 text-small text-muted-foreground">
                             {result.explanation}
                           </p>
                         </div>
@@ -314,7 +314,7 @@ const VocabularyAiLabPage: NextPage = () => {
                             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-electricBlue/10 text-electricBlue">
                               <Icon name="Highlighter" size={16} />
                             </span>
-                            <h3 className="text-sm font-semibold text-foreground">
+                            <h3 className="text-small font-semibold text-foreground">
                               Key phrases to steal
                             </h3>
                           </div>
@@ -343,10 +343,10 @@ const VocabularyAiLabPage: NextPage = () => {
                       <Icon name="Info" size={14} />
                     </span>
                     <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-foreground">
+                      <h3 className="text-small font-semibold text-foreground">
                         How to use this without sounding fake
                       </h3>
-                      <ul className="list-disc pl-5 text-xs text-muted-foreground">
+                      <ul className="list-disc pl-5 text-caption text-muted-foreground">
                         <li>Don’t copy-paste blindly — tweak the sentence so it still feels like you.</li>
                         <li>
                           For Speaking, keep it natural. Don’t push it to full band 9 vocabulary if

@@ -41,13 +41,13 @@ export const WritingResultSummary: React.FC<Props> = ({
             ) : null}
           </div>
 
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Training band
           </p>
-          <p className="text-4xl font-slab leading-none text-foreground">
+          <p className="text-display font-slab leading-none text-foreground">
             {overallBandLabel}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Slightly stricter than IELTS. Real exam is typically within ±0.5.
           </p>
         </div>
@@ -57,8 +57,8 @@ export const WritingResultSummary: React.FC<Props> = ({
             <Icon name="Target" size={18} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-foreground">Read this like an examiner</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small font-semibold text-foreground">Read this like an examiner</p>
+            <p className="text-caption text-muted-foreground">
               Fix the biggest losses first. Task 2 matters more.
             </p>
           </div>

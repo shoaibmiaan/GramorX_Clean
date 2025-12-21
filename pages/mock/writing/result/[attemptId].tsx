@@ -339,13 +339,13 @@ const WritingResultPage: NextPage<PageProps> = ({
                 <Icon name="AlertTriangle" size={18} />
               </div>
 
-              <h1 className="mt-3 text-lg font-semibold">Result not available</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h1 className="mt-3 text-h4 font-semibold">Result not available</h1>
+              <p className="mt-1 text-small text-muted-foreground">
                 This attempt doesn’t exist, or you don’t have access.
               </p>
 
               {debug ? (
-                <div className="mt-4 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-left text-xs text-muted-foreground">
+                <div className="mt-4 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-left text-caption text-muted-foreground">
                   <p className="font-semibold text-foreground">Dev debug</p>
                   <p className="mt-1">Tried tables: {debug.attemptTableTried.join(', ')}</p>
                   {debug.rawAttemptKeys?.length ? (
@@ -406,8 +406,8 @@ const WritingResultPage: NextPage<PageProps> = ({
                   ) : null}
                 </div>
 
-                <h1 className="text-xl font-semibold text-foreground">{attempt.testTitle}</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-h3 font-semibold text-foreground">{attempt.testTitle}</h1>
+                <p className="text-caption text-muted-foreground">
                   Training band can be slightly stricter than IELTS. Real exam is usually within ±0.5.
                 </p>
               </div>
@@ -474,11 +474,11 @@ const WritingResultPage: NextPage<PageProps> = ({
                     <Icon name="Loader2" size={18} className="animate-spin" />
                   </span>
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-foreground">Evaluation pending</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small font-semibold text-foreground">Evaluation pending</p>
+                    <p className="text-small text-muted-foreground">
                       Your attempt is submitted. Evaluation hasn’t been stored yet.
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       This page will auto-refresh until results are available.
                     </p>
                   </div>

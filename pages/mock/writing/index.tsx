@@ -90,8 +90,8 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <Icon name="AlertTriangle" />
             </div>
-            <h1 className="text-xl font-semibold">Unable to load Writing mocks</h1>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <h1 className="text-h3 font-semibold">Unable to load Writing mocks</h1>
+            <p className="text-small text-muted-foreground">{error}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Button asChild variant="primary" className="rounded-ds-xl">
                 <Link href="/mock">Back to Mock hub</Link>
@@ -124,7 +124,7 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
           <Container>
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
                   <Icon name="PenTool" size={14} />
                   <span>Writing Mock Command Center</span>
                 </div>
@@ -133,7 +133,7 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
                   Writing mocks with strict timer + AI evaluation.
                 </h1>
 
-                <p className="text-sm text-muted-foreground max-w-xl">
+                <p className="text-small text-muted-foreground max-w-xl">
                   Attempt full writing mocks (Task 1 + Task 2) in a real exam flow:
                   autosave, no pause timer, submit lock, and evaluation queue.
                 </p>
@@ -153,13 +153,13 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
               {/* Snapshot panel */}
               <Card className="w-full max-w-xs p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <p className="text-caption font-medium text-muted-foreground uppercase tracking-wide">
                     Writing mock summary
                   </p>
                   <Icon name="TrendingUp" size={16} className="text-success" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
+                <div className="grid grid-cols-2 gap-3 pt-1 text-caption">
                   <div className="space-y-0.5">
                     <p className="text-[11px] text-muted-foreground">Total attempts</p>
                     <p className="font-medium">{stats.totalAttempts}</p>
@@ -176,7 +176,7 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
                 </Button>
 
                 {startError ? (
-                  <p className="text-xs text-destructive">{startError}</p>
+                  <p className="text-caption text-destructive">{startError}</p>
                 ) : null}
               </Card>
             </div>
@@ -190,12 +190,12 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
             <div className="space-y-8">
               <Card className="p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1 max-w-md">
-                  <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="inline-flex items-center gap-2 text-caption text-muted-foreground">
                     <Icon name="LayoutDashboard" size={16} />
                     <span>Full writing mock</span>
                   </div>
-                  <h2 className="text-lg font-semibold">Task 1 + Task 2 · 60 minutes</h2>
-                  <p className="text-xs text-muted-foreground">
+                  <h2 className="text-h4 font-semibold">Task 1 + Task 2 · 60 minutes</h2>
+                  <p className="text-caption text-muted-foreground">
                     Strict timer, autosave, and a locked submission. Choose Academic or General.
                   </p>
                 </div>
@@ -212,7 +212,7 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
                 </div>
               </Card>
 
-              <Card className="p-5 text-xs text-muted-foreground">
+              <Card className="p-5 text-caption text-muted-foreground">
                 Writing is now <span className="font-medium text-foreground">attempt-based</span> (like real exam sessions).
                 Each attempt gets its own exam room, autosaves, and then queues evaluation after submission.
               </Card>
@@ -222,15 +222,15 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
             <div className="space-y-6">
               <Card className="p-5 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold">Recent writing attempts</h2>
+                  <h2 className="text-small font-semibold">Recent writing attempts</h2>
                 </div>
 
                 {recentAttempts.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     No attempts yet. Start a mock to create your first exam session.
                   </p>
                 ) : (
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-2 text-caption">
                     {recentAttempts.map((a) => (
                       <div
                         key={a.id}
@@ -269,8 +269,8 @@ const WritingMockIndexPage: NextPage<PageProps> = ({ stats, recentAttempts, erro
             <Card className="w-full max-w-lg p-5 space-y-4 rounded-ds-2xl">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold">Choose your writing mode</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-small font-semibold">Choose your writing mode</p>
+                  <p className="text-caption text-muted-foreground">
                     Academic is chart/report + essay. General is letter + essay.
                   </p>
                 </div>

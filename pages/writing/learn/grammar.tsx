@@ -10,13 +10,13 @@ export default function GrammarGuide() {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Grammar Range & Accuracy</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Grammar Range & Accuracy</h1>
         <p className="text-muted mt-1">Mix simple/complex sentences, but keep them clean.</p>
 
         <Card className="mt-6 p-4">
-          <h2 className="text-lg font-semibold">Core ideas</h2>
+          <h2 className="text-h4 font-semibold">Core ideas</h2>
           <div className="mt-2 flex gap-2"><Badge variant="neutral">Grammar</Badge><Badge variant="success">Beginner</Badge></div>
-          <ul className="mt-3 list-disc pl-6 text-sm">
+          <ul className="mt-3 list-disc pl-6 text-small">
             <li>1 complex sentence per paragraph is enough at first.</li>
             <li>Common traps: articles, subject-verb agreement, run-ons.</li>
             <li>Accuracy beats variety when in doubt.</li>
@@ -24,8 +24,8 @@ export default function GrammarGuide() {
         </Card>
 
         <Card className="mt-4 p-4">
-          <h2 className="text-lg font-semibold">Practice now</h2>
-          <p className="mt-2 text-sm">Combine: “Many people work remotely.” + “They save commuting time.” into one precise complex sentence.</p>
+          <h2 className="text-h4 font-semibold">Practice now</h2>
+          <p className="mt-2 text-small">Combine: “Many people work remotely.” + “They save commuting time.” into one precise complex sentence.</p>
         </Card>
 
         <div className="mt-6 flex gap-2">

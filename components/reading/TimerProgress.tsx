@@ -66,17 +66,17 @@ const TimerProgress: React.FC<TimerProgressProps> = ({
   }, [remaining, isActive, onExpire]);
 
   return (
-    <div className="min-w-[170px] text-xs text-muted-foreground">
+    <div className="min-w-[170px] text-caption text-muted-foreground">
       <div className="text-[11px] uppercase tracking-wide opacity-80 text-center">
         Time remaining
       </div>
       <div
         className={[
-          'mt-1 text-center font-mono text-2xl font-semibold',
+          'mt-1 text-center font-mono text-h2 font-semibold',
           critical
-            ? 'text-amber-300 animate-pulse'
+            ? 'text-warning/90 animate-pulse'
             : warning
-            ? 'text-amber-200'
+            ? 'text-warning/80'
             : 'text-foreground',
         ].join(' ')}
       >

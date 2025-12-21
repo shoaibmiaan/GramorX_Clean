@@ -22,16 +22,16 @@ export const WritingAutosaveIndicator: React.FC<Props> = ({ state, updatedAt }) 
   return (
     <div
       className={clsx(
-        'inline-flex items-center gap-2 text-xs',
-        state === 'error' ? 'text-red-600' : 'text-muted-foreground',
+        'inline-flex items-center gap-2 text-caption',
+        state === 'error' ? 'text-danger' : 'text-muted-foreground',
       )}
       aria-live="polite"
     >
       <span
         className={clsx('h-2 w-2 rounded-full', {
           'bg-primary animate-pulse': state === 'saving',
-          'bg-emerald-500': state === 'saved',
-          'bg-red-500': state === 'error',
+          'bg-success': state === 'saved',
+          'bg-danger': state === 'error',
           'bg-muted': state === 'idle',
         })}
       />

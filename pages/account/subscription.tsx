@@ -161,7 +161,7 @@ export default function SubscriptionPage() {
                       })}
                     </Alert>
                   )}
-                  <div className="text-2xl font-bold">
+                  <div className="text-h2 font-bold">
                     {displayPlan.price ?? t('subscription.price.free', 'Free')}
                   </div>
                   {expiresAtLabel && (

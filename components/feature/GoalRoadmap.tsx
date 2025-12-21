@@ -158,13 +158,13 @@ export const GoalRoadmap: React.FC<GoalRoadmapProps> = ({ examDate }) => {
     <Card className="space-y-6 rounded-ds-2xl p-6">
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Exam on</p>
+          <p className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Exam on</p>
           <p className="mt-1 font-slab text-h4 text-foreground">{formatDate(plan.exam)}</p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
           <div className="text-left sm:text-right">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Weeks remaining</p>
-            <p className="font-slab text-3xl font-semibold text-gradient-primary">{plan.totalWeeks}</p>
+            <p className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Weeks remaining</p>
+            <p className="font-slab text-h1 font-semibold text-gradient-primary">{plan.totalWeeks}</p>
           </div>
           <div className="text-small text-muted-foreground">
             ≈ {plan.totalDays} day{plan.totalDays === 1 ? '' : 's'} to go
@@ -179,7 +179,7 @@ export const GoalRoadmap: React.FC<GoalRoadmapProps> = ({ examDate }) => {
               <Icon name={STAGE_META[currentStage.key].icon} size={18} />
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-electricBlue/80">Now focusing</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.3em] text-electricBlue/80">Now focusing</p>
               <h4 className="font-slab text-h4 text-foreground">{currentStage.key}</h4>
               <p className="text-small text-muted-foreground">
                 {formatRange(currentStage.start, currentStage.end)} • stay consistent with the highlighted focus chips below.
@@ -205,13 +205,13 @@ export const GoalRoadmap: React.FC<GoalRoadmapProps> = ({ examDate }) => {
                     <Icon name={meta.icon} size={20} />
                   </span>
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Phase</div>
+                    <div className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Phase</div>
                     <h4 className="font-slab text-h4 text-foreground">{stage.key}</h4>
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Allocation</div>
-                  <div className="text-lg font-semibold text-foreground">
+                  <div className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Allocation</div>
+                  <div className="text-h4 font-semibold text-foreground">
                     {stage.weeks} week{stage.weeks === 1 ? '' : 's'}
                   </div>
                 </div>
@@ -276,7 +276,7 @@ export const GoalRoadmap: React.FC<GoalRoadmapProps> = ({ examDate }) => {
                     </div>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Phase</p>
+                        <p className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Phase</p>
                         <p className="font-slab text-h5 text-foreground">{item.key}</p>
                       </div>
                       <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-r ${meta.gradient} text-white`}>

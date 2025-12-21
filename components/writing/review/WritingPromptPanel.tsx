@@ -15,10 +15,10 @@ export const WritingPromptPanel: React.FC<Props> = ({ taskNumber, prompt, minWor
     <Card className="rounded-ds-2xl border border-border bg-card/70 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Task {taskNumber} prompt
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-small text-muted-foreground">
             Minimum words: <span className="font-semibold text-foreground">{minWords || '—'}</span>
           </p>
         </div>
@@ -27,7 +27,7 @@ export const WritingPromptPanel: React.FC<Props> = ({ taskNumber, prompt, minWor
         </Badge>
       </div>
 
-      <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+      <div className="mt-4 whitespace-pre-wrap text-small leading-relaxed text-foreground">
         {prompt?.trim() ? (
           prompt
         ) : (

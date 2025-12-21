@@ -28,7 +28,7 @@ const DocumentUploadStub: React.FC<Props> = ({ onCountChange }) => {
       </div>
       {msg && <Alert variant="info">{msg}</Alert>}
       {files.length > 0 && (
-        <ul className="text-sm list-disc pl-5">
+        <ul className="text-small list-disc pl-5">
           {files.map((f) => (
             <li key={f.name}>{f.name}</li>
           ))}

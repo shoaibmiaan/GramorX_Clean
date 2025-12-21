@@ -38,8 +38,8 @@ export const ListeningTimeWarningModal: React.FC<ListeningTimeWarningModalProps>
 
           <div className="mt-2 flex items-center justify-between rounded-lg bg-muted/80 p-3">
             <div>
-              <p className="text-xs text-muted-foreground">Remaining time</p>
-              <p className="text-lg font-semibold tabular-nums">
+              <p className="text-caption text-muted-foreground">Remaining time</p>
+              <p className="text-h4 font-semibold tabular-nums">
                 {minutes.toString().padStart(2, '0')}:
                 {seconds.toString().padStart(2, '0')}
               </p>
@@ -47,7 +47,7 @@ export const ListeningTimeWarningModal: React.FC<ListeningTimeWarningModalProps>
             <Badge tone="warning">Hurry up</Badge>
           </div>
 
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-caption text-muted-foreground">
             Focus on any unanswered questions first. You can still change your
             answers until time runs out.
           </p>

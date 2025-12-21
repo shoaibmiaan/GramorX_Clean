@@ -71,7 +71,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
     return (
       <main className="min-h-screen bg-background text-foreground">
         <div className="mx-auto max-w-2xl p-6">
-          <p className="text-lg font-semibold">Session unavailable</p>
+          <p className="text-h4 font-semibold">Session unavailable</p>
           <p className="text-small text-mutedText">The speaking session could not be found.</p>
         </div>
       </main>
@@ -109,7 +109,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
           <header className="flex flex-col gap-3">
             <p className="text-caption text-mutedText">Live speaking</p>
-            <h1 className="text-3xl font-semibold leading-tight text-foreground">{sessionTypeLabel[session.type]}</h1>
+            <h1 className="text-h1 font-semibold leading-tight text-foreground">{sessionTypeLabel[session.type]}</h1>
             <div className="flex flex-wrap items-center gap-3">
               <Badge variant={status.tone === 'success' ? 'success' : status.tone === 'danger' ? 'danger' : status.tone === 'info' ? 'info' : 'neutral'}>
                 {status.label}
@@ -122,7 +122,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
           <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Connection</h2>
+                <h2 className="text-h3 font-semibold">Connection</h2>
                 <p className="text-small text-mutedText">
                   {connected ? 'You are connected to the live room.' : 'Join the room to start the live speaking session.'}
                 </p>
@@ -180,7 +180,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
           </section>
 
           <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">Session metadata</h2>
+            <h2 className="text-h3 font-semibold">Session metadata</h2>
             <p className="mt-1 text-small text-mutedText">
               These details are stored securely so tutors and AI services can personalise feedback after the call.
             </p>
@@ -204,7 +204,7 @@ const LiveSessionPage: NextPage<SessionPageProps> = ({ session, token, viewer })
           </section>
 
           <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">Recordings & transcripts</h2>
+            <h2 className="text-h3 font-semibold">Recordings & transcripts</h2>
             <p className="mt-1 text-small text-mutedText">
               When a recording finishes, the file is uploaded to Supabase Storage and listed here with transcript links.
             </p>

@@ -133,8 +133,8 @@ export default function MockResumePage() {
               </p>
             )}
             {canResume && (
-              <div className="mt-6 rounded-xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm text-amber-200">
-                <p className="font-semibold text-amber-100">Exam day reminder</p>
+              <div className="mt-6 rounded-xl border border-warning/40/40 bg-warning/10 p-4 text-small text-warning/80">
+                <p className="font-semibold text-warning/80">Exam day reminder</p>
                 <p className="mt-1">
                   We&apos;ll restore your timer and answers from this checkpoint. Before you resume, double-check your device,
                   connection, and quiet environment so you don&apos;t lose time mid-section.

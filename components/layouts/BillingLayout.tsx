@@ -28,7 +28,7 @@ export function SupportLayout({ children, userRole }: SupportLayoutProps) {
         <div className="border-b p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Support Center</h1>
+              <h1 className="text-h2 font-bold">Support Center</h1>
               <p className="text-muted-foreground">Get help and find answers to your questions</p>
             </div>
             <Button variant="outline" asChild>

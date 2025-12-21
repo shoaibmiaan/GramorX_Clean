@@ -259,7 +259,7 @@ export default function WritingListPage() {
                 key={tab}
                 role="tab"
                 aria-selected={activeTab === tab}
-                className={`flex-1 rounded-ds-xl px-4 py-2 text-sm transition-colors ${
+                className={`flex-1 rounded-ds-xl px-4 py-2 text-small transition-colors ${
                   activeTab === tab ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
                 }`}
                 onClick={() => setActiveTab(tab as any)}
@@ -279,7 +279,7 @@ export default function WritingListPage() {
               <nav aria-label="Filter writing tasks" className="mb-4"><WritingFilterBar /></nav>
               <div className="mb-6">
                 <Card className="px-4 py-3 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-3 text-small">
                     <span className="text-muted-foreground">Typical for this view:</span>
                     {summary.diff === 'Mixed'
                       ? <Badge variant="info" size="sm">Mixed difficulty</Badge>
@@ -290,7 +290,7 @@ export default function WritingListPage() {
                     <Badge variant="surface" size="sm">
                       {summary.topTypeLabel}{summary.plusN > 0 ? ` +${summary.plusN}` : ''}
                     </Badge>
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <span className="ml-auto text-caption text-muted-foreground">
                       Showing {filtered.length}{items ? ` / ${items.length}` : ''} tasks
                     </span>
                   </div>
@@ -322,7 +322,7 @@ export default function WritingListPage() {
                       <li key={t.slug}>
                         <Card className="h-full border-border/60 bg-white/70 shadow-sm backdrop-blur transition hover:-translate-y-[2px] hover:shadow-glow dark:bg-dark/70"
                               interactive padding="md">
-                          <h3 className="text-lg font-semibold leading-snug line-clamp-2">{t.title}</h3>
+                          <h3 className="text-h4 font-semibold leading-snug line-clamp-2">{t.title}</h3>
                           <div className="mt-4 flex gap-2">
                             <Link href={`/writing/${t.slug}`} className="flex-1" aria-label={`Start ${t.title}`}>
                               <Button variant="primary" size="sm" className="w-full rounded-ds-xl">Start</Button>
@@ -363,19 +363,19 @@ export default function WritingListPage() {
                 {userStats ? (
                   <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{userStats.avgScore}%</div>
-                      <div className="text-sm text-muted-foreground">Avg Score</div>
+                      <div className="text-h2 font-bold">{userStats.avgScore}%</div>
+                      <div className="text-small text-muted-foreground">Avg Score</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{userStats.streak}d</div>
-                      <div className="text-sm text-muted-foreground">Streak</div>
+                      <div className="text-h2 font-bold">{userStats.streak}d</div>
+                      <div className="text-small text-muted-foreground">Streak</div>
                     </div>
                     <div className="flex items-center">
                       <ProgressBar value={userStats.completionRate} aria-label="Completion rate" />
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-muted-foreground">
+                  <p className="mt-3 text-small text-muted-foreground">
                     Sign in and complete a practice to see personalized analytics.
                   </p>
                 )}
@@ -392,8 +392,8 @@ export default function WritingListPage() {
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                     <Icon name="BookMarked" />
                   </div>
-                  <h3 className="text-xl font-semibold">Tips & Micro-Practice</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <h3 className="text-h3 font-semibold">Tips & Micro-Practice</h3>
+                  <p className="mt-1 text-small text-muted-foreground">
                     10 focused tips + quick practice. Log attempts; progress saved server-side.
                   </p>
                   <div className="mt-4 flex gap-2">
@@ -410,8 +410,8 @@ export default function WritingListPage() {
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                     <Icon name="Sparkles" />
                   </div>
-                  <h3 className="text-xl font-semibold">AI Insights</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <h3 className="text-h3 font-semibold">AI Insights</h3>
+                  <p className="mt-1 text-small text-muted-foreground">
                     Personalized focus areas and next micro-tasks. Starter+ (admin/teachers bypass).
                   </p>
                   <div className="mt-4 flex gap-2">
@@ -431,8 +431,8 @@ export default function WritingListPage() {
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-electricBlue/15 text-electricBlue">
                     <Icon name="Timer" />
                   </div>
-                  <h3 className="text-xl font-semibold">Timed Mock</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <h3 className="text-h3 font-semibold">Timed Mock</h3>
+                  <p className="mt-1 text-small text-muted-foreground">
                     Jump into a full timed attempt. Build pacing and exam stamina.
                   </p>
                   <div className="mt-4 flex gap-2">
@@ -446,8 +446,8 @@ export default function WritingListPage() {
               {/* Downloadables + Core Guides */}
               <div className="grid gap-4 md:grid-cols-2">
                 <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
-                  <h4 className="text-lg font-semibold">Downloadables</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Print-friendly references.</p>
+                  <h4 className="text-h4 font-semibold">Downloadables</h4>
+                  <p className="text-small text-muted-foreground mt-1">Print-friendly references.</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <Link href="/resources/writing/cheatsheet-grammar.pdf" className="inline-flex">
                       <Button variant="surface">Grammar Cheatsheet</Button>
@@ -462,8 +462,8 @@ export default function WritingListPage() {
                 </Card>
 
                 <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
-                  <h4 className="text-lg font-semibold">Core Guides</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Short, practical explainers.</p>
+                  <h4 className="text-h4 font-semibold">Core Guides</h4>
+                  <p className="text-small text-muted-foreground mt-1">Short, practical explainers.</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <Link href="/writing/learn/task1-overview" className="inline-flex">
                       <Button variant="surface">Task 1 Overview</Button>
@@ -482,8 +482,8 @@ export default function WritingListPage() {
               <Card className="p-6 bg-white/70 backdrop-blur dark:bg-dark/70">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-semibold">Practice > Passive Learning</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h4 className="text-h4 font-semibold">Practice > Passive Learning</h4>
+                    <p className="text-small text-muted-foreground mt-1">
                       We keep guides concise and push you to practice immediately—your progress is logged and surfaced in Insights.
                     </p>
                   </div>

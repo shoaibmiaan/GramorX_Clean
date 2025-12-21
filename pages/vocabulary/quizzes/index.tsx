@@ -21,7 +21,7 @@ export default function VocabularyQuizHome() {
             <Card className="rounded-ds-2xl p-5 flex flex-col gap-3">
               <Icon name="ListChecks" size={24} />
               <h3 className="font-semibold">Meaning MCQ</h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Choose the correct meaning for each word.
               </p>
               <Button asChild size="sm" variant="primary" className="mt-auto rounded-ds-xl">
@@ -32,7 +32,7 @@ export default function VocabularyQuizHome() {
             <Card className="rounded-ds-2xl p-5 flex flex-col gap-3">
               <Icon name="Edit3" size={24} />
               <h3 className="font-semibold">Fill the blank</h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Use the right word inside IELTS-style sentences.
               </p>
               <Button asChild size="sm" variant="secondary" className="mt-auto rounded-ds-xl">
@@ -43,7 +43,7 @@ export default function VocabularyQuizHome() {
             <Card className="rounded-ds-2xl p-5 flex flex-col gap-3">
               <Icon name="RefreshCw" size={24} />
               <h3 className="font-semibold">Review saved words</h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Quiz only on words from your “My Words” list.
               </p>
               <Button asChild size="sm" variant="accent" className="mt-auto rounded-ds-xl">

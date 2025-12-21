@@ -20,7 +20,7 @@ export const StickyActionBar: React.FC<StickyActionBarProps> = ({ left, right, c
       )}
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-3 overflow-x-auto text-sm text-muted-foreground">
+        <div className="flex flex-1 items-center gap-3 overflow-x-auto text-small text-muted-foreground">
           {left}
         </div>
         <div className="flex flex-none items-center gap-3">{children ?? right}</div>

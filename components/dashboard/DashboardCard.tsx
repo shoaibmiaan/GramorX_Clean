@@ -28,12 +28,12 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
       {(title || subtitle) && (
         <header className="mb-3 flex flex-col gap-1">
           {title && (
-            <h2 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="text-small font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               {title}
             </h2>
           )}
           {subtitle && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-caption text-slate-500 dark:text-slate-400">
               {subtitle}
             </p>
           )}

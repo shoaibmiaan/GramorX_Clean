@@ -112,11 +112,11 @@ const PromotionsPage: NextPage = () => {
                     applied={demoPromo ?? undefined}
                     className="mt-2"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Want the exact savings for your plan? Head over to the <Link href="/checkout">checkout page</Link> and apply the
                     code alongside your referral.
                   </p>
-                  <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <div className="rounded-lg bg-muted/40 p-3 text-caption text-muted-foreground">
                     Current plan highlights:
                     <ul className="mt-2 list-disc space-y-1 pl-5">
                       <li>{PLAN_LABEL.booster} — best for fast progress</li>

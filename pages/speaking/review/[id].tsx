@@ -327,7 +327,7 @@ export default function SpeakingReview({ attempt: initial, viewerRole }: Props) 
                 Share with teacher/partner
               </Button>
               <span>
-                Attempt ID: <code className="text-xs">{attempt.id}</code>
+                Attempt ID: <code className="text-caption">{attempt.id}</code>
               </span>
               <span className="opacity-70">
                 Teachers can open Admin → Speaking with this link to review your audio.
@@ -395,7 +395,7 @@ export default function SpeakingReview({ attempt: initial, viewerRole }: Props) 
                     </div>
                   )}
                   {feedbackSuccess && (
-                    <div className="mt-3 rounded-ds bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-3 py-2 text-small">
+                    <div className="mt-3 rounded-ds bg-success/10 text-success dark:text-success/90 px-3 py-2 text-small">
                       {feedbackSuccess}
                     </div>
                   )}

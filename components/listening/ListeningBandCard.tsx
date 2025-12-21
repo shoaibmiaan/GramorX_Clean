@@ -17,11 +17,11 @@ type ListeningBandCardProps = {
 export const ListeningBandCard: React.FC<ListeningBandCardProps> = ({ attempts }) => {
   if (!attempts || attempts.length === 0) {
     return (
-      <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs">
+      <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-caption">
         <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground mb-2">
           Listening Band Snapshot
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Take your first full Listening mock to unlock band tracking and improvement
           insights.
         </p>
@@ -46,7 +46,7 @@ export const ListeningBandCard: React.FC<ListeningBandCardProps> = ({ attempts }
       : null;
 
   return (
-    <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs space-y-3">
+    <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-caption space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
@@ -90,6 +90,6 @@ const BandStat = ({
       <Icon name={icon} className="h-3 w-3" />
       {label}
     </p>
-    <p className="mt-1 text-base font-semibold">{value}</p>
+    <p className="mt-1 text-body font-semibold">{value}</p>
   </div>
 );

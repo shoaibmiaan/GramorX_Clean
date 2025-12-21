@@ -31,7 +31,7 @@ export function LearningPathChip({ skillMix, focusSkills, className }: Props) {
   return (
     <div
       className={clsx(
-        'inline-flex items-center gap-3 rounded-full border border-border/70 bg-card/80 px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm backdrop-blur-sm',
+        'inline-flex items-center gap-3 rounded-full border border-border/70 bg-card/80 px-4 py-1.5 text-caption font-semibold text-muted-foreground shadow-sm backdrop-blur-sm',
         className,
       )}
       aria-label="Learning path skill mix"

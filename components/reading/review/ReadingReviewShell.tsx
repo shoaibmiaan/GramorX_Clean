@@ -92,7 +92,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
     <div className="space-y-4">
       {/* ===== FILTER BAR ===== */}
       <div className="flex flex-col gap-3 border-b border-border/60 pb-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-caption">
           <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
             Filter questions
           </span>
@@ -137,7 +137,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-caption">
           <div className="inline-flex items-center gap-2">
             <span className="text-[11px] text-muted-foreground">Tag</span>
             <select
@@ -207,7 +207,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-sm font-medium text-foreground line-clamp-1">
+                <p className="text-small font-medium text-foreground line-clamp-1">
                   {passage.title}
                 </p>
               </div>
@@ -220,7 +220,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
 
             <div className="mt-3 space-y-3">
               {/* Passage content preview */}
-              <Card className="rounded-ds-xl border border-border/60 bg-card/80 p-3 text-xs text-muted-foreground max-h-40 overflow-y-auto">
+              <Card className="rounded-ds-xl border border-border/60 bg-card/80 p-3 text-caption text-muted-foreground max-h-40 overflow-y-auto">
                 <div className="space-y-1 leading-relaxed">
                   {passage.content}
                 </div>
@@ -251,7 +251,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
                     return (
                       <Card
                         key={q.id}
-                        className="rounded-ds-xl border border-border/60 bg-card/90 p-3 text-xs"
+                        className="rounded-ds-xl border border-border/60 bg-card/90 p-3 text-caption"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
@@ -265,7 +265,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
+                            <p className="text-caption text-muted-foreground line-clamp-2">
                               {q.prompt}
                             </p>
                           </div>
@@ -284,7 +284,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                               Your answer
                             </p>
-                            <p className="text-xs text-foreground break-words">
+                            <p className="text-caption text-foreground break-words">
                               {selectedLabel}
                             </p>
                           </div>
@@ -293,7 +293,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
                               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                                 Correct answer
                               </p>
-                              <p className="text-xs text-foreground break-words">
+                              <p className="text-caption text-foreground break-words">
                                 {correctLabel}
                               </p>
                             </div>
@@ -314,7 +314,7 @@ export const ReadingReviewShell: React.FC<ReadingReviewShellProps> = ({
       })}
 
       {sortedPassages.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-caption text-muted-foreground text-center">
           No passages found for this test.
         </p>
       )}

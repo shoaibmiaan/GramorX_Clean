@@ -99,7 +99,7 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
     return (
       <Card className="p-4 space-y-3 bg-background/95 dark:bg-dark/90">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.16em]">
+          <span className="text-caption font-semibold text-muted-foreground uppercase tracking-[0.16em]">
             Reading forecast
           </span>
           <Badge variant="outline" className="rounded-ds-xl text-[10px]">
@@ -107,11 +107,11 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
             Warming up
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           We don&apos;t have enough completed reading attempts to forecast your band yet.
         </p>
         {hasError && (
-          <p className="text-xs text-destructive">
+          <p className="text-caption text-destructive">
             Couldn&apos;t reach the forecast service right now. Try again after another
             attempt.
           </p>
@@ -120,7 +120,7 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
           <Button
             variant="surface"
             size="sm"
-            className="rounded-ds-xl text-xs"
+            className="rounded-ds-xl text-caption"
             asChild
           >
             <a href="/mock/reading/history">Finish a mock to unlock forecast</a>
@@ -143,7 +143,7 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
   return (
     <Card className="p-4 space-y-3 bg-background/95 dark:bg-dark/90">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.16em]">
+        <span className="text-caption font-semibold text-muted-foreground uppercase tracking-[0.16em]">
           Reading forecast
         </span>
         <Badge
@@ -155,21 +155,21 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
         </Badge>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-semibold text-foreground">
+        <span className="text-h2 font-semibold text-foreground">
           {bandNow.toFixed(1)}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-muted-foreground">
           → target {target.toFixed(1)}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">
+      <div className="text-caption text-muted-foreground">
         Current:{' '}
         <span className="font-semibold text-foreground">
           Band {bandNow.toFixed(1)}
         </span>{' '}
         ({Math.round(data.currentPct)}% of target)
       </div>
-      <div className="text-xs">
+      <div className="text-caption">
         {data.etaDays === null ? (
           <span className="text-muted-foreground">
             • Keep improving your slope to reach target.
@@ -180,7 +180,7 @@ export const ReadingForecastPanel: React.FC<{ targetBand?: number }> = ({
           </span>
         )}
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{data.rationale}</div>
+      <div className="mt-1 text-caption text-muted-foreground">{data.rationale}</div>
       <div className="mt-3">
         <Button variant="surface" size="sm" className="rounded-ds-xl" asChild>
           <a href="/reading?type=tfng">Boost slope: weakest type drill</a>

@@ -460,14 +460,14 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
             <Badge variant="subtle" className="border border-white/30 bg-white/10 text-white">
               Study rhythm coach
             </Badge>
-            <h1 className="mt-4 text-3xl font-semibold md:text-4xl">
+            <h1 className="mt-4 text-h1 font-semibold md:text-display">
               Design a <GradientText className="font-semibold">laser-focused</GradientText> practice session
             </h1>
-            <p className="mt-3 max-w-2xl text-base text-white/80 md:text-lg">
+            <p className="mt-3 max-w-2xl text-body text-white/80 md:text-h4">
               Stack personalised micro-blocks for the skills you want to sharpen today. When you’re ready, launch a guided session with smart timers and streak protection.
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/80">
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-small text-white/80">
               <div className="rounded-ds-xl border border-white/20 bg-white/10 px-4 py-2">
                 Total planned time: <span className="font-semibold text-white">{totalMinutes}</span> min
               </div>
@@ -494,7 +494,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
               <Button onClick={createSession} disabled={creating} variant="ghost" size="lg" className="border border-white/40 bg-white/10 text-white hover:bg-white/20">
                 {creating ? 'Saving…' : 'Save for later'}
               </Button>
-              <Link href="/study-plan" className="text-sm underline text-white/80 hover:text-white">
+              <Link href="/study-plan" className="text-small underline text-white/80 hover:text-white">
                 View personalised plan →
               </Link>
             </div>
@@ -505,10 +505,10 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
           <Card className="p-6 shadow-lg">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Session builder</h2>
+                <h2 className="text-h3 font-semibold">Session builder</h2>
                 <p className="text-muted-foreground">Mix 2–5 focused blocks. We’ll automatically rotate skills during practice.</p>
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-small text-muted-foreground">
                 <span className="font-medium">{totalMinutes}</span> min total ·{' '}
                 <span className="font-medium">{items.length}</span> blocks
               </div>
@@ -520,7 +520,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
 
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">Focus mode</p>
+                <p className="text-small font-medium text-foreground">Focus mode</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {FOCUS_OPTIONS.map((option) => (
                     <Card
@@ -539,16 +539,16 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
                         focusMode === option.value ? 'border-primary shadow-lg ring-1 ring-primary/50' : 'border-border'
                       } p-4 transition`}
                     >
-                      <h3 className="text-sm font-semibold text-foreground">{option.label}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+                      <h3 className="text-small font-semibold text-foreground">{option.label}</h3>
+                      <p className="mt-1 text-caption text-muted-foreground">{option.description}</p>
                     </Card>
                   ))}
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">Duration</p>
+                <p className="text-small font-medium text-foreground">Duration</p>
                 <div className="rounded-ds-xl border border-dashed border-border/60 p-4">
-                  <div className="flex items-center justify-between text-sm font-medium text-foreground">
+                  <div className="flex items-center justify-between text-small font-medium text-foreground">
                     <span>Planned minutes</span>
                     <span>{plannedDuration} min</span>
                   </div>
@@ -561,7 +561,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
                     onChange={(ev) => setPlannedDuration(Number(ev.target.value))}
                     className="mt-4 w-full accent-primary"
                   />
-                  <p className="mt-2 text-xs text-muted-foreground">Slide to set your total study time for today.</p>
+                  <p className="mt-2 text-caption text-muted-foreground">Slide to set your total study time for today.</p>
                 </div>
               </div>
             </div>
@@ -629,7 +629,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
               </Button>
             </div>
 
-            <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+            <div className="mt-6 space-y-3 text-small text-muted-foreground">
               <p className="font-medium text-foreground">Time allocation</p>
               <div className="space-y-2">
                 {Object.entries(minutesBySkill).map(([skill, minutes]) => (
@@ -648,15 +648,15 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
             <Card className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold">Weekly snapshot</h2>
-                  <p className="text-sm text-muted-foreground">Track focus minutes and keep your streak thriving.</p>
+                  <h2 className="text-h4 font-semibold">Weekly snapshot</h2>
+                  <p className="text-small text-muted-foreground">Track focus minutes and keep your streak thriving.</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={refreshSummary} disabled={summaryLoading}>
                   {summaryLoading ? 'Refreshing…' : 'Refresh'}
                 </Button>
               </div>
               <Separator className="my-4" />
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-small">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>This week</span>
                   <span className="font-medium text-foreground">{summary?.weeklyMinutes ?? 0} / {summary?.weeklyGoal ?? 210} min</span>
@@ -669,8 +669,8 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
             <Card className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold">Latest session</h2>
-                  <p className="text-sm text-muted-foreground">Launch the most recent plan or refresh to pick up new changes.</p>
+                  <h2 className="text-h4 font-semibold">Latest session</h2>
+                  <p className="text-small text-muted-foreground">Launch the most recent plan or refresh to pick up new changes.</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={refreshLatest} disabled={refreshing}>
                   {refreshing ? 'Refreshing…' : 'Refresh'}
@@ -680,7 +680,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
               <Separator className="my-4" />
 
               {!latestSession ? (
-                <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-3 text-small text-muted-foreground">
                   <p>No saved sessions yet. Create a builder on the left to get started.</p>
                   <Button onClick={createSession} disabled={creating}>
                     {creating ? 'Saving…' : 'Save first session'}
@@ -688,7 +688,7 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="rounded-ds-xl bg-muted/50 p-4 text-xs text-muted-foreground">
+                  <div className="rounded-ds-xl bg-muted/50 p-4 text-caption text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Session ID</span>
                       <code className="font-mono text-foreground">{latestSession.id}</code>
@@ -708,11 +708,11 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
                       <Card key={`${it.skill}-${index}`} className="border border-border/50 bg-background p-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="text-sm uppercase tracking-wide text-muted-foreground">Block {index + 1}</div>
-                            <div className="text-lg font-semibold">{it.skill}</div>
-                            {it.topic && <div className="text-xs text-muted-foreground">{it.topic}</div>}
+                            <div className="text-small uppercase tracking-wide text-muted-foreground">Block {index + 1}</div>
+                            <div className="text-h4 font-semibold">{it.skill}</div>
+                            {it.topic && <div className="text-caption text-muted-foreground">{it.topic}</div>}
                           </div>
-                          <div className="rounded-ds-xl bg-muted px-3 py-1 text-sm font-medium">{it.minutes} min</div>
+                          <div className="rounded-ds-xl bg-muted px-3 py-1 text-small font-medium">{it.minutes} min</div>
                         </div>
                       </Card>
                     ))}
@@ -726,19 +726,19 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
             </Card>
 
             <Card className="p-6">
-              <h2 className="text-lg font-semibold">Quick presets</h2>
-              <p className="text-sm text-muted-foreground">Jump in with a curated combo. You can fine-tune each block afterwards.</p>
+              <h2 className="text-h4 font-semibold">Quick presets</h2>
+              <p className="text-small text-muted-foreground">Jump in with a curated combo. You can fine-tune each block afterwards.</p>
 
               <div className="mt-4 space-y-3">
                 {PRESETS.map((preset) => (
                   <Card key={preset.name} className="border border-border/60 bg-muted/40 p-4">
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <h3 className="text-base font-semibold">{preset.name}</h3>
-                        <p className="text-sm text-muted-foreground">{preset.description}</p>
+                        <h3 className="text-body font-semibold">{preset.name}</h3>
+                        <p className="text-small text-muted-foreground">{preset.description}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="rounded-ds-lg bg-background px-3 py-1 text-sm font-medium">{preset.minutes} min</span>
+                        <span className="rounded-ds-lg bg-background px-3 py-1 text-small font-medium">{preset.minutes} min</span>
                         <Button size="sm" onClick={() => applyPreset(preset.items)}>
                           Use preset
                         </Button>
@@ -754,16 +754,16 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
         <Card className="p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Recent sessions</h2>
-              <p className="text-sm text-muted-foreground">See how your study rhythm has evolved this week.</p>
+              <h2 className="text-h4 font-semibold">Recent sessions</h2>
+              <p className="text-small text-muted-foreground">See how your study rhythm has evolved this week.</p>
             </div>
-            <Link href="/dashboard" className="text-sm text-primary underline">
+            <Link href="/dashboard" className="text-small text-primary underline">
               View dashboard →
             </Link>
           </div>
           <Separator className="my-4" />
           {recentSessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recent sessions yet. Create your first plan to unlock insights.</p>
+            <p className="text-small text-muted-foreground">No recent sessions yet. Create your first plan to unlock insights.</p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {recentSessions.map((session) => {
@@ -773,20 +773,20 @@ const StudyBuddyIndex: NextPage<PageProps> = ({ userId, latestSession: ssrLatest
                   <Card key={session.id} className="border border-border/50 bg-muted/40 p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        <p className="text-caption uppercase tracking-wide text-muted-foreground">
                           {new Date(session.created_at).toLocaleDateString(undefined, {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric',
                           })}
                         </p>
-                        <h3 className="mt-1 text-base font-semibold">{duration} min · {session.items.length} blocks</h3>
+                        <h3 className="mt-1 text-body font-semibold">{duration} min · {session.items.length} blocks</h3>
                       </div>
                       <Badge variant={session.state === 'completed' ? 'success' : session.state === 'started' ? 'info' : 'neutral'}>
                         {session.state}
                       </Badge>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap gap-2 text-caption text-muted-foreground">
                       {session.items.map((item, idx) => (
                         <span key={`${session.id}-${item.skill}-${idx}`} className="rounded-ds-lg bg-background px-2 py-1 font-medium text-foreground">
                           {item.skill} · {item.minutes}m

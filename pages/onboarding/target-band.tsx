@@ -156,19 +156,19 @@ const OnboardingTargetBandPage: NextPage = () => {
         <section className="w-full max-w-3xl rounded-3xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-md sm:p-8">
           <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
                 Step {currentIndex + 1} of {ONBOARDING_STEPS.length}
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-h2 font-semibold tracking-tight sm:text-h1">
                 What&apos;s your target band score?
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              <p className="mt-2 text-small text-muted-foreground sm:text-body">
                 Your goal band helps us set difficulty, pick question types, and
                 plan how aggressive your schedule should be.
               </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 self-start rounded-full bg-muted px-3 py-1 text-caption font-medium text-muted-foreground">
               <Icon name="target" className="h-3.5 w-3.5" />
               Clear goal, clearer path.
             </div>
@@ -187,11 +187,11 @@ const OnboardingTargetBandPage: NextPage = () => {
           </div>
 
           {error && (
-            <p className="mt-3 text-sm font-medium text-destructive">{error}</p>
+            <p className="mt-3 text-small font-medium text-destructive">{error}</p>
           )}
 
           {/* Hint */}
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-4 text-caption text-muted-foreground">
             Not 100% sure? Pick the band you’d be happy with. You can always
             adjust it later from{' '}
             <span className="font-medium">Profile → Goals</span>.
@@ -210,7 +210,7 @@ const OnboardingTargetBandPage: NextPage = () => {
             </Button>
 
             <div className="flex items-center gap-3">
-              <p className="hidden text-xs text-muted-foreground sm:inline">
+              <p className="hidden text-caption text-muted-foreground sm:inline">
                 Next: <span className="font-medium">Exam date</span>
               </p>
               <Button
@@ -251,7 +251,7 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
           const circle = (
             <div
               className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
+                'flex h-7 w-7 items-center justify-center rounded-full border text-caption font-semibold',
                 completed &&
                   'border-primary bg-primary text-primary-foreground',
                 active &&
@@ -302,7 +302,7 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
       </div>
 
       {/* Labels */}
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         {steps.map((step, index) => {
           const active = index === currentIndex;
           const label = (
@@ -359,7 +359,7 @@ const TargetBandCard: React.FC<TargetBandCardProps> = ({
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Icon name="target" className="h-4 w-4" />
           </span>
-          <span className="text-base font-semibold sm:text-lg">
+          <span className="text-body font-semibold sm:text-h4">
             {option.label}
           </span>
         </div>
@@ -376,7 +376,7 @@ const TargetBandCard: React.FC<TargetBandCardProps> = ({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground sm:text-sm">
+      <p className="text-caption text-muted-foreground sm:text-small">
         {option.subtitle}
       </p>
 

@@ -30,8 +30,8 @@ const QuestionTypeDrillPage: NextPage<PageProps> = ({ questionTypeId, questions 
         <Container className="py-10 space-y-6">
           <Card className="p-4 flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-lg font-semibold">Question Type Drill</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-h4 font-semibold">Question Type Drill</h1>
+              <p className="text-small text-muted-foreground">
                 Practice only this question type. Try to move quickly but accurately.
               </p>
             </div>

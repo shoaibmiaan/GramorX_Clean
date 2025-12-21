@@ -34,7 +34,7 @@ export function IPAHeatmap({ phonemes, weakTargets = [] }: IPAHeatmapProps) {
   if (rows.length === 0) {
     return (
       <Card className="p-6">
-        <p className="text-sm text-muted-foreground">No phoneme feedback yet. Record an attempt to see breakdowns.</p>
+        <p className="text-small text-muted-foreground">No phoneme feedback yet. Record an attempt to see breakdowns.</p>
       </Card>
     );
   }
@@ -42,8 +42,8 @@ export function IPAHeatmap({ phonemes, weakTargets = [] }: IPAHeatmapProps) {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-        <h3 className="text-base font-semibold text-foreground">Phoneme accuracy heatmap</h3>
-        <p className="text-xs text-muted-foreground">{phonemes.length} total phoneme observations</p>
+        <h3 className="text-body font-semibold text-foreground">Phoneme accuracy heatmap</h3>
+        <p className="text-caption text-muted-foreground">{phonemes.length} total phoneme observations</p>
       </div>
       <div className="divide-y divide-border/40">
         {rows.map((row) => {
@@ -53,17 +53,17 @@ export function IPAHeatmap({ phonemes, weakTargets = [] }: IPAHeatmapProps) {
           return (
             <div key={row.symbol} className="flex items-center gap-4 px-4 py-3">
               <div
-                className={`flex h-10 w-16 items-center justify-center rounded-ds-lg border text-sm font-semibold ${tone}`}
+                className={`flex h-10 w-16 items-center justify-center rounded-ds-lg border text-small font-semibold ${tone}`}
                 aria-label={`${row.symbol} accuracy ${percent}%`}
               >
                 {row.symbol}
               </div>
               <div className="flex-1">
                 <ProgressBar value={percent} aria-label={`${row.symbol} accuracy`} />
-                <p className="mt-1 text-xs text-muted-foreground">{row.count} samples</p>
+                <p className="mt-1 text-caption text-muted-foreground">{row.count} samples</p>
               </div>
               {isWeak && (
-                <span className="rounded-ds-full bg-danger/15 px-3 py-1 text-xs font-medium text-danger">Focus</span>
+                <span className="rounded-ds-full bg-danger/15 px-3 py-1 text-caption font-medium text-danger">Focus</span>
               )}
             </div>
           );

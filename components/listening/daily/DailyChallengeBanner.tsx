@@ -18,15 +18,15 @@ export function DailyChallengeBanner({ streakCurrent }: Props) {
             <Icon name="Headphones" className="h-8 w-8 text-primary" />
           </div>
           <div className="space-y-2">
-            <h3 className="font-slab text-xl">
+            <h3 className="font-slab text-h3">
               Daily Listening Challenge
               {streakCurrent > 0 && (
-                <Badge variant="accent" className="ml-3 text-xs">
+                <Badge variant="accent" className="ml-3 text-caption">
                   {streakCurrent} day{streakCurrent > 1 ? 's' : ''} streak
                 </Badge>
               )}
             </h3>
-            <p className="text-sm text-muted-foreground max-w-lg">
+            <p className="text-small text-muted-foreground max-w-lg">
               Train your ear every day with a fresh 10-question mini-test. Keep your streak alive and watch your band climb!
             </p>
           </div>

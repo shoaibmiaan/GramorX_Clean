@@ -82,7 +82,7 @@ const SpeakingMockIndexPage: React.FC = () => {
 
               {/* LEFT */}
               <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
                   <Icon name="Mic" size={14} />
                   <span>Speaking Mock Suite</span>
                 </div>
@@ -91,7 +91,7 @@ const SpeakingMockIndexPage: React.FC = () => {
                   Full Speaking mocks with transcripts + AI feedback.
                 </h1>
 
-                <p className="text-sm text-muted-foreground max-w-xl">
+                <p className="text-small text-muted-foreground max-w-xl">
                   Simulate the real interview: Part 1 warm-up, Part 2 cue card,
                   Part 3 follow-ups. AI gives instant transcripts, filler
                   detection, pacing metrics, and personalised improvement steps.
@@ -130,18 +130,18 @@ const SpeakingMockIndexPage: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <p className="text-xs text-muted-foreground">Scripts</p>
-                    <p className="text-lg font-semibold">{totalScripts}</p>
+                    <p className="text-caption text-muted-foreground">Scripts</p>
+                    <p className="text-h4 font-semibold">{totalScripts}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Total prompts</p>
-                    <p className="text-lg font-semibold">
+                    <p className="text-caption text-muted-foreground">Total prompts</p>
+                    <p className="text-h4 font-semibold">
                       {totalPrompts.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Parts</p>
-                    <p className="text-lg font-semibold">1–3</p>
+                    <p className="text-caption text-muted-foreground">Parts</p>
+                    <p className="text-h4 font-semibold">1–3</p>
                   </div>
                 </div>
               </Card>
@@ -157,7 +157,7 @@ const SpeakingMockIndexPage: React.FC = () => {
           <Container>
             <div className="mb-6">
               <h2 className="font-slab text-h3">Why practise Speaking here?</h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 Designed for solo learners — no partner required.
               </p>
             </div>
@@ -175,7 +175,7 @@ const SpeakingMockIndexPage: React.FC = () => {
                     <h3 className="text-h5 font-semibold">{item.title}</h3>
                   </div>
 
-                  <p className="mt-3 text-sm text-muted-foreground">
+                  <p className="mt-3 text-small text-muted-foreground">
                     {item.description}
                   </p>
                 </Card>
@@ -191,7 +191,7 @@ const SpeakingMockIndexPage: React.FC = () => {
           <Container>
             <div className="mb-6">
               <h2 className="font-slab text-h3">Speaking Scripts Library</h2>
-              <p className="text-sm text-muted-foreground max-w-xl">
+              <p className="text-small text-muted-foreground max-w-xl">
                 Each script contains complete timing, cues, Part 2 prep,
                 discussion follow-ups, and transcript-ready recording flow.
               </p>
@@ -213,7 +213,7 @@ const SpeakingMockIndexPage: React.FC = () => {
                         </Badge>
                       </div>
 
-                      <p className="mt-2 text-sm text-muted-foreground">
+                      <p className="mt-2 text-small text-muted-foreground">
                         {script.description}
                       </p>
                     </div>
@@ -242,7 +242,7 @@ const SpeakingMockIndexPage: React.FC = () => {
         <section className="py-14">
           <Container>
             <h2 className="font-slab text-h3">Master the full interview flow</h2>
-            <p className="text-sm text-muted-foreground max-w-xl mt-1">
+            <p className="text-small text-muted-foreground max-w-xl mt-1">
               Train your stamina and fluency. Repeat each part until responses become natural.
             </p>
 
@@ -259,7 +259,7 @@ const SpeakingMockIndexPage: React.FC = () => {
                     <h3 className="text-h5 font-semibold">{item.title}</h3>
                   </div>
 
-                  <p className="mt-3 text-sm text-muted-foreground">
+                  <p className="mt-3 text-small text-muted-foreground">
                     {item.description}
                   </p>
                 </Card>
@@ -277,23 +277,23 @@ const SpeakingMockIndexPage: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-6">
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  <p className="text-caption font-semibold uppercase tracking-[0.18em] text-primary">
                     Next smart move
                   </p>
                   <h3 className="font-slab text-h3">Fix your Speaking fillers and pacing.</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Use AI Lab to analyse your transcript, highlight weak grammar,
                     catch hesitations, and practise smoother delivery.
                   </p>
                 </div>
 
-                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-sm">
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-small">
+                  <div className="flex items-center gap-2 text-caption font-medium text-muted-foreground">
                     <Icon name="Sparkles" size={14} />
                     <span>Suggested flow</span>
                   </div>
 
-                  <ol className="space-y-2 text-xs text-muted-foreground">
+                  <ol className="space-y-2 text-caption text-muted-foreground">
                     <li>1. Attempt a Speaking mock from the list.</li>
                     <li>2. Review your transcript + audio.</li>
                     <li>3. Send to AI Lab for detailed feedback.</li>

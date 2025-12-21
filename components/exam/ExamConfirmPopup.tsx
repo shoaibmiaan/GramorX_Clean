@@ -28,14 +28,14 @@ const ExamConfirmPopup: React.FC<ExamConfirmPopupProps> = ({
       <DialogContent className="max-w-sm bg-background/95 border border-border/80 backdrop-blur-lg shadow-xl rounded-2xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-300">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-warning/10 text-warning dark:text-warning/90">
               <Icon name="alert-triangle" className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-h4 font-semibold">
               Submit attempt?
             </DialogTitle>
           </div>
-          <DialogDescription className="mt-3 text-sm text-muted-foreground">
+          <DialogDescription className="mt-3 text-small text-muted-foreground">
             You still have{" "}
             <span className="font-semibold text-foreground">
               {unanswered} unanswered

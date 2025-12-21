@@ -44,7 +44,7 @@ export default function SavedWordsPage() {
           </div>
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
               <span>Saved: {savedWords.length}</span>
               <span>• Mastered: {savedWords.filter((w) => w.mastered).length}</span>
             </div>
@@ -60,7 +60,7 @@ export default function SavedWordsPage() {
 
           {savedWords.length === 0 ? (
             <Card className="rounded-ds-2xl border border-dashed border-border/60 bg-card/50 p-6">
-              <p className="text-sm font-medium">
+              <p className="text-small font-medium">
                 No saved words yet. Start from the Daily Word or any topic pack and hit
                 &quot;Save word&quot;.
               </p>
@@ -71,8 +71,8 @@ export default function SavedWordsPage() {
                 <Card key={item.word} className="rounded-ds-2xl border border-border/60 bg-card/60 p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-lg font-semibold">{item.word}</p>
-                      <p className="text-xs text-muted-foreground">Band {item.band}</p>
+                      <p className="text-h4 font-semibold">{item.word}</p>
+                      <p className="text-caption text-muted-foreground">Band {item.band}</p>
                     </div>
                     <Badge
                       size="xs"
@@ -81,7 +81,7 @@ export default function SavedWordsPage() {
                       {item.mastered ? 'Mastered' : 'Learning'}
                     </Badge>
                   </div>
-                  <p className="mt-3 text-sm">
+                  <p className="mt-3 text-small">
                     <span className="font-medium">Example: </span>
                     {item.example}
                   </p>

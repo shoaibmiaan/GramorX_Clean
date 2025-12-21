@@ -63,21 +63,21 @@ export default function AdminListeningMedia({ role, email }: Props) {
       <Section>
         <Container>
           <div className="mb-4"><Badge>Admin</Badge></div>
-          <h1 className="text-2xl font-semibold">Listening · Media</h1>
+          <h1 className="text-h2 font-semibold">Listening · Media</h1>
           <p className="opacity-80 mb-4">Role: {role} · {email}</p>
 
           <Card className="p-4">
             <form onSubmit={submit} className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-3">
                 <div>
-                  <div className="text-sm opacity-70 mb-1">Kind</div>
+                  <div className="text-small opacity-70 mb-1">Kind</div>
                   <select className="rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={kind} onChange={e=>setKind(e.target.value as any)}>
                     <option value="audio">Audio</option>
                     <option value="video">Video</option>
                   </select>
                 </div>
                 <div>
-                  <div className="text-sm opacity-70 mb-1">Accent</div>
+                  <div className="text-small opacity-70 mb-1">Accent</div>
                   <select className="rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={accent} onChange={e=>setAccent(e.target.value as any)}>
                     <option value="mix">MIX</option>
                     <option value="uk">UK</option>
@@ -86,7 +86,7 @@ export default function AdminListeningMedia({ role, email }: Props) {
                   </select>
                 </div>
                 <div>
-                  <div className="text-sm opacity-70 mb-1">Level</div>
+                  <div className="text-small opacity-70 mb-1">Level</div>
                   <select className="rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={level} onChange={e=>setLevel(e.target.value as any)}>
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -94,23 +94,23 @@ export default function AdminListeningMedia({ role, email }: Props) {
                   </select>
                 </div>
                 <div>
-                  <div className="text-sm opacity-70 mb-1">Duration (secs)</div>
+                  <div className="text-small opacity-70 mb-1">Duration (secs)</div>
                   <input type="number" className="w-[140px] rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={duration} onChange={e=>setDuration(Number(e.target.value))} />
                 </div>
               </div>
 
               <div>
-                <div className="text-sm opacity-70 mb-1">Media URL</div>
+                <div className="text-small opacity-70 mb-1">Media URL</div>
                 <input className="w-full rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={url} onChange={e=>setUrl(e.target.value)} required />
               </div>
 
               <div>
-                <div className="text-sm opacity-70 mb-1">Tags (comma-sep)</div>
+                <div className="text-small opacity-70 mb-1">Tags (comma-sep)</div>
                 <input className="w-full rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={tags} onChange={e=>setTags(e.target.value)} />
               </div>
 
               <div>
-                <div className="text-sm opacity-70 mb-1">Transcript (optional)</div>
+                <div className="text-small opacity-70 mb-1">Transcript (optional)</div>
                 <textarea className="w-full min-h-[160px] rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={transcript} onChange={e=>setTranscript(e.target.value)} />
               </div>
 

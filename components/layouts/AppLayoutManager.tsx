@@ -51,8 +51,8 @@ const LayoutErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) =>
     return (
       <Card className="mx-auto max-w-md mt-8">
         <div className="p-4 text-center">
-          <h3 className="text-lg font-semibold mb-2">Layout Error</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <h3 className="text-h4 font-semibold mb-2">Layout Error</h3>
+          <p className="text-small text-muted-foreground mb-4">
             There was a problem loading this page layout.
           </p>
           <Button onClick={() => window.location.reload()}>Reload Page</Button>

@@ -52,8 +52,8 @@ export default function VocabularyListsPage() {
                     {list.bestFor}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{list.description}</p>
-                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <p className="text-small text-muted-foreground">{list.description}</p>
+                <div className="flex items-center justify-between gap-2 text-caption text-muted-foreground">
                   <span>{list.size} words</span>
                   <span>Recommended: 10–15 words per day</span>
                 </div>
