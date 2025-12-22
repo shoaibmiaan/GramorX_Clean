@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 
 import { saveWritingDraft } from '@/lib/writing/autosave';
+import { createAutosaveThrottle } from '@/lib/writing/performance/autosaveThrottle';
 import type { WritingTaskType } from '@/types/writing';
 
 export type AutoSaveDraftState = 'idle' | 'saving' | 'saved' | 'error';
@@ -39,6 +40,7 @@ export const useAutoSaveDraft = ({
   const [state, setState] = useState<AutoSaveDraftState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const mounted = useRef(true);
+  const throttle = useRef(createAutosaveThrottle(throttleMs || 1500));
 
   useEffect(() => {
     mounted.current = true;
@@ -56,6 +58,14 @@ export const useAutoSaveDraft = ({
     if (!current.enabled) return;
     if (!current.tasks.task1 && !current.tasks.task2) {
       if (mounted.current) setState('idle');
+      return;
+    }
+    const activeContent =
+      current.tasks[current.activeTask]?.content ??
+      current.tasks.task1?.content ??
+      current.tasks.task2?.content ??
+      '';
+    if (!throttle.current.shouldSend(activeContent)) {
       return;
     }
     try {
@@ -94,6 +104,7 @@ export const useAutoSaveDraft = ({
   }, [debounced]);
 
   const flush = useCallback(() => {
+    throttle.current.reset();
     debounced.flush();
   }, [debounced]);
 

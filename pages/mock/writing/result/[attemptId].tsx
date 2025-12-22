@@ -25,6 +25,9 @@ import { WritingFeedbackBlocks } from '@/components/writing/result/WritingFeedba
 import { WritingBandReasoning } from '@/components/writing/result/WritingBandReasoning';
 import { WritingImprovementsTable } from '@/components/writing/result/WritingImprovementsTable';
 import { formatFeedback } from '@/lib/writing/format/formatFeedback';
+import { WritingExamplesPanel } from '@/components/writing/result/WritingExamplesPanel';
+import { ExaminerNotesCallout } from '@/components/writing/result/ExaminerNotesCallout';
+import { getExaminerNotes, getWritingExamples } from '@/lib/writing/content/writingContent';
 import {
   formatBandScore,
   hasSubmittedStatus,
@@ -40,6 +43,8 @@ type PageProps = {
   evaluation: WritingEvaluation | null;
   viewerHasAccess: boolean;
   pending: boolean;
+  examples: { task1: string; task2: string };
+  examinerNotes: { task1: string; task2: string };
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
@@ -65,6 +70,18 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     : { answers: [], evaluation: null };
 
   const pending = Boolean(attempt && hasSubmittedStatus(attempt.status) && !evaluation);
+  const overallBand = evaluation?.overallBand ?? 0;
+  const bandBracket = overallBand >= 8 ? '8' : overallBand >= 6.5 ? '7' : '6';
+
+  const examples = {
+    task1: getWritingExamples('task1', bandBracket as '6' | '7' | '8'),
+    task2: getWritingExamples('task2', bandBracket as '6' | '7' | '8'),
+  };
+
+  const examinerNotes = {
+    task1: getExaminerNotes('task1'),
+    task2: getExaminerNotes('task2'),
+  };
 
   return {
     props: {
@@ -74,6 +91,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       evaluation,
       viewerHasAccess,
       pending,
+      examples,
+      examinerNotes,
     },
   };
 };
@@ -85,6 +104,8 @@ const WritingResultPage: NextPage<PageProps> = ({
   evaluation,
   viewerHasAccess,
   pending,
+  examples,
+  examinerNotes,
 }) => {
   const router = useRouter();
   const [autoRefresh, setAutoRefresh] = React.useState(true);
@@ -113,6 +134,7 @@ const WritingResultPage: NextPage<PageProps> = ({
 
   const overallBandLabel = evaluation ? formatBandScore(evaluation.overallBand) : '—';
   const formatted = formatFeedback(evaluation, answers);
+  const bandValue = evaluation?.overallBand ?? 0;
 
   // ✅ Retry link: if slug missing, go to writing hub (no more 404)
   const retryHref = attempt.testSlug ? `/mock/writing/${encodeURIComponent(attempt.testSlug)}` : '/mock/writing';
@@ -224,10 +246,14 @@ const WritingResultPage: NextPage<PageProps> = ({
                 />
 
                 <WritingWarnings warnings={formatted.warnings} answers={answers} />
+                <WritingExamplesPanel band={bandValue} task="task2" content={examples.task2} />
+                <WritingExamplesPanel band={bandValue} task="task1" content={examples.task1} />
+                <ExaminerNotesCallout task="task2" notes={examinerNotes.task2} />
                 <WritingFeedbackBlocks blocks={formatted.blocks} />
                 <WritingBandReasoning items={formatted.bandReasoning} />
                 <WritingImprovementsTable rows={formatted.improvements} />
                 <WritingNextSteps nextSteps={evaluation.nextSteps ?? []} exampleBand={evaluation.overallBand} />
+                <ExaminerNotesCallout task="task1" notes={examinerNotes.task1} />
               </>
             ) : (
               <Card className="rounded-ds-2xl border border-border/60 bg-card p-6">

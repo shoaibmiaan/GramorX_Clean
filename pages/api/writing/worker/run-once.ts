@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { evaluateWritingAttempt } from '@/lib/writing/evaluation/evaluate';
 import type { WritingEvalInput } from '@/lib/writing/evaluation/types';
+import { latencyLogger } from '@/lib/writing/performance/latencyLogger';
 
 type ApiOk =
   | { ok: true; processed: true; attemptId: string; mode: 'queued' | 'forced' | 'already_done' }
@@ -127,6 +128,7 @@ export default async function handler(
   if (lockErr) return res.status(500).json({ ok: false, error: 'Failed to lock job' });
 
   try {
+    const doneTimer = latencyLogger('writing/worker/evaluate');
     // 3) Idempotency: already evaluated?
     const { data: existingEval, error: existingEvalErr } = await admin
       .from('writing_evaluations')
@@ -252,6 +254,7 @@ export default async function handler(
 
     if (doneErr) throw new Error(doneErr.message);
 
+    doneTimer();
     return res.status(200).json({
       ok: true,
       processed: true,
@@ -266,6 +269,8 @@ export default async function handler(
       .update({ status: 'failed', last_error: msg })
       .eq('attempt_id', attemptId);
 
+    // Ensure timer still logs in failure paths
+    latencyLogger('writing/worker/evaluate-error')();
     return res.status(500).json({ ok: false, error: msg });
   }
 }
