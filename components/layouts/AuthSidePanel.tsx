@@ -17,12 +17,12 @@ export default function AuthSidePanel({ title, description, features, footerLink
           <h2 className="font-slab text-h2 font-bold text-gradient-primary">{title}</h2>
         </div>
 
-        <p className="text-body leading-relaxed text-grayish dark:text-gray-300 max-w-md">
+        <p className="text-body leading-relaxed text-grayish dark:text-mutedText max-w-md">
           {description}
         </p>
 
         {features && features.length > 0 && (
-          <ul className="mt-6 space-y-3 text-small text-grayish dark:text-gray-300">
+          <ul className="mt-6 space-y-3 text-small text-grayish dark:text-mutedText">
             {features.map((feature, idx) => (
               <li key={idx} className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-primary"></span>
@@ -34,7 +34,7 @@ export default function AuthSidePanel({ title, description, features, footerLink
       </div>
 
       {footerLink && (
-        <div className="pt-6 text-small text-grayish dark:text-gray-400">
+        <div className="pt-6 text-small text-grayish dark:text-grayish">
           {footerLink}
         </div>
       )}

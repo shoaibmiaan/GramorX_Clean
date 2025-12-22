@@ -40,7 +40,7 @@ export function ProfileLayout({ children }: ProfileLayoutProps) {
     <div className="flex min-h-screen bg-background">
       <aside className="w-64 border-r bg-card">
         <div className="p-4">
-          <div className="px-2 pb-3 text-sm font-medium text-muted-foreground">
+          <div className="px-2 pb-3 text-small font-medium text-muted-foreground">
             Profile
           </div>
           <nav className="space-y-1">

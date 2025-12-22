@@ -32,7 +32,7 @@ export const BandPredictorCard: React.FC<BandPredictorProps> = ({
   const prediction = hasAttempts ? predictBand(safeAttempts) : { band: 0, confidence: 0 };
 
   return (
-    <Card className="p-4 space-y-1 text-xs">
+    <Card className="p-4 space-y-1 text-caption">
       <p className="font-medium">Predicted band</p>
 
       {!hasAttempts ? (

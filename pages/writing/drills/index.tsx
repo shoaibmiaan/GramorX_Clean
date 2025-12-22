@@ -45,8 +45,8 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
     <Container className="py-12">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-foreground md:text-4xl">Writing micro-drills</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-h1 font-semibold text-foreground md:text-display">Writing micro-drills</h1>
+          <p className="text-small text-muted-foreground">
             Target specific weaknesses with five-minute reps. Finish the required drills in your readiness gate to unlock the next redraft.
           </p>
         </header>
@@ -56,11 +56,11 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
             const stat = groupedByCriterion[criterion] ?? { total: 0, done: 0 };
             return (
               <Card key={criterion} className="space-y-2 p-4">
-                <h2 className="text-sm font-semibold text-foreground">{criteriaLabels[criterion]}</h2>
-                <p className="text-2xl font-semibold text-foreground">
+                <h2 className="text-small font-semibold text-foreground">{criteriaLabels[criterion]}</h2>
+                <p className="text-h2 font-semibold text-foreground">
                   {stat.done}/{stat.total}
                 </p>
-                <p className="text-xs text-muted-foreground">Completed in the last 14 days</p>
+                <p className="text-caption text-muted-foreground">Completed in the last 14 days</p>
               </Card>
             );
           })}
@@ -89,10 +89,10 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
                     <Card key={drill.id} className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="space-y-1">
-                          <h3 className="text-lg font-semibold text-foreground">{drill.title}</h3>
-                          <p className="text-sm text-muted-foreground">{drill.prompt}</p>
+                          <h3 className="text-h4 font-semibold text-foreground">{drill.title}</h3>
+                          <p className="text-small text-muted-foreground">{drill.prompt}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-2 text-xs text-muted-foreground">
+                        <div className="flex flex-col items-end gap-2 text-caption text-muted-foreground">
                           <Badge variant="soft" tone="info" size="sm">
                             {criteriaLabels[drill.criterion]}
                           </Badge>
@@ -104,7 +104,7 @@ const DrillIndexPage = ({ drills, completed }: PageProps) => {
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
                         {drill.tags.map((tag) => (
                           <Badge key={tag} variant="soft" tone="default" size="sm">
                             #{tag}

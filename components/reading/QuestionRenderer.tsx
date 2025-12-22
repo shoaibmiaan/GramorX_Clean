@@ -49,7 +49,7 @@ export const TFNGQuestion: React.FC<
             >
               {o.letter}
             </div>
-            <span className="text-sm">{o.label}</span>
+            <span className="text-small">{o.label}</span>
           </div>
         ))}
       </div>
@@ -92,7 +92,7 @@ export const MCQQuestion: React.FC<
                 {letter}
               </div>
 
-              <span className="text-sm">{opt}</span>
+              <span className="text-small">{opt}</span>
             </div>
           );
         })}
@@ -113,7 +113,7 @@ export const ShortQuestion: React.FC<
       <input
         type="text"
         className={cn(
-          'w-full max-w-xs px-3 py-2 border rounded-md bg-background text-sm',
+          'w-full max-w-xs px-3 py-2 border rounded-md bg-background text-small',
           'border-border focus:ring-1 focus:ring-primary'
         )}
         value={value || ''}
@@ -144,9 +144,9 @@ export const QuestionRenderer = ({
           <button
             onClick={onToggleFlag}
             className={cn(
-              'text-xs font-medium px-2 py-1 rounded-md border transition',
+              'text-caption font-medium px-2 py-1 rounded-md border transition',
               isFlagged
-                ? 'bg-amber-300/20 border-amber-400 text-amber-700'
+                ? 'bg-warning/30/20 border-warning/50 text-warning'
                 : 'border-border text-muted-foreground hover:bg-muted/40'
             )}
           >

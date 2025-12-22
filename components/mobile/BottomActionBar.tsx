@@ -24,7 +24,7 @@ export function BottomActionBar({ leading, trailing, children, className, stacke
           stacked ? 'flex-col' : 'items-center',
         )}
       >
-        {leading ? <div className="flex flex-1 items-center justify-start text-sm text-muted-foreground">{leading}</div> : null}
+        {leading ? <div className="flex flex-1 items-center justify-start text-small text-muted-foreground">{leading}</div> : null}
         <div className={clsx('flex flex-none items-center gap-3', stacked ? 'w-full flex-col' : 'justify-end')}>{children ?? trailing}</div>
       </div>
     </SafeArea>

@@ -25,7 +25,7 @@ export default function MyWordsPage() {
 
           <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-4 space-y-3">
             {mockSavedWords.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 No saved words yet. Start by adding words from the dashboard or
                 Vocabulary Lab.
               </p>
@@ -38,7 +38,7 @@ export default function MyWordsPage() {
                   >
                     <div className="space-y-0.5">
                       <p className="font-medium">{item.word}</p>
-                      <p className="text-xs text-muted-foreground">{item.note}</p>
+                      <p className="text-caption text-muted-foreground">{item.note}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {item.reviewed ? (

@@ -22,14 +22,14 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
           <a
             key={action.id}
             href={action.href}
-            className="group flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-left text-sm shadow-xs transition hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-slate-700"
+            className="group flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-left text-small shadow-xs transition hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-slate-700"
           >
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <h3 className="text-small font-semibold text-slate-900 dark:text-slate-50">
                 {action.label}
               </h3>
               {action.description && (
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                <p className="mt-1 text-caption text-slate-600 dark:text-slate-300">
                   {action.description}
                 </p>
               )}

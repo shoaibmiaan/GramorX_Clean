@@ -89,15 +89,15 @@ export default function QuickActions({ stats, onTaskCreate, onViewAllTasks }: Qu
             <a
               key={index}
               href={action.href}
-              className="block p-3 border border-border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              className="block p-3 border border-border rounded-lg hover:bg-lightCard dark:hover:bg-dark/90/50 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${getColorClasses(action.color)}`}>
                   {action.icon}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{action.label}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
+                  <p className="text-small font-medium">{action.label}</p>
+                  <p className="text-caption text-muted-foreground">{action.description}</p>
                 </div>
               </div>
             </a>
@@ -115,7 +115,7 @@ export default function QuickActions({ stats, onTaskCreate, onViewAllTasks }: Qu
 
         {/* Additional Actions */}
         <div className="pt-4 border-t border-border">
-          <h4 className="text-sm font-medium mb-2">More Actions</h4>
+          <h4 className="text-small font-medium mb-2">More Actions</h4>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="ghost" size="sm" className="justify-start">
               <Download className="mr-2 h-4 w-4" />

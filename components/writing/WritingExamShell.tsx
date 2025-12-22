@@ -155,7 +155,7 @@ export const WritingExamShell: React.FC<Props> = ({
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-small font-semibold text-foreground">
                 {testTitle}
               </p>
             </div>
@@ -191,13 +191,13 @@ export const WritingExamShell: React.FC<Props> = ({
         <div className="mx-auto max-w-6xl space-y-3 px-4 py-4">
           {/* Time alerts */}
           {isExpired && (
-            <Alert tone="destructive" className="text-xs">
+            <Alert tone="destructive" className="text-caption">
               Time is over. Your answers will be submitted automatically.
             </Alert>
           )}
 
           {underTimeWarning && !isExpired && (
-            <Alert tone="info" className="text-xs">
+            <Alert tone="info" className="text-caption">
               Last few minutes. Make sure both Task 1 and Task 2 have complete answers.
             </Alert>
           )}
@@ -216,7 +216,7 @@ export const WritingExamShell: React.FC<Props> = ({
                   type="button"
                   onClick={() => setActiveTaskId(task.id)}
                   className={clsx(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition',
+                    'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-caption transition',
                     activeTaskId === task.id
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted',
@@ -259,7 +259,7 @@ export const WritingExamShell: React.FC<Props> = ({
                 )}
               </header>
 
-              <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/70 flex-1 overflow-auto px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted/70 flex-1 overflow-auto px-4 py-3 text-small leading-relaxed text-muted-foreground">
                 {activeTask?.heading && (
                   <p className="mb-2 font-medium text-foreground">
                     {activeTask.heading}
@@ -320,7 +320,7 @@ export const WritingExamShell: React.FC<Props> = ({
                 <TextareaAutosize
                   minRows={12}
                   maxRows={18}
-                  className="w-full resize-none rounded-ds-md border border-border bg-background px-3 py-2 text-sm leading-relaxed shadow-sm"
+                  className="w-full resize-none rounded-ds-md border border-border bg-background px-3 py-2 text-small leading-relaxed shadow-sm"
                   value={activeText}
                   onChange={(e) =>
                     activeTask &&
@@ -345,7 +345,7 @@ export const WritingExamShell: React.FC<Props> = ({
 
           {/* SUBMIT ERRORS */}
           {submitError && (
-            <Alert tone="destructive" className="text-xs">
+            <Alert tone="destructive" className="text-caption">
               {submitError}
             </Alert>
           )}

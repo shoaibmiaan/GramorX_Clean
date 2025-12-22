@@ -227,7 +227,7 @@ const AdminListeningContent: React.FC = () => {
       <Container className="py-10">
         <div className="mb-10 flex flex-col gap-2">
           <p className="text-small uppercase tracking-wide text-muted-foreground">Listening</p>
-          <h1 className="text-3xl font-semibold">Create Listening Mock Tests</h1>
+          <h1 className="text-h1 font-semibold">Create Listening Mock Tests</h1>
           <p className="max-w-2xl text-muted-foreground">
             Upload audio tracks and craft question sets for new listening practice tests. Only admins can
             access this workspace.
@@ -237,7 +237,7 @@ const AdminListeningContent: React.FC = () => {
         <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
             <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
-              <h2 className="text-xl font-semibold">Test details</h2>
+              <h2 className="text-h3 font-semibold">Test details</h2>
               <p className="mt-1 text-small text-muted-foreground">
                 Give the test a clear, student-friendly title. Audio uploads are stored in Supabase Storage.
               </p>
@@ -286,7 +286,7 @@ const AdminListeningContent: React.FC = () => {
             <section className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold">Questions</h2>
+                  <h2 className="text-h3 font-semibold">Questions</h2>
                   <p className="mt-1 text-small text-muted-foreground">
                     Start with multiple-choice questions. Each prompt should align with the uploaded track.
                   </p>
@@ -301,8 +301,8 @@ const AdminListeningContent: React.FC = () => {
                   <div key={q.id} className="rounded-2xl border border-border bg-background/50 p-5 shadow-sm">
                     <div className="mb-4 flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-muted-foreground">Question {index + 1}</p>
-                        <p className="text-xs text-muted-foreground/80">Multiple choice</p>
+                        <p className="text-small font-semibold text-muted-foreground">Question {index + 1}</p>
+                        <p className="text-caption text-muted-foreground/80">Multiple choice</p>
                       </div>
                       {questions.length > 1 && (
                         <Button
@@ -364,7 +364,7 @@ const AdminListeningContent: React.FC = () => {
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card/60 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold">Existing tests</h3>
+              <h3 className="text-h4 font-semibold">Existing tests</h3>
               <p className="mt-1 text-small text-muted-foreground">
                 Quick reference list pulled from Supabase. Refresh to see new entries from other admins.
               </p>

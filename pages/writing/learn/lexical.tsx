@@ -10,13 +10,13 @@ export default function LexicalGuide() {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Lexical Resource</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Lexical Resource</h1>
         <p className="text-muted mt-1">Be precise, natural, and correct—no forced fancy words.</p>
 
         <Card className="mt-6 p-4">
-          <h2 className="text-lg font-semibold">Core ideas</h2>
+          <h2 className="text-h4 font-semibold">Core ideas</h2>
           <div className="mt-2 flex gap-2"><Badge variant="neutral">Vocabulary</Badge><Badge variant="warning">Advanced</Badge></div>
-          <ul className="mt-3 list-disc pl-6 text-sm">
+          <ul className="mt-3 list-disc pl-6 text-small">
             <li>Use topic-specific collocations; avoid repetition by paraphrasing.</li>
             <li>Don’t risk accuracy for rare words—errors cost marks.</li>
             <li>Check spelling; keep tone academic for Task 2.</li>
@@ -24,8 +24,8 @@ export default function LexicalGuide() {
         </Card>
 
         <Card className="mt-4 p-4">
-          <h2 className="text-lg font-semibold">Practice now</h2>
-          <p className="mt-2 text-sm">Upgrade: “a lot of people”, “very important”, “big problem” in a 2-sentence climate opinion.</p>
+          <h2 className="text-h4 font-semibold">Practice now</h2>
+          <p className="mt-2 text-small">Upgrade: “a lot of people”, “very important”, “big problem” in a 2-sentence climate opinion.</p>
         </Card>
 
         <div className="mt-6 flex gap-2">

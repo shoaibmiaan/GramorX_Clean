@@ -72,7 +72,7 @@ export default function RedeemBox({ onSuccess, className = '', initialCode }: Pr
         </button>
       </div>
 
-      {msg ? <p className="mt-2 text-small text-success dark:text-emerald-400">{msg}</p> : null}
+      {msg ? <p className="mt-2 text-small text-success dark:text-success/90">{msg}</p> : null}
       {err ? <p className="mt-2 text-small text-destructive">{err}</p> : null}
     </form>
   );

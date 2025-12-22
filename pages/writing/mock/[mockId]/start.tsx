@@ -112,12 +112,12 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
     <Container className="py-16">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <div className="space-y-3">
-          <Link href="/writing/mock" className="text-sm text-primary underline">
+          <Link href="/writing/mock" className="text-small text-primary underline">
             ← Back to writing mock library
           </Link>
-          <h1 className="text-3xl font-semibold text-foreground">{summary.title}</h1>
-          <p className="text-sm text-muted-foreground">{summary.description}</p>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <h1 className="text-h1 font-semibold text-foreground">{summary.title}</h1>
+          <p className="text-small text-muted-foreground">{summary.description}</p>
+          <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
             <Badge variant="info" size="sm">{summary.task1Type}</Badge>
             <Badge variant="secondary" size="sm">Task 1: {summary.task1Focus}</Badge>
             <Badge variant="secondary" size="sm">Task 2: {summary.task2Focus}</Badge>
@@ -130,8 +130,8 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
           <Card className="rounded-ds-2xl border border-info/40 bg-info/10 p-5">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm font-semibold text-info">Last attempt</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small font-semibold text-info">Last attempt</p>
+                <p className="text-small text-muted-foreground">
                   Status: {formatAttemptStatus(latestAttempt.status)} · Started {formatTimestamp(latestAttempt.startedAt)}
                 </p>
               </div>
@@ -154,14 +154,14 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
 
         <Card className="card-surface rounded-ds-2xl p-6 space-y-6">
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-foreground">Before you begin</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h3 font-semibold text-foreground">Before you begin</h2>
+            <p className="text-small text-muted-foreground">
               You&apos;ll complete Task 1 and Task 2 in one sitting. Autosave keeps your work safe every few seconds and focus guard pauses the timer if you leave the tab.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="rounded-ds-xl border border-border/50 bg-background/80 p-4 text-sm">
+            <Card className="rounded-ds-xl border border-border/50 bg-background/80 p-4 text-small">
               <p className="font-medium text-foreground">Timing &amp; word targets</p>
               <ul className="mt-2 list-disc pl-5 text-muted-foreground">
                 <li>60 minutes total (20 for Task 1, 40 for Task 2)</li>
@@ -169,7 +169,7 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
                 <li>Minimum 250 words for Task 2</li>
               </ul>
             </Card>
-            <Card className="rounded-ds-xl border border-border/50 bg-background/80 p-4 text-sm">
+            <Card className="rounded-ds-xl border border-border/50 bg-background/80 p-4 text-small">
               <p className="font-medium text-foreground">Scoring criteria</p>
               <ul className="mt-2 list-disc pl-5 text-muted-foreground">
                 <li>Task achievement / response</li>
@@ -180,13 +180,13 @@ const WritingMockStartPage: React.FC<PageProps> = ({ mockId, summary, latestAtte
             </Card>
           </div>
 
-          <div className="rounded-ds-xl border border-muted/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+          <div className="rounded-ds-xl border border-muted/60 bg-muted/30 p-4 text-small text-muted-foreground">
             <p>
               Stay in full-screen if possible, close extra tabs, and keep notifications off. We track focus to mirror exam conditions and let you review idle time after submitting.
             </p>
           </div>
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="text-small text-destructive">{error}</p> : null}
 
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={handleBegin} disabled={loading} variant="primary" className="rounded-ds">

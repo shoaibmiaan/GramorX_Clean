@@ -141,11 +141,11 @@ export default function PromoCodeBox({
       </div>
 
       {applied ? (
-        <p className="mt-2 text-small text-success dark:text-emerald-400">
+        <p className="mt-2 text-small text-success dark:text-success/90">
           {message ?? explainPromoRule(applied)}
         </p>
       ) : message ? (
-        <p className="mt-2 text-small text-success dark:text-emerald-400">{message}</p>
+        <p className="mt-2 text-small text-success dark:text-success/90">{message}</p>
       ) : (
         <p className="mt-2 text-small text-muted-foreground">
           Enter a valid promo code shared by GramorX support or listed on the promotions page.

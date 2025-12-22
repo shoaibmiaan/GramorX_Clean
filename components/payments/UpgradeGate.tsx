@@ -40,8 +40,8 @@ function GateContent({
   return (
     <div className="flex flex-col gap-2 text-left">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{title ?? 'Feature locked'}</p>
-        <p className="text-sm text-muted-foreground">{description ?? 'Upgrade to unlock this feature.'}</p>
+        <p className="text-small font-semibold text-foreground">{title ?? 'Feature locked'}</p>
+        <p className="text-small text-muted-foreground">{description ?? 'Upgrade to unlock this feature.'}</p>
       </div>
       <div>
         <Button href="/pricing" variant="primary" className={clsx({ 'w-full': ctaFullWidth })}>
@@ -52,7 +52,7 @@ function GateContent({
             href={secondaryCtaHref}
             variant="ghost"
             size="sm"
-            className="mt-1 h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="mt-1 h-8 text-caption font-medium text-muted-foreground hover:text-foreground"
           >
             {secondaryCtaLabel}
           </Button>

@@ -48,8 +48,8 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
       <main className="px-6 py-10">
         <div className="mx-auto max-w-6xl">
           <header className="mb-8">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Word Pack Playground</h1>
-            <p className="mt-2 max-w-2xl text-base text-slate-600">
+            <h1 className="text-h1 font-semibold tracking-tight text-slate-900">Word Pack Playground</h1>
+            <p className="mt-2 max-w-2xl text-body text-slate-600">
               Preview collocations, IELTS-tagged examples, and audio references sourced from the CSV/JSON packs.
               Search for a word to review its drill set before publishing.
             </p>
@@ -58,7 +58,7 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
           <section className="grid gap-6 lg:grid-cols-[320px,1fr]">
             <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 p-4">
-                <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="word-search">
+                <label className="mb-2 block text-small font-medium text-slate-700" htmlFor="word-search">
                   Filter packs
                 </label>
                 <input
@@ -67,7 +67,7 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search by word, slug, or collocation"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring focus:ring-indigo-100"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-small focus:border-indigo-500 focus:outline-none focus:ring focus:ring-indigo-100"
                 />
               </div>
               <ul className="max-h-[520px] overflow-y-auto p-2">
@@ -85,14 +85,14 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                             : 'bg-white text-slate-700 hover:bg-slate-50',
                         )}
                       >
-                        <span className="text-sm font-medium">{pack.word}</span>
-                        <span className="text-xs text-slate-500">{pack.slug}</span>
+                        <span className="text-small font-medium">{pack.word}</span>
+                        <span className="text-caption text-slate-500">{pack.slug}</span>
                       </button>
                     </li>
                   );
                 })}
                 {filtered.length === 0 && (
-                  <li className="px-3 py-4 text-sm text-slate-500">No packs match your query.</li>
+                  <li className="px-3 py-4 text-small text-slate-500">No packs match your query.</li>
                 )}
               </ul>
             </aside>
@@ -102,15 +102,15 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                 <div className="space-y-6">
                   <div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-2xl font-semibold text-slate-900">{active.word}</h2>
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
+                      <h2 className="text-h2 font-semibold text-slate-900">{active.word}</h2>
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-caption font-medium uppercase tracking-wide text-slate-600">
                         {REGISTER_LABEL[active.register]}
                       </span>
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-caption font-medium text-slate-600">
                         Source: {active.source.toUpperCase()}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">Slug: {active.slug}</p>
+                    <p className="mt-1 text-small text-slate-500">Slug: {active.slug}</p>
                     {active.audioRef ? (
                       <audio
                         controls
@@ -120,17 +120,17 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                         Your browser does not support the audio element.
                       </audio>
                     ) : (
-                      <p className="mt-4 text-sm text-slate-500">No audio reference provided.</p>
+                      <p className="mt-4 text-small text-slate-500">No audio reference provided.</p>
                     )}
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Collocations</h3>
+                    <h3 className="text-small font-semibold uppercase tracking-wide text-slate-500">Collocations</h3>
                     <ul className="mt-2 flex flex-wrap gap-2">
                       {active.collocations.map((item) => (
                         <li
                           key={item}
-                          className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700"
+                          className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-small font-medium text-indigo-700"
                         >
                           {item}
                         </li>
@@ -139,16 +139,16 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">IELTS Examples</h3>
+                    <h3 className="text-small font-semibold uppercase tracking-wide text-slate-500">IELTS Examples</h3>
                     <div className="mt-3 space-y-4">
                       {active.examples.map((example) => (
                         <article key={example.text} className="rounded-md border border-slate-200 p-4">
-                          <p className="text-sm text-slate-700">{example.text}</p>
+                          <p className="text-small text-slate-700">{example.text}</p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {example.tags.map((tag) => (
                               <span
                                 key={tag}
-                                className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-600"
+                                className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-caption font-medium uppercase tracking-wide text-slate-600"
                               >
                                 {tag}
                               </span>
@@ -160,7 +160,7 @@ const PlaygroundPage: NextPage<PlaygroundProps> = ({ packs }) => {
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                <div className="flex h-full items-center justify-center text-small text-slate-500">
                   Select or create a pack to preview its drills.
                 </div>
               )}

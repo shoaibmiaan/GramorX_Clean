@@ -25,9 +25,9 @@ export const ReadingAnswerSheetGrid: React.FC<ReadingAnswerSheetGridProps> = ({
       <div
         key={i}
         className={
-          'p-2 text-center border text-xs ' +
+          'p-2 text-center border text-caption ' +
           (hasAnswer
-            ? 'bg-emerald-50 text-emerald-700'
+            ? 'bg-success/10 text-success'
             : 'bg-muted/20 text-muted-foreground')
         }
       >
@@ -37,7 +37,7 @@ export const ReadingAnswerSheetGrid: React.FC<ReadingAnswerSheetGridProps> = ({
   }
   return (
     <Card className="p-3 space-y-2">
-      <p className="text-xs font-medium">Answer sheet</p>
+      <p className="text-caption font-medium">Answer sheet</p>
       <div className="grid grid-cols-10 gap-1">{cells}</div>
     </Card>
   );

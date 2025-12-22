@@ -26,8 +26,8 @@ export function AnalyticsLayout({ children, userRole }: AnalyticsLayoutProps) {
     <div className="flex min-h-screen bg-background">
       <aside className="w-64 border-r bg-card p-4">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold">Analytics</h2>
-          <p className="text-sm text-muted-foreground">Track your learning journey</p>
+          <h2 className="text-h4 font-semibold">Analytics</h2>
+          <p className="text-small text-muted-foreground">Track your learning journey</p>
         </div>
 
         <nav className="space-y-1">
@@ -40,7 +40,7 @@ export function AnalyticsLayout({ children, userRole }: AnalyticsLayoutProps) {
             >
               <Link href={link.href}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">{link.icon}</span>
+                  <span className="text-body">{link.icon}</span>
                   {link.label}
                 </span>
               </Link>
@@ -50,7 +50,7 @@ export function AnalyticsLayout({ children, userRole }: AnalyticsLayoutProps) {
 
         {/* Time period selector */}
         <div className="mt-6 border-t pt-6">
-          <h3 className="mb-2 text-sm font-medium">Time Period</h3>
+          <h3 className="mb-2 text-small font-medium">Time Period</h3>
           <div className="space-y-1">
             {['Last 7 days', 'Last 30 days', 'Last 3 months', 'All time'].map((period) => (
               <Button key={period} variant="ghost" size="sm" className="w-full justify-start">

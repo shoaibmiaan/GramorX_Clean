@@ -322,14 +322,14 @@ function CoachHeader() {
   return (
     <header className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-foreground">Writing Coach</h2>
+        <h2 className="text-h4 font-semibold text-foreground">Writing Coach</h2>
         {session ? (
-          <span className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <span className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-caption font-medium text-muted-foreground">
             Avg band {session.averageBand.toFixed(1)}
           </span>
         ) : null}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-small text-muted-foreground">
         {session
           ? `Latest mock submitted ${submitted ? `on ${submitted}` : 'recently'}.`
           : status === 'loading'
@@ -355,12 +355,12 @@ function CoachSummary() {
   return (
     <section className="rounded-ds-xl border border-border/60 bg-muted/30 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Latest AI notes</h3>
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <h3 className="text-small font-semibold text-foreground">Latest AI notes</h3>
+        <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
           Focus: Task {focus.task === 'task1' ? '1' : '2'}
         </span>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-small text-muted-foreground">
         Band {focus.score.overallBand.toFixed(1)} · Average {session.averageBand.toFixed(1)}
       </p>
       {strengths.length ? (
@@ -368,14 +368,14 @@ function CoachSummary() {
           {strengths.map((item) => (
             <span
               key={`strength-${item}`}
-              className="rounded-full bg-success/15 px-2 py-1 text-xs font-medium text-success"
+              className="rounded-full bg-success/15 px-2 py-1 text-caption font-medium text-success"
             >
               {item}
             </span>
           ))}
         </div>
       ) : null}
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-foreground">
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-small text-foreground">
         {improvements.length ? (
           improvements.map((item) => <li key={`improve-${item}`}>{item}</li>)
         ) : (
@@ -418,7 +418,7 @@ function CoachConversation() {
     <section className="flex min-h-[220px] flex-1 flex-col gap-3">
       <div className="flex-1 space-y-3 overflow-y-auto pr-1">
         {messages.length === 0 ? (
-          <p className="rounded-ds-xl border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+          <p className="rounded-ds-xl border border-dashed border-border/60 bg-muted/20 p-4 text-small text-muted-foreground">
             Ask a question about planning, paragraph structure, or vocabulary to get tailored drills.
           </p>
         ) : (
@@ -452,7 +452,7 @@ function MessageBubble({
     <div className={clsx('flex', isAssistant ? 'justify-start' : 'justify-end')}>
       <div
         className={clsx(
-          'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+          'max-w-[85%] rounded-2xl px-4 py-3 text-small leading-relaxed shadow-sm',
           isAssistant
             ? 'bg-card text-foreground ring-1 ring-border/50'
             : 'bg-primary text-primary-foreground',
@@ -461,13 +461,13 @@ function MessageBubble({
         {message.content ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-2 text-caption text-muted-foreground">
             <span className="inline-flex h-3 w-3 animate-spin rounded-full border-2 border-border border-t-transparent" />
             Drafting…
           </span>
         )}
         {isStreaming && message.content && (
-          <span className="ml-2 inline-block align-middle text-xs text-muted-foreground">⏳</span>
+          <span className="ml-2 inline-block align-middle text-caption text-muted-foreground">⏳</span>
         )}
       </div>
     </div>
@@ -521,7 +521,7 @@ function CoachComposer() {
         variant="subtle"
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-muted-foreground">
           {state.status === 'streaming'
             ? 'Coach is drafting a reply…'
             : 'Powered by GramorX guardrailed AI. Keep chats on IELTS prep.'}

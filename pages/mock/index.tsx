@@ -188,7 +188,7 @@ const MockHomePage: NextPage = () => {
           <Container>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border/60">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-card/80 px-3 py-1 text-caption font-medium text-muted-foreground ring-1 ring-border/60">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Icon name="Timer" size={14} />
                   </span>
@@ -203,7 +203,7 @@ const MockHomePage: NextPage = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col items-start gap-2 text-xs text-muted-foreground md:items-end">
+              <div className="flex flex-col items-start gap-2 text-caption text-muted-foreground md:items-end">
                 <Badge variant="neutral" size="sm">
                   Recommended: 1 full mock / week
                 </Badge>
@@ -216,10 +216,10 @@ const MockHomePage: NextPage = () => {
               <Card className="card-surface flex flex-col justify-between rounded-ds-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Continue where you left off
                     </p>
-                    <p className="text-sm text-foreground">
+                    <p className="text-small text-foreground">
                       Once you attempt a mock, your latest attempt will show here so you
                       can jump straight back into the exam room.
                     </p>
@@ -260,10 +260,10 @@ const MockHomePage: NextPage = () => {
               <Card className="card-surface rounded-ds-2xl p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Quick snapshot
                     </p>
-                    <p className="text-xs text-grayish">
+                    <p className="text-caption text-grayish">
                       Later this will show real mock stats: band trajectory, attempts, last
                       activity.
                     </p>
@@ -274,13 +274,13 @@ const MockHomePage: NextPage = () => {
                   {statHighlights.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-ds-xl bg-muted/60 px-3 py-3 text-xs"
+                      className="rounded-ds-xl bg-muted/60 px-3 py-3 text-caption"
                     >
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Icon name={item.icon} size={14} />
                         <span>{item.label}</span>
                       </div>
-                      <p className="mt-1 text-sm font-semibold text-foreground">
+                      <p className="mt-1 text-small font-semibold text-foreground">
                         {item.value}
                       </p>
                       {item.helper ? (
@@ -325,15 +325,15 @@ const MockHomePage: NextPage = () => {
                           <Icon name={action.icon} size={18} />
                         </span>
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold text-foreground">
+                          <p className="text-small font-semibold text-foreground">
                             {action.label}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-caption text-muted-foreground">
                             {action.description}
                           </p>
                         </div>
                       </div>
-                      <span className="mt-auto inline-flex items-center text-xs font-medium text-primary group-hover:underline">
+                      <span className="mt-auto inline-flex items-center text-caption font-medium text-primary group-hover:underline">
                         Open
                         <Icon name="ArrowRight" size={14} className="ml-1" />
                       </span>
@@ -350,7 +350,7 @@ const MockHomePage: NextPage = () => {
           <Container>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-primary">
                   Module mocks
                 </p>
                 <h2 className="mt-1 font-slab text-h2">
@@ -383,10 +383,10 @@ const MockHomePage: NextPage = () => {
                             <Icon name={mod.icon} size={20} />
                           </span>
                           <div>
-                            <h3 className="text-sm font-semibold text-foreground">
+                            <h3 className="text-small font-semibold text-foreground">
                               {mod.title}
                             </h3>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-caption text-muted-foreground">
                               {mod.description}
                             </p>
                           </div>
@@ -427,7 +427,7 @@ const MockHomePage: NextPage = () => {
           <Container>
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-primary">
                   Today’s mock plan
                 </p>
                 <h2 className="mt-1 font-slab text-h2">Do at least one serious attempt.</h2>
@@ -453,7 +453,7 @@ const MockHomePage: NextPage = () => {
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                        <span className="inline-flex items-center gap-2 text-caption font-medium text-muted-foreground">
                           <Icon
                             name={
                               task.type === 'reading'
@@ -472,7 +472,7 @@ const MockHomePage: NextPage = () => {
                           {task.estimate}
                         </span>
                       </div>
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-small font-semibold text-foreground">
                         {task.label}
                       </p>
                     </div>
@@ -498,7 +498,7 @@ const MockHomePage: NextPage = () => {
             <Card className="mx-auto max-w-4xl rounded-ds-2xl border border-border/60 bg-card/90 p-6 md:p-7">
               <div className="grid gap-5 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.3fr)] md:items-center">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  <p className="text-caption font-semibold uppercase tracking-[0.18em] text-primary">
                     Next smart move
                   </p>
                   <h2 className="font-slab text-h3">
@@ -510,12 +510,12 @@ const MockHomePage: NextPage = () => {
                     just “vibes”.
                   </p>
                 </div>
-                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-sm">
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="space-y-3 rounded-ds-2xl bg-muted p-4 text-small">
+                  <div className="flex items-center gap-2 text-caption font-medium text-muted-foreground">
                     <Icon name="Sparkles" size={14} />
                     <span>Recommended flow</span>
                   </div>
-                  <ol className="space-y-2 text-xs text-muted-foreground">
+                  <ol className="space-y-2 text-caption text-muted-foreground">
                     <li>1. Take one full or module mock from this page.</li>
                     <li>2. Submit and view your result.</li>
                     <li>3. Open AI Lab → send your attempt for deep feedback.</li>

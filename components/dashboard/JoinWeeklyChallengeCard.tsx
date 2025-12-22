@@ -23,19 +23,19 @@ export const JoinWeeklyChallengeCard: React.FC = () => {
           </p>
           <ul className="mt-2 space-y-2 text-small text-grayish">
             <li className="flex items-start gap-2">
-              <span className="text-base" aria-hidden>
+              <span className="text-body" aria-hidden>
                 ⚡
               </span>
               <span>Daily checklist with smart reminders</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-base" aria-hidden>
+              <span className="text-body" aria-hidden>
                 🏅
               </span>
               <span>Earn challenge points and unlock badges</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-base" aria-hidden>
+              <span className="text-body" aria-hidden>
                 🤝
               </span>
               <span>Compete with peers on the live leaderboard</span>

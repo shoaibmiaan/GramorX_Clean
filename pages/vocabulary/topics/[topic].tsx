@@ -76,10 +76,10 @@ export default function VocabTopicPage() {
           </div>
 
           <Card className="mb-6 rounded-ds-2xl border border-border/60 bg-card/60 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               How to use this pack
             </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-small text-muted-foreground">
               <li>Skim the words once to get a feel for them.</li>
               <li>Mark 5–7 words you actually like and would use.</li>
               <li>Try to write a short answer using at least 3 of them.</li>
@@ -92,18 +92,18 @@ export default function VocabTopicPage() {
               <Card key={item.word} className="rounded-ds-2xl border border-border/60 bg-card/70 p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-lg font-semibold">{item.word}</p>
-                    <p className="text-xs text-muted-foreground">{item.type}</p>
+                    <p className="text-h4 font-semibold">{item.word}</p>
+                    <p className="text-caption text-muted-foreground">{item.type}</p>
                   </div>
                   <Badge size="xs" variant="neutral">
                     Band {item.band}
                   </Badge>
                 </div>
-                <p className="mt-3 text-sm">
+                <p className="mt-3 text-small">
                   <span className="font-medium">Example: </span>
                   {item.example}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>
+                <p className="mt-2 text-caption text-muted-foreground">{item.note}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="xs" variant="ghost" className="rounded-ds-xl">
                     Save word
@@ -117,7 +117,7 @@ export default function VocabTopicPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               Later, you can connect this pack to micro-quizzes and your Writing history.
             </p>
             <Button size="sm" className="rounded-ds-xl">

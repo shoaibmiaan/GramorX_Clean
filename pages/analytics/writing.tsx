@@ -109,8 +109,8 @@ export default function WritingAnalyticsPage() {
         <section className="border-b border-border bg-background/80 backdrop-blur">
           <Container className="py-10">
             <div className="space-y-2">
-              <h1 className="font-slab text-3xl text-foreground md:text-4xl">Writing Analytics</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="font-slab text-h1 text-foreground md:text-display">Writing Analytics</h1>
+              <p className="text-small text-muted-foreground">
                 Review how your IELTS writing practice is trending and where to focus next.
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function WritingAnalyticsPage() {
         <Container className="py-8 space-y-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="w-full md:w-auto">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Time window</p>
+              <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">Time window</p>
               <Select
                 size="sm"
                 variant="solid"
@@ -133,7 +133,7 @@ export default function WritingAnalyticsPage() {
                 }))}
               />
             </div>
-            <div className="text-xs text-muted-foreground md:text-right">
+            <div className="text-caption text-muted-foreground md:text-right">
               {loading ? (
                 <Skeleton className="h-4 w-28" />
               ) : generatedLabel ? (
@@ -143,7 +143,7 @@ export default function WritingAnalyticsPage() {
           </div>
 
           {error ? (
-            <div className="rounded-ds-2xl border border-sunsetRed/40 bg-sunsetRed/10 p-4 text-sm text-sunsetRed">
+            <div className="rounded-ds-2xl border border-sunsetRed/40 bg-sunsetRed/10 p-4 text-small text-sunsetRed">
               {error}
             </div>
           ) : (

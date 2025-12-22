@@ -21,15 +21,15 @@ export const WritingTimer: React.FC<WritingTimerProps> = ({ seconds, totalSecond
   return (
     <div
       className={clsx(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-sm transition-colors',
+        'inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-small transition-colors',
         variant === 'default' && 'border-border text-muted-foreground',
-        variant === 'warning' && 'border-amber-500 bg-amber-500/10 text-amber-600',
-        variant === 'critical' && 'border-red-500 bg-red-500/10 text-red-600',
+        variant === 'warning' && 'border-warning bg-warning/10 text-warning',
+        variant === 'critical' && 'border-danger bg-danger/10 text-danger',
       )}
       aria-live="polite"
     >
       <span className="font-semibold tracking-wider">{formatTime(seconds)}</span>
-      <span className="hidden text-xs uppercase sm:inline">remaining</span>
+      <span className="hidden text-caption uppercase sm:inline">remaining</span>
     </div>
   );
 };

@@ -120,12 +120,12 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
     return (
       <Card className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+          <div className="h-6 bg-lightBg dark:bg-dark/80 rounded w-1/4"></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="space-y-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-4 bg-lightBg dark:bg-dark/80 rounded"></div>
+                <div className="h-32 bg-lightBg dark:bg-dark/80 rounded"></div>
               </div>
             ))}
           </div>
@@ -148,7 +148,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
         {statusColumns.map(({ key, title, color }) => (
           <Card key={key} className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{title}</span>
+              <span className="text-small font-medium">{title}</span>
               <Badge
                 variant={color as any}
                 className="rounded-full"
@@ -160,7 +160,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
               {tasksByStatus[key as keyof typeof tasksByStatus]
                 .slice(0, 2)
                 .map(task => (
-                  <div key={task.id} className="text-xs text-muted-foreground truncate">
+                  <div key={task.id} className="text-caption text-muted-foreground truncate">
                     {task.title}
                   </div>
                 ))}
@@ -172,7 +172,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
       {/* Task Board */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold">Task Board</h3>
+          <h3 className="text-h4 font-semibold">Task Board</h3>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline">
               <Filter className="h-3 w-3 mr-1" />
@@ -188,8 +188,8 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
           {statusColumns.map(({ key, title, color }) => (
             <div key={key} className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm">{title}</h4>
-                <span className="text-xs text-muted-foreground">
+                <h4 className="font-medium text-small">{title}</h4>
+                <span className="text-caption text-muted-foreground">
                   {tasksByStatus[key as keyof typeof tasksByStatus].length}
                 </span>
               </div>
@@ -215,8 +215,8 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
                             </Badge>
                           )}
                         </div>
-                        <h5 className="font-medium text-sm mb-1">{task.title}</h5>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <h5 className="font-medium text-small mb-1">{task.title}</h5>
+                        <p className="text-caption text-muted-foreground line-clamp-2">
                           {task.description}
                         </p>
                       </div>
@@ -225,7 +225,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                    <div className="flex items-center justify-between text-caption text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
                         <span>{task.assignee.full_name || task.assignee.email}</span>
@@ -241,7 +241,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <button
-                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                          className="text-caption text-muted-foreground hover:text-foreground flex items-center gap-1"
                           onClick={() => setSelectedTask(
                             selectedTask === task.id ? null : task.id
                           )}
@@ -280,7 +280,7 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
                     {selectedTask === task.id && (
                       <div className="mt-3 pt-3 border-t border-border">
                         <textarea
-                          className="w-full p-2 text-sm border border-border rounded mb-2"
+                          className="w-full p-2 text-small border border-border rounded mb-2"
                           placeholder="Add a comment..."
                           rows={2}
                           value={commentInput}
@@ -308,8 +308,8 @@ export default function TaskBoard({ tasks, loading, onTaskUpdate, filters }: Tas
               </div>
 
               {tasksByStatus[key as keyof typeof tasksByStatus].length === 0 && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div className="text-center py-8 text-muted-foreground text-small">
+                  <div className="p-3 bg-lightCard dark:bg-dark/90/50 rounded-lg">
                     No tasks in {title.toLowerCase()}
                   </div>
                 </div>

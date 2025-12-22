@@ -226,7 +226,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                       placeholder="Search vocabulary, grammar, or mock tests..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-2xl border border-border/70 bg-background/80 px-4 py-3 pl-10 text-base shadow-sm outline-none transition focus:border-electricBlue focus:bg-background"
+                      className="w-full rounded-2xl border border-border/70 bg-background/80 px-4 py-3 pl-10 text-body shadow-sm outline-none transition focus:border-electricBlue focus:bg-background"
                     />
                   </div>
                 </form>
@@ -243,10 +243,10 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
 
               <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-xl">
                 <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="text-small font-medium text-muted-foreground">
                     {searchQuery.trim() ? `Results for “${searchQuery.trim()}”` : 'Recommended destinations'}
                   </span>
-                  <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground/80">Press Esc to close</span>
+                  <span className="text-caption uppercase tracking-[0.16em] text-muted-foreground/80">Press Esc to close</span>
                 </div>
                 <div className="max-h-[60vh] overflow-y-auto">
                   {searchLoading ? (
@@ -259,9 +259,9 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                       ))}
                     </div>
                   ) : searchError ? (
-                    <div className="px-6 py-10 text-center text-sm text-danger">{searchError}</div>
+                    <div className="px-6 py-10 text-center text-small text-danger">{searchError}</div>
                   ) : searchResults.length === 0 ? (
-                    <div className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    <div className="px-6 py-10 text-center text-small text-muted-foreground">
                       {searchQuery.trim()
                         ? 'No results matched your search. Try a different keyword.'
                         : 'Type to discover lessons, modules, and vocabulary instantly.'}
@@ -280,11 +280,11 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
                                 <Badge variant="info" size="xs">
                                   {typeLabels[result.type] || 'Result'}
                                 </Badge>
-                                <span className="font-medium text-sm text-foreground line-clamp-1">
+                                <span className="font-medium text-small text-foreground line-clamp-1">
                                   {result.title}
                                 </span>
                               </div>
-                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              <p className="mt-1 line-clamp-2 text-caption text-muted-foreground">
                                 {result.description}
                               </p>
                               {result.snippet ? (
@@ -349,7 +349,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
               />
 
               <span className="flex flex-col leading-tight">
-                <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text font-slab text-base font-bold text-transparent md:text-lg">
+                <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text font-slab text-body font-bold text-transparent md:text-h4">
                   GramorX
                 </span>
                 <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -372,7 +372,7 @@ export const Header: React.FC<{ streak?: number }> = ({ streak }) => {
               <button
                 type="button"
                 onClick={() => setShowSearch(true)}
-                className="hidden items-center gap-2 rounded-full border border-border/60 bg-surface/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm hover:border-border focus-visible:ring-2 focus-visible:ring-border md:flex"
+                className="hidden items-center gap-2 rounded-full border border-border/60 bg-surface/80 px-3 py-1.5 text-caption text-muted-foreground shadow-sm hover:border-border focus-visible:ring-2 focus-visible:ring-border md:flex"
               >
                 <Icon name="Search" size={14} />
                 <span>Search...</span>

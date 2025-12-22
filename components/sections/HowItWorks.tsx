@@ -42,10 +42,10 @@ export const HowItWorks: React.FC = () => {
             <Icon name="PlayCircle" className="text-electricBlue" />
             Simple 3-Step Process
           </Badge>
-          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="font-slab text-h1 md:text-display font-bold text-foreground mb-4">
             How You'll Achieve Your Target Band
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-h4 text-muted-foreground max-w-2xl mx-auto">
             From diagnostic to test day, we guide you every step of the way with AI and expert support.
           </p>
         </div>
@@ -63,7 +63,7 @@ export const HowItWorks: React.FC = () => {
                 data-aos-delay={index * 150}
               >
                 {/* Step Number */}
-                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center text-white font-slab text-2xl font-bold mb-6 shadow-lg`}>
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center text-white font-slab text-h2 font-bold mb-6 shadow-lg`}>
                   {step.step}
                 </div>
 
@@ -74,7 +74,7 @@ export const HowItWorks: React.FC = () => {
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-xl font-semibold text-foreground mb-3">
+                  <h3 className="text-h3 font-semibold text-foreground mb-3">
                     {step.title}
                   </h3>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -86,9 +86,9 @@ export const HowItWorks: React.FC = () => {
                     {step.features.map((feature, featureIndex) => (
                       <li
                         key={featureIndex}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                        className="flex items-center gap-2 text-small text-muted-foreground"
                       >
-                        <Icon name="CheckCircle" className="text-green-500" size={16} />
+                        <Icon name="CheckCircle" className="text-success" size={16} />
                         {feature}
                       </li>
                     ))}
@@ -104,16 +104,16 @@ export const HowItWorks: React.FC = () => {
           <Card className="inline-block border border-border/60 bg-background/80 px-8 py-6 max-w-2xl">
             <div className="flex flex-wrap justify-center gap-8 items-center">
               <div className="text-center">
-                <div className="font-slab text-2xl font-bold text-electricBlue">1.5</div>
-                <div className="text-sm text-muted-foreground">Avg Band Improvement</div>
+                <div className="font-slab text-h2 font-bold text-electricBlue">1.5</div>
+                <div className="text-small text-muted-foreground">Avg Band Improvement</div>
               </div>
               <div className="text-center">
-                <div className="font-slab text-2xl font-bold text-purpleVibe">6 weeks</div>
-                <div className="text-sm text-muted-foreground">Typical Timeline</div>
+                <div className="font-slab text-h2 font-bold text-purpleVibe">6 weeks</div>
+                <div className="text-small text-muted-foreground">Typical Timeline</div>
               </div>
               <div className="text-center">
-                <div className="font-slab text-2xl font-bold text-neonGreen">94%</div>
-                <div className="text-sm text-muted-foreground">Success Rate</div>
+                <div className="font-slab text-h2 font-bold text-neonGreen">94%</div>
+                <div className="text-small text-muted-foreground">Success Rate</div>
               </div>
             </div>
           </Card>

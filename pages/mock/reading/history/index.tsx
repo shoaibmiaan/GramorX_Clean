@@ -91,7 +91,7 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
             {/* Header */}
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   IELTS Reading · Attempts
                 </p>
 
@@ -99,7 +99,7 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
                   History
                 </h1>
 
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-small text-muted-foreground">
                   {hasFilter ? (
                     <>
                       Filtered by test:{" "}
@@ -145,10 +145,10 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
                     <Icon name="ListChecks" className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                       Total attempts
                     </span>
-                    <div className="text-base font-semibold text-foreground">
+                    <div className="text-body font-semibold text-foreground">
                       {stats.total}
                     </div>
                   </div>
@@ -161,10 +161,10 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
                     <Icon name="BookOpen" className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                       Tests attempted
                     </span>
-                    <div className="text-base font-semibold text-foreground">
+                    <div className="text-body font-semibold text-foreground">
                       {stats.distinctTests}
                     </div>
                   </div>
@@ -177,10 +177,10 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
                     <Icon name="Clock" className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-caption text-muted-foreground">
                       Last attempt
                     </span>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-caption text-muted-foreground">
                       {stats.latest ? safeDateTime(stats.latest) : "No attempts yet"}
                     </div>
                   </div>
@@ -195,11 +195,11 @@ const ReadingHistoryPage: NextPage<PageProps> = ({
                   <Icon name="History" className="h-6 w-6 text-muted-foreground" />
                 </div>
 
-                <h2 className="mt-4 text-lg font-semibold">
+                <h2 className="mt-4 text-h4 font-semibold">
                   No Reading attempts yet
                 </h2>
 
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                <p className="mt-2 max-w-md text-small text-muted-foreground">
                   {hasFilter
                     ? "You haven’t attempted this specific Reading mock yet. Start a full attempt to see it here."
                     : "Once you complete a strict Reading mock, you’ll see each attempt here with band score, accuracy, and quick links to result and review."}

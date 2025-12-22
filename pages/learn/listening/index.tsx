@@ -136,7 +136,7 @@ export default function ListeningIndexPage({ __plan, __role, __initial, __initia
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">No resources match your filters</h3>
+                    <h3 className="text-h4 font-semibold">No resources match your filters</h3>
                     <p className="mt-1 opacity-80">Try clearing a filter or check back soon — more content is on the way.</p>
                   </div>
                   <Link href="/learn/listening/beginner" className="inline-flex">

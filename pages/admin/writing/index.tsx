@@ -191,8 +191,8 @@ export default function AdminWritingAttemptsPage() {
       <Container className="py-10 space-y-8">
         <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Writing attempts</h1>
-            <p className="text-sm text-muted-foreground">Review recent submissions, export summaries, and queue regrades.</p>
+            <h1 className="text-h2 font-semibold text-foreground">Writing attempts</h1>
+            <p className="text-small text-muted-foreground">Review recent submissions, export summaries, and queue regrades.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleExportCsv} disabled={loading}>
@@ -206,11 +206,11 @@ export default function AdminWritingAttemptsPage() {
 
         <section className="grid gap-4 md:grid-cols-[240px_1fr]">
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-muted-foreground">Plan filter</label>
+            <label className="block text-small font-medium text-muted-foreground">Plan filter</label>
             <select
               value={plan}
               onChange={(event) => setPlan(event.target.value as 'all' | PlanId)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-small"
             >
               {PLAN_FILTERS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -233,7 +233,7 @@ export default function AdminWritingAttemptsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border/50">
               <thead className="bg-muted/40">
-                <tr className="text-left text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <tr className="text-left text-caption uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="px-4 py-3">Attempt</th>
                   <th className="px-4 py-3">Student</th>
                   <th className="px-4 py-3">Plan</th>
@@ -242,7 +242,7 @@ export default function AdminWritingAttemptsPage() {
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40 text-sm">
+              <tbody className="divide-y divide-border/40 text-small">
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
@@ -258,10 +258,10 @@ export default function AdminWritingAttemptsPage() {
                 ) : (
                   visible.map((row) => (
                     <tr key={row.attemptId}>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{row.attemptId}</td>
+                      <td className="px-4 py-3 font-mono text-caption text-muted-foreground">{row.attemptId}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-foreground">{row.studentName ?? 'Unknown student'}</div>
-                        <div className="text-xs text-muted-foreground">{row.email ?? '—'}</div>
+                        <div className="text-caption text-muted-foreground">{row.email ?? '—'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" size="sm">

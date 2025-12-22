@@ -33,15 +33,15 @@ export default function WritingExamLayout({
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center rounded-md px-2 py-1 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+              className="inline-flex items-center rounded-md px-2 py-1 text-small font-medium text-neutral-600 hover:bg-neutral-100"
             >
               ← Exit
             </Link>
 
-            <h1 className="flex-1 truncate text-base font-semibold tracking-tight">
+            <h1 className="flex-1 truncate text-body font-semibold tracking-tight">
               {topbar.title}
               {topbar.attemptId ? (
-                <span className="ml-2 align-middle text-xs font-normal text-neutral-500">
+                <span className="ml-2 align-middle text-caption font-normal text-neutral-500">
                   #{topbar.attemptId.slice(0, 8)}
                 </span>
               ) : null}
@@ -52,7 +52,7 @@ export default function WritingExamLayout({
             ) : null}
 
             {topbar.timer ? (
-              <div className="rounded-md border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-800">
+              <div className="rounded-md border border-neutral-200 bg-white px-3 py-1 text-small font-medium text-neutral-800">
                 {topbar.timer}
               </div>
             ) : null}
@@ -61,10 +61,10 @@ export default function WritingExamLayout({
               <span
                 className={
                   topbar.status === 'saving'
-                    ? 'text-xs text-amber-600'
+                    ? 'text-caption text-warning'
                     : topbar.status === 'saved'
-                    ? 'text-xs text-emerald-600'
-                    : 'text-xs text-rose-600'
+                    ? 'text-caption text-success'
+                    : 'text-caption text-rose-600'
                 }
               >
                 {topbar.status === 'saving'
@@ -83,10 +83,10 @@ export default function WritingExamLayout({
         {/* LEFT: Task / prompt */}
         <section className="flex min-h-[40vh] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white">
           <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-2">
-            <div className="text-sm font-semibold tracking-tight text-neutral-800">
+            <div className="text-small font-semibold tracking-tight text-neutral-800">
               Task & Materials
             </div>
-            <div className="text-xs text-neutral-500">Scroll to view all</div>
+            <div className="text-caption text-neutral-500">Scroll to view all</div>
           </div>
           <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/70 flex-1 overflow-auto px-4 py-3">
             {left}
@@ -96,11 +96,11 @@ export default function WritingExamLayout({
         {/* RIGHT: Editor */}
         <section className="flex min-h-[60vh] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white">
           <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-2">
-            <div className="text-sm font-semibold tracking-tight text-neutral-800">
+            <div className="text-small font-semibold tracking-tight text-neutral-800">
               Answer Editor
             </div>
             {/* Space for live word count if the editor exposes it */}
-            <div id="gx-wordcount-slot" className="text-xs text-neutral-500" />
+            <div id="gx-wordcount-slot" className="text-caption text-neutral-500" />
           </div>
           <div className="flex-1 overflow-auto px-2 py-2">{right}</div>
         </section>
@@ -136,7 +136,7 @@ export function TaskFigure(props: {
         className="h-auto w-full object-contain"
         priority
       />
-      <figcaption className="border-t border-neutral-200 px-3 py-2 text-xs text-neutral-500">
+      <figcaption className="border-t border-neutral-200 px-3 py-2 text-caption text-neutral-500">
         {alt}
       </figcaption>
     </figure>

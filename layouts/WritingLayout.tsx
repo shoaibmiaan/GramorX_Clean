@@ -45,8 +45,8 @@ export const WritingLayout = ({ plan, current, children }: WritingLayoutProps) =
             <Badge variant="soft" tone="default" size="sm">
               {planBadgeCopy[plan] ?? 'Explorer access'}
             </Badge>
-            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">Writing studio</h1>
-            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <h1 className="text-h1 font-semibold text-foreground sm:text-display">Writing studio</h1>
+            <p className="max-w-2xl text-body leading-relaxed text-muted-foreground sm:text-h4">
               Draft confidently, unlock targeted drills, and review detailed scoring for IELTS Task 1 and Task 2.
               {aiUnlocked ? ' Your Owl plan includes instant AI prompt generation and deeper analytics.' : ' Upgrade to Owl to unlock instant AI prompt generation and deeper analytics.'}
             </p>
@@ -73,11 +73,11 @@ export const WritingLayout = ({ plan, current, children }: WritingLayoutProps) =
                     aria-current={isActive ? 'page' : undefined}
                   >
                     <span
-                      className={clsx('text-sm font-semibold', isActive ? 'text-foreground' : 'text-foreground/80')}
+                      className={clsx('text-small font-semibold', isActive ? 'text-foreground' : 'text-foreground/80')}
                     >
                       {item.label}
                     </span>
-                    <span className="text-xs text-muted-foreground">{item.description}</span>
+                    <span className="text-caption text-muted-foreground">{item.description}</span>
                   </Link>
                 </li>
               );

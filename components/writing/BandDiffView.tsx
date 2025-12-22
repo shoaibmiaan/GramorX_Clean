@@ -47,9 +47,9 @@ const buildSegments = (essay: string, errors: WritingError[] = []): HighlightSeg
 };
 
 const renderStrengths = (values: string[]) => {
-  if (!values || values.length === 0) return <p className="text-sm text-muted-foreground">No strengths recorded yet.</p>;
+  if (!values || values.length === 0) return <p className="text-small text-muted-foreground">No strengths recorded yet.</p>;
   return (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+    <ul className="list-disc space-y-1 pl-5 text-small text-foreground">
       {values.map((item, index) => (
         <li key={`${item}-${index}`}>{item}</li>
       ))}
@@ -58,9 +58,9 @@ const renderStrengths = (values: string[]) => {
 };
 
 const renderImprovements = (values: string[]) => {
-  if (!values || values.length === 0) return <p className="text-sm text-muted-foreground">Feedback still processing.</p>;
+  if (!values || values.length === 0) return <p className="text-small text-muted-foreground">Feedback still processing.</p>;
   return (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+    <ul className="list-disc space-y-1 pl-5 text-small text-foreground">
       {values.map((item, index) => (
         <li key={`${item}-${index}`}>{item}</li>
       ))}
@@ -82,13 +82,13 @@ const HighlightsView: React.FC<{ essay: string; errors: WritingError[] | undefin
   const segments = useMemo(() => buildSegments(essay, errors ?? []), [essay, errors]);
 
   if (!errors || errors.length === 0) {
-    return <p className="text-sm text-muted-foreground">No highlight-worthy issues detected in this draft.</p>;
+    return <p className="text-small text-muted-foreground">No highlight-worthy issues detected in this draft.</p>;
   }
 
   return (
     <div className="space-y-6">
       <Card padding="md" className="bg-background">
-        <p className="text-sm leading-relaxed text-foreground">
+        <p className="text-small leading-relaxed text-foreground">
           {segments.map((segment, index) =>
             segment.error ? (
               <mark
@@ -108,12 +108,12 @@ const HighlightsView: React.FC<{ essay: string; errors: WritingError[] | undefin
         {errors.map((error, index) => (
           <div key={`${error.excerpt}-${index}`} className="rounded-ds-xl border border-border/60 bg-card p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium text-foreground">{error.message ?? 'Issue'}</p>
+              <p className="text-small font-medium text-foreground">{error.message ?? 'Issue'}</p>
               {severityBadge(error)}
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{error.excerpt}</p>
+            <p className="mt-2 text-small text-muted-foreground">{error.excerpt}</p>
             {error.suggestion ? (
-              <p className="mt-3 text-sm text-foreground">
+              <p className="mt-3 text-small text-foreground">
                 <span className="font-medium text-primary">Suggestion:</span> {error.suggestion}
               </p>
             ) : null}
@@ -126,7 +126,7 @@ const HighlightsView: React.FC<{ essay: string; errors: WritingError[] | undefin
 
 const RewriteView: React.FC<{ rewrite?: string }> = ({ rewrite }) => {
   if (!rewrite) {
-    return <p className="text-sm text-muted-foreground">Band 9 rewrite will appear here once scoring is complete.</p>;
+    return <p className="text-small text-muted-foreground">Band 9 rewrite will appear here once scoring is complete.</p>;
   }
   return (
     <article className="prose prose-sm max-w-none text-foreground">
@@ -143,17 +143,17 @@ const FeedbackView: React.FC<{ feedback: WritingFeedback }> = ({ feedback }) => 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Summary</h3>
-        <p className="text-sm leading-relaxed text-foreground">{feedback.summary}</p>
+        <h3 className="text-small font-semibold uppercase tracking-wide text-muted-foreground">Summary</h3>
+        <p className="text-small leading-relaxed text-foreground">{feedback.summary}</p>
         <div>
-          <h4 className="text-sm font-semibold text-foreground">Strengths</h4>
+          <h4 className="text-small font-semibold text-foreground">Strengths</h4>
           {renderStrengths(feedback.strengths)}
         </div>
       </div>
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-foreground">Improvements</h4>
+        <h4 className="text-small font-semibold text-foreground">Improvements</h4>
         {renderImprovements(feedback.improvements)}
-        <div className="rounded-ds-lg border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
+        <div className="rounded-ds-lg border border-border/70 bg-muted/30 p-3 text-caption text-muted-foreground">
           Click the Highlights tab to see exact excerpts and suggestions.
         </div>
       </div>
@@ -182,8 +182,8 @@ const BandDiffView: React.FC<Props> = ({ essay, feedback }) => {
   return (
     <Card className="space-y-6" padding="lg" insetBorder>
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">AI Deep Dive</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-h4 font-semibold text-foreground">AI Deep Dive</h2>
+        <p className="text-small text-muted-foreground">
           Explore detailed insights from the upgraded scorer. Switch tabs to review highlights and the polished rewrite.
         </p>
       </div>

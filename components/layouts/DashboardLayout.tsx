@@ -30,7 +30,7 @@ const DashboardLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
 
           <nav
             aria-label="Dashboard quick links"
-            className="flex flex-wrap gap-3 text-sm text-muted-foreground"
+            className="flex flex-wrap gap-3 text-small text-muted-foreground"
           >
             {QUICK_LINKS.map(({ href, label }) => {
               const active = pathname.startsWith(href);

@@ -60,7 +60,7 @@ export default function ReadingPracticePage() {
             {quickActions.map((action) => (
               <Card key={action.title} className="card-surface rounded-ds-2xl p-4 flex flex-col">
                 <h2 className="text-h5 font-semibold text-foreground">{action.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground flex-1">{action.description}</p>
+                <p className="mt-2 text-small text-muted-foreground flex-1">{action.description}</p>
                 <Button href={action.href} variant="ghost" className="mt-4 rounded-ds self-start">
                   Open
                 </Button>
@@ -83,7 +83,7 @@ export default function ReadingPracticePage() {
                     <h3 className="text-h5 font-semibold text-foreground">{paper.title}</h3>
                     <Badge variant="info" size="sm">{formatMinutes(paper.durationSec)}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{paper.passages} passages · {paper.totalQuestions} questions</p>
+                  <p className="mt-2 text-small text-muted-foreground">{paper.passages} passages · {paper.totalQuestions} questions</p>
                 </div>
                 <Button href={`/mock/reading/${paper.id}`} variant="primary" className="mt-6 rounded-ds">
                   Start now
@@ -97,7 +97,7 @@ export default function ReadingPracticePage() {
           {readingStrategies.map((item) => (
             <Card key={item.title} className="card-surface rounded-ds-2xl p-6 h-full">
               <h3 className="text-h5 font-semibold text-foreground">{item.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+              <p className="mt-2 text-small text-muted-foreground">{item.description}</p>
             </Card>
           ))}
         </div>
@@ -106,7 +106,7 @@ export default function ReadingPracticePage() {
           <Card className="card-surface rounded-ds-2xl p-6 md:flex md:items-center md:justify-between">
             <div>
               <h2 className="text-h4 font-semibold text-foreground">Master all {totalQuestions} question slots</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-small text-muted-foreground">
                 Our review engine spots which question families cost you marks and queues personalised drills for the next session.
               </p>
             </div>

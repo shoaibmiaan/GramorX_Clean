@@ -95,3 +95,9 @@ If the rebase introduces conflicts, resolve them locally, run the checks in step
 ## 10. Ready to contribute
 
 When your changes pass local checks, commit them with a clear message and open a PR. Include a summary of the feature, how to test it, and any environment variables required.
+
+## UI tokens and theming
+
+- Use the semantic Tailwind tokens (`bg-success`, `text-warning`, `border-lightBorder`, typography helpers like `text-h4`, etc.) instead of raw palette values.
+- Run `node scripts/fix-ui-inconsistencies.js scan --fail-on-issues` to catch hard-coded colors or typography, and `node scripts/fix-ui-inconsistencies.js fix` to auto-convert common patterns.
+- The scanner now normalizes Tailwind `red/amber/green/blue/sky` scales into the `danger/warning/success/electricBlue` tokens (with opacity tiers) so light/dark themes stay consistent.

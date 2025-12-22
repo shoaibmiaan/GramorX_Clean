@@ -83,7 +83,7 @@ export function VocabularySpotlightFeature() {
                 IELTS
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               One high-impact word you can actually use in your next essay or answer.
             </p>
           </div>
@@ -91,7 +91,7 @@ export function VocabularySpotlightFeature() {
             asChild
             size="sm"
             variant="ghost"
-            className="rounded-ds-xl text-xs sm:text-sm"
+            className="rounded-ds-xl text-caption sm:text-small"
           >
             <Link href="/vocabulary">Open Vocabulary Lab</Link>
           </Button>
@@ -108,11 +108,11 @@ export function VocabularySpotlightFeature() {
                 {todaysWord.pos}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{todaysWord.phonetic}</p>
-            <p className="text-sm">{todaysWord.meaning}</p>
+            <p className="text-small text-muted-foreground">{todaysWord.phonetic}</p>
+            <p className="text-small">{todaysWord.meaning}</p>
           </div>
 
-          <div className="mt-3 flex flex-col gap-2 text-xs sm:mt-0 sm:w-52">
+          <div className="mt-3 flex flex-col gap-2 text-caption sm:mt-0 sm:w-52">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon name="PenLine" size={14} />
@@ -147,11 +147,11 @@ export function VocabularySpotlightFeature() {
 
         {/* Example & topic row */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="border-l-4 border-primary/40 pl-4 text-sm italic text-muted-foreground">
+          <div className="border-l-4 border-primary/40 pl-4 text-small italic text-muted-foreground">
             “{todaysWord.example}”
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-caption">
             {todaysWord.topic && (
               <Badge size="sm" variant="soft" tone="secondary">
                 {todaysWord.topic}
@@ -197,21 +197,21 @@ export function WordOfTheDayDeepDive() {
               <Badge size="xs" variant="soft" tone="info">
                 Deep dive
               </Badge>
-              <p className="text-xs text-muted-foreground">Master today’s word in 10 focused minutes.</p>
+              <p className="text-caption text-muted-foreground">Master today’s word in 10 focused minutes.</p>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {usageContexts.map((context) => (
                 <div key={context.title} className="rounded-ds-xl border border-border/40 bg-background/80 p-4">
-                  <p className="text-sm font-semibold text-foreground">{context.title}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{context.detail}</p>
+                  <p className="text-small font-semibold text-foreground">{context.title}</p>
+                  <p className="mt-2 text-small text-muted-foreground">{context.detail}</p>
                 </div>
               ))}
             </div>
 
             <div className="mt-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Example sentence</p>
-              <blockquote className="mt-3 rounded-ds-2xl bg-muted/30 p-4 text-sm italic text-muted-foreground">
+              <p className="text-small font-semibold uppercase tracking-wide text-muted-foreground">Example sentence</p>
+              <blockquote className="mt-3 rounded-ds-2xl bg-muted/30 p-4 text-small italic text-muted-foreground">
                 “{todaysWord.example}”
               </blockquote>
             </div>
@@ -219,30 +219,30 @@ export function WordOfTheDayDeepDive() {
 
           <div className="flex flex-col gap-6">
             <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-small font-semibold">
                 <Icon name="BookOpen" size={16} />
                 Synonyms & tone
               </div>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-4 space-y-3 text-small">
                 {synonymNotes.map((synonym) => (
                   <li key={synonym.term} className="rounded-ds-lg bg-muted/30 p-3">
                     <p className="font-medium text-foreground">{synonym.term}</p>
-                    <p className="text-xs text-muted-foreground">{synonym.note}</p>
+                    <p className="text-caption text-muted-foreground">{synonym.note}</p>
                   </li>
                 ))}
               </ul>
             </Card>
 
             <Card className="rounded-ds-2xl border border-border/60 bg-card/70 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-small font-semibold">
                 <Icon name="Timer" size={16} />
                 10-minute routine
               </div>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-4 space-y-3 text-small">
                 {microPractice.map((item) => (
                   <li key={item.label} className="rounded-ds-lg border border-border/40 p-3">
                     <p className="font-medium text-foreground">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.action}</p>
+                    <p className="text-caption text-muted-foreground">{item.action}</p>
                   </li>
                 ))}
               </ul>

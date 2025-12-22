@@ -638,7 +638,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
   if (!hasContent) {
     return (
       <div className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex items-center justify-center p-4">
-        <Card className="p-6 text-sm text-muted-foreground max-w-xl w-full">
+        <Card className="p-6 text-small text-muted-foreground max-w-xl w-full">
           This Reading test does not have passages or questions configured yet.
         </Card>
       </div>
@@ -762,7 +762,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
               <span className="text-[10px] font-semibold tracking-wide text-primary/80 uppercase">
                 Time remaining
               </span>
-              <div className="mt-0.5 text-sm font-semibold tabular-nums">
+              <div className="mt-0.5 text-small font-semibold tabular-nums">
                 <TimerProgress total={total} />
               </div>
               <span className="mt-0.5 text-[10px] text-muted-foreground">
@@ -825,13 +825,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
               className={cn(
                 'flex-1 overflow-y-auto px-4 py-4 space-y-4',
                 isDark ? 'bg-background/80' : 'bg-white',
-                zoom === 'sm' && 'text-xs',
-                zoom === 'md' && 'text-sm',
-                zoom === 'lg' && 'text-base',
+                zoom === 'sm' && 'text-caption',
+                zoom === 'md' && 'text-small',
+                zoom === 'lg' && 'text-body',
               )}
             >
               {visibleQuestions.length === 0 ? (
-                <Card className="p-4 text-sm text-muted-foreground">
+                <Card className="p-4 text-small text-muted-foreground">
                   No questions match the current filters for this passage.
                 </Card>
               ) : (
@@ -851,7 +851,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
                         isCurrent
                           ? isDark
                             ? 'ring-1 ring-primary/70 bg-primary/10'
-                            : 'ring-2 ring-blue-500 bg-blue-50'
+                            : 'ring-2 ring-blue-500 bg-electricBlue/10'
                           : 'hover:bg-muted/50',
                       )}
                     >
@@ -901,13 +901,13 @@ const ReadingExamShellInner: React.FC<Props> = ({
           <div
             className={cn(
               'space-y-3',
-              zoom === 'sm' && 'text-xs',
-              zoom === 'md' && 'text-sm',
-              zoom === 'lg' && 'text-base',
+              zoom === 'sm' && 'text-caption',
+              zoom === 'md' && 'text-small',
+              zoom === 'lg' && 'text-body',
             )}
           >
             {visibleQuestions.length === 0 ? (
-              <Card className="p-4 text-sm text-muted-foreground">
+              <Card className="p-4 text-small text-muted-foreground">
                 No questions match the current filters for this passage.
               </Card>
             ) : (
@@ -927,7 +927,7 @@ const ReadingExamShellInner: React.FC<Props> = ({
                       isCurrent
                         ? isDark
                           ? 'ring-1 ring-primary/70 bg-primary/10'
-                          : 'ring-2 ring-blue-500 bg-blue-50'
+                          : 'ring-2 ring-blue-500 bg-electricBlue/10'
                         : 'p-0',
                     )}
                   >

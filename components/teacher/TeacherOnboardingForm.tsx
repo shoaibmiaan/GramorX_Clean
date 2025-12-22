@@ -108,7 +108,7 @@ export default function TeacherOnboardingForm() {
 
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-semibold text-foreground mb-4">Teacher Onboarding</h2>
+      <h2 className="text-h3 font-semibold text-foreground mb-4">Teacher Onboarding</h2>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <Input
           label="Full Name"

@@ -28,7 +28,7 @@ const WeeklyReadingChallengePage: NextPage<Props> = ({ slug, error }) => {
         {error && (
           <Card className="p-6 text-center space-y-4">
             <Icon name="alert-triangle" className="h-8 w-8 text-destructive mx-auto" />
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-small text-muted-foreground">{error}</p>
             <Button asChild>
               <Link href="/mock/reading">
                 <Icon name="arrow-left" className="mr-2 h-4 w-4" />
@@ -42,8 +42,8 @@ const WeeklyReadingChallengePage: NextPage<Props> = ({ slug, error }) => {
           <Card className="p-6 space-y-4">
             <Badge size="xs" variant="outline">Weekly Challenge</Badge>
 
-            <h1 className="text-xl font-semibold">Weekly Boss Challenge</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-h3 font-semibold">Weekly Boss Challenge</h1>
+            <p className="text-small text-muted-foreground">
               A 20-question curated challenge designed to measure your weekly improvement.
             </p>
 

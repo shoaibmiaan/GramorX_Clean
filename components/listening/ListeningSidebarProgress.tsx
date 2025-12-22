@@ -60,10 +60,10 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
       <Card className="border-none bg-muted/60 px-3 py-2">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className="text-caption font-medium text-muted-foreground">
               Listening progress
             </p>
-            <p className="text-sm font-semibold">
+            <p className="text-small font-semibold">
               {totalAnswered}/{totalQuestions} answered
             </p>
           </div>
@@ -82,7 +82,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
       {/* Sections list */}
       <Card className="flex-1 space-y-2 overflow-hidden border-none bg-background/80 p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Sections
           </p>
           <Badge tone="neutral" size="xs">
@@ -110,7 +110,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
                   !isLocked && onJumpToSection && onJumpToSection(section.id)
                 }
                 className={[
-                  'group flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition-all',
+                  'group flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-left text-caption transition-all',
                   isCurrent
                     ? 'border-primary/80 bg-primary/5'
                     : 'border-border/80 bg-muted/40 hover:bg-muted',
@@ -133,7 +133,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
                     S{section.order}
                   </Badge>
                   <div>
-                    <p className="text-xs font-medium">{section.label}</p>
+                    <p className="text-caption font-medium">{section.label}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {section.answeredQuestions}/{section.totalQuestions}{' '}
                       answered
@@ -144,7 +144,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
                   {completionPct === 100 && !isLocked && (
                     <Icon
                       name="CheckCircle"
-                      className="h-3.5 w-3.5 text-emerald-500"
+                      className="h-3.5 w-3.5 text-success"
                     />
                   )}
                   {isLocked && (
@@ -184,7 +184,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
                 const stateClass = q.isCurrent
                   ? 'border-primary bg-primary text-primary-foreground'
                   : q.isAnswered
-                  ? 'border-emerald-500/70 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  ? 'border-success/70 bg-success/10 text-success dark:text-success/90'
                   : 'border-border bg-background text-muted-foreground hover:bg-muted';
 
                 const flaggedRing =
@@ -209,7 +209,7 @@ export const ListeningSidebarProgress: React.FC<ListeningSidebarProgressProps> =
 
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <LegendDot
-                className="border-emerald-500/70 bg-emerald-500/10"
+                className="border-success/70 bg-success/10"
                 label="Answered"
               />
               <LegendDot className="border-border" label="Not answered" />

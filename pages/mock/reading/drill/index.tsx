@@ -42,9 +42,9 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
       <Container className="py-10">
         <div className="flex items-start justify-between gap-6">
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">IELTS Reading</p>
+            <p className="text-caption text-muted-foreground">IELTS Reading</p>
             <h1 className="font-slab text-h1 text-foreground">Reading Drills</h1>
-            <p className="text-sm text-muted-foreground max-w-2xl">
+            <p className="text-small text-muted-foreground max-w-2xl">
               Short, focused sessions that sharpen speed and accuracy.
             </p>
           </div>
@@ -57,7 +57,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 </div>
                 <div className="leading-tight">
                   <p className="text-[11px] text-muted-foreground">Total drills</p>
-                  <p className="text-sm font-semibold">{stats.totalDrills}</p>
+                  <p className="text-small font-semibold">{stats.totalDrills}</p>
                 </div>
               </div>
             </Card>
@@ -69,7 +69,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 </div>
                 <div className="leading-tight">
                   <p className="text-[11px] text-muted-foreground">Avg accuracy</p>
-                  <p className="text-sm font-semibold">
+                  <p className="text-small font-semibold">
                     {stats.avgAccuracy == null ? '—' : `${Math.round(stats.avgAccuracy * 100)}%`}
                   </p>
                 </div>
@@ -81,8 +81,8 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
         {isBasicPlus && !isElite && (
           <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/5 px-4 py-3">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-primary">Smart Mode (Elite)</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption font-semibold text-primary">Smart Mode (Elite)</p>
+              <p className="text-caption text-muted-foreground">
                 Upgrade to Elite for personalised smart drills and adaptive pacing.
               </p>
             </div>
@@ -111,7 +111,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 <div className="space-y-2">
                   <Badge variant="secondary" size="sm">Speed</Badge>
                   <h2 className="font-slab text-h3">Speed Drill</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Practice fast reading under a strict timer.
                   </p>
                 </div>
@@ -120,7 +120,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 </div>
               </div>
 
-              <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
+              <ul className="mt-4 space-y-2 text-caption text-muted-foreground">
                 <li>• 1 passage</li>
                 <li>• Fewer questions</li>
                 <li>• Strict timer</li>
@@ -137,7 +137,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 <div className="space-y-2">
                   <Badge variant="success" size="sm">Daily</Badge>
                   <h2 className="font-slab text-h3">Daily Challenge</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     One focused drill every day.
                   </p>
                 </div>
@@ -146,7 +146,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 </div>
               </div>
 
-              <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
+              <ul className="mt-4 space-y-2 text-caption text-muted-foreground">
                 <li>• 1 task/day</li>
                 <li>• Consistency wins</li>
                 <li>• Builds streak</li>
@@ -163,7 +163,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 <div className="space-y-2">
                   <Badge variant="warning" size="sm">Weekly</Badge>
                   <h2 className="font-slab text-h3">Weekly Plan</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     A structured plan to improve over time.
                   </p>
                 </div>
@@ -172,7 +172,7 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
                 </div>
               </div>
 
-              <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
+              <ul className="mt-4 space-y-2 text-caption text-muted-foreground">
                 <li>• 7-day guidance</li>
                 <li>• Balanced practice</li>
                 <li>• Track progress</li>
@@ -188,8 +188,8 @@ const ReadingDrillHubPage: NextPage<PageProps> = ({ stats, tier }) => {
             <Card className="p-5 rounded-ds-2xl border border-border/60 bg-card/80">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Your drill snapshot</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-small font-medium">Your drill snapshot</p>
+                  <p className="text-caption text-muted-foreground">
                     Best accuracy:{' '}
                     {stats.bestAccuracy == null ? '—' : `${Math.round(stats.bestAccuracy * 100)}%`}
                     {' · '}

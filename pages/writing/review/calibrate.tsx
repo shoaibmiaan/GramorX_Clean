@@ -61,8 +61,8 @@ const CalibrationPage = ({ anchors }: CalibrationPageProps) => {
       <Container className="py-10">
         <div className="mx-auto flex max-w-4xl flex-col gap-6">
           <header className="space-y-2">
-            <h1 className="text-3xl font-semibold text-foreground md:text-4xl">Peer review calibration</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-h1 font-semibold text-foreground md:text-display">Peer review calibration</h1>
+            <p className="text-small text-muted-foreground">
               Score two anchored essays to align with Gramor feedback standards. Once complete, you can submit peer reviews on any attempt.
             </p>
           </header>
@@ -77,13 +77,13 @@ const CalibrationPage = ({ anchors }: CalibrationPageProps) => {
                   Band {anchor.band.toFixed(1)}
                 </Badge>
               </div>
-              <h2 className="text-xl font-semibold text-foreground">{anchor.prompt}</h2>
+              <h2 className="text-h3 font-semibold text-foreground">{anchor.prompt}</h2>
               <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/20 p-3">
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{anchor.essay}</p>
+                <p className="whitespace-pre-line text-small text-muted-foreground">{anchor.essay}</p>
               </div>
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">Rubric highlights</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <h3 className="text-small font-semibold text-foreground">Rubric highlights</h3>
+                <ul className="space-y-2 text-small text-muted-foreground">
                   {Object.entries(anchor.rubric).map(([criterion, note]) => (
                     <li key={criterion} className="flex items-start gap-2">
                       <Badge variant="soft" tone="default" size="xs">
@@ -98,11 +98,11 @@ const CalibrationPage = ({ anchors }: CalibrationPageProps) => {
           ))}
 
           <Card className="space-y-3" padding="lg">
-            <h2 className="text-lg font-semibold text-foreground">Confirm alignment</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h4 font-semibold text-foreground">Confirm alignment</h2>
+            <p className="text-small text-muted-foreground">
               When you understand the scoring rationale above, record your calibration to unlock peer feedback tools.
             </p>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-small text-danger">{error}</p>}
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleSubmit} loading={submitting} disabled={complete}>
                 {complete ? 'Calibration recorded' : 'Mark calibration complete'}

@@ -17,12 +17,12 @@ const WritingReviewPage: React.FC<PageProps> = ({ attemptId, results }) => {
     <Container className="py-12">
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
         <header>
-          <h1 className="text-3xl font-semibold text-foreground">Attempt review</h1>
-          <p className="text-sm text-muted-foreground">Attempt ID: {attemptId}</p>
+          <h1 className="text-h1 font-semibold text-foreground">Attempt review</h1>
+          <p className="text-small text-muted-foreground">Attempt ID: {attemptId}</p>
         </header>
         <AccessibilityHints />
         {results.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No AI feedback available yet. Submit your responses to generate scores.</p>
+          <p className="text-small text-muted-foreground">No AI feedback available yet. Submit your responses to generate scores.</p>
         ) : (
           results.map((result) => (
             <WritingResultCard key={result.task} task={result.task} result={result.score} essay={result.essay} />

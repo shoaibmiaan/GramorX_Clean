@@ -81,10 +81,10 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
               <Badge size="xs" variant="outline">
                 Analytics
               </Badge>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-h3 font-semibold tracking-tight">
                 Reading analytics & weak spots
               </h1>
-              <p className="text-xs text-muted-foreground max-w-xl">
+              <p className="text-caption text-muted-foreground max-w-xl">
                 See which question types are destroying your score, how consistent you are, and
                 where to drill next.
               </p>
@@ -106,9 +106,9 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
           </div>
 
           {!hasData && (
-            <Card className="p-4 text-sm text-muted-foreground space-y-2">
+            <Card className="p-4 text-small text-muted-foreground space-y-2">
               <p>You haven’t completed any Reading mock attempts yet.</p>
-              <p className="text-xs">
+              <p className="text-caption">
                 Do at least one full mock so we can analyse your strengths and weaknesses.
               </p>
             </Card>
@@ -129,10 +129,10 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
               <div className="grid gap-4 md:grid-cols-2">
                 <Card className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">Accuracy by question type</h2>
+                    <h2 className="text-small font-semibold">Accuracy by question type</h2>
                     <Icon name="target" className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     This is based on your last few Reading attempts. Focus first on types with many
                     questions and low accuracy.
                   </p>
@@ -140,20 +140,20 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
                     {accuracyByType.map((row) => (
                       <div key={row.questionTypeId} className="flex items-center justify-between">
                         <div className="flex flex-col">
-                          <span className="text-xs font-medium">
+                          <span className="text-caption font-medium">
                             {row.questionTypeLabel || row.questionTypeId}
                           </span>
                           <span className="text-[11px] text-muted-foreground">
                             {row.attempts} questions
                           </span>
                         </div>
-                        <span className="text-xs font-semibold">
+                        <span className="text-caption font-semibold">
                           {row.accuracy.toFixed(0)}%
                         </span>
                       </div>
                     ))}
                     {!accuracyByType.length && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Not enough data yet. Do a few more strict mocks.
                       </p>
                     )}
@@ -162,40 +162,40 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
 
                 <Card className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">Time per question</h2>
+                    <h2 className="text-small font-semibold">Time per question</h2>
                     <Icon name="clock" className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Slower than 90 seconds on a question type? You might be over-reading. Faster than
                     30 seconds with low accuracy? You&apos;re probably rushing.
                   </p>
                   <div className="mt-2 space-y-2">
                     {timeStats.map((row) => (
                       <div key={row.questionTypeId} className="flex items-center justify-between">
-                        <span className="text-xs font-medium">
+                        <span className="text-caption font-medium">
                           {row.questionTypeId.toUpperCase()}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-caption text-muted-foreground">
                           {row.avgSeconds != null ? `${row.avgSeconds.toFixed(1)}s / question` : '—'}
                         </span>
                       </div>
                     ))}
                     {!timeStats.length && (
-                      <p className="text-xs text-muted-foreground">Not enough timing data yet.</p>
+                      <p className="text-caption text-muted-foreground">Not enough timing data yet.</p>
                     )}
                   </div>
                 </Card>
 
                 <Card className="p-4 space-y-3 md:col-span-2">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">Recent Reading attempts</h2>
+                    <h2 className="text-small font-semibold">Recent Reading attempts</h2>
                     <Icon name="line-chart" className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Track how your raw score and band are moving over time. Use this to see if your
                     practice is actually working.
                   </p>
-                  <div className="mt-3 space-y-1 text-xs">
+                  <div className="mt-3 space-y-1 text-caption">
                     {timeline.map((t) => (
                       <div
                         key={t.attemptId}
@@ -212,7 +212,7 @@ const ReadingAnalyticsPage: NextPage<PageProps> = ({
                       </div>
                     ))}
                     {!timeline.length && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         No attempts in the window we looked at.
                       </p>
                     )}

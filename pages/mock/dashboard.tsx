@@ -66,8 +66,8 @@ const MockDashboardPage: NextPage<PageProps> = ({
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
               <Icon name="AlertTriangle" />
             </div>
-            <h1 className="text-2xl font-slab">Unable to load Mock dashboard</h1>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <h1 className="text-h2 font-slab">Unable to load Mock dashboard</h1>
+            <p className="text-small text-muted-foreground">{error}</p>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="primary" className="rounded-ds-xl">
                 <Link href="/mock">Back to Mock hub</Link>
@@ -119,41 +119,41 @@ const MockDashboardPage: NextPage<PageProps> = ({
           <div className="relative flex flex-col h-full justify-between">
             <div className="flex items-center justify-between gap-4 mb-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">
+                <p className="text-caption uppercase tracking-wide text-slate-400">
                   Mock Mission Control
                 </p>
-                <h1 className="text-xl md:text-2xl font-semibold">
+                <h1 className="text-h3 md:text-h2 font-semibold">
                   Hey{profile.fullName ? `, ${profile.fullName}` : ''} — let&apos;s
                   chase that band {profile.targetBand ?? 7}.0
                 </h1>
               </div>
-              <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+              <Badge className="bg-success/10 text-success/90 border border-success/30">
                 {streakLabel}
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs md:text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-caption md:text-small">
               <div className="rounded-lg bg-slate-900/60 p-3 border border-slate-800">
                 <p className="text-slate-400 mb-1">Target band</p>
-                <p className="text-lg font-semibold">
+                <p className="text-h4 font-semibold">
                   {profile.targetBand ? profile.targetBand.toFixed(1) : '—'}
                 </p>
               </div>
               <div className="rounded-lg bg-slate-900/60 p-3 border border-slate-800">
                 <p className="text-slate-400 mb-1">Current estimate</p>
-                <p className="text-lg font-semibold">
+                <p className="text-h4 font-semibold">
                   {bandDisplay(bands.overall)}
                 </p>
               </div>
               <div className="rounded-lg bg-slate-900/60 p-3 border border-slate-800">
                 <p className="text-slate-400 mb-1">Next exam</p>
-                <p className="text-sm font-medium">
+                <p className="text-small font-medium">
                   {formatDate(profile.nextExamDate)}
                 </p>
               </div>
               <div className="rounded-lg bg-slate-900/60 p-3 border border-slate-800">
                 <p className="text-slate-400 mb-1">Weak modules</p>
-                <p className="text-xs font-medium">
+                <p className="text-caption font-medium">
                   {weakAreas.length === 0 ? 'None flagged yet' : weakAreas.join(', ')}
                 </p>
               </div>
@@ -161,7 +161,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
 
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/mock">
-                <Button size="sm" className="text-xs md:text-sm">
+                <Button size="sm" className="text-caption md:text-small">
                   Start new mock
                 </Button>
               </Link>
@@ -169,7 +169,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="text-xs md:text-sm"
+                  className="text-caption md:text-small"
                 >
                   Reading practice
                 </Button>
@@ -178,7 +178,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs md:text-sm text-slate-300"
+                  className="text-caption md:text-small text-slate-300"
                 >
                   Listening practice
                 </Button>
@@ -190,10 +190,10 @@ const MockDashboardPage: NextPage<PageProps> = ({
         {/* QUICK SUMMARY CARD */}
         <Card className="flex flex-col justify-between border-slate-800 bg-slate-950/80">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+            <p className="text-caption uppercase tracking-wide text-slate-400 mb-2">
               Quick summary
             </p>
-            <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
+            <div className="grid grid-cols-2 gap-3 text-caption md:text-small">
               <SummaryPill
                 label="Listening"
                 band={bands.listening}
@@ -232,7 +232,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
               />
             </div>
           </div>
-          <div className="mt-4 text-xs text-slate-400">
+          <div className="mt-4 text-caption text-slate-400">
             This is an **estimate** based on your recent mocks. More mocks = sharper
             predictions.
           </div>
@@ -243,7 +243,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
       <section className="grid gap-4 lg:grid-cols-[1.8fr,1.2fr] items-start">
         <Card className="border-slate-800 bg-slate-950/80">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-100">
+            <h2 className="text-small font-semibold text-slate-100">
               Performance trend (last 10 mocks)
             </h2>
             <span className="text-[11px] text-slate-400">
@@ -255,7 +255,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
             {hasAttempts ? (
               <FakeBandTimeline attempts={recentAttempts} />
             ) : (
-              <p className="text-xs text-slate-400">
+              <p className="text-caption text-slate-400">
                 No mocks yet. Start your first full mock to unlock trends.
               </p>
             )}
@@ -263,16 +263,16 @@ const MockDashboardPage: NextPage<PageProps> = ({
         </Card>
 
         <Card className="border-slate-800 bg-slate-950/80">
-          <h2 className="text-sm font-semibold text-slate-100 mb-3">
+          <h2 className="text-small font-semibold text-slate-100 mb-3">
             AI insights (GX Brain style)
           </h2>
           {aiInsights.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-caption text-slate-400">
               Once you complete a couple of mocks, we&apos;ll start dropping specific,
               brutal honesty about your weak spots here.
             </p>
           ) : (
-            <ul className="space-y-2 text-xs text-slate-200">
+            <ul className="space-y-2 text-caption text-slate-200">
               {aiInsights.map((insight, idx) => (
                 <li
                   key={idx}
@@ -290,7 +290,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
       <section className="grid gap-4 xl:grid-cols-[2fr,1.1fr] items-start">
         <Card className="border-slate-800 bg-slate-950/80 overflow-x-auto">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-100">
+            <h2 className="text-small font-semibold text-slate-100">
               Recent mock attempts
             </h2>
             <Link href="/mock/history">
@@ -301,7 +301,7 @@ const MockDashboardPage: NextPage<PageProps> = ({
           </div>
 
           {hasAttempts ? (
-            <table className="w-full text-xs md:text-sm border-separate border-spacing-y-1">
+            <table className="w-full text-caption md:text-small border-separate border-spacing-y-1">
               <thead className="text-[11px] uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="text-left font-medium px-2 py-1">Test</th>
@@ -327,9 +327,9 @@ const MockDashboardPage: NextPage<PageProps> = ({
                       <Badge
                         className={
                           attempt.module === 'listening'
-                            ? 'bg-sky-500/10 text-sky-300 border-sky-500/40'
+                            ? 'bg-electricBlue/10 text-electricBlue/90 border-electricBlue/40'
                             : attempt.module === 'reading'
-                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40'
+                            ? 'bg-success/10 text-success/90 border-success/40'
                             : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/40'
                         }
                       >
@@ -363,23 +363,23 @@ const MockDashboardPage: NextPage<PageProps> = ({
               </tbody>
             </table>
           ) : (
-            <p className="text-xs text-slate-400">
+            <p className="text-caption text-slate-400">
               No mock attempts yet. Start a full mock to see your history here.
             </p>
           )}
         </Card>
 
         <Card className="border-slate-800 bg-slate-950/80">
-          <h2 className="text-sm font-semibold text-slate-100 mb-3">
+          <h2 className="text-small font-semibold text-slate-100 mb-3">
             Recommended next steps
           </h2>
           {weakAreas.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-caption text-slate-400">
               Once we have more mocks from you, we&apos;ll start recommending specific
               tests and practice flows based on your weak modules and question types.
             </p>
           ) : (
-            <ul className="space-y-3 text-xs text-slate-200">
+            <ul className="space-y-3 text-caption text-slate-200">
               {weakAreas.includes('Reading') && (
                 <li className="rounded-lg border border-slate-800 bg-slate-900/80 p-3">
                   <p className="font-semibold mb-1">Boost your Reading score</p>
@@ -441,16 +441,16 @@ const SummaryPill: React.FC<SummaryPillProps> = ({ label, band, intent = 'ok' })
       className={[
         'rounded-lg border px-3 py-2 flex flex-col gap-1',
         isWarning
-          ? 'border-amber-500/40 bg-amber-500/5 text-amber-100'
+          ? 'border-warning/40 bg-warning/5 text-warning/80'
           : 'border-slate-700 bg-slate-900/80 text-slate-100',
       ].join(' ')}
     >
       <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
-      <p className="text-lg font-semibold leading-none">
+      <p className="text-h4 font-semibold leading-none">
         {band == null ? '—' : band.toFixed(1)}
       </p>
       {isWarning && (
-        <p className="text-[11px] text-amber-200">
+        <p className="text-[11px] text-warning/80">
           Below target — needs focused work.
         </p>
       )}
@@ -472,7 +472,7 @@ const FakeBandTimeline: React.FC<FakeBandTimelineProps> = ({ attempts }) => {
 
   if (points.length === 0) {
     return (
-      <p className="text-xs text-slate-400">
+      <p className="text-caption text-slate-400">
         We don&apos;t have band scores recorded yet. Once mocks start saving bands,
         we&apos;ll visualize them here.
       </p>
@@ -498,9 +498,9 @@ const FakeBandTimeline: React.FC<FakeBandTimelineProps> = ({ attempts }) => {
 
           const colorClass =
             attempt.module === 'listening'
-              ? 'bg-sky-500/80'
+              ? 'bg-electricBlue/80'
               : attempt.module === 'reading'
-              ? 'bg-emerald-500/80'
+              ? 'bg-success/80'
               : 'bg-indigo-500/80';
 
           return (

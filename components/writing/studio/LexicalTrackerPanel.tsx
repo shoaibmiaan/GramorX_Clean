@@ -52,25 +52,25 @@ export const LexicalTrackerPanel = ({ text, timeSpentMs }: LexicalTrackerPanelPr
   return (
     <Card className="space-y-4" padding="lg">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">Lexical variety tracker</h2>
-        <p className="text-sm text-muted-foreground">Monitor vocabulary range, rare word usage, and pacing.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Lexical variety tracker</h2>
+        <p className="text-small text-muted-foreground">Monitor vocabulary range, rare word usage, and pacing.</p>
       </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-small text-danger">{error}</p>}
       {report && (
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">Type-token ratio</span>
+            <span className="text-small text-muted-foreground">Type-token ratio</span>
             <Badge variant="soft" tone={report.typeTokenRatio >= 0.5 ? 'success' : 'warning'} size="sm">
               {report.typeTokenRatio.toFixed(2)}
             </Badge>
           </div>
           <ProgressBar value={report.typeTokenRatio * 100} ariaLabel="Type-token ratio" />
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
             {ttrTargets.map((target) => (
               <span key={target.label}>{target.label}: {target.value.toFixed(2)}</span>
             ))}
           </div>
-          <div className="grid gap-2 text-sm text-muted-foreground">
+          <div className="grid gap-2 text-small text-muted-foreground">
             <div className="flex justify-between">
               <span>Words per minute</span>
               <span className="text-foreground">{report.wordsPerMinute.toFixed(1)}</span>

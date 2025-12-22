@@ -62,7 +62,7 @@ export const RetakeGuard = ({ initial = null, onRefreshError, children }: Retake
         </Button>
       </div>
       {!pass && missing.length > 0 && (
-        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+        <ul className="list-disc space-y-1 pl-5 text-small text-muted-foreground">
           {missing.map((item) => (
             <li key={item}>{item}</li>
           ))}

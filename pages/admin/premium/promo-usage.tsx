@@ -245,7 +245,7 @@ export default function AdminPromoUsagePage() {
               </tbody>
             </table>
           </div>
-          {error ? <p className="pr-mt-4 pr-text-small pr-text-red-300">{error}</p> : null}
+          {error ? <p className="pr-mt-4 pr-text-small pr-text-danger/90">{error}</p> : null}
         </section>
       </div>
     </main>

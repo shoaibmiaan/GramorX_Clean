@@ -40,7 +40,7 @@ export const ListeningExitModal: React.FC<ListeningExitModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 rounded-lg bg-muted/80 p-3 text-xs text-muted-foreground">
+        <div className="mt-2 rounded-lg bg-muted/80 p-3 text-caption text-muted-foreground">
           <p>
             • Your current answers will be saved and scored. <br />
             • You can review results after exiting. <br />

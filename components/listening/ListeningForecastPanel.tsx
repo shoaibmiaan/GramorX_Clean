@@ -10,7 +10,7 @@ export function ListeningForecastPanel() {
         <h3 className="font-medium">Forecast</h3>
       </div>
 
-      <div className="space-y-3 text-sm">
+      <div className="space-y-3 text-small">
         <div className="flex justify-between">
           <span className="text-muted-foreground">7-day projection</span>
           <span className="font-semibold text-primary">+0.5 band</span>
@@ -21,7 +21,7 @@ export function ListeningForecastPanel() {
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+      <div className="mt-4 pt-4 border-t border-border/50 text-caption text-muted-foreground">
         Based on your current pace and consistency
       </div>
     </Card>

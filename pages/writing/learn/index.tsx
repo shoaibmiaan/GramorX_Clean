@@ -18,13 +18,13 @@ export default function WritingLearnHub() {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Writing • Learn (Guides)</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Writing • Learn (Guides)</h1>
         <p className="text-muted mt-1">Text-only stubs. Practical, no fluff. Jump in.</p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((it) => (
             <Card key={it.href} className="p-4">
-              <h3 className="text-lg font-semibold">{it.title}</h3>
+              <h3 className="text-h4 font-semibold">{it.title}</h3>
               <div className="mt-1"><Badge variant="neutral">{it.tag}</Badge></div>
               <div className="mt-4">
                 <Link href={it.href} className="inline-flex"><Button variant="primary">Open</Button></Link>

@@ -92,13 +92,13 @@ export default function SpeakingPacksIndexPage() {
                 </span>
                 <div>
                   <h2 className="font-slab text-h2">How to use these packs</h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Don&apos;t memorise full answers. Steal phrases, structures, and a few
                     key adjectives you actually like.
                   </p>
                 </div>
               </div>
-              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-small text-muted-foreground">
                 <li>Pick one topic — ideally one you hate or feel weak in.</li>
                 <li>Note 5–8 phrases for Part 1, a few for Part 2 description, and 3–4 for Part 3.</li>
                 <li>Mix them into your own answers. Don&apos;t copy whole paragraphs.</li>
@@ -108,16 +108,16 @@ export default function SpeakingPacksIndexPage() {
 
             <Card className="rounded-ds-2xl p-6 flex flex-col justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   Example topic
                 </p>
                 <h2 className="mt-2 font-slab text-h3">Family & relationships</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-small text-muted-foreground">
                   Part 1 & Part 2 phrases to talk about your family without sounding like a
                   textbook.
                 </p>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              <div className="mt-4 flex flex-wrap gap-2 text-small">
                 <Badge size="xs" variant="neutral">
                   Part 1 small talk
                 </Badge>
@@ -151,7 +151,7 @@ export default function SpeakingPacksIndexPage() {
                       </span>
                       <div>
                         <h2 className="font-semibold text-foreground">{topic.label}</h2>
-                        <p className="text-xs text-muted-foreground">{topic.useCases}</p>
+                        <p className="text-caption text-muted-foreground">{topic.useCases}</p>
                       </div>
                     </div>
                     <Badge
@@ -161,7 +161,7 @@ export default function SpeakingPacksIndexPage() {
                       {topic.level}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Vocab + phrases organised by Part 1, Part 2 and Part 3 with natural
                     examples.
                   </p>

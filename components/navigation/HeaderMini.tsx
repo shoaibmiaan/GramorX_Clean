@@ -147,7 +147,7 @@ const HeaderMini: React.FC<HeaderMiniProps> = ({
               />
 
               <div className="flex min-w-0 flex-col leading-tight">
-                <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text text-sm font-bold text-transparent">
+                <span className="bg-gradient-to-r from-electricBlue to-purpleVibe bg-clip-text text-small font-bold text-transparent">
                   GramorX
                 </span>
 
@@ -179,7 +179,7 @@ const HeaderMini: React.FC<HeaderMiniProps> = ({
               <span className="text-[10px] font-semibold text-muted-foreground">
                 Candidate ID
               </span>
-              <span className="text-xs font-mono font-bold tracking-wide text-foreground">
+              <span className="text-caption font-mono font-bold tracking-wide text-foreground">
                 {candidateId}
               </span>
             </div>
@@ -189,7 +189,7 @@ const HeaderMini: React.FC<HeaderMiniProps> = ({
               <span className="text-[10px] font-semibold text-muted-foreground">
                 Time in room
               </span>
-              <span className="text-xs font-semibold text-primary">
+              <span className="text-caption font-semibold text-primary">
                 {formatMmSs(elapsedSec)}
               </span>
             </div>
@@ -201,7 +201,7 @@ const HeaderMini: React.FC<HeaderMiniProps> = ({
               </span>
               <span
                 className={cn(
-                  'text-xs font-semibold',
+                  'text-caption font-semibold',
                   idleWarning ? 'text-danger' : 'text-muted-foreground',
                 )}
               >

@@ -62,7 +62,7 @@ export const WritingReviewShell: React.FC<Props> = ({ prompts, answers, evaluati
               type="button"
               onClick={() => setActive(1)}
               className={[
-                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition',
+                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-caption transition',
                 active === 1
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted',
@@ -76,7 +76,7 @@ export const WritingReviewShell: React.FC<Props> = ({ prompts, answers, evaluati
               type="button"
               onClick={() => setActive(2)}
               className={[
-                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition',
+                'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-caption transition',
                 active === 2
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted',

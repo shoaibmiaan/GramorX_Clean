@@ -61,8 +61,8 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tie
                   <Icon name="alert-triangle" className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="space-y-2">
-                  <h1 className="text-xl font-semibold tracking-tight">Result not available</h1>
-                  <p className="text-sm text-muted-foreground">
+                  <h1 className="text-h3 font-semibold tracking-tight">Result not available</h1>
+                  <p className="text-small text-muted-foreground">
                     We couldn’t load this attempt. It may have been deleted or you don’t have access.
                   </p>
                 </div>
@@ -114,10 +114,10 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tie
                 </div>
 
                 <div className="space-y-1">
-                  <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">
+                  <h1 className="mt-1 text-h2 md:text-h1 font-semibold tracking-tight">
                     {test.title}
                   </h1>
-                  <p className="mt-1 text-xs md:text-sm text-muted-foreground">
+                  <p className="mt-1 text-caption md:text-small text-muted-foreground">
                     {test.examType === 'gt' ? 'General Training' : 'Academic'} · {totalQuestions}{' '}
                     questions · {totalMinutes} minutes
                   </p>
@@ -188,10 +188,10 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tie
               <Card className="rounded-ds-2xl border-none bg-card/80 p-4 md:p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/50">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                       Detailed analysis
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       See where you lost points and how to retake smarter.
                     </p>
                   </div>
@@ -203,24 +203,24 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tie
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3 pt-3">
                   <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Accuracy focus</p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-small font-semibold text-foreground">
                       {attempt.bandScore != null ? `Band ${attempt.bandScore.toFixed(1)} trend` : 'Score tracker'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       Identify question types dragging you below your target band.
                     </p>
                   </div>
                   <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Timing</p>
-                    <p className="text-sm font-semibold text-foreground">Pacing heatmap</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-small font-semibold text-foreground">Pacing heatmap</p>
+                    <p className="text-caption text-muted-foreground">
                       Spot where you spent too long so you can trim reading time.
                     </p>
                   </div>
                   <div className="rounded-ds-xl bg-background/70 p-3 space-y-1">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Next steps</p>
-                    <p className="text-sm font-semibold text-foreground">AI-guided retake</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-small font-semibold text-foreground">AI-guided retake</p>
+                    <p className="text-caption text-muted-foreground">
                       Get a focused retake plan with your weakest tags and timings.
                     </p>
                   </div>
@@ -229,7 +229,7 @@ const ReadingResultPage: NextPage<PageProps> = ({ attempt, test, isLoggedIn, tie
             </UpgradeGate>
 
             {/* FOOTER HELP TEXT */}
-            <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-xs md:text-sm text-muted-foreground space-y-2">
+            <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-4 text-caption md:text-small text-muted-foreground space-y-2">
               <p>
                 This result is based on IELTS-style band mapping for Reading. Actual exam bands may
                 vary slightly, but this gives you a realistic snapshot of where you stand right now.

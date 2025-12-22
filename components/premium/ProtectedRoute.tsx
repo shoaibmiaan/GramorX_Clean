@@ -15,7 +15,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       <div className="pr-flex pr-items-center pr-justify-center pr-min-h-screen">
         <div className="pr-text-center">
           <div className="pr-animate-spin pr-rounded-full pr-h-8 pr-w-8 pr-border-b-2 pr-border-[var(--pr-primary)] pr-mx-auto"></div>
-          <p className="pr-mt-4 pr-text-sm pr-text-[var(--pr-fg)]/70">Checking authentication...</p>
+          <p className="pr-mt-4 pr-text-small pr-text-[var(--pr-fg)]/70">Checking authentication...</p>
         </div>
       </div>
     );

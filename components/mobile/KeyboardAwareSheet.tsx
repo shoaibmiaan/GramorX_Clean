@@ -94,12 +94,12 @@ export function KeyboardAwareSheet({ open, title, description, onClose, children
         >
           <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-border/80" aria-hidden="true" />
           {title ? (
-            <h2 id={labelledBy} className="text-lg font-semibold text-foreground">
+            <h2 id={labelledBy} className="text-h4 font-semibold text-foreground">
               {title}
             </h2>
           ) : null}
           {description ? (
-            <p id={describedBy} className="mt-1 text-sm text-muted-foreground">
+            <p id={describedBy} className="mt-1 text-small text-muted-foreground">
               {description}
             </p>
           ) : null}

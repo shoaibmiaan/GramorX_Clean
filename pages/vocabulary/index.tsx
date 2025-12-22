@@ -39,7 +39,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Daily word</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     One high-impact word each day with examples, synonyms and a quick check.
                   </p>
                 </div>
@@ -58,7 +58,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Topic packs</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Environment, education, technology and more — ready-made vocab for Writing &
                     Speaking.
                   </p>
@@ -90,7 +90,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Linking & paraphrasing</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Sound academic with proper linking words and smarter paraphrasing.
                   </p>
                 </div>
@@ -116,7 +116,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Speaking packs</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Cue card-ready phrases sorted by topics for Speaking Part 2 & 3.
                   </p>
                 </div>
@@ -135,7 +135,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Quizzes & mastery</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Quick quizzes to test meaning, usage and synonym choice.
                   </p>
                 </div>
@@ -154,7 +154,7 @@ const VocabularyIndexPage: NextPage = () => {
                     </span>
                     <h2 className="font-slab text-h3">Saved words</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Your personal word bank — review, tag and practise on demand.
                   </p>
                 </div>

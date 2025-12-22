@@ -36,7 +36,7 @@ export function ResourceCard({
             <Badge variant="secondary">{accent.toUpperCase()}</Badge>
           </div>
         </div>
-        <h3 className="mt-3 text-base font-semibold">{title}</h3>
+        <h3 className="mt-3 text-body font-semibold">{title}</h3>
         {!!topics?.length && (
           <div className="mt-3 flex flex-wrap gap-2">
             {topics.map((t) => (

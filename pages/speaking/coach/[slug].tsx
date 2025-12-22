@@ -281,42 +281,42 @@ const DrillPage = ({ exercise, attempts }: PageProps) => {
               <Badge variant="info" size="sm">
                 {exercise.level} · {exercise.type}
               </Badge>
-              <h1 className="text-3xl font-semibold text-foreground md:text-4xl">{exercise.prompt}</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-h1 font-semibold text-foreground md:text-display">{exercise.prompt}</h1>
+              <p className="text-small text-muted-foreground">
                 Target band-ready delivery by matching the model pronunciation and intonation.{' '}
                 {exercise.targetWpm ? `Aim for ~${exercise.targetWpm} wpm.` : 'Focus on crisp articulation and steady pace.'}
               </p>
-              {exercise.tip && <p className="text-sm text-muted-foreground">Tip: {exercise.tip}</p>}
+              {exercise.tip && <p className="text-small text-muted-foreground">Tip: {exercise.tip}</p>}
             </div>
             <Card className="w-full max-w-sm space-y-3 p-5">
-              <h2 className="text-base font-semibold text-foreground">Latest performance</h2>
+              <h2 className="text-body font-semibold text-foreground">Latest performance</h2>
               {latest ? (
                 <div className="grid gap-3">
                   <div>
-                    <p className="text-xs text-muted-foreground">Band estimate</p>
-                    <p className="text-2xl font-semibold text-foreground">{latest.overall.band?.toFixed(1) ?? '—'}</p>
+                    <p className="text-caption text-muted-foreground">Band estimate</p>
+                    <p className="text-h2 font-semibold text-foreground">{latest.overall.band?.toFixed(1) ?? '—'}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-3 text-small text-muted-foreground">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Pron</p>
+                      <p className="text-caption uppercase tracking-wide text-muted-foreground">Pron</p>
                       <span className="text-foreground">{latest.overall.pron?.toFixed(2) ?? '—'}</span>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Fluency</p>
+                      <p className="text-caption uppercase tracking-wide text-muted-foreground">Fluency</p>
                       <span className="text-foreground">{latest.overall.fluency?.toFixed(2) ?? '—'}</span>
                     </div>
                   </div>
                   {improvement && (
-                    <div className="rounded-ds-xl bg-success/10 p-3 text-xs text-success">
+                    <div className="rounded-ds-xl bg-success/10 p-3 text-caption text-success">
                       <p>Δ band {improvement.band ? improvement.band.toFixed(2) : '—'}</p>
                       <p>Δ pron {improvement.pron ? improvement.pron.toFixed(2) : '—'}</p>
                       <p>Δ fluency {improvement.fluency ? improvement.fluency.toFixed(2) : '—'}</p>
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground">Last attempt {latest ? formatTimestamp(latest.createdAt) : '—'}</p>
+                  <p className="text-caption text-muted-foreground">Last attempt {latest ? formatTimestamp(latest.createdAt) : '—'}</p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No attempts yet—record to unlock insights.</p>
+                <p className="text-small text-muted-foreground">No attempts yet—record to unlock insights.</p>
               )}
             </Card>
           </section>
@@ -331,7 +331,7 @@ const DrillPage = ({ exercise, attempts }: PageProps) => {
                 <Button variant="ghost" tone="secondary" href="/speaking/coach">Back to dashboard</Button>
               </div>
               {error && (
-                <p className="rounded-ds-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                <p className="rounded-ds-xl bg-danger/10 px-3 py-2 text-small text-danger" role="alert">
                   {error}
                 </p>
               )}
@@ -345,17 +345,17 @@ const DrillPage = ({ exercise, attempts }: PageProps) => {
                 <CoachTips ipaTargets={feedback.weakIPA} />
               </div>
             ) : (
-              <Card className="flex min-h-[320px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
+              <Card className="flex min-h-[320px] items-center justify-center p-6 text-center text-small text-muted-foreground">
                 Submit a recording to unlock personalised feedback, phoneme heatmaps, and next-action tips.
               </Card>
             )}
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Attempt history</h2>
+            <h2 className="text-h2 font-semibold text-foreground">Attempt history</h2>
             {history.length === 0 ? (
               <Card className="p-6">
-                <p className="text-sm text-muted-foreground">No history yet. Your attempts will appear here after scoring.</p>
+                <p className="text-small text-muted-foreground">No history yet. Your attempts will appear here after scoring.</p>
               </Card>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
@@ -363,12 +363,12 @@ const DrillPage = ({ exercise, attempts }: PageProps) => {
                   <Card key={attempt.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Band {attempt.overall.band?.toFixed(1) ?? '—'}</p>
-                        <p className="text-xs text-muted-foreground">{formatTimestamp(attempt.createdAt)}</p>
+                        <p className="text-small font-semibold text-foreground">Band {attempt.overall.band?.toFixed(1) ?? '—'}</p>
+                        <p className="text-caption text-muted-foreground">{formatTimestamp(attempt.createdAt)}</p>
                       </div>
                       <Badge variant="info" size="sm">Pron {attempt.overall.pron?.toFixed(2) ?? '—'}</Badge>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-caption text-muted-foreground">
                       <span>Fluency {attempt.overall.fluency?.toFixed(2) ?? '—'}</span>
                       <span>WPM {attempt.overall.wpm ?? '—'}</span>
                       <span>Fillers {attempt.overall.fillers ?? '—'}</span>

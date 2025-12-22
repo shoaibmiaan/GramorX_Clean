@@ -66,8 +66,8 @@ export default function LinkingWordsPage() {
                 <div className="space-y-3">
                   {group.examples.map((ex) => (
                     <div key={ex.phrase}>
-                      <p className="text-sm font-semibold">{ex.phrase}</p>
-                      <p className="text-xs text-muted-foreground">{ex.sentence}</p>
+                      <p className="text-small font-semibold">{ex.phrase}</p>
+                      <p className="text-caption text-muted-foreground">{ex.sentence}</p>
                     </div>
                   ))}
                 </div>
@@ -75,7 +75,7 @@ export default function LinkingWordsPage() {
             ))}
           </div>
 
-          <p className="mt-8 text-xs text-muted-foreground">
+          <p className="mt-8 text-caption text-muted-foreground">
             Later, you can connect these to a Writing checker that flags overuse of basic
             connectors and suggests these instead.
           </p>

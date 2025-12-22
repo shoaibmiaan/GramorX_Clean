@@ -63,7 +63,7 @@ const loadingSkeleton = (
       <div className="grid gap-6 md:grid-cols-3">
         {[...Array(3)].map((_, i) => (
           <Card key={i} className="rounded-ds-2xl p-6">
-            <div className="h-6 w-40 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+            <div className="h-6 w-40 animate-pulse rounded bg-lightBg dark:bg-white/10" />
             <div className="mt-4 h-24 animate-pulse rounded bg-muted dark:bg-white/10" />
           </Card>
         ))}
@@ -628,7 +628,7 @@ const Dashboard: NextPage = () => {
                 </div>
 
                 {topBadges.length ? (
-                  <div className="flex flex-wrap items-center gap-2 text-2xl">
+                  <div className="flex flex-wrap items-center gap-2 text-h2">
                     {topBadges.map((meta) => (
                       <span key={meta.id} aria-label={meta.name} title={meta.name}>
                         {meta.icon}
@@ -754,7 +754,7 @@ const Dashboard: NextPage = () => {
                           </span>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-lg text-foreground">
+                              <h3 className="font-semibold text-h4 text-foreground">
                                 {tile.title}
                               </h3>
                               {tile.badge ? (
@@ -763,13 +763,13 @@ const Dashboard: NextPage = () => {
                                 </Badge>
                               ) : null}
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-small text-muted-foreground">
                               {tile.description}
                             </p>
                           </div>
                         </div>
                         {tile.meta ? (
-                          <p className="text-xs text-muted-foreground">{tile.meta}</p>
+                          <p className="text-caption text-muted-foreground">{tile.meta}</p>
                         ) : null}
                       </div>
 
@@ -884,7 +884,7 @@ const Dashboard: NextPage = () => {
                         </span>
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-semibold text-lg text-foreground">
+                            <h3 className="font-semibold text-h4 text-foreground">
                               {item.title}
                             </h3>
                             {item.done ? (
@@ -898,7 +898,7 @@ const Dashboard: NextPage = () => {
                               </Badge>
                             ) : null}
                           </div>
-                          <p className="text-sm text-muted-foreground">{item.caption}</p>
+                          <p className="text-small text-muted-foreground">{item.caption}</p>
                         </div>
                       </div>
                     </div>
@@ -1111,10 +1111,10 @@ const Dashboard: NextPage = () => {
                     </span>
                     <div className="space-y-1">
                       <h4 className="font-semibold text-foreground">WhatsApp Tasks</h4>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-small text-muted-foreground">
                         Receive daily micro-tasks and reminders via WhatsApp.
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Also available in the AI workspace section above.
                       </p>
                     </div>

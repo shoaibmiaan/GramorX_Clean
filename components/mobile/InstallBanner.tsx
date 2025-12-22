@@ -55,9 +55,9 @@ export function InstallBanner({ promptEvent, onComplete, onDismiss }: InstallBan
     <Card padding="lg" className="border-border/70">
       <div className="flex flex-col gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Install app</p>
-          <h3 className="text-lg font-semibold text-foreground">Use GramorX like a native app</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Install app</p>
+          <h3 className="text-h4 font-semibold text-foreground">Use GramorX like a native app</h3>
+          <p className="mt-1 text-small text-muted-foreground">
             Install to keep the exam room handy offline, and launch instantly from your {platformLabel} home screen.
           </p>
         </div>

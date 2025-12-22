@@ -30,18 +30,18 @@ export const WritingCriteriaGrid: React.FC<Props> = ({ criteriaBands, criteriaNo
           <Card key={k} className="rounded-ds-2xl border border-border bg-card/70 p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {k}
                 </p>
-                <p className="mt-1 text-base font-semibold text-foreground">{info.title}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{info.desc}</p>
+                <p className="mt-1 text-body font-semibold text-foreground">{info.title}</p>
+                <p className="mt-0.5 text-caption text-muted-foreground">{info.desc}</p>
               </div>
               <Badge variant="neutral" size="sm">
                 Band {criteriaBands[k]}
               </Badge>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <ul className="mt-4 space-y-2 text-small text-muted-foreground">
               {(notes.length ? notes : ['No notes provided.']).slice(0, 3).map((n) => (
                 <li key={n} className="flex items-start gap-2">
                   <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />

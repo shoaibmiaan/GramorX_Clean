@@ -50,8 +50,8 @@ export const ParaphraseStudio = ({ onInsert }: ParaphraseStudioProps) => {
   return (
     <Card className="space-y-4" padding="lg">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">Paraphrase studio</h2>
-        <p className="text-sm text-muted-foreground">Drop in a sentence to explore confident, exam-ready rewrites.</p>
+        <h2 className="text-h4 font-semibold text-foreground">Paraphrase studio</h2>
+        <p className="text-small text-muted-foreground">Drop in a sentence to explore confident, exam-ready rewrites.</p>
       </div>
       <div className="flex flex-col gap-3">
         <Input
@@ -62,7 +62,7 @@ export const ParaphraseStudio = ({ onInsert }: ParaphraseStudioProps) => {
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={runParaphrase} disabled={loading}>
             {loading ? (
-              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2 text-small text-muted-foreground">
                 <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" aria-hidden />
                 Generating…
               </span>
@@ -75,7 +75,7 @@ export const ParaphraseStudio = ({ onInsert }: ParaphraseStudioProps) => {
           </Button>
         </div>
       </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="text-small text-danger">{error}</p>}
       {options.length > 0 && (
         <ul className="space-y-3">
           {options.map((option) => (
@@ -90,7 +90,7 @@ export const ParaphraseStudio = ({ onInsert }: ParaphraseStudioProps) => {
                   </Button>
                 )}
               </div>
-              <p className="mt-2 text-sm text-foreground">{option.sentence}</p>
+              <p className="mt-2 text-small text-foreground">{option.sentence}</p>
             </li>
           ))}
         </ul>

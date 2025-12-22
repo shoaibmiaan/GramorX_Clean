@@ -30,7 +30,7 @@ export default function TeacherRegisterPage() {
     <>
       <Head><title>Teacher Registration</title></Head>
       <Container className="py-8 space-y-6">
-        <h1 className="text-2xl font-semibold">Apply as a Teacher</h1>
+        <h1 className="text-h2 font-semibold">Apply as a Teacher</h1>
         <TeacherOnboardingForm subjectsOptions={SUBJECTS} />
       </Container>
     </>

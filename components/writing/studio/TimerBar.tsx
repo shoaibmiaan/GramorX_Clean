@@ -36,11 +36,11 @@ export const TimerBar = ({ elapsedMs, taskType, paused = false }: TimerBarProps)
   return (
     <div className="space-y-2 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Timer</p>
-        <span className="text-xs font-medium text-muted-foreground">Target {targetMinutes} min</span>
+        <p className="text-small font-semibold text-foreground">Timer</p>
+        <span className="text-caption font-medium text-muted-foreground">Target {targetMinutes} min</span>
       </div>
       <ProgressBar value={progress} tone={tone} ariaLabel="Elapsed time" />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-caption text-muted-foreground">
         <span className="font-semibold text-foreground">{formatElapsed(elapsedMs)}</span>
         <span>{status}</span>
       </div>

@@ -259,15 +259,15 @@ export default function AccountHubPage() {
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-14 sm:w-14">
                 {email ? (
-                  <span className="text-base font-semibold sm:text-lg">
+                  <span className="text-body font-semibold sm:text-h4">
                     {email[0].toUpperCase()}
                   </span>
                 ) : (
-                  <span className="text-base font-semibold sm:text-lg">U</span>
+                  <span className="text-body font-semibold sm:text-h4">U</span>
                 )}
               </div>
               <div className="space-y-0.5">
-                <p className="text-sm font-medium">
+                <p className="text-small font-medium">
                   {email || 'Account'}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
@@ -278,7 +278,7 @@ export default function AccountHubPage() {
             <div className="flex flex-wrap items-center gap-3 sm:justify-end">
               {/* Streak summary – compact */}
               <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
-                <span className="text-xs">🔥</span>
+                <span className="text-caption">🔥</span>
                 {streakLoading ? (
                   <span>Calculating streak…</span>
                 ) : (
@@ -296,7 +296,7 @@ export default function AccountHubPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="rounded-ds-xl px-3 py-1 text-xs"
+                className="rounded-ds-xl px-3 py-1 text-caption"
                 onClick={handleReset}
                 disabled={!email || sending}
                 loading={sending}
@@ -336,7 +336,7 @@ export default function AccountHubPage() {
                   <span className="font-medium">{activityStats.totalActivities}</span>
                 </div>
                 <div className="mt-4 border-t border-border pt-4">
-                  <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Quick actions</h3>
+                  <h3 className="mb-2 text-caption font-semibold text-muted-foreground">Quick actions</h3>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild variant="soft" size="sm" className="min-w-[120px] flex-1">
                       <Link href="/account/activity">
@@ -413,7 +413,7 @@ export default function AccountHubPage() {
                       )}
                     </div>
                     {!isPremiumPlan && (
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-2 text-caption text-muted-foreground">
                         Unlock unlimited mocks, full AI feedback, and advanced analytics.
                       </p>
                     )}
@@ -583,11 +583,11 @@ export default function AccountHubPage() {
                       <Shield className="h-6 w-6" />
                     </div>
                     <div>
-                      <h2 className="flex items-center gap-2 text-lg font-semibold">
+                      <h2 className="flex items-center gap-2 text-h4 font-semibold">
                         Admin control panel
                         <Badge variant="primary" className="ml-2">Admin</Badge>
                       </h2>
-                      <p className="text-sm text-muted-foreground">Manage teachers, partners, pricing, and analytics.</p>
+                      <p className="text-small text-muted-foreground">Manage teachers, partners, pricing, and analytics.</p>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -615,7 +615,7 @@ export default function AccountHubPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-semibold">Data &amp; privacy</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Export your activity data or request account deletion.</p>
+                <p className="mt-1 text-small text-muted-foreground">Export your activity data or request account deletion.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm">Export activity log</Button>

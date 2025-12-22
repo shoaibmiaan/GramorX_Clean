@@ -24,7 +24,7 @@ const DrillResultPage: NextPage<PageProps> = ({ attempt, error }) => {
       <main className="min-h-screen bg-lightBg dark:bg-gradient-to-br dark:from-dark/80 dark:to-darker/90">
         <Container className="py-10 max-w-3xl">
           <Card className="p-6 rounded-ds-2xl">
-            <p className="text-sm text-muted-foreground">{error ?? 'Not found'}</p>
+            <p className="text-small text-muted-foreground">{error ?? 'Not found'}</p>
             <Button asChild className="mt-4">
               <Link href="/mock/reading/drill">Back to Drill hub</Link>
             </Button>
@@ -44,13 +44,13 @@ const DrillResultPage: NextPage<PageProps> = ({ attempt, error }) => {
               <div className="space-y-1">
                 <Badge variant="info" size="sm">Drill</Badge>
                 <h1 className="font-slab text-h2">Result saved ✅</h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   {attempt.drill_type} • {attempt.question_count} Q • {Math.round((attempt.duration_seconds ?? 0)/60)} min
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-xs text-muted-foreground">Accuracy</div>
-                <div className="text-2xl font-semibold">{attempt.accuracy ?? 0}%</div>
+                <div className="text-caption text-muted-foreground">Accuracy</div>
+                <div className="text-h2 font-semibold">{attempt.accuracy ?? 0}%</div>
               </div>
             </div>
 

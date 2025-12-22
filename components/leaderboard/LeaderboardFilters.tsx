@@ -17,8 +17,8 @@ const LeaderboardFilters: React.FC<Props> = ({ scope, skill, onScopeChange, onSk
   return (
     <Card className="flex flex-wrap items-center justify-between gap-4" padding="md">
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">Leaderboard filters</p>
-        <p className="text-xs text-muted-foreground">Switch between XP and Writing focus, and adjust the time window.</p>
+        <p className="text-small font-medium text-foreground">Leaderboard filters</p>
+        <p className="text-caption text-muted-foreground">Switch between XP and Writing focus, and adjust the time window.</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex gap-2 rounded-ds-lg border border-border/60 bg-background/60 p-1">

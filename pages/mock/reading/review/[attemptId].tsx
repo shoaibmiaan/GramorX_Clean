@@ -123,17 +123,17 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   </span>
                 </div>
 
-                <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                <p className="text-small font-semibold tracking-wide uppercase text-muted-foreground">
                   Review not available
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   This attempt doesn&apos;t exist or you don&apos;t have access.
                 </p>
 
                 <div className="pt-3 flex justify-center">
                   <Link
                     href="/mock/reading"
-                    className="text-xs font-medium text-primary hover:underline"
+                    className="text-caption font-medium text-primary hover:underline"
                   >
                     Go back to Reading mocks
                   </Link>
@@ -225,7 +225,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     Accuracy
                   </p>
-                  <p className="text-lg md:text-xl font-semibold text-foreground">
+                  <p className="text-h4 md:text-h3 font-semibold text-foreground">
                     {accuracy != null ? `${accuracy}%` : '—'}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
@@ -245,7 +245,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   </p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-lg md:text-xl font-semibold text-foreground">
+                  <p className="text-h4 md:text-h3 font-semibold text-foreground">
                     {avgSecondsPerQuestion != null ? `${avgSecondsPerQuestion}s` : '—'}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
@@ -263,7 +263,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     AI-style next step
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     {accuracy == null
                       ? 'Finish a full attempt to unlock insights.'
                       : accuracy >= 80
@@ -315,7 +315,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                         Band score
                       </p>
-                      <p className="text-xl font-semibold text-foreground">
+                      <p className="text-h3 font-semibold text-foreground">
                         {attempt.bandScore?.toFixed(1) ?? '—'}
                       </p>
                     </div>
@@ -328,7 +328,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       Questions
                     </p>
-                    <p className="text-sm font-medium">
+                    <p className="text-small font-medium">
                       {totalQuestions || '—'} total · {incorrectCount} wrong
                     </p>
                   </div>
@@ -347,7 +347,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                     </p>
                   </div>
 
-                  <details className="text-xs pt-2 border-t border-border/50">
+                  <details className="text-caption pt-2 border-t border-border/50">
                     <summary className="cursor-pointer text-muted-foreground hover:text-foreground select-none">
                       More attempt details
                     </summary>
@@ -418,7 +418,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   </div>
 
                   {hasWeakTags ? (
-                    <ul className="space-y-2 text-xs">
+                    <ul className="space-y-2 text-caption">
                       {weakTagsSorted.map(([tag, count]) => (
                         <li
                           key={tag}
@@ -450,7 +450,7 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
                     Next moves
                   </p>
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-2 text-caption">
                     <Link
                       href={withCtx(`/mock/reading/start?testId=${test.id}&retry=1`)}
                       className="flex items-center justify-between rounded-ds-lg bg-background/70 px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
@@ -507,8 +507,8 @@ const ReadingReviewPage: NextPage<PageProps> = ({
                       secondaryCtaLabel="See plans"
                       ctaFullWidth
                     >
-                      <div className="rounded-ds-xl border border-border/60 bg-background/70 p-4 space-y-2 text-xs text-muted-foreground">
-                        <p className="font-semibold text-sm text-foreground">Explanation highlights</p>
+                      <div className="rounded-ds-xl border border-border/60 bg-background/70 p-4 space-y-2 text-caption text-muted-foreground">
+                        <p className="font-semibold text-small text-foreground">Explanation highlights</p>
                         <ul className="list-disc space-y-1 pl-4">
                           <li>
                             Match your answers against the passage with line-by-line callouts for each question.

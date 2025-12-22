@@ -294,8 +294,8 @@ export default function AdminPromoCodesPage() {
               </button>
             </div>
           </form>
-          {error ? <p className="pr-mt-3 pr-text-small pr-text-red-300">{error}</p> : null}
-          {success ? <p className="pr-mt-3 pr-text-small pr-text-emerald-300">{success}</p> : null}
+          {error ? <p className="pr-mt-3 pr-text-small pr-text-danger/90">{error}</p> : null}
+          {success ? <p className="pr-mt-3 pr-text-small pr-text-success/90">{success}</p> : null}
           <p className="pr-mt-4 pr-text-caption pr-text-white/60">
             Plans: {PLAN_VALUES.join(', ')} · Cycles: {CYCLE_VALUES.join(', ')} · Methods: {METHOD_VALUES.join(', ')}
           </p>

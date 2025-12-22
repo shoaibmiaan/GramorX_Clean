@@ -161,20 +161,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               animate-in fade-in slide-in-from-bottom-4 duration-200
               ${
                 t.intent === "success"
-                  ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
+                  ? "bg-success/10 border-success text-success/90"
                   : t.intent === "error" || t.intent === "destructive"
-                  ? "bg-red-500/10 border-red-500 text-red-400"
+                  ? "bg-danger/10 border-danger text-danger/90"
                   : t.intent === "warning"
-                  ? "bg-yellow-500/10 border-yellow-500 text-yellow-400"
+                  ? "bg-warning/10 border-warning text-warning/90"
                   : t.intent === "info"
-                  ? "bg-sky-500/10 border-sky-500 text-sky-400"
+                  ? "bg-electricBlue/10 border-electricBlue text-electricBlue/90"
                   : "bg-neutral-800/80 border-neutral-700 text-neutral-200"
               }
             `}
           >
             <div className="font-semibold">{t.title}</div>
             {t.description && (
-              <div className="text-sm opacity-90 mt-0.5">{t.description}</div>
+              <div className="text-small opacity-90 mt-0.5">{t.description}</div>
             )}
           </div>
         ))}

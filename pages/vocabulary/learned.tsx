@@ -29,7 +29,7 @@ const INITIAL_STATE: FetchState = {
 const MAX_ATTRACTIONS = 3;
 
 const SynonymPill: React.FC<{ value: string }> = ({ value }) => (
-  <span className="rounded-full bg-muted/60 px-3 py-1 text-xs font-medium text-foreground/70">{value}</span>
+  <span className="rounded-full bg-muted/60 px-3 py-1 text-caption font-medium text-foreground/70">{value}</span>
 );
 
 const CategoryPill: React.FC<{ value: string }> = ({ value }) => (
@@ -44,7 +44,7 @@ const Pronunciations: React.FC<{ pronunciations: LearnedWord['pronunciations'] }
 
   return (
     <div className="mt-4 space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-electricBlue">Pronunciation</p>
+      <p className="text-caption font-semibold uppercase tracking-[0.3em] text-electricBlue">Pronunciation</p>
       <div className="space-y-3">
         {filtered.map((item, index) => (
           <div
@@ -52,10 +52,10 @@ const Pronunciations: React.FC<{ pronunciations: LearnedWord['pronunciations'] }
             className="flex flex-col gap-2 rounded-xl border border-border/40 bg-background/80 p-4 sm:flex-row sm:items-center"
           >
             <div className="flex flex-col">
-              <span className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">
+              <span className="text-caption font-medium uppercase tracking-[0.25em] text-muted-foreground">
                 {item.label ?? item.locale ?? 'IPA'}
               </span>
-              {item.ipa && <span className="text-base font-semibold text-foreground">{item.ipa}</span>}
+              {item.ipa && <span className="text-body font-semibold text-foreground">{item.ipa}</span>}
             </div>
             {item.audioUrl && <AudioBar src={item.audioUrl} preload="none" className="sm:ml-auto sm:w-auto" />}
           </div>
@@ -121,15 +121,15 @@ function buildAttractions(words: LearnedWord[]) {
 function LearnedWordCard({ word }: { word: LearnedWord }) {
   return (
     <Card padding="lg" className="h-full border-border/60">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-electricBlue">
+      <div className="flex items-center gap-2 text-caption font-semibold uppercase tracking-[0.3em] text-electricBlue">
         <Icon name="BookmarkCheck" size={16} />
         Learned {formatter.format(new Date(word.learnedOn))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <h3 className="text-2xl font-semibold capitalize text-foreground">{word.word}</h3>
+        <h3 className="text-h2 font-semibold capitalize text-foreground">{word.word}</h3>
         {word.partOfSpeech && <Badge variant="subtle">{word.partOfSpeech}</Badge>}
       </div>
-      <p className="mt-2 text-base text-muted-foreground">{word.meaning}</p>
+      <p className="mt-2 text-body text-muted-foreground">{word.meaning}</p>
       {word.categories.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {word.categories.map((category) => (
@@ -138,17 +138,17 @@ function LearnedWordCard({ word }: { word: LearnedWord }) {
         </div>
       )}
       {word.synonyms.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <div className="mt-4 flex flex-wrap gap-2 text-caption text-muted-foreground">
           {word.synonyms.map((synonym) => (
             <SynonymPill key={synonym} value={synonym} />
           ))}
         </div>
       )}
       {word.example && (
-        <p className="mt-4 text-sm italic text-muted-foreground">“{word.example}”</p>
+        <p className="mt-4 text-small italic text-muted-foreground">“{word.example}”</p>
       )}
       {word.interest && (
-        <p className="mt-3 text-sm text-primary">{word.interest}</p>
+        <p className="mt-3 text-small text-primary">{word.interest}</p>
       )}
       <Pronunciations pronunciations={word.pronunciations} />
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -241,8 +241,8 @@ export default function LearnedWordsPage() {
               <Icon name="BookmarkCheck" size={16} className="text-electricBlue" />
               Word studio 1.1
             </Badge>
-            <h1 className="mt-4 font-slab text-4xl font-semibold text-foreground sm:text-5xl">Your learned words</h1>
-            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+            <h1 className="mt-4 font-slab text-display font-semibold text-foreground sm:text-displayLg">Your learned words</h1>
+            <p className="mt-3 text-body text-muted-foreground sm:text-h4">
               Celebrate mastered vocabulary, replay pronunciations, and keep your daily boost alive.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -296,8 +296,8 @@ export default function LearnedWordsPage() {
                   <Card padding="lg" className="border-dashed border-electricBlue/40 bg-electricBlue/10 text-center">
                     <div className="space-y-4">
                       <Icon name="Inbox" size={28} className="mx-auto text-electricBlue" />
-                      <p className="text-base font-medium text-foreground">No learned words yet</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-body font-medium text-foreground">No learned words yet</p>
+                      <p className="text-small text-muted-foreground">
                         Explore today&apos;s headword and mark it as learned to start filling this studio.
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -316,7 +316,7 @@ export default function LearnedWordsPage() {
 
             <div className="space-y-6">
               <Card padding="lg" className="border-border/50 bg-white/80 shadow-md backdrop-blur dark:bg-dark/60">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">Attractions</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.35em] text-muted-foreground">Attractions</p>
                 <div className="mt-4 space-y-5">
                   {attractions.map((item) => (
                     <div key={item.title} className="flex gap-3">
@@ -324,8 +324,8 @@ export default function LearnedWordsPage() {
                         <Icon name={item.icon} size={18} />
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.subtitle}</p>
+                        <p className="text-small font-semibold text-foreground">{item.title}</p>
+                        <p className="text-caption text-muted-foreground">{item.subtitle}</p>
                       </div>
                     </div>
                   ))}
@@ -335,8 +335,8 @@ export default function LearnedWordsPage() {
               <Card padding="lg" className="border-dashed border-electricBlue/40 bg-electricBlue/10">
                 <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-electricBlue">Keep progressing</p>
-                    <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                    <p className="text-caption font-semibold uppercase tracking-[0.3em] text-electricBlue">Keep progressing</p>
+                    <p className="mt-2 text-small text-muted-foreground sm:text-body">
                       Dive back into today&apos;s boost or explore the full vocabulary browser to keep your streak alive.
                     </p>
                   </div>

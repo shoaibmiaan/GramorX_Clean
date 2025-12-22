@@ -62,22 +62,22 @@ export default function AdminListeningArticles({ role, email }: Props) {
       <Section>
         <Container>
           <div className="mb-4"><Badge>Admin</Badge></div>
-          <h1 className="text-2xl font-semibold">Listening · Articles</h1>
+          <h1 className="text-h2 font-semibold">Listening · Articles</h1>
           <p className="opacity-80 mb-4">Role: {role} · {email}</p>
 
           <Card className="p-4">
             <form onSubmit={submit} className="flex flex-col gap-3">
               <div>
-                <div className="text-sm opacity-70 mb-1">Title</div>
+                <div className="text-small opacity-70 mb-1">Title</div>
                 <input className="w-full rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={title} onChange={e=>setTitle(e.target.value)} required />
               </div>
               <div>
-                <div className="text-sm opacity-70 mb-1">Slug</div>
+                <div className="text-small opacity-70 mb-1">Slug</div>
                 <input className="w-full rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={slug} onChange={e=>setSlug(e.target.value)} required />
               </div>
               <div className="flex flex-wrap gap-3">
                 <div>
-                  <div className="text-sm opacity-70 mb-1">Level</div>
+                  <div className="text-small opacity-70 mb-1">Level</div>
                   <select className="rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={level} onChange={e=>setLevel(e.target.value as any)}>
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -85,7 +85,7 @@ export default function AdminListeningArticles({ role, email }: Props) {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm opacity-70 mb-1">Tags (comma-sep)</div>
+                  <div className="text-small opacity-70 mb-1">Tags (comma-sep)</div>
                   <input className="w-full rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={tags} onChange={e=>setTags(e.target.value)} />
                 </div>
                 <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export default function AdminListeningArticles({ role, email }: Props) {
                 </div>
               </div>
               <div>
-                <div className="text-sm opacity-70 mb-1">Content (Markdown)</div>
+                <div className="text-small opacity-70 mb-1">Content (Markdown)</div>
                 <textarea className="w-full min-h-[200px] rounded-xl px-3 py-2 bg-[var(--surface-2)]" value={content} onChange={e=>setContent(e.target.value)} />
               </div>
               <div className="flex items-center gap-3">

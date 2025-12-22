@@ -43,10 +43,10 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
               <Icon name="Clock" className="h-3.5 w-3.5" />
               <span>Writing mock history</span>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight lg:text-2xl">
+            <h1 className="text-h3 font-semibold tracking-tight lg:text-h2">
               Your Writing mock attempts
             </h1>
-            <p className="text-xs text-muted-foreground lg:text-sm">
+            <p className="text-caption text-muted-foreground lg:text-small">
               Track how your Writing band is progressing over time across full mocks.
             </p>
           </div>
@@ -63,7 +63,7 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Total attempts
             </div>
-            <div className="text-2xl font-semibold">
+            <div className="text-h2 font-semibold">
               {stats.totalAttempts}
             </div>
           </Card>
@@ -71,7 +71,7 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Best band
             </div>
-            <div className="text-2xl font-semibold">
+            <div className="text-h2 font-semibold">
               {stats.bestBand ?? '—'}
             </div>
           </Card>
@@ -79,7 +79,7 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
             <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Last band
             </div>
-            <div className="text-2xl font-semibold">
+            <div className="text-h2 font-semibold">
               {stats.lastBand ?? '—'}
             </div>
             <div className="text-[11px] text-muted-foreground">
@@ -95,7 +95,7 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div className="flex items-center gap-2">
               <Icon name="ListOrdered" className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Attempt history</h2>
+              <h2 className="text-small font-semibold">Attempt history</h2>
             </div>
             <Badge size="xs" tone="neutral">
               {attempts.length} attempts
@@ -103,11 +103,11 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
           </div>
 
           {attempts.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-small text-muted-foreground">
               No Writing mock attempts yet. Start your first mock from the Writing mocks home page.
             </div>
           ) : (
-            <div className="max-h-[480px] overflow-auto text-xs">
+            <div className="max-h-[480px] overflow-auto text-caption">
               <table className="min-w-full border-t text-left">
                 <thead className="bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -119,7 +119,7 @@ const WritingHistoryPage: NextPage<PageProps> = ({ attempts, stats }) => {
                 </thead>
                 <tbody>
                   {attempts.map((a) => (
-                    <tr key={a.id} className="border-t text-xs">
+                    <tr key={a.id} className="border-t text-caption">
                       <td className="px-3 py-2 align-middle">
                         {new Date(a.createdAt).toLocaleString()}
                       </td>

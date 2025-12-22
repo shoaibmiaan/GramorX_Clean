@@ -34,12 +34,12 @@ const securityBadges = [
   {
     name: 'SSL Secured',
     icon: 'ShieldCheck',
-    color: 'text-green-500'
+    color: 'text-success'
   },
   {
     name: 'GDPR Compliant',
     icon: 'Lock',
-    color: 'text-blue-500'
+    color: 'text-electricBlue'
   },
   {
     name: 'Payment Protected',
@@ -66,13 +66,13 @@ export const SocialProof: React.FC = () => {
                   <Icon name={metric.icon} size={24} />
                 </div>
               </div>
-              <div className="font-slab text-2xl font-bold text-foreground mb-1">
+              <div className="font-slab text-h2 font-bold text-foreground mb-1">
                 {metric.value}
               </div>
-              <div className="text-sm font-semibold text-foreground mb-1">
+              <div className="text-small font-semibold text-foreground mb-1">
                 {metric.label}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-caption text-muted-foreground">
                 {metric.description}
               </div>
             </div>
@@ -81,14 +81,14 @@ export const SocialProof: React.FC = () => {
 
         {/* Security Badges */}
         <div className="flex flex-wrap justify-center items-center gap-8 py-6 border-t border-b border-border/30">
-          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <span className="text-small font-semibold text-muted-foreground uppercase tracking-wider">
             Trusted & Secure
           </span>
 
           {securityBadges.map((badge, index) => (
             <div
               key={badge.name}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
+              className="flex items-center gap-2 text-small text-muted-foreground"
               data-aos="fade-in"
               data-aos-delay={index * 150}
             >
@@ -100,15 +100,15 @@ export const SocialProof: React.FC = () => {
 
         {/* Partner Logos */}
         <div className="mt-8">
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-small text-muted-foreground mb-6">
             Trusted by learners from top institutions
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
             {/* These would be actual logo images in production */}
-            <div className="text-lg font-semibold text-foreground/70">Cambridge</div>
-            <div className="text-lg font-semibold text-foreground/70">British Council</div>
-            <div className="text-lg font-semibold text-foreground/70">IDP</div>
-            <div className="text-lg font-semibold text-foreground/70">CEFR</div>
+            <div className="text-h4 font-semibold text-foreground/70">Cambridge</div>
+            <div className="text-h4 font-semibold text-foreground/70">British Council</div>
+            <div className="text-h4 font-semibold text-foreground/70">IDP</div>
+            <div className="text-h4 font-semibold text-foreground/70">CEFR</div>
           </div>
         </div>
       </div>

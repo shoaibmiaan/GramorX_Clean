@@ -11,17 +11,17 @@ export default function Task2StructureGuide() {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Task 2: Rock-solid Structure</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Task 2: Rock-solid Structure</h1>
         <p className="text-muted mt-1">Plan fast. Write clean paragraphs. Finish with a decisive conclusion.</p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">60-second plan (MEEL)</h2>
+            <h2 className="text-h4 font-semibold">60-second plan (MEEL)</h2>
             <div className="mt-2 flex gap-2">
               <Badge variant="neutral">Task Response</Badge>
               <Badge variant="success">Planning</Badge>
             </div>
-            <ol className="mt-3 list-decimal pl-6 text-sm">
+            <ol className="mt-3 list-decimal pl-6 text-small">
               <li><strong>Main idea 1</strong> (clear claim).</li>
               <li><strong>Explain</strong> (why/how it matters).</li>
               <li><strong>Evidence</strong> (example or scenario—brief).</li>
@@ -33,8 +33,8 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Flexible 4-paragraph template</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Flexible 4-paragraph template</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li><strong>Intro:</strong> Paraphrase question + direct thesis (answer clearly).</li>
               <li><strong>Body 1:</strong> MEEL for argument 1.</li>
               <li><strong>Body 2:</strong> MEEL for argument 2 (or concession → rebuttal).</li>
@@ -43,8 +43,8 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Adapting to question types</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Adapting to question types</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li><strong>Opinion (agree/disagree):</strong> Thesis chooses a side; both bodies support it (or 1 body concession + rebuttal).</li>
               <li><strong>Discuss both views:</strong> One paragraph per view, conclusion gives your opinion.</li>
               <li><strong>Advantages/Disadvantages:</strong> Separate bodies; show which side is stronger in conclusion.</li>
@@ -53,22 +53,22 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Topic sentences that steer</h2>
-            <p className="text-sm mt-2">
+            <h2 className="text-h4 font-semibold">Topic sentences that steer</h2>
+            <p className="text-small mt-2">
               Good topic sentences preview the <em>point</em> of the paragraph. They’re not just “Firstly…”.
             </p>
-            <div className="mt-3 text-sm space-y-2">
+            <div className="mt-3 text-small space-y-2">
               <p><strong>Weak:</strong> “Firstly, there are many reasons for this.”</p>
               <p><strong>Better:</strong> “Firstly, making community service compulsory <em>cultivates civic responsibility</em> at an early age.”</p>
             </div>
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Counterargument + rebuttal (compact)</h2>
-            <p className="text-sm mt-2">
+            <h2 className="text-h4 font-semibold">Counterargument + rebuttal (compact)</h2>
+            <p className="text-small mt-2">
               Use a <em>single</em> sentence concession and then shift to a stronger rebuttal—keeps balance without derailing your main stance.
             </p>
-            <div className="mt-3 space-y-2 text-sm">
+            <div className="mt-3 space-y-2 text-small">
               <p>
                 <strong>Example:</strong> “Although compulsory volunteering may limit students’ time for paid work, a well-structured programme <em>builds employable skills</em> that often matter more than short-term income.”
               </p>
@@ -76,8 +76,8 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Mini outline samples</h2>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <h2 className="text-h4 font-semibold">Mini outline samples</h2>
+            <div className="grid md:grid-cols-2 gap-4 text-small">
               <div>
                 <p className="font-medium">Opinion — Agree</p>
                 <ul className="list-disc pl-6 mt-1">
@@ -100,8 +100,8 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Common pitfalls</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Common pitfalls</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li>Thesis that “sits on the fence”.</li>
               <li>Two ideas jammed in one paragraph (no depth).</li>
               <li>Example paragraphs—stories without analysis.</li>
@@ -110,11 +110,11 @@ export default function Task2StructureGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Practice now</h2>
-            <p className="mt-2 text-sm">
+            <h2 className="text-h4 font-semibold">Practice now</h2>
+            <p className="mt-2 text-small">
               Draft a 4-line outline (Intro, B1, B2, Conclusion) for: “Cashless payments should replace cash entirely.” Include one concession + rebuttal in either body.
             </p>
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-small">
               Turn this vague topic sentence into a precise one: “Secondly, there are disadvantages too.”
             </p>
           </Card>

@@ -27,8 +27,8 @@ export function ResourcesLayout({ children, userRole }: ResourcesLayoutProps) {
     <div className="flex min-h-screen bg-background">
       <aside className="w-64 border-r bg-card p-4">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold">Resources</h2>
-          <p className="text-sm text-muted-foreground">Learning materials & tools</p>
+          <h2 className="text-h4 font-semibold">Resources</h2>
+          <p className="text-small text-muted-foreground">Learning materials & tools</p>
         </div>
 
         <nav className="space-y-1">
@@ -41,7 +41,7 @@ export function ResourcesLayout({ children, userRole }: ResourcesLayoutProps) {
             >
               <Link href={link.href}>
                 <span className="flex items-center gap-3">
-                  <span className="text-base">{link.icon}</span>
+                  <span className="text-body">{link.icon}</span>
                   {link.label}
                 </span>
               </Link>
@@ -51,7 +51,7 @@ export function ResourcesLayout({ children, userRole }: ResourcesLayoutProps) {
 
         {/* Quick actions */}
         <div className="mt-6 border-t pt-6">
-          <h3 className="mb-2 text-sm font-medium">Quick Access</h3>
+          <h3 className="mb-2 text-small font-medium">Quick Access</h3>
           <div className="space-y-2">
             <Button variant="outline" size="sm" className="w-full" asChild>
               <Link href="/resources?filter=recent">Recent</Link>

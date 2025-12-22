@@ -12,21 +12,21 @@ const problems = [
     symptom: "You study for hours but don't see band improvement",
     solution: "AI-powered adaptive learning that focuses on your weak areas",
     icon: "Target",
-    color: "text-red-400"
+    color: "text-danger/90"
   },
   {
     problem: "No instant feedback on writing & speaking",
     symptom: "Waiting days or weeks for teacher feedback",
     solution: "Instant AI scoring with detailed band descriptors analysis",
     icon: "Zap",
-    color: "text-yellow-500"
+    color: "text-warning"
   },
   {
     problem: "Unrealistic exam simulation",
     symptom: "Practice materials don't match real test difficulty",
     solution: "Real exam interface with timer, auto-save, and exam conditions",
     icon: "ClipboardCheck",
-    color: "text-green-500"
+    color: "text-success"
   }
 ];
 
@@ -39,10 +39,10 @@ export const ProblemSolution: React.FC = () => {
             <Icon name="Lightbulb" className="text-electricBlue" />
             The IELTS Struggle is Real
           </Badge>
-          <h2 className="font-slab text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="font-slab text-h1 md:text-display font-bold text-foreground mb-4">
             Tired of traditional IELTS prep that doesn't work?
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-h4 text-muted-foreground max-w-2xl mx-auto">
             Most test-takers waste months on ineffective practice. Here's how we solve the real problems.
           </p>
         </div>
@@ -56,14 +56,14 @@ export const ProblemSolution: React.FC = () => {
               data-aos-delay={index * 100}
             >
               {/* Problem Side */}
-              <Card className="p-6 border border-red-200/50 bg-red-50/30 dark:bg-red-900/10 dark:border-red-800/30">
+              <Card className="p-6 border border-danger/30/50 bg-danger/10/30 dark:bg-danger/95/10 dark:border-danger/90/30">
                 <div className="flex items-start gap-4">
-                  <div className={`p-3 rounded-2xl bg-red-100 dark:bg-red-900/20 ${item.color}`}>
+                  <div className={`p-3 rounded-2xl bg-danger/15 dark:bg-danger/95/20 ${item.color}`}>
                     <Icon name="AlertCircle" size={24} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-2">{item.problem}</h3>
-                    <p className="text-sm text-muted-foreground">{item.symptom}</p>
+                    <p className="text-small text-muted-foreground">{item.symptom}</p>
                   </div>
                 </div>
               </Card>
@@ -76,14 +76,14 @@ export const ProblemSolution: React.FC = () => {
               </div>
 
               {/* Solution Side */}
-              <Card className="p-6 border border-green-200/50 bg-green-50/30 dark:bg-green-900/10 dark:border-green-800/30">
+              <Card className="p-6 border border-success/30/50 bg-success/10/30 dark:bg-success/95/10 dark:border-success/90/30">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-2xl bg-green-100 dark:bg-green-900/20 text-green-500">
+                  <div className="p-3 rounded-2xl bg-success/15 dark:bg-success/95/20 text-success">
                     <Icon name={item.icon} size={24} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-2">Our Solution</h3>
-                    <p className="text-sm text-muted-foreground">{item.solution}</p>
+                    <p className="text-small text-muted-foreground">{item.solution}</p>
                   </div>
                 </div>
               </Card>
@@ -94,7 +94,7 @@ export const ProblemSolution: React.FC = () => {
         {/* Bottom CTA */}
         <div className="text-center mt-12" data-aos="fade-up">
           <Card className="inline-block border border-electricBlue/30 bg-electricBlue/5 px-8 py-6">
-            <p className="text-lg font-semibold text-foreground">
+            <p className="text-h4 font-semibold text-foreground">
               Ready to try a smarter way to prepare?
             </p>
             <p className="text-muted-foreground mt-2">

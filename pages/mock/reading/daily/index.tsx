@@ -97,7 +97,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                 <Icon name="TriangleAlert" className="h-6 w-6" />
               </div>
               <h2 className="font-slab text-h3 text-foreground">Unable to load daily challenge</h2>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <p className="text-small text-muted-foreground">{error}</p>
 
               <div className="flex flex-wrap justify-center gap-2 pt-2">
                 <Button asChild variant="secondary" className="rounded-ds-2xl">
@@ -152,13 +152,13 @@ const DailyChallengePage: NextPage<PageProps> = ({
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Reading Drills · Daily · {formatPrettyDate(today)}
                 </p>
                 <h1 className="font-slab text-h1 leading-tight text-foreground">
                   Daily Reading Challenge
                 </h1>
-                <p className="max-w-[70ch] text-sm text-muted-foreground">
+                <p className="max-w-[70ch] text-small text-muted-foreground">
                   Quick drill today. Keep the streak. Review your mistakes immediately.
                 </p>
               </div>
@@ -202,7 +202,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                   </Badge>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Reset happens by date (YYYY-MM-DD). Complete once per day.
                 </p>
               </div>
@@ -242,7 +242,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                         <h2 className="font-slab text-h2 text-foreground">{dailyTest.title}</h2>
 
                         {dailyTest.description && (
-                          <p className="text-sm text-muted-foreground max-w-[80ch]">
+                          <p className="text-small text-muted-foreground max-w-[80ch]">
                             {dailyTest.description}
                           </p>
                         )}
@@ -256,24 +256,24 @@ const DailyChallengePage: NextPage<PageProps> = ({
                     {/* Metrics */}
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                        <div className="text-xs text-muted-foreground">Passages</div>
-                        <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <div className="text-caption text-muted-foreground">Passages</div>
+                        <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                           <Icon name="Layers" className="h-4 w-4 text-primary" />
                           {dailyTest.totalPassages || 1}
                         </div>
                       </div>
 
                       <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                        <div className="text-xs text-muted-foreground">Questions</div>
-                        <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <div className="text-caption text-muted-foreground">Questions</div>
+                        <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                           <Icon name="ListChecks" className="h-4 w-4 text-primary" />
                           {dailyTest.totalQuestions}
                         </div>
                       </div>
 
                       <div className="rounded-ds-xl border border-border/60 bg-background/40 p-4">
-                        <div className="text-xs text-muted-foreground">Time</div>
-                        <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <div className="text-caption text-muted-foreground">Time</div>
+                        <div className="mt-1 flex items-center gap-2 text-small font-semibold text-foreground">
                           <Icon name="Clock" className="h-4 w-4 text-primary" />
                           {safeMinutes(dailyTest.durationSeconds)} min
                         </div>
@@ -331,7 +331,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                       )}
                     </div>
 
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       Tip: do the daily drill fast. Then spend 2x time reviewing mistakes.
                     </p>
                   </div>
@@ -341,7 +341,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                 <div className="space-y-4">
                   <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
                     <h3 className="font-slab text-h3 text-foreground">Rules</h3>
-                    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    <ul className="mt-3 space-y-2 text-small text-muted-foreground">
                       <li className="flex items-start gap-2">
                         <Icon name="Check" className="h-4 w-4 text-primary mt-0.5" />
                         <span>One completion per day.</span>
@@ -363,7 +363,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                       <Link
                         href="/mock/reading/drill/speed"
                         className={cn(
-                          'flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm',
+                          'flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small',
                           'hover:border-primary/30'
                         )}
                       >
@@ -377,7 +377,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                       <Link
                         href="/mock/reading/weekly"
                         className={cn(
-                          'flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm',
+                          'flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small',
                           'hover:border-primary/30'
                         )}
                       >
@@ -399,7 +399,7 @@ const DailyChallengePage: NextPage<PageProps> = ({
                   </div>
                   <div>
                     <h2 className="font-slab text-h3 text-foreground">No daily challenge yet</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-small text-muted-foreground">
                       We couldn’t find today’s challenge. Start any Reading mock from the library.
                     </p>
                     <Button asChild className="mt-4 rounded-ds-2xl">

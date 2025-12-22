@@ -410,7 +410,7 @@ export default function SpeakingPracticePage() {
                   onClick={() => setFocus(f)}
                   className={`px-3 py-1.5 rounded-xl border text-small ${
                     f === focus
-                      ? 'bg-electricBlue text-white border-blue-600'
+                      ? 'bg-electricBlue text-white border-electricBlue/70'
                       : 'border-lightBorder dark:border-white/10'
                   }`}
                 >
@@ -458,7 +458,7 @@ export default function SpeakingPracticePage() {
             <button
               onClick={startDrill}
               disabled={stage !== 'idle' && stage !== 'done' && stage !== 'error'}
-              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-gray-300"
+              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-lightBg"
             >
               {stage === 'done' ? 'Restart Drill' : 'Start Drill'}
             </button>
@@ -526,7 +526,7 @@ export default function SpeakingPracticePage() {
                     </div>
                   )}
                   {result.feedback && (
-                    <p className="mt-3 text-small text-gray-700 dark:text-gray-200 whitespace-pre-wrap">
+                    <p className="mt-3 text-small text-foreground/80 dark:text-mutedText whitespace-pre-wrap">
                       {result.feedback}
                     </p>
                   )}

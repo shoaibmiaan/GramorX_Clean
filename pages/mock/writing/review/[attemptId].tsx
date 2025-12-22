@@ -210,8 +210,8 @@ const WritingReviewPage: NextPage<PageProps> = ({ attempt, prompts, answers, eva
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <Icon name="TriangleAlert" size={18} />
               </div>
-              <h1 className="mt-3 text-lg font-semibold">Review not found</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h1 className="mt-3 text-h4 font-semibold">Review not found</h1>
+              <p className="mt-1 text-small text-muted-foreground">
                 This attempt doesn’t exist or you don’t have access.
               </p>
               <div className="mt-4 flex justify-center">
@@ -257,9 +257,9 @@ const WritingReviewPage: NextPage<PageProps> = ({ attempt, prompts, answers, eva
                   </Badge>
                 </div>
 
-                <h1 className="text-xl font-semibold text-foreground">{attempt.testTitle}</h1>
+                <h1 className="text-h3 font-semibold text-foreground">{attempt.testTitle}</h1>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Training band: <span className="font-semibold text-foreground">{overallBand}</span>
                   {attempt.submittedAt ? (
                     <>

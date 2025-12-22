@@ -12,8 +12,8 @@ export function AISummaryCard() {
           <Icon name="Sparkles" className="h-5 w-5 text-purple-600 dark:text-purple-400" />
         </div>
         <div className="flex-1 space-y-2">
-          <h4 className="font-medium text-sm">AI Listening Coach</h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <h4 className="font-medium text-small">AI Listening Coach</h4>
+          <p className="text-caption text-muted-foreground leading-relaxed">
             Get personalized feedback on spelling mistakes, accent comprehension, and question-type weaknesses — powered by AI.
           </p>
           <Button asChild size="sm" variant="secondary" className="mt-2">

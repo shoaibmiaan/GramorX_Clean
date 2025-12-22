@@ -65,7 +65,7 @@ export default function SpeakingAttemptsPage() {
 
         <div className="rounded-2xl border border-lightBorder dark:border-white/10 overflow-hidden">
           <table className="w-full text-small">
-            <thead className="bg-gray-50 dark:bg-white/5">
+            <thead className="bg-lightCard dark:bg-white/5">
               <tr className="text-left">
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Section</th>

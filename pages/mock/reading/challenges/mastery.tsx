@@ -33,8 +33,8 @@ const MasteryChallengePage: NextPage<Props> = () => {
       <Container className="py-10 max-w-3xl space-y-6">
         <Card className="p-6 space-y-2">
           <Badge size="xs" variant="outline">Mastery Challenge</Badge>
-          <h1 className="text-xl font-semibold">Train One Question Type at a Time</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-h3 font-semibold">Train One Question Type at a Time</h1>
+          <p className="text-small text-muted-foreground">
             Choose a question type. You’ll get 8–12 handpicked questions of ONLY that type.
           </p>
         </Card>
@@ -43,8 +43,8 @@ const MasteryChallengePage: NextPage<Props> = () => {
           {QUESTION_TYPES.map((t) => (
             <Card key={t.id} className="p-4 flex flex-col justify-between">
               <div className="space-y-2">
-                <h2 className="text-sm font-semibold">{t.label}</h2>
-                <p className="text-xs text-muted-foreground">Master {t.label} with focused drills.</p>
+                <h2 className="text-small font-semibold">{t.label}</h2>
+                <p className="text-caption text-muted-foreground">Master {t.label} with focused drills.</p>
               </div>
               <Button asChild size="sm" className="mt-4 rounded-ds-xl">
                 <Link href={`/mock/reading/drill/question-type?type=${t.id}`}>

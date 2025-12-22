@@ -59,7 +59,7 @@ export function WritingFilterBar() {
             className="rounded-ds-xl flex items-center gap-1.5"
           >
             <Icon name={icon} size={14} />
-            <span className="text-xs">{label}</span>
+            <span className="text-caption">{label}</span>
           </Button>
         </Link>
       ))}

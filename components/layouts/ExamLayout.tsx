@@ -72,7 +72,7 @@ export default function ExamLayout({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="leading-tight">
                 {attemptId && (
-                  <div className="text-small text-muted-foreground dark:text-gray-400">
+                  <div className="text-small text-muted-foreground dark:text-grayish">
                     Attempt {attemptId}
                   </div>
                 )}

@@ -26,7 +26,7 @@ export default function TeacherIndex() {
       <Head><title>Teacher</title></Head>
       <Container className="py-8">
         {isLoading ? (
-          <div className="text-sm">Loading…</div>
+          <div className="text-small">Loading…</div>
         ) : showPending ? (
           <RegistrationComplete />
         ) : null}

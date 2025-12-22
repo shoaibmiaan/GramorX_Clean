@@ -165,7 +165,7 @@ export default function SectionPage() {
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Card className="rounded-ds-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-sm text-primary">
+              <Card className="rounded-ds-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-small text-primary">
                 {resumeAvailable ? (
                   <>
                     <p className="font-semibold">Resume saved attempt</p>
@@ -180,7 +180,7 @@ export default function SectionPage() {
                   </>
                 )}
               </Card>
-              <Card className="rounded-ds-xl border border-dashed border-border/50 bg-muted/40 p-4 text-sm text-muted-foreground">
+              <Card className="rounded-ds-xl border border-dashed border-border/50 bg-muted/40 p-4 text-small text-muted-foreground">
                 <p className="font-semibold text-foreground">Timer preview</p>
                 <p className="mt-1">
                   {formatMinutes(duration)} · {questions.length} questions · timer counts down from {formattedTime}
@@ -238,7 +238,7 @@ export default function SectionPage() {
       focusMode={{ active: mode === 'simulation' && hasStarted && !completed }}
     >
       <div className="space-y-4">
-        <Card className="rounded-ds-2xl border border-dashed border-border/60 bg-card/40 p-4 text-sm text-muted-foreground">
+        <Card className="rounded-ds-2xl border border-dashed border-border/60 bg-card/40 p-4 text-small text-muted-foreground">
           {mode === 'simulation' ? (
             <p>
               Treat this as the real thing — the timer will auto-submit, fullscreen locks in once you start, and focus guard

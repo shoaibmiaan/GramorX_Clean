@@ -19,7 +19,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className }) => {
 
   return (
     <nav aria-label="Breadcrumb" className={cn('w-full overflow-x-auto', className)}>
-      <ol className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground sm:flex-nowrap">
+      <ol className="flex flex-wrap items-center gap-2 text-small text-muted-foreground sm:flex-nowrap">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 

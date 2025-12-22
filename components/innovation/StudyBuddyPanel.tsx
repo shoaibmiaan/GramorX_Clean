@@ -51,7 +51,7 @@ export default function StudyBuddyPanel({ profile, onClose }: { profile?: any; o
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
           <h3 className="font-slab text-h3">Study Buddy</h3>
-          <div className="text-sm text-muted-foreground">Build short focused sessions tailored to your weaknesses.</div>
+          <div className="text-small text-muted-foreground">Build short focused sessions tailored to your weaknesses.</div>
         </div>
         <div>
           <button className="btn" onClick={onClose}>Close</button>
@@ -61,11 +61,11 @@ export default function StudyBuddyPanel({ profile, onClose }: { profile?: any; o
       <div className="p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-xs text-muted-foreground">Skill</label>
+            <label className="text-caption text-muted-foreground">Skill</label>
             <input className="w-full mt-1 p-2 rounded border" value={skillInput} onChange={(e) => setSkillInput(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Duration (minutes)</label>
+            <label className="text-caption text-muted-foreground">Duration (minutes)</label>
             <input type="number" className="w-full mt-1 p-2 rounded border" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function StudyBuddyPanel({ profile, onClose }: { profile?: any; o
           <button className="btn-ghost" onClick={() => { setSkillInput('Writing'); setDuration(20); }}>Reset</button>
         </div>
 
-        {error && <div className="mt-3 text-red-500">{error}</div>}
+        {error && <div className="mt-3 text-danger">{error}</div>}
 
         {session ? (
           <div className="mt-4">
@@ -95,7 +95,7 @@ export default function StudyBuddyPanel({ profile, onClose }: { profile?: any; o
             <h4 className="font-medium">Quick presets</h4>
             <div className="mt-2 flex flex-wrap gap-2">
               {presets.map((p) => (
-                <button key={p.skill} className="px-3 py-1 rounded border text-sm" onClick={() => { setSkillInput(p.skill); setDuration(p.minutes); }}>{p.skill} · {p.minutes}m</button>
+                <button key={p.skill} className="px-3 py-1 rounded border text-small" onClick={() => { setSkillInput(p.skill); setDuration(p.minutes); }}>{p.skill} · {p.minutes}m</button>
               ))}
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function StudyBuddyPanel({ profile, onClose }: { profile?: any; o
 
         <div className="mt-6">
           <h4 className="font-medium">Mini practice</h4>
-          <p className="text-sm text-muted-foreground">Try a 3-minute timed writing prompt to warm up.</p>
+          <p className="text-small text-muted-foreground">Try a 3-minute timed writing prompt to warm up.</p>
           <div className="mt-2">
             <button className="btn" onClick={async () => { alert('3-minute timed prompt: Describe a time you solved a problem.'); }}>Start 3-min</button>
           </div>

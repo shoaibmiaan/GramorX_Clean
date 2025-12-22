@@ -21,8 +21,8 @@ export function CommunicationLayout({ children }: CommunicationLayoutProps) {
       {/* Sidebar */}
       <div className="flex w-80 flex-col border-r bg-card">
         <div className="border-b p-4">
-          <h2 className="text-lg font-semibold">Messages</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-h4 font-semibold">Messages</h2>
+          <p className="text-small text-muted-foreground">
             Stay connected with your community
           </p>
         </div>
@@ -70,16 +70,16 @@ export function CommunicationLayout({ children }: CommunicationLayoutProps) {
 
         {/* Recent conversations placeholder */}
         <div className="border-t p-4">
-          <h3 className="mb-2 text-sm font-medium">Recent Conversations</h3>
+          <h3 className="mb-2 text-small font-medium">Recent Conversations</h3>
           <div className="space-y-2">
             <Card className="cursor-pointer p-3 hover:bg-accent">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <span className="text-xs font-medium">JD</span>
+                  <span className="text-caption font-medium">JD</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">John Doe</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-small font-medium">John Doe</p>
+                  <p className="truncate text-caption text-muted-foreground">
                     See you in class!
                   </p>
                 </div>

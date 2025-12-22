@@ -70,7 +70,7 @@ export function TabsTrigger({ className, value, ...props }: TabsTriggerProps) {
       aria-selected={active}
       data-state={active ? 'active' : 'inactive'}
       className={cn(
-        'rounded-ds-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+        'rounded-ds-lg px-3 py-1.5 text-small focus:outline-none focus-visible:ring-2 focus-visible:ring-focus',
         active && 'bg-primary/10 text-primary',
         className,
       )}

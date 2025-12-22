@@ -18,7 +18,7 @@ export function WordTimeline({ words }: WordTimelineProps) {
   if (words.length === 0) {
     return (
       <Card className="p-6">
-        <p className="text-sm text-muted-foreground">No word-level alignment available for this attempt.</p>
+        <p className="text-small text-muted-foreground">No word-level alignment available for this attempt.</p>
       </Card>
     );
   }
@@ -26,8 +26,8 @@ export function WordTimeline({ words }: WordTimelineProps) {
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-border/60 px-4 py-3">
-        <h3 className="text-base font-semibold text-foreground">Word accuracy timeline</h3>
-        <p className="text-xs text-muted-foreground">Tap each token to review stress notes.</p>
+        <h3 className="text-body font-semibold text-foreground">Word accuracy timeline</h3>
+        <p className="text-caption text-muted-foreground">Tap each token to review stress notes.</p>
       </div>
       <ol className="divide-y divide-border/40">
         {words.map((word) => {
@@ -37,8 +37,8 @@ export function WordTimeline({ words }: WordTimelineProps) {
             <li key={`${word.text}-${word.startMs}`} className="px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{word.text}</p>
-                  <p className="text-xs text-muted-foreground">{formatTime(word.startMs)} → {formatTime(word.endMs)}</p>
+                  <p className="text-small font-semibold text-foreground">{word.text}</p>
+                  <p className="text-caption text-muted-foreground">{formatTime(word.startMs)} → {formatTime(word.endMs)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={stressTone} size="sm">
@@ -51,7 +51,7 @@ export function WordTimeline({ words }: WordTimelineProps) {
                   )}
                 </div>
               </div>
-              {word.notes && <p className="mt-2 text-sm text-muted-foreground">{word.notes}</p>}
+              {word.notes && <p className="mt-2 text-small text-muted-foreground">{word.notes}</p>}
             </li>
           );
         })}

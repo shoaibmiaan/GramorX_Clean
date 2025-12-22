@@ -101,7 +101,7 @@ export default function InfiniteApplicationsPage() {
               <p className="text-caption font-medium uppercase tracking-[0.2em] text-primary/80">
                 Daily routine snapshot
               </p>
-              <ul className="space-y-3 text-sm text-muted-foreground">
+              <ul className="space-y-3 text-small text-muted-foreground">
                 <li className="rounded-ds-2xl border border-border/40 bg-background/80 p-3">
                   <strong className="text-foreground">Warm-up</strong> — unlock a contextual definition, pronunciation, and usage video.
                 </li>
@@ -112,7 +112,7 @@ export default function InfiniteApplicationsPage() {
                   <strong className="text-foreground">Reflect</strong> — check mastery indicators and queue tomorrow’s review set.
                 </li>
               </ul>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Everything syncs automatically across mobile and desktop so you can continue exactly where you left off.
               </p>
             </Card>
@@ -134,7 +134,7 @@ export default function InfiniteApplicationsPage() {
               {featureHighlights.map((feature) => (
                 <Card key={feature.title} className="h-full rounded-ds-3xl border border-border/40 bg-card/70 p-6">
                   <h3 className="text-h4 font-semibold text-foreground">{feature.title}</h3>
-                  <p className="mt-3 text-sm text-muted-foreground">{feature.description}</p>
+                  <p className="mt-3 text-small text-muted-foreground">{feature.description}</p>
                 </Card>
               ))}
             </div>
@@ -165,7 +165,7 @@ export default function InfiniteApplicationsPage() {
                       {track.label}
                     </Badge>
                     <h3 className="text-h4 font-semibold text-foreground">{track.title}</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">{track.body}</p>
+                    <p className="text-small text-muted-foreground whitespace-pre-line">{track.body}</p>
                   </div>
                   <Button as={Link as any} href={track.cta.href} variant="ghost" className="mt-6 w-fit rounded-ds">
                     {track.cta.label}
@@ -181,8 +181,8 @@ export default function InfiniteApplicationsPage() {
             <div className="grid gap-6 md:grid-cols-3">
               {stats.map((item) => (
                 <Card key={item.label} className="rounded-ds-3xl border border-border/40 bg-card/80 p-6 text-center">
-                  <p className="text-4xl font-semibold text-primary">{item.value}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{item.label}</p>
+                  <p className="text-display font-semibold text-primary">{item.value}</p>
+                  <p className="mt-2 text-small text-muted-foreground">{item.label}</p>
                 </Card>
               ))}
             </div>

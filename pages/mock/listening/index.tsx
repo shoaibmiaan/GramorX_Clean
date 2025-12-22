@@ -77,8 +77,8 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
               <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
             </div>
-            <h2 className="text-lg font-semibold">Unable to load Listening mocks</h2>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <h2 className="text-h4 font-semibold">Unable to load Listening mocks</h2>
+            <p className="text-small text-muted-foreground">{error}</p>
             <Button asChild>
               <Link href="/">
                 <Icon name="Home" className="h-4 w-4 mr-2" />
@@ -114,7 +114,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               {/* Left side */}
               <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
                   <Icon name="Headphones" size={14} />
                   <span>Listening Mock Suite</span>
                 </div>
@@ -123,12 +123,12 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
                   Your Listening Mock Command Center.
                 </h1>
 
-                <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
+                <p className="text-small text-muted-foreground max-w-xl leading-relaxed">
                   Four sections. Forty questions. Single continuous audio — strict IELTS
                   computer-based environment with exam-room layout and band tracking.
                 </p>
 
-                <div className="text-xs text-muted-foreground">{helperText}</div>
+                <div className="text-caption text-muted-foreground">{helperText}</div>
 
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Button asChild size="md" variant="primary" className="rounded-ds-xl">
@@ -147,16 +147,16 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
                 </p>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-semibold">{stats.bestBand ?? '--'}</p>
+                    <p className="text-caption text-muted-foreground">Best</p>
+                    <p className="text-h4 font-semibold">{stats.bestBand ?? '--'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Avg</p>
-                    <p className="text-lg font-semibold">{stats.avgBand ?? '--'}</p>
+                    <p className="text-caption text-muted-foreground">Avg</p>
+                    <p className="text-h4 font-semibold">{stats.avgBand ?? '--'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Attempts</p>
-                    <p className="text-lg font-semibold">{stats.totalAttempts}</p>
+                    <p className="text-caption text-muted-foreground">Attempts</p>
+                    <p className="text-h4 font-semibold">{stats.totalAttempts}</p>
                   </div>
                 </div>
               </Card>
@@ -174,8 +174,8 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="font-slab text-xl">Listening Mock Library</h2>
-                    <p className="text-xs text-muted-foreground">
+                    <h2 className="font-slab text-h3">Listening Mock Library</h2>
+                    <p className="text-caption text-muted-foreground">
                       All full-length Listening tests available.
                     </p>
                   </div>
@@ -203,7 +203,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
                             )}
                           </div>
 
-                          <h3 className="text-sm font-semibold leading-snug line-clamp-2">
+                          <h3 className="text-small font-semibold leading-snug line-clamp-2">
                             {t.title}
                           </h3>
 
@@ -228,7 +228,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
                         <div className="mt-4 flex items-center justify-between">
                           <Button
                             asChild
-                            className="rounded-ds-xl text-xs font-semibold flex-1"
+                            className="rounded-ds-xl text-caption font-semibold flex-1"
                             variant="primary"
                           >
                             <Link href={`/mock/listening/${t.slug}`}>
@@ -255,7 +255,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
 
               {/* ------------------ RIGHT RAIL ------------------ */}
               <div className="space-y-6">
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-2">
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-caption space-y-2">
                   <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
                     Listening Metrics
                   </p>
@@ -275,7 +275,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
                   )}
                 </Card>
 
-                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-xs space-y-3">
+                <Card className="p-4 rounded-ds-2xl bg-card/80 border border-border/60 shadow-sm text-caption space-y-3">
                   <p className="text-[11px] uppercase font-semibold tracking-wide text-muted-foreground">
                     Power Tools (Listening)
                   </p>
@@ -307,7 +307,7 @@ const ListeningMockIndexPage: NextPage<PageProps> = ({
 // -----------------------------------------------------------------------------
 
 const Info = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex justify-between text-xs">
+  <div className="flex justify-between text-caption">
     <span className="text-muted-foreground">{label}</span>
     <span className="font-semibold">{value}</span>
   </div>

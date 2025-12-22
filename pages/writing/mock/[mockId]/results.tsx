@@ -69,7 +69,7 @@ interface PageProps {
 const CoachDock = dynamic(() => import('@/components/writing/CoachDock'), {
   ssr: false,
   loading: () => (
-    <div className="rounded-ds-xl border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+    <div className="rounded-ds-xl border border-dashed border-border/60 bg-muted/20 p-4 text-small text-muted-foreground">
       Loading coach…
     </div>
   ),
@@ -131,8 +131,8 @@ function QuotaUpgradeNotice({ plan, quota, evaluation, onUpgrade }: QuotaUpgrade
     <section className="rounded-ds-xl border border-destructive/40 bg-destructive/10 p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-destructive">{copy.title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="text-body font-semibold text-destructive">{copy.title}</h2>
+          <p className="mt-1 text-small text-muted-foreground">
             You have used {quota.used} of {limitText} available today on the {currentPlanLabel} plan. {copy.helper}
             {nextPlanCopy}
           </p>
@@ -343,9 +343,9 @@ const WritingResultsPage: React.FC<PageProps> = ({
       ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
         <header className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold text-foreground">Mock writing results</h1>
-          <p className="text-sm text-muted-foreground">Attempt ID: {attemptId}</p>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <h1 className="text-h1 font-semibold text-foreground">Mock writing results</h1>
+          <p className="text-small text-muted-foreground">Attempt ID: {attemptId}</p>
+          <div className="flex flex-wrap items-center gap-3 text-small text-muted-foreground">
             <span className="rounded-full border border-border px-3 py-1 font-medium text-foreground">
               Average band {averageBand.toFixed(1)}
             </span>
@@ -410,7 +410,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
         {xp.achievements.length > 0 ? (
           <section className="rounded-ds-xl border border-border/60 bg-muted/20 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-base font-semibold text-foreground">Achievements unlocked</h2>
+              <h2 className="text-body font-semibold text-foreground">Achievements unlocked</h2>
               <Badge variant="success" size="sm">
                 +{xp.points} XP total
               </Badge>
@@ -422,11 +422,11 @@ const WritingResultsPage: React.FC<PageProps> = ({
                   className="rounded-lg border border-border/50 bg-background/80 p-4 shadow-sm"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm font-medium text-foreground">{achievement.label}</p>
-                    <span className="text-sm font-semibold text-primary">+{achievement.points} XP</span>
+                    <p className="text-small font-medium text-foreground">{achievement.label}</p>
+                    <span className="text-small font-semibold text-primary">+{achievement.points} XP</span>
                   </div>
                   {achievement.description ? (
-                    <p className="mt-1 text-xs text-muted-foreground">{achievement.description}</p>
+                    <p className="mt-1 text-caption text-muted-foreground">{achievement.description}</p>
                   ) : null}
                 </div>
               ))}
@@ -437,7 +437,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
         <AccessibilityHints />
 
         {results.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Scores are still processing. Refresh this page in a few seconds.</p>
+          <p className="text-small text-muted-foreground">Scores are still processing. Refresh this page in a few seconds.</p>
         ) : (
           results.map((result) => (
             <WritingResultCard key={result.task} task={result.task} result={result.score} essay={result.essay} />
@@ -447,7 +447,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
         {highlight ? (
           <BandDiffView essay={highlight.essay} feedback={highlight.feedback} />
         ) : (
-          <div className="rounded-ds-xl border border-border/60 bg-muted/30 p-6 text-sm text-muted-foreground">
+          <div className="rounded-ds-xl border border-border/60 bg-muted/30 p-6 text-small text-muted-foreground">
             Detailed highlights will appear once AI feedback is ready.
           </div>
         )}
@@ -459,8 +459,8 @@ const WritingResultsPage: React.FC<PageProps> = ({
         {referralVariant}
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Need a next step?</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-h4 font-semibold text-foreground">Need a next step?</h2>
+          <p className="text-small text-muted-foreground">
             Chat with the AI writing coach to plan rewrites, upgrade paragraphs, or build lexical drills using this attempt.
           </p>
           <CoachDock attemptId={attemptId} />

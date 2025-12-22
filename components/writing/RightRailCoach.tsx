@@ -34,10 +34,10 @@ export default function RightRailCoach({
     <div className="space-y-3">
       <section className="rounded-2xl border border-border/40 bg-elevated p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">AI Coach</h3>
+          <h3 className="text-small font-semibold">AI Coach</h3>
           <Badge tone="green">Target {bandTarget}</Badge>
         </div>
-        <ul className="list-inside list-disc text-sm text-muted-foreground">
+        <ul className="list-inside list-disc text-small text-muted-foreground">
           <li>State the overview clearly (Task 1).</li>
           <li>Answer the prompt directly (Task 2) in paragraph form.</li>
           <li>Use varied linking words; avoid repetition.</li>
@@ -51,8 +51,8 @@ export default function RightRailCoach({
 
       <section className="rounded-2xl border border-border/40 bg-elevated p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Word count</h3>
-          <span className="text-sm text-muted-foreground">{wordCount} words</span>
+          <h3 className="text-small font-semibold">Word count</h3>
+          <span className="text-small text-muted-foreground">{wordCount} words</span>
         </div>
 
         {/* Progress (no inline styles) */}
@@ -60,12 +60,12 @@ export default function RightRailCoach({
           <div className={`h-2 rounded-full bg-primary transition-all ${widthClass}`} />
         </div>
 
-        <p className="mt-2 text-xs text-muted-foreground">Aim ≥150 (T1) and ≥250 (T2).</p>
+        <p className="mt-2 text-caption text-muted-foreground">Aim ≥150 (T1) and ≥250 (T2).</p>
       </section>
 
       <section className="rounded-2xl border border-border/40 bg-elevated p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Voice draft</h3>
+          <h3 className="text-small font-semibold">Voice draft</h3>
           <Badge tone={voiceDraftEnabled ? 'green' : 'yellow'}>
             {voiceDraftEnabled ? 'On' : 'Off'}
           </Badge>

@@ -17,7 +17,7 @@ type DailyChallengeBannerProps = {
  */
 export const DailyChallengeBanner: React.FC<DailyChallengeBannerProps> = ({ streakCurrent }) => {
   return (
-    <Card className="p-4 flex items-center justify-between text-xs">
+    <Card className="p-4 flex items-center justify-between text-caption">
       <div className="space-y-0.5">
         <p className="font-medium">Daily challenge</p>
         <p className="text-muted-foreground">

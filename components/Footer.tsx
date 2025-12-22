@@ -43,7 +43,7 @@ export const Footer: React.FC<FooterProps> = ({
             <h2 className="font-slab text-h2 tracking-tight">
               Ready to boost your IELTS score?
             </h2>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            <p className="mt-2 max-w-xl text-small text-muted-foreground">
               Unlock AI-powered practice, weekly challenges, and personalised coaching — all in one workspace.
             </p>
           </div>

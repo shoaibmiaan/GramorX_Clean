@@ -123,8 +123,8 @@ const SpeedChallengePage: NextPage<PageProps> = ({
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
                 <Icon name="alert-triangle" className="h-6 w-6 text-destructive" />
               </div>
-              <h2 className="text-lg font-semibold">Unable to load Speed Challenge</h2>
-              <p className="text-sm text-muted-foreground">{error}</p>
+              <h2 className="text-h4 font-semibold">Unable to load Speed Challenge</h2>
+              <p className="text-small text-muted-foreground">{error}</p>
               <div className="flex gap-3 justify-center pt-2">
                 <Button asChild>
                   <Link href="/mock/reading">
@@ -157,11 +157,11 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                   <Icon name="arrow-left" className="h-4 w-4" />
                 </Link>
               </Button>
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-h2 font-semibold tracking-tight">
                 3-Minute Speed Challenge
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Answer as many questions as you can in 3 minutes. Fast, focused Reading practice.
             </p>
           </div>
@@ -172,7 +172,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                 name={started && !finished ? 'timer' : 'clock'}
                 className="h-4 w-4 text-primary"
               />
-              <span className="font-mono text-sm font-semibold">
+              <span className="font-mono text-small font-semibold">
                 {formatTime(timeLeft)}
               </span>
             </Card>
@@ -185,15 +185,15 @@ const SpeedChallengePage: NextPage<PageProps> = ({
             <Badge size="xs" variant="outline">
               Speed Mode
             </Badge>
-            <h2 className="text-sm font-semibold">
+            <h2 className="text-small font-semibold">
               {testTitle || 'Reading question pool'}
             </h2>
-            <p className="text-xs text-muted-foreground max-w-md">
+            <p className="text-caption text-muted-foreground max-w-md">
               You&apos;ll see up to {questions.length} questions from our Reading pool. Focus on
               accuracy under time pressure. Your score is calculated instantly.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-col items-end gap-2 text-caption text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Icon name="zap" className="h-3 w-3" />
               3 minutes total
@@ -211,16 +211,16 @@ const SpeedChallengePage: NextPage<PageProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Icon name="trophy" className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-semibold">Your Speed Challenge Result</h3>
+                <h3 className="text-small font-semibold">Your Speed Challenge Result</h3>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 You answered {score.attempted} out of {score.total} questions and got{' '}
                 <span className="font-semibold">{score.correct}</span> correct.
               </p>
             </div>
-            <div className="flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-6 text-caption">
               <div className="text-center">
-                <div className="text-lg font-semibold">
+                <div className="text-h4 font-semibold">
                   {score.total > 0
                     ? Math.round((score.correct / score.total) * 100)
                     : 0}
@@ -247,7 +247,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
         {showQuestions ? (
           <Card className="p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold">
+              <span className="text-small font-semibold">
                 Questions ({questions.length})
               </span>
               {!finished && (
@@ -270,7 +270,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                   className="rounded-ds border p-3 space-y-2 bg-card/40"
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">
+                    <span className="text-caption font-semibold text-muted-foreground">
                       {index + 1}.
                     </span>
                     <div className="space-y-1">
@@ -279,7 +279,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                           {q.instruction}
                         </p>
                       )}
-                      <p className="text-sm">{q.prompt}</p>
+                      <p className="text-small">{q.prompt}</p>
                     </div>
                   </div>
 
@@ -298,7 +298,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                               handleAnswerChange(q.id, value);
                             }}
                             className={[
-                              'w-full text-left text-xs px-3 py-2 rounded-ds border transition',
+                              'w-full text-left text-caption px-3 py-2 rounded-ds border transition',
                               selected
                                 ? 'border-primary bg-primary/10'
                                 : 'border-border bg-background hover:bg-muted',
@@ -316,7 +316,7 @@ const SpeedChallengePage: NextPage<PageProps> = ({
                     <div className="pl-5">
                       <input
                         type="text"
-                        className="w-full text-sm rounded-ds border bg-background px-3 py-2"
+                        className="w-full text-small rounded-ds border bg-background px-3 py-2"
                         placeholder="Type your answer..."
                         value={answers[q.id] ?? ''}
                         onChange={(e) =>
@@ -333,8 +333,8 @@ const SpeedChallengePage: NextPage<PageProps> = ({
         ) : (
           <Card className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold">Ready to go fast?</h3>
-              <p className="text-xs text-muted-foreground">
+              <h3 className="text-small font-semibold">Ready to go fast?</h3>
+              <p className="text-caption text-muted-foreground">
                 You&apos;ll get a short burst of Reading questions. Once you hit start, the 3-minute timer begins.
               </p>
             </div>

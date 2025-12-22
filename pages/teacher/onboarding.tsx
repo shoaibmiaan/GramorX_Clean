@@ -94,7 +94,7 @@ export default function TeacherOnboarding() {
     <Container className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Teacher Onboarding</h1>
+          <h1 className="text-h2 font-bold">Teacher Onboarding</h1>
           <p className="text-mutedText">Complete the form below. We’ll notify you once approved.</p>
         </div>
         <Badge variant="secondary">Frontend-only</Badge>
@@ -108,26 +108,26 @@ export default function TeacherOnboarding() {
       <form onSubmit={handleSubmit} className="grid gap-6">
         <Card className="grid md:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <label className="text-sm font-medium">Full Name</label>
+            <label className="text-small font-medium">Full Name</label>
             <Input name="fullName" placeholder="Your full name" />
-            <label className="text-sm font-medium">Email</label>
+            <label className="text-small font-medium">Email</label>
             <Input type="email" name="email" placeholder="you@gramorx.com" />
-            <label className="text-sm font-medium">Phone</label>
+            <label className="text-small font-medium">Phone</label>
             <Input name="phone" placeholder="+92 3XX XXXXXXX" />
           </div>
           <div className="space-y-3">
-            <label className="text-sm font-medium">Country</label>
+            <label className="text-small font-medium">Country</label>
             <Input name="country" placeholder="Pakistan" />
-            <label className="text-sm font-medium">City</label>
+            <label className="text-small font-medium">City</label>
             <Input name="city" placeholder="Lahore" />
-            <label className="text-sm font-medium">Years of Experience</label>
+            <label className="text-small font-medium">Years of Experience</label>
             <Input type="number" min={0} max={50} name="experienceYears" placeholder="3" />
           </div>
         </Card>
 
         <Card className="grid md:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <label className="text-sm font-medium">Subjects</label>
+            <label className="text-small font-medium">Subjects</label>
             <Select
               multiple
               value={subjects}
@@ -140,7 +140,7 @@ export default function TeacherOnboarding() {
               ]}
               placeholder="Select one or more"
             />
-            <label className="text-sm font-medium">Languages</label>
+            <label className="text-small font-medium">Languages</label>
             <Select
               multiple
               value={languages}
@@ -153,7 +153,7 @@ export default function TeacherOnboarding() {
               ]}
               placeholder="Select languages you can teach in"
             />
-            <label className="text-sm font-medium">Availability</label>
+            <label className="text-small font-medium">Availability</label>
             <Select
               multiple
               value={availability}
@@ -167,20 +167,20 @@ export default function TeacherOnboarding() {
             />
           </div>
           <div className="space-y-3">
-            <label className="text-sm font-medium">Hourly Rate (USD)</label>
+            <label className="text-small font-medium">Hourly Rate (USD)</label>
             <Input type="number" min={0} name="hourlyRate" placeholder="10" />
-            <label className="text-sm font-medium">LinkedIn (optional)</label>
+            <label className="text-small font-medium">LinkedIn (optional)</label>
             <Input name="linkedin" placeholder="https://linkedin.com/in/..." />
-            <label className="text-sm font-medium">Portfolio / Website (optional)</label>
+            <label className="text-small font-medium">Portfolio / Website (optional)</label>
             <Input name="portfolio" placeholder="https://your.site" />
-            <label className="text-sm font-medium">Teaching Bio</label>
+            <label className="text-small font-medium">Teaching Bio</label>
             <Textarea name="bio" rows={6} placeholder="Share your teaching approach, achievements, and focus areas..." />
           </div>
         </Card>
 
         <Card id="documents" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Document Verification</h3>
+            <h3 className="text-h3 font-semibold">Document Verification</h3>
             <Badge>{docCount} file(s) selected</Badge>
           </div>
           <DocumentUploadStub onCountChange={setDocCount} />
@@ -189,7 +189,7 @@ export default function TeacherOnboarding() {
         <Card className="space-y-3">
           <div className="flex items-center gap-2">
             <Checkbox name="agree" />
-            <span className="text-sm">
+            <span className="text-small">
               I confirm all details are accurate and agree to GramorX terms & policies.
             </span>
           </div>

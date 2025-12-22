@@ -212,7 +212,7 @@ export default function SharedReviewPage({ token, attempt, comments: initialComm
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-10">
           <header className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Shared review</p>
+            <p className="text-caption font-semibold uppercase tracking-[0.3em] text-muted-foreground">Shared review</p>
             <h1 className="text-h2 font-slab">Writing attempt feedback</h1>
             {formattedExpiry && (
               <p className="text-small text-muted-foreground">
@@ -263,27 +263,27 @@ function AttemptSummary({ attempt }: AttemptSummaryProps) {
       </h2>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Module</dt>
+          <dt className="text-caption uppercase tracking-wide text-muted-foreground">Module</dt>
           <dd className="text-body font-semibold capitalize">{attempt.examType}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Status</dt>
+          <dt className="text-caption uppercase tracking-wide text-muted-foreground">Status</dt>
           <dd className="text-body font-semibold capitalize">{attempt.status.replace(/_/g, ' ')}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Started</dt>
+          <dt className="text-caption uppercase tracking-wide text-muted-foreground">Started</dt>
           <dd className="text-body">
             {startedLabel ? startedLabel.toLocaleString() : '—'}
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Submitted</dt>
+          <dt className="text-caption uppercase tracking-wide text-muted-foreground">Submitted</dt>
           <dd className="text-body">
             {submittedLabel ? submittedLabel.toLocaleString() : '—'}
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Goal band</dt>
+          <dt className="text-caption uppercase tracking-wide text-muted-foreground">Goal band</dt>
           <dd className="text-body">{attempt.goalBand ?? '—'}</dd>
         </div>
       </dl>

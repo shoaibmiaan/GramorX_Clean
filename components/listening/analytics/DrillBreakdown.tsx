@@ -56,12 +56,12 @@ export default function DrillBreakdown({ analytics }: Props) {
             Analytics
           </Badge>
           <h2 className="font-slab text-h4">Listening analytics & weak spots</h2>
-          <p className="text-xs text-muted-foreground max-w-2xl">
+          <p className="text-caption text-muted-foreground max-w-2xl">
             Band trend, section accuracy, and which question types are pulling your score down.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-3 text-small">
           <div className="flex flex-col text-right">
             <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Attempts (scored)
@@ -80,11 +80,11 @@ export default function DrillBreakdown({ analytics }: Props) {
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 text-small font-semibold">
             <Icon name="Target" size={16} className="text-muted-foreground" />
             Section accuracy
           </div>
-          <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="space-y-2 text-caption text-muted-foreground">
             {hasSection ? (
               sectionAccuracy.map((s) => (
                 <div key={s.section} className="flex items-center justify-between rounded-ds-xl border border-border/50 bg-muted/40 px-3 py-2">
@@ -101,11 +101,11 @@ export default function DrillBreakdown({ analytics }: Props) {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 text-small font-semibold">
             <Icon name="ListChecks" size={16} className="text-muted-foreground" />
             Accuracy by type
           </div>
-          <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="space-y-2 text-caption text-muted-foreground">
             {hasTypes ? (
               typeAccuracy.slice(0, 6).map((t) => (
                 <div key={t.type} className="flex items-center justify-between rounded-ds-xl border border-border/50 bg-muted/40 px-3 py-2">
@@ -123,11 +123,11 @@ export default function DrillBreakdown({ analytics }: Props) {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 text-small font-semibold">
             <Icon name="TrendingUp" size={16} className="text-muted-foreground" />
             Band trend
           </div>
-          <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="space-y-2 text-caption text-muted-foreground">
             {hasTrend ? (
               bandTrend.map((b) => (
                 <div key={b.attemptId} className="flex items-center justify-between rounded-ds-xl border border-border/50 bg-muted/40 px-3 py-2">

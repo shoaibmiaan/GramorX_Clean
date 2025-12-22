@@ -204,10 +204,10 @@ function GoalProgress({ goal }: { goal: GoalDTO }) {
         <Badge variant="danger" size="sm">
           {goal.ipa}
         </Badge>
-        <span className="text-xs text-muted-foreground">Target {Math.round(goal.targetAccuracy * 100)}%</span>
+        <span className="text-caption text-muted-foreground">Target {Math.round(goal.targetAccuracy * 100)}%</span>
       </div>
       <ProgressBar value={percent} aria-label={`${goal.ipa} accuracy`} />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-caption text-muted-foreground">
         <span>Current {percent}%</span>
         {goal.lastPracticedAt && <span>Last practised {formatRelative(goal.lastPracticedAt)}</span>}
       </div>
@@ -222,8 +222,8 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
         <header className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground md:text-4xl">Pronunciation coach</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-h1 font-semibold text-foreground md:text-display">Pronunciation coach</h1>
+              <p className="text-small text-muted-foreground">
                 Record drills, get phoneme-level feedback, and follow your daily fix list aligned to IELTS Speaking band descriptors.
               </p>
             </div>
@@ -236,8 +236,8 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
         <section className="grid gap-4 md:grid-cols-3">
           {goals.length === 0 ? (
             <Card className="col-span-full p-6">
-              <h2 className="text-lg font-semibold text-foreground">No weak sounds yet</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <h2 className="text-h4 font-semibold text-foreground">No weak sounds yet</h2>
+              <p className="mt-2 text-small text-muted-foreground">
                 Complete your first drill to surface a personalised list of phonemes that need attention.
               </p>
             </Card>
@@ -248,7 +248,7 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">Today&apos;s micro-drills</h2>
+            <h2 className="text-h2 font-semibold text-foreground">Today&apos;s micro-drills</h2>
             <Button variant="ghost" href="/speaking/coach/phoneme-th" size="sm">
               View all drills
             </Button>
@@ -260,10 +260,10 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
             <Badge variant="info" size="sm">
               {drill.type === 'cue_card' ? 'Cue card' : drill.type === 'sentence' ? 'Sentence' : 'Sound drill'}
             </Badge>
-                  <span className="text-xs text-muted-foreground">Level {drill.level}</span>
+                  <span className="text-caption text-muted-foreground">Level {drill.level}</span>
                 </div>
-                <p className="text-sm font-medium text-foreground">{drill.prompt}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <p className="text-small font-medium text-foreground">{drill.prompt}</p>
+                <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
                   {drill.tags.slice(0, 3).map((tag) => (
                     <Badge key={tag} variant="neutral" size="xs">
                       {tag}
@@ -279,10 +279,10 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-foreground">Recent attempts</h2>
+          <h2 className="text-h2 font-semibold text-foreground">Recent attempts</h2>
           {attempts.length === 0 ? (
             <Card className="p-6">
-              <p className="text-sm text-muted-foreground">No attempts yet—record a drill to unlock analytics.</p>
+              <p className="text-small text-muted-foreground">No attempts yet—record a drill to unlock analytics.</p>
             </Card>
           ) : (
             <div className="grid gap-4">
@@ -290,10 +290,10 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
                 <Card key={attempt.id} className="flex flex-col gap-3 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground">
+                      <h3 className="text-h4 font-semibold text-foreground">
                         {attempt.exercise ? attempt.exercise.prompt : 'Free speech reflection'}
                       </h3>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         {attempt.exercise ? `${attempt.exercise.level} · ${attempt.exercise.type}` : 'Unscripted free practice'} · {formatRelative(attempt.createdAt)}
                       </p>
                     </div>
@@ -303,19 +303,19 @@ const CoachIndexPage = ({ goals, attempts, drills }: CoachIndexProps) => {
                   </div>
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Pronunciation</p>
-                      <p className="text-xl font-semibold text-foreground">{attempt.metrics.pron?.toFixed(2) ?? '—'}</p>
-                      <p className="text-xs text-muted-foreground">Δ {deltaText(attempt.metrics.pron, attempt.previous?.pron ?? null)}</p>
+                      <p className="text-caption uppercase tracking-wide text-muted-foreground">Pronunciation</p>
+                      <p className="text-h3 font-semibold text-foreground">{attempt.metrics.pron?.toFixed(2) ?? '—'}</p>
+                      <p className="text-caption text-muted-foreground">Δ {deltaText(attempt.metrics.pron, attempt.previous?.pron ?? null)}</p>
                     </div>
                     <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Fluency</p>
-                      <p className="text-xl font-semibold text-foreground">{attempt.metrics.fluency?.toFixed(2) ?? '—'}</p>
-                      <p className="text-xs text-muted-foreground">Δ {deltaText(attempt.metrics.fluency, attempt.previous?.fluency ?? null)}</p>
+                      <p className="text-caption uppercase tracking-wide text-muted-foreground">Fluency</p>
+                      <p className="text-h3 font-semibold text-foreground">{attempt.metrics.fluency?.toFixed(2) ?? '—'}</p>
+                      <p className="text-caption text-muted-foreground">Δ {deltaText(attempt.metrics.fluency, attempt.previous?.fluency ?? null)}</p>
                     </div>
                     <div className="rounded-ds-xl border border-border/60 bg-card/70 p-4">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Band estimate</p>
-                      <p className="text-xl font-semibold text-foreground">{attempt.metrics.band?.toFixed(1) ?? '—'}</p>
-                      <p className="text-xs text-muted-foreground">Δ {deltaText(attempt.metrics.band, attempt.previous?.band ?? null)}</p>
+                      <p className="text-caption uppercase tracking-wide text-muted-foreground">Band estimate</p>
+                      <p className="text-h3 font-semibold text-foreground">{attempt.metrics.band?.toFixed(1) ?? '—'}</p>
+                      <p className="text-caption text-muted-foreground">Δ {deltaText(attempt.metrics.band, attempt.previous?.band ?? null)}</p>
                     </div>
                   </div>
                 </Card>

@@ -28,7 +28,7 @@ export const ReadingReviewSummaryBar: React.FC<ReadingReviewSummaryBarProps> = (
   durationSeconds,
 }) => {
   return (
-    <Card className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs">
+    <Card className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between text-caption">
       <div className="space-y-0.5">
         <p className="font-medium">{testTitle}</p>
         <p className="text-muted-foreground">

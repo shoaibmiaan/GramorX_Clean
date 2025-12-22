@@ -116,7 +116,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
               {typeLabel}
             </Badge>
           </div>
-          <p className="text-sm font-medium leading-relaxed">{promptText}</p>
+          <p className="text-small font-medium leading-relaxed">{promptText}</p>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
                 type="button"
                 onClick={() => handleMcqChange(opt.value)}
                 className={[
-                  'flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-all',
+                  'flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-small transition-all',
                   selected
                     ? 'border-primary bg-primary/5'
                     : 'border-border bg-background hover:bg-muted',
@@ -142,7 +142,7 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
               >
                 <div
                   className={[
-                    'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold',
+                    'flex h-7 w-7 items-center justify-center rounded-full border text-caption font-semibold',
                     selected
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-background text-muted-foreground',
@@ -159,13 +159,13 @@ export const ListeningQuestionItem: React.FC<ListeningQuestionItemProps> = ({
         </div>
       ) : (
         <div className="mt-3 space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label className="text-caption font-medium text-muted-foreground">
             Write your answer exactly as you heard it.
           </label>
           <div className="flex items-center gap-2">
             <input
               type="text"
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-0 focus:border-primary focus:ring-1 focus:ring-primary"
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-small outline-none ring-0 focus:border-primary focus:ring-1 focus:ring-primary"
               value={typeof value === 'string' ? value : ''}
               onChange={handleShortTextChange}
               autoComplete="off"

@@ -117,13 +117,13 @@ export default function ScoreCardPage() {
           {/* Header */}
           <header className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+              <p className="text-caption uppercase tracking-[0.2em] text-grayish dark:text-grayish">
                 Analytics
               </p>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="text-h2 font-semibold tracking-tight sm:text-h1">
                 Your IELTS Score Card
               </h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-1 text-small text-grayish dark:text-mutedText">
                 Live band estimate, XP progress, and weak areas based on your
                 practice and mocks.
               </p>
@@ -137,7 +137,7 @@ export default function ScoreCardPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="hidden items-center gap-1 text-xs sm:inline-flex"
+                className="hidden items-center gap-1 text-caption sm:inline-flex"
                 onClick={() => track('scorecard_help_clicked')}
               >
                 <Icon name="help-circle" className="h-4 w-4" />
@@ -151,30 +151,30 @@ export default function ScoreCardPage() {
             <Card className="flex flex-col gap-6 p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                  <p className="text-caption font-medium uppercase tracking-[0.2em] text-grayish dark:text-grayish">
                     Overall band estimate
                   </p>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-4xl font-semibold">
+                    <span className="text-display font-semibold">
                       {mockOverall.currentBand.toFixed(1)}
                     </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-small text-grayish dark:text-grayish">
                       Target {mockOverall.targetBand.toFixed(1)}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-caption text-grayish dark:text-grayish">
                     Based on your last 10 full and module mocks.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-right shadow-sm dark:border-gray-700 dark:bg-black/40">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                <div className="rounded-2xl border border-lightBorder bg-white px-4 py-3 text-right shadow-sm dark:border-border/70 dark:bg-black/40">
+                  <p className="text-caption font-medium uppercase tracking-[0.2em] text-grayish dark:text-grayish">
                     XP Level
                   </p>
-                  <p className="mt-1 text-lg font-semibold">
+                  <p className="mt-1 text-h4 font-semibold">
                     {mockOverall.xpTotal.toLocaleString()} XP
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-caption text-grayish dark:text-grayish">
                     {mockOverall.xpToNextLevel} XP to next tier
                   </p>
                 </div>
@@ -182,11 +182,11 @@ export default function ScoreCardPage() {
 
               {/* XP bar */}
               <div>
-                <div className="mb-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <div className="mb-1 flex items-center justify-between text-caption text-grayish dark:text-grayish">
                   <span>Progress to next XP tier</span>
                   <span>{Math.round(xpProgress * 100)}%</span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200/70 dark:bg-black/30">
+                <div className="h-2 w-full rounded-full bg-lightBg/70 dark:bg-black/30">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
                     style={{ width: `${Math.min(100, xpProgress * 100)}%` }}
@@ -195,8 +195,8 @@ export default function ScoreCardPage() {
               </div>
 
               {/* Percentile + CTA */}
-              <div className="flex flex-col gap-3 border-t border-dashed border-gray-200 pt-4 text-sm dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-gray-600 dark:text-gray-300">
+              <div className="flex flex-col gap-3 border-t border-dashed border-lightBorder pt-4 text-small dark:border-border/70 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-grayish dark:text-mutedText">
                   You’re currently ahead of{' '}
                   <span className="font-semibold">
                     {mockOverall.percentile}%
@@ -222,7 +222,7 @@ export default function ScoreCardPage() {
             {/* Right: module bands */}
             <Card className="flex flex-col gap-4 p-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Band by skill</p>
+                <p className="text-small font-medium">Band by skill</p>
                 <Badge tone="neutral" size="sm">
                   Last 10 attempts
                 </Badge>
@@ -232,20 +232,20 @@ export default function ScoreCardPage() {
                 {mockModuleBands.map((m) => (
                   <div
                     key={m.skill}
-                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5 text-sm dark:border-gray-800 dark:bg-black/40"
+                    className="flex items-center justify-between rounded-xl border border-lightBorder bg-lightCard/60 px-3 py-2.5 text-small dark:border-border/80 dark:bg-black/40"
                   >
                     <div className="flex flex-col">
                       <span className="font-medium">{m.skill}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-caption text-grayish dark:text-grayish">
                         {m.attempts} attempts · best band{' '}
                         {m.bestBand?.toFixed(1) ?? '—'}
                       </span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-lg font-semibold">
+                      <span className="text-h4 font-semibold">
                         {m.band?.toFixed(1) ?? '—'}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-caption text-grayish dark:text-grayish">
                         band
                       </span>
                     </div>
@@ -257,7 +257,7 @@ export default function ScoreCardPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-1 inline-flex items-center gap-1 self-start text-xs"
+                  className="mt-1 inline-flex items-center gap-1 self-start text-caption"
                   onClick={() => track('scorecard_leaderboard_cta')}
                 >
                   View global leaderboard
@@ -273,10 +273,10 @@ export default function ScoreCardPage() {
             <Card className="p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">
+                  <p className="text-small font-medium">
                     Performance by question type
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-caption text-grayish dark:text-grayish">
                     Find the patterns in where you drop marks.
                   </p>
                 </div>
@@ -288,29 +288,29 @@ export default function ScoreCardPage() {
                   return (
                     <div
                       key={q.label}
-                      className="flex flex-col gap-1 rounded-xl border border-gray-100 bg-white p-3 text-xs shadow-sm dark:border-gray-800 dark:bg-black/40"
+                      className="flex flex-col gap-1 rounded-xl border border-lightBorder bg-white p-3 text-caption shadow-sm dark:border-border/80 dark:bg-black/40"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{q.label}</span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[0.65rem] ${
                             p >= 70
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                              ? 'bg-success/10 text-success dark:bg-success/95/40 dark:text-success/80'
                               : p >= 40
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
+                              ? 'bg-warning/10 text-warning dark:bg-warning/95/40 dark:text-warning/80'
                               : 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
                           }`}
                         >
                           {p}% correct
                         </span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-gray-200/80 dark:bg-black/30">
+                      <div className="h-1.5 w-full rounded-full bg-lightBg/80 dark:bg-black/30">
                         <div
                           className="h-full rounded-full bg-indigo-500"
                           style={{ width: `${p}%` }}
                         />
                       </div>
-                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400">
+                      <span className="text-[0.7rem] text-grayish dark:text-grayish">
                         {q.correct}/{q.total} questions correct
                       </span>
                     </div>
@@ -322,7 +322,7 @@ export default function ScoreCardPage() {
             {/* Recent attempts */}
             <Card className="flex h-full flex-col p-6">
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm font-medium">Recent attempts</p>
+                <p className="text-small font-medium">Recent attempts</p>
                 <Badge tone="neutral" size="sm">
                   Last 7 days
                 </Badge>
@@ -346,12 +346,12 @@ export default function ScoreCardPage() {
                         })
                       }
                     >
-                      <div className="group flex cursor-pointer items-start justify-between rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-xs shadow-sm transition hover:border-indigo-500 hover:bg-indigo-50/50 dark:border-gray-800 dark:bg-black/40 dark:hover:border-indigo-400 dark:hover:bg-indigo-900/20">
+                      <div className="group flex cursor-pointer items-start justify-between rounded-xl border border-lightBorder bg-white px-3 py-2.5 text-caption shadow-sm transition hover:border-indigo-500 hover:bg-indigo-50/50 dark:border-border/80 dark:bg-black/40 dark:hover:border-indigo-400 dark:hover:bg-indigo-900/20">
                         <div>
                           <p className="max-w-xs truncate text-[0.8rem] font-medium">
                             {a.label}
                           </p>
-                          <p className="mt-0.5 text-[0.7rem] text-gray-500 dark:text-gray-400">
+                          <p className="mt-0.5 text-[0.7rem] text-grayish dark:text-grayish">
                             {a.skill} · {a.date} · {a.durationMinutes} min
                           </p>
                         </div>
@@ -359,7 +359,7 @@ export default function ScoreCardPage() {
                           <p className="text-[0.8rem] font-semibold">
                             {a.band?.toFixed(1) ?? '—'} band
                           </p>
-                          <p className="text-[0.7rem] text-gray-500 dark:text-gray-400">
+                          <p className="text-[0.7rem] text-grayish dark:text-grayish">
                             {a.correct}/{a.total} ({p}%)
                           </p>
                         </div>
@@ -373,7 +373,7 @@ export default function ScoreCardPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="inline-flex items-center gap-1 text-xs"
+                  className="inline-flex items-center gap-1 text-caption"
                 >
                   View full history
                   <Icon name="clock" className="h-3.5 w-3.5" />

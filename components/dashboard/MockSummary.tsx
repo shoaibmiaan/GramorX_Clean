@@ -16,7 +16,7 @@ export const MockSummary: React.FC<MockSummaryProps> = ({ mock }) => {
       title="Mock exams"
       subtitle="Track how close you are to your target band."
     >
-      <div className="space-y-3 text-sm">
+      <div className="space-y-3 text-small">
         <div className="flex items-center justify-between">
           <span className="text-slate-600 dark:text-slate-300">
             Attempts completed
@@ -27,7 +27,7 @@ export const MockSummary: React.FC<MockSummaryProps> = ({ mock }) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-slate-600 dark:text-slate-300">Best band</span>
-          <span className="font-semibold text-emerald-600 dark:text-emerald-300">
+          <span className="font-semibold text-success dark:text-success/90">
             {mock.bestBand ? `Band ${mock.bestBand}` : '—'}
           </span>
         </div>
@@ -35,7 +35,7 @@ export const MockSummary: React.FC<MockSummaryProps> = ({ mock }) => {
           <span className="text-slate-600 dark:text-slate-300">
             Last attempt
           </span>
-          <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+          <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-caption">
             <Timer className="h-3.5 w-3.5" />
             {mock.lastAttemptAt
               ? new Date(mock.lastAttemptAt).toLocaleDateString()
@@ -43,7 +43,7 @@ export const MockSummary: React.FC<MockSummaryProps> = ({ mock }) => {
           </span>
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-caption text-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             <div>

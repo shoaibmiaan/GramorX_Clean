@@ -295,7 +295,7 @@ export default function ReadingExam() {
                 )}
               >
                 <span>{opt}</span>
-                {answers[question.id] === opt && <span className="pr-text-sm pr-text-[var(--pr-primary,#4fb6ff)]">Selected</span>}
+                {answers[question.id] === opt && <span className="pr-text-small pr-text-[var(--pr-primary,#4fb6ff)]">Selected</span>}
               </button>
             ))}
           </div>
@@ -312,7 +312,7 @@ export default function ReadingExam() {
                 onClick={() => handleAnswer(question, opt)}
                 disabled={review || submitting}
                 className={clsx(
-                  'pr-rounded-full pr-border pr-px-4 pr-py-2 pr-text-sm pr-transition',
+                  'pr-rounded-full pr-border pr-px-4 pr-py-2 pr-text-small pr-transition',
                   answers[question.id] === opt
                     ? 'pr-border-[var(--pr-primary,#4fb6ff)] pr-bg-[color-mix(in_srgb,var(--pr-primary,#4fb6ff) 12%,transparent)]'
                     : 'pr-border-[var(--pr-border,#1f2a48)] pr-bg-transparent hover:pr-border-[var(--pr-primary,#4fb6ff)]',
@@ -362,13 +362,13 @@ export default function ReadingExam() {
         <header className="pr-sticky pr-top-[env(safe-area-inset-top,0px)] pr-z-30 pr-border-b pr-border-[var(--pr-border,#16213b)] pr-bg-[color-mix(in_srgb,var(--pr-app-bg,#040b1a) 95%,transparent)] pr-backdrop-blur pr-px-4 pr-py-3 sm:pr-px-6">
           <div className="pr-flex pr-flex-col pr-gap-3 sm:pr-flex-row sm:pr-items-center sm:pr-justify-between">
             <div>
-              <h1 className="pr-text-lg pr-font-semibold">{test?.title || 'Reading Mock'}</h1>
-              <p className="pr-text-sm pr-text-[var(--pr-muted,#94a3b8)]">
+              <h1 className="pr-text-h4 pr-font-semibold">{test?.title || 'Reading Mock'}</h1>
+              <p className="pr-text-small pr-text-[var(--pr-muted,#94a3b8)]">
                 Attempt ID: {attemptId ? attemptId.slice(0, 8) : '—'}
               </p>
             </div>
             <div className="pr-flex pr-flex-wrap pr-items-center pr-gap-3">
-              <span className="pr-rounded-full pr-border pr-border-[var(--pr-primary,#4fb6ff)] pr-px-4 pr-py-1 pr-text-sm pr-font-medium pr-text-[var(--pr-primary,#4fb6ff)]">
+              <span className="pr-rounded-full pr-border pr-border-[var(--pr-primary,#4fb6ff)] pr-px-4 pr-py-1 pr-text-small pr-font-medium pr-text-[var(--pr-primary,#4fb6ff)]">
                 {timeDisplay}
               </span>
               <progress
@@ -376,7 +376,7 @@ export default function ReadingExam() {
                 value={answeredCount}
                 max={Math.max(totalQuestions, 1)}
               />
-              <span className="pr-text-sm pr-text-[var(--pr-muted,#94a3b8)]">{progress}% answered</span>
+              <span className="pr-text-small pr-text-[var(--pr-muted,#94a3b8)]">{progress}% answered</span>
             </div>
           </div>
         </header>
@@ -407,13 +407,13 @@ export default function ReadingExam() {
                 >
                   <button
                     type="button"
-                    className="pr-flex pr-w-full pr-items-center pr-justify-between pr-gap-3 pr-rounded-2xl pr-px-4 pr-py-3 pr-text-left pr-text-base pr-font-semibold"
+                    className="pr-flex pr-w-full pr-items-center pr-justify-between pr-gap-3 pr-rounded-2xl pr-px-4 pr-py-3 pr-text-left pr-text-body pr-font-semibold"
                     onClick={() => setPassageIndex(idx)}
                   >
                     <span>
                       Passage {idx + 1}: {passage.title || 'Reading Section'}
                     </span>
-                    <span className="pr-text-sm pr-text-[var(--pr-muted,#94a3b8)]">
+                    <span className="pr-text-small pr-text-[var(--pr-muted,#94a3b8)]">
                       {expanded ? 'Hide' : 'Show'}
                     </span>
                   </button>
@@ -439,11 +439,11 @@ export default function ReadingExam() {
                               <p className="pr-font-medium">
                                 {question.qNo}. {question.prompt}
                               </p>
-                              <span className="pr-text-xs pr-uppercase pr-text-[var(--pr-muted,#94a3b8)]">{question.type.toUpperCase()}</span>
+                              <span className="pr-text-caption pr-uppercase pr-text-[var(--pr-muted,#94a3b8)]">{question.type.toUpperCase()}</span>
                             </div>
                             {renderQuestionInput(flat, answers[question.id] || '')}
                             {review && question.answer && (
-                              <p className="pr-mt-2 pr-text-sm pr-text-[var(--pr-success,#4ade80)]">Correct: {question.answer}</p>
+                              <p className="pr-mt-2 pr-text-small pr-text-[var(--pr-success,#4ade80)]">Correct: {question.answer}</p>
                             )}
                           </div>
                         );
@@ -460,7 +460,7 @@ export default function ReadingExam() {
           <aside className="pr-hidden lg:pr-block lg:pr-w-72">
             <div className="pr-sticky pr-top-[calc(6.5rem+env(safe-area-inset-top,0px))] pr-space-y-4">
               <div className="pr-rounded-2xl pr-border pr-border-[var(--pr-border,#16213b)] pr-bg-[color-mix(in_srgb,var(--pr-card,#0b162d) 80%,transparent)] pr-px-4 pr-py-4">
-                <h2 className="pr-mb-3 pr-text-sm pr-font-semibold pr-uppercase pr-tracking-wide pr-text-[var(--pr-muted,#94a3b8)]">
+                <h2 className="pr-mb-3 pr-text-small pr-font-semibold pr-uppercase pr-tracking-wide pr-text-[var(--pr-muted,#94a3b8)]">
                   Question palette
                 </h2>
                 <div className="pr-grid pr-grid-cols-5 pr-gap-2">
@@ -473,7 +473,7 @@ export default function ReadingExam() {
                         type="button"
                         onClick={() => navigateToQuestion(q.qNo)}
                         className={clsx(
-                          'pr-flex pr-h-9 pr-w-9 pr-items-center pr-justify-center pr-rounded-lg pr-border pr-text-sm',
+                          'pr-flex pr-h-9 pr-w-9 pr-items-center pr-justify-center pr-rounded-lg pr-border pr-text-small',
                           isActive
                             ? 'pr-border-[var(--pr-primary,#4fb6ff)] pr-bg-[color-mix(in_srgb,var(--pr-primary,#4fb6ff) 18%,transparent)]'
                             : isAnswered

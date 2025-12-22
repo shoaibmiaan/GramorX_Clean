@@ -411,11 +411,11 @@ const WritingPromptPage = ({ prompt, attempt }: PromptPageProps) => {
                 Difficulty {prompt.difficulty}
               </Badge>
             </div>
-            <h1 className="text-3xl font-semibold text-foreground md:text-4xl">{prompt.topic}</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-h1 font-semibold text-foreground md:text-display">{prompt.topic}</h1>
+            <p className="text-small text-muted-foreground">
               Autosave keeps your draft safe. Submit when you are ready for scoring and feedback.
             </p>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-small text-danger">{error}</p>}
             {copyAlert && (
               <Alert variant="warning" className="mt-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -460,21 +460,21 @@ const WritingPromptPage = ({ prompt, attempt }: PromptPageProps) => {
 
           <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <Card className="card-surface space-y-4 p-6">
-              <h2 className="text-xl font-semibold text-foreground">Prompt outline</h2>
+              <h2 className="text-h3 font-semibold text-foreground">Prompt outline</h2>
               {outline.length > 0 ? (
-                <ol className="list-decimal space-y-3 pl-6 text-sm text-muted-foreground">
+                <ol className="list-decimal space-y-3 pl-6 text-small text-muted-foreground">
                   {outline.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ol>
               ) : (
-                <p className="text-sm text-muted-foreground">No outline hints for this prompt yet.</p>
+                <p className="text-small text-muted-foreground">No outline hints for this prompt yet.</p>
               )}
             </Card>
             {prompt.band9Sample && (
               <Card className="card-surface space-y-3 p-6">
-                <h2 className="text-xl font-semibold text-foreground">Band 9 sample excerpt</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{prompt.band9Sample}</p>
+                <h2 className="text-h3 font-semibold text-foreground">Band 9 sample excerpt</h2>
+                <p className="text-small text-muted-foreground whitespace-pre-line">{prompt.band9Sample}</p>
               </Card>
             )}
           </div>

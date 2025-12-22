@@ -159,7 +159,7 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
       <Card className="p-6 space-y-6 rounded-ds-2xl">
         {mode === 'practice' && (
           <div
-            className="rounded-ds-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-sm text-foreground"
+            className="rounded-ds-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-small text-foreground"
             role="note"
           >
             Practice mode lets you check answers as you go. Try a response and look for the instant
@@ -200,8 +200,8 @@ export const SectionTest = forwardRef<SectionTestHandle, Props>(
                 </div>
                 {mode === 'practice' && answers[qi] !== -1 && (
                   <p
-                    className={`text-sm font-medium ${
-                      answers[qi] === q.answer ? 'text-emerald-600' : 'text-destructive'
+                    className={`text-small font-medium ${
+                      answers[qi] === q.answer ? 'text-success' : 'text-destructive'
                     }`}
                     aria-live="polite"
                   >

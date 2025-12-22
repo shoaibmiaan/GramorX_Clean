@@ -201,13 +201,13 @@ export const ReadingDashboard: React.FC = () => {
       <Card className="p-4 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           <div className="space-y-0.5">
-            <div className="text-xs text-muted-foreground">Band (Reading)</div>
-            <div className="text-lg font-semibold">{band(k.bandEstimate, k.bandStd)}</div>
+            <div className="text-caption text-muted-foreground">Band (Reading)</div>
+            <div className="text-h4 font-semibold">{band(k.bandEstimate, k.bandStd)}</div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-xs text-muted-foreground">Accuracy (last 10)</div>
+            <div className="text-caption text-muted-foreground">Accuracy (last 10)</div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">{pct(acc10)}</span>
+              <span className="text-h4 font-semibold">{pct(acc10)}</span>
               {typeof accDelta === 'number' && (
                 <Badge variant={accDelta >= 0 ? 'success' : 'danger'} size="xs">
                   {accDelta >= 0 ? '+' : ''}{(accDelta * 100).toFixed(0)}%
@@ -216,18 +216,18 @@ export const ReadingDashboard: React.FC = () => {
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-xs text-muted-foreground">Speed</div>
-            <div className="text-lg font-semibold">
+            <div className="text-caption text-muted-foreground">Speed</div>
+            <div className="text-h4 font-semibold">
               {k.avgSecPerQ ? `${(k.avgSecPerQ / 60).toFixed(2)} min/Q` : '—'}
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-xs text-muted-foreground">Streak</div>
-            <div className="text-lg font-semibold">{k.streakDays ?? '—'}d</div>
+            <div className="text-caption text-muted-foreground">Streak</div>
+            <div className="text-h4 font-semibold">{k.streakDays ?? '—'}d</div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-xs text-muted-foreground">Completed</div>
-            <div className="text-lg font-semibold">{k.totalPractices ?? '—'}</div>
+            <div className="text-caption text-muted-foreground">Completed</div>
+            <div className="text-h4 font-semibold">{k.totalPractices ?? '—'}</div>
           </div>
         </div>
       </Card>
@@ -235,10 +235,10 @@ export const ReadingDashboard: React.FC = () => {
       {/* AI COACH */}
       <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold inline-flex items-center gap-2">
+          <h3 className="text-small font-semibold inline-flex items-center gap-2">
             <Icon name="Sparkles" /> AI Coach
           </h3>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-caption text-muted-foreground">
             {coachLoading ? 'Generating…' : coachErr ? 'Unavailable' : 'Personalized tips'}
           </div>
         </div>
@@ -257,7 +257,7 @@ export const ReadingDashboard: React.FC = () => {
         {!coachLoading && coach && (
           <div className="space-y-4">
             {coach.forecast && (
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-3 text-small">
                 <Badge variant="info" size="sm">Forecast</Badge>
                 <span>
                   {`→ Band ${coach.forecast.targetBand.toFixed(1)} in ~${coach.forecast.etaDays} days `}
@@ -271,8 +271,8 @@ export const ReadingDashboard: React.FC = () => {
               {coach.actions.slice(0, 3).map(a => (
                 <div key={a.label} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{a.label}</div>
-                    <div className="truncate text-xs text-muted-foreground">{a.reason}</div>
+                    <div className="truncate text-small font-medium">{a.label}</div>
+                    <div className="truncate text-caption text-muted-foreground">{a.reason}</div>
                   </div>
                   <div className="shrink-0 flex gap-2">
                     <Link href={a.href}><Button variant="primary" size="sm" className="rounded-ds-xl">Start</Button></Link>
@@ -283,7 +283,7 @@ export const ReadingDashboard: React.FC = () => {
             </div>
 
             {coach.tips?.length ? (
-              <ul className="grid gap-2 md:grid-cols-3 text-xs text-muted-foreground">
+              <ul className="grid gap-2 md:grid-cols-3 text-caption text-muted-foreground">
                 {coach.tips.slice(0, 3).map(t => (
                   <li key={t} className="rounded-md bg-muted px-2 py-1">{t}</li>
                 ))}
@@ -293,11 +293,11 @@ export const ReadingDashboard: React.FC = () => {
         )}
 
         {!coachLoading && !coach && !coachErr && (
-          <div className="text-xs text-muted-foreground">No suggestions yet.</div>
+          <div className="text-caption text-muted-foreground">No suggestions yet.</div>
         )}
 
         {!coachLoading && coachErr && (
-          <div className="text-xs text-muted-foreground">AI coach unavailable — try again later.</div>
+          <div className="text-caption text-muted-foreground">AI coach unavailable — try again later.</div>
         )}
       </Card>
 
@@ -306,7 +306,7 @@ export const ReadingDashboard: React.FC = () => {
         {/* Forecast */}
         <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold inline-flex items-center gap-2">
+            <h3 className="text-small font-semibold inline-flex items-center gap-2">
               <Icon name="TrendingUp" /> Forecast
             </h3>
             {fc && (
@@ -322,7 +322,7 @@ export const ReadingDashboard: React.FC = () => {
             </div>
           ) : fc ? (
             <>
-              <div className="mt-2 text-sm">
+              <div className="mt-2 text-small">
                 Current: <span className="font-semibold">Band {fc.bandNow.toFixed(1)}</span>
                 {` → Target ${fc.targetBand.toFixed(1)} `}
                 {fc.etaDays === null ? (
@@ -331,7 +331,7 @@ export const ReadingDashboard: React.FC = () => {
                   <span className="font-semibold">in ~{fc.etaDays} days</span>
                 )}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">{fc.rationale}</div>
+              <div className="mt-1 text-caption text-muted-foreground">{fc.rationale}</div>
               <div className="mt-3">
                 <Link href="/reading?type=tfng" className="inline-flex">
                   <Button variant="surface" size="sm" className="rounded-ds-xl">Boost slope: weakest type</Button>
@@ -339,13 +339,13 @@ export const ReadingDashboard: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="mt-2 text-xs text-muted-foreground">No history yet</div>
+            <div className="mt-2 text-caption text-muted-foreground">No history yet</div>
           )}
         </Card>
 
         {/* Heatmap */}
         <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-          <div className="mb-2 text-sm font-medium">Weak spot heatmap</div>
+          <div className="mb-2 text-small font-medium">Weak spot heatmap</div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(data.byType ?? []).map((r) => {
               const acc = clamp01(r.accuracy);
@@ -354,7 +354,7 @@ export const ReadingDashboard: React.FC = () => {
               return (
                 <div key={r.type} className="rounded-lg p-3" style={{ background: bg }}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium capitalize">{r.type}</span>
+                    <span className="text-caption font-medium capitalize">{r.type}</span>
                     <Badge size="xs" variant={acc >= 0.75 ? 'success' : acc >= 0.6 ? 'warning' : 'danger'}>
                       {(acc * 100).toFixed(0)}%
                     </Badge>
@@ -363,13 +363,13 @@ export const ReadingDashboard: React.FC = () => {
                 </div>
               );
             })}
-            {!data.byType?.length && <div className="col-span-4 text-xs text-muted-foreground">No data yet</div>}
+            {!data.byType?.length && <div className="col-span-4 text-caption text-muted-foreground">No data yet</div>}
           </div>
         </Card>
 
         {/* AI Summary */}
         <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-          <div className="text-sm font-semibold inline-flex items-center gap-2">
+          <div className="text-small font-semibold inline-flex items-center gap-2">
             <Icon name="Lightbulb" /> Recent Activity — AI Summary
           </div>
           {summaryLoading ? (
@@ -378,7 +378,7 @@ export const ReadingDashboard: React.FC = () => {
               <Skeleton className="h-4 w-3/5" />
             </div>
           ) : (
-            <p className="mt-2 text-sm text-muted-foreground">{summary || 'No sessions yet.'}</p>
+            <p className="mt-2 text-small text-muted-foreground">{summary || 'No sessions yet.'}</p>
           )}
         </Card>
       </div>
@@ -388,19 +388,19 @@ export const ReadingDashboard: React.FC = () => {
         <div className="grid gap-4 md:grid-cols-2">
           {/* Trend sparkbars */}
           <div>
-            <div className="mb-2 text-sm font-medium">Trend (last 20)</div>
+            <div className="mb-2 text-small font-medium">Trend (last 20)</div>
             <div className="flex h-24 items-end gap-1">
               {(data.trend?.slice(-20) ?? []).map((p, i) => {
                 const h = Math.max(6, Math.round(clamp01(p.score) * 88));
                 return <div key={i} className="w-2 rounded-t bg-electricBlue/40" style={{ height: `${h}px` }} />;
               })}
-              {!data.trend?.length && <div className="text-xs text-muted-foreground">No attempts yet</div>}
+              {!data.trend?.length && <div className="text-caption text-muted-foreground">No attempts yet</div>}
             </div>
           </div>
 
           {/* Time vs score */}
           <div>
-            <div className="mb-2 text-sm font-medium">Time vs score</div>
+            <div className="mb-2 text-small font-medium">Time vs score</div>
             {data.timeVsScore?.length ? (
               <div className="relative h-28 w-full rounded border border-border/60">
                 <div className="absolute left-1 top-1 text-[10px] text-muted-foreground">High score</div>
@@ -421,7 +421,7 @@ export const ReadingDashboard: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground">No sessions yet</div>
+              <div className="text-caption text-muted-foreground">No sessions yet</div>
             )}
           </div>
         </div>
@@ -430,14 +430,14 @@ export const ReadingDashboard: React.FC = () => {
       {/* RECENT */}
       <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Recent sessions</h3>
+          <h3 className="text-small font-semibold">Recent sessions</h3>
           <Link href="/reading/dashboard">
             <Button variant="surface" size="sm" className="rounded-ds-xl">Open full page</Button>
           </Link>
         </div>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground">
+          <table className="w-full text-small">
+            <thead className="text-caption text-muted-foreground">
               <tr className="text-left">
                 <th className="py-2 pr-4">Date</th>
                 <th className="py-2 pr-4">Title</th>
@@ -465,7 +465,7 @@ export const ReadingDashboard: React.FC = () => {
                 </tr>
               ))}
               {!data.recent?.length && (
-                <tr><td className="py-4 text-xs text-muted-foreground" colSpan={6}>No sessions yet</td></tr>
+                <tr><td className="py-4 text-caption text-muted-foreground" colSpan={6}>No sessions yet</td></tr>
               )}
             </tbody>
           </table>
@@ -475,7 +475,7 @@ export const ReadingDashboard: React.FC = () => {
       {/* SAVED & QUEUED */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-          <h3 className="text-sm font-semibold">Saved passages</h3>
+          <h3 className="text-small font-semibold">Saved passages</h3>
           <ul className="mt-2 space-y-2">
             {(data.saved ?? []).slice(0, 3).map((s) => (
               <li key={s.slug} className="flex items-center justify-between gap-3">
@@ -483,12 +483,12 @@ export const ReadingDashboard: React.FC = () => {
                 <Link href={s.href}><Button variant="surface" size="sm" className="rounded-ds-xl">Continue</Button></Link>
               </li>
             ))}
-            {!data.saved?.length && <li className="text-xs text-muted-foreground">Nothing saved yet</li>}
+            {!data.saved?.length && <li className="text-caption text-muted-foreground">Nothing saved yet</li>}
           </ul>
         </Card>
 
         <Card className="p-5 border-border/60 bg-white/70 backdrop-blur dark:bg-dark/70">
-          <h3 className="text-sm font-semibold">Queued drills</h3>
+          <h3 className="text-small font-semibold">Queued drills</h3>
           <ul className="mt-2 space-y-2">
             {(data.queued ?? []).slice(0, 3).map((q, idx) => (
               <li key={`${q.href}-${idx}`} className="flex items-center justify-between gap-3">
@@ -496,7 +496,7 @@ export const ReadingDashboard: React.FC = () => {
                 <Link href={q.href}><Button variant="primary" size="sm" className="rounded-ds-xl">Start</Button></Link>
               </li>
             ))}
-            {!data.queued?.length && <li className="text-xs text-muted-foreground">No queued drills</li>}
+            {!data.queued?.length && <li className="text-caption text-muted-foreground">No queued drills</li>}
           </ul>
         </Card>
       </div>

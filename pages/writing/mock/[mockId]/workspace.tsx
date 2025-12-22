@@ -140,8 +140,8 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
       <div className="mb-4 flex items-end justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">IELTS Writing</p>
-          <h1 className="text-xl md:text-2xl font-semibold text-foreground">Exam Workspace</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-h3 md:text-h2 font-semibold text-foreground">Exam Workspace</h1>
+          <p className="mt-1 text-small text-muted-foreground">
             Complete Task 1 and Task 2 within the time limit. Autosave is on.
           </p>
         </div>
@@ -149,7 +149,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
         {/* Quota chip (visible when you still have attempts) */}
         {remaining > 0 && (
           <div
-            className="ml-2 inline-flex h-8 items-center rounded-full border border-border/60 bg-muted/40 px-3 text-xs text-muted-foreground"
+            className="ml-2 inline-flex h-8 items-center rounded-full border border-border/60 bg-muted/40 px-3 text-caption text-muted-foreground"
             aria-live="polite"
           >
             {usedToday}/{mockLimit} today
@@ -160,7 +160,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
       {/* Clear notice when the daily quota is exhausted (no surprise redirect later) */}
       {remaining === 0 && (
         <div
-          className="mb-4 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+          className="mb-4 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-small text-destructive"
           role="alert"
         >
           You’ve reached your daily limit for writing mock tests ({mockLimit}/{mockLimit}). Try again tomorrow
@@ -174,7 +174,7 @@ const WritingMockWorkspacePage: React.FC<PageProps & { __plan?: PlanId }> = ({
 
       {/* Upsell muted while taking test */}
       {!QUIET_MODE && plan !== 'booster' && plan !== 'master' ? (
-        <div className="mb-4 rounded-2xl border border-border/50 bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div className="mb-4 rounded-2xl border border-border/50 bg-muted/30 p-4 text-small text-muted-foreground">
           Starter plans include {formatMockLimit(mockLimit)}. Upgrade to Booster for {formatMockLimit(boosterMockLimit)} and
           advanced analytics, or go Master for {formatMockLimit(masterMockLimit)} plus exportable reports and printable
           certificates.

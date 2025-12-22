@@ -331,7 +331,7 @@ export const WritingExamRoom: React.FC<Props> = ({
               )}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                   {task.label}
                 </span>
                 <div className="flex items-center gap-2">
@@ -345,7 +345,7 @@ export const WritingExamRoom: React.FC<Props> = ({
                   ) : null}
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <div className="mt-3 flex flex-wrap gap-2 text-caption text-muted-foreground">
                 <Badge variant="info" size="sm">
                   {task.prompt.module === 'general_training' ? 'General Training' : 'Academic'}
                 </Badge>
@@ -353,8 +353,8 @@ export const WritingExamRoom: React.FC<Props> = ({
                   {task.prompt.difficulty}
                 </Badge>
               </div>
-              <h2 className="mt-4 text-lg font-semibold text-foreground">{task.prompt.title}</h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+              <h2 className="mt-4 text-h4 font-semibold text-foreground">{task.prompt.title}</h2>
+              <p className="mt-3 whitespace-pre-wrap text-small leading-6 text-muted-foreground">
                 {task.prompt.promptText}
               </p>
               {activeTask !== task.key ? (
@@ -384,21 +384,21 @@ export const WritingExamRoom: React.FC<Props> = ({
                     {tabSwitches} tab switch{tabSwitches === 1 ? '' : 'es'} noted
                   </Badge>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-caption text-muted-foreground">
                     Leaving this tab pauses the timer automatically.
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-small text-muted-foreground">
                   <span className="font-medium text-foreground">Word count</span>
-                  <span className="font-mono text-base text-foreground">{counts[activeTask]}</span>
-                  <span className="text-xs text-muted-foreground">active</span>
+                  <span className="font-mono text-body text-foreground">{counts[activeTask]}</span>
+                  <span className="text-caption text-muted-foreground">active</span>
                   <span aria-hidden="true" className="text-muted-foreground">
                     •
                   </span>
-                  <span className="font-mono text-sm text-foreground">{totalWordCount}</span>
-                  <span className="text-xs text-muted-foreground">total</span>
+                  <span className="font-mono text-small text-foreground">{totalWordCount}</span>
+                  <span className="text-caption text-muted-foreground">total</span>
                 </div>
                 <WritingTimer seconds={timeLeft} totalSeconds={durationSeconds} />
                 <Button
@@ -413,7 +413,7 @@ export const WritingExamRoom: React.FC<Props> = ({
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">
             Complete both tasks within {Math.round(durationSeconds / 60)} minutes. Autosave runs every 10 seconds and the
             timer pauses if you leave the tab.
           </p>
@@ -449,10 +449,10 @@ export const WritingExamRoom: React.FC<Props> = ({
           ) : null}
 
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-muted-foreground" htmlFor={textareaId}>
+            <label className="text-small font-medium text-muted-foreground" htmlFor={textareaId}>
               {active.label} response
             </label>
-            <span className="text-xs text-muted-foreground">Aim for at least {minWords} words.</span>
+            <span className="text-caption text-muted-foreground">Aim for at least {minWords} words.</span>
           </div>
           <Card className="rounded-ds-2xl border border-border/60 bg-background/90 p-0">
             <TextareaAutosize
@@ -462,11 +462,11 @@ export const WritingExamRoom: React.FC<Props> = ({
               aria-describedby={belowMin ? helperId : undefined}
               onChange={(event) => active.setter(event.target.value)}
               ref={textareaRef}
-              className="w-full resize-none rounded-ds-2xl border-0 bg-transparent p-6 text-base leading-7 text-foreground focus:outline-none"
+              className="w-full resize-none rounded-ds-2xl border-0 bg-transparent p-6 text-body leading-7 text-foreground focus:outline-none"
             />
           </Card>
           {belowMin ? (
-            <p id={helperId} className="text-sm text-amber-600">
+            <p id={helperId} className="text-small text-warning">
               Add at least {minWords - active.count} more words to meet the recommended minimum.
             </p>
           ) : null}

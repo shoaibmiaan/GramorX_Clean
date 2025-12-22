@@ -75,7 +75,7 @@ const StreakPage: NextPage<Props> = ({ streak }) => {
                     Each square represents a day. Darker shades mean more tasks completed.
                   </p>
                 </div>
-                <span className="text-xs text-muted-foreground">PKT timezone</span>
+                <span className="text-caption text-muted-foreground">PKT timezone</span>
               </div>
               <div className="mt-6">
                 {hasProductiveDays ? (

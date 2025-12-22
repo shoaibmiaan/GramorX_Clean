@@ -174,7 +174,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ initial, loadErro
                         {!notification.read && (
                           <button
                             onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-xs text-muted-foreground hover:text-foreground"
+                            className="text-caption text-muted-foreground hover:text-foreground"
                             title="Mark as read"
                           >
                             ✓

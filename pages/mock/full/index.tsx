@@ -276,7 +276,7 @@ export default function FullTestPage() {
         focusMode={{ active: stage === 'exam' && mode === 'simulation' }}
       >
         <div className="space-y-4">
-          <Card className="rounded-ds-2xl border border-dashed border-border/60 bg-card/40 p-4 text-sm text-muted-foreground">
+          <Card className="rounded-ds-2xl border border-dashed border-border/60 bg-card/40 p-4 text-small text-muted-foreground">
             {mode === 'simulation' ? (
               <p>
                 Focus mode is on. Stay within the exam window — tab switches are logged and the
@@ -317,7 +317,7 @@ export default function FullTestPage() {
                   <h2 className="text-h5 font-semibold">
                     {formatSectionTitle(section.section as SectionKey)}
                   </h2>
-                  <dl className="mt-3 space-y-1 text-sm">
+                  <dl className="mt-3 space-y-1 text-small">
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">Band</dt>
                       <dd className="font-medium">{section.band.toFixed(1)}</dd>
@@ -340,11 +340,11 @@ export default function FullTestPage() {
 
           <Card className="rounded-ds-2xl p-6">
             <h2 className="font-slab text-h4">AI feedback</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-small text-muted-foreground">
               Smart insights tailor the next steps for your {mode === 'simulation' ? 'simulation' : 'practice'}
               attempt.
             </p>
-            <ul className="mt-4 space-y-3 text-sm">
+            <ul className="mt-4 space-y-3 text-small">
               {aiTips.map((tip, index) => (
                 <li key={index} className="rounded-ds-xl bg-card/50 p-3">
                   {tip}
@@ -356,13 +356,13 @@ export default function FullTestPage() {
           <Card className="rounded-ds-2xl p-6">
             <h2 className="font-slab text-h4">History</h2>
             {history.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-small text-muted-foreground">
                 No previous attempts yet. Your future simulations will appear here with AI notes.
               </p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {history.slice(0, 5).map((attempt, index) => (
-                  <li key={attempt.date + index} className="rounded-ds-xl bg-card/50 p-3 text-sm">
+                  <li key={attempt.date + index} className="rounded-ds-xl bg-card/50 p-3 text-small">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-medium">
@@ -372,7 +372,7 @@ export default function FullTestPage() {
                           Overall band {attempt.overallBand.toFixed(1)}
                         </p>
                       </div>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-small text-muted-foreground">
                         Detailed review coming soon
                       </span>
                     </div>
@@ -415,7 +415,7 @@ export default function FullTestPage() {
           <Card className="flex flex-col gap-4 rounded-ds-2xl border border-primary/40 bg-primary/5 p-6 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-h5 font-semibold">Resume in-progress mock</h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 You paused a {resumeState.mode === 'simulation' ? 'simulation' : 'practice'} at the
                 {formatSectionTitle(modules[resumeState.progress.current])} section.
               </p>
@@ -465,7 +465,7 @@ export default function FullTestPage() {
               <Card key={section} className="flex flex-col justify-between rounded-ds-2xl bg-card/60 p-6">
                 <div className="space-y-3">
                   <h3 className="text-h5 font-semibold">{formatSectionTitle(section)}</h3>
-                  <p className="text-sm text-muted-foreground">{sectionMeta[section].description}</p>
+                  <p className="text-small text-muted-foreground">{sectionMeta[section].description}</p>
                 </div>
                 <div className="mt-6 space-y-2">
                   <Button

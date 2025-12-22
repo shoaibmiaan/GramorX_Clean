@@ -502,7 +502,7 @@ const ReadingReviewPage: NextPage<ReviewPageProps> = ({
                         href={item.url}
                         className="group flex flex-col rounded-ds border border-lightBorder/70 bg-background p-4 transition hover:border-primary hover:bg-primary/5 dark:border-white/10"
                       >
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                           {item.tag}
                         </span>
                         <span className="mt-2 text-body font-semibold text-foreground group-hover:text-primary">
@@ -636,7 +636,7 @@ const ReadingReviewPage: NextPage<ReviewPageProps> = ({
                       </div>
                       {ai.passageSnippet && (
                         <div className="rounded-ds border border-primary/30 bg-background/70 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                             What to read in passage
                           </p>
                           <p className="mt-1 text-small text-muted-foreground whitespace-pre-line">{ai.passageSnippet}</p>
@@ -859,7 +859,7 @@ function formatCorrectAnswer(question: ReviewQuestion): React.ReactNode {
       return (
         <div className="space-y-2">
           <div>{rendered}</div>
-          <p className="text-xs text-muted-foreground">Also accepted: {alternates.join(', ')}</p>
+          <p className="text-caption text-muted-foreground">Also accepted: {alternates.join(', ')}</p>
         </div>
       );
     }

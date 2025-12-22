@@ -11,19 +11,19 @@ export default function Task1OverviewGuide() {
   return (
     <Section className="py-16 bg-lightBg dark:bg-gradient-to-b dark:from-dark/70 dark:to-darker/90">
       <Container>
-        <h1 className="text-2xl font-semibold tracking-tight">Task 1 (Academic): The Overview</h1>
+        <h1 className="text-h2 font-semibold tracking-tight">Task 1 (Academic): The Overview</h1>
         <p className="text-muted mt-1">
           One or two sentences that capture the <em>big picture</em>—no numbers, no micro-details. Examiners expect it; it’s a Band 7+ behaviour.
         </p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Why the overview matters</h2>
+            <h2 className="text-h4 font-semibold">Why the overview matters</h2>
             <div className="mt-2 flex gap-2">
               <Badge variant="neutral">Task Achievement</Badge>
               <Badge variant="success">Core skill</Badge>
             </div>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li>Shows you understand the <strong>main trends/contrasts</strong>, not just numbers.</li>
               <li>Stops you from wasting time listing figures in the intro.</li>
               <li>Gives your body paragraphs a clear direction.</li>
@@ -31,8 +31,8 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">What to look for</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">What to look for</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li><strong>Trends:</strong> rising, falling, stable, fluctuating.</li>
               <li><strong>Extremes:</strong> highest, lowest, peak, trough.</li>
               <li><strong>Contrasts:</strong> A far exceeds B; C lags behind.</li>
@@ -42,8 +42,8 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Sentence frames (use naturally)</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Sentence frames (use naturally)</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li>
                 <em>Overall,</em> X <strong>increased steadily</strong> while Y <strong>remained relatively flat</strong>, and Z <strong>rose sharply</strong> in the later period.
               </li>
@@ -60,8 +60,8 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-semibold">Chart-type quick cues</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Chart-type quick cues</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li><strong>Line/Bar over time:</strong> growth/decline, turning points, relative ranking.</li>
               <li><strong>Pie:</strong> largest/smallest slices, dominant categories.</li>
               <li><strong>Table:</strong> group patterns; don’t read every cell.</li>
@@ -70,8 +70,8 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Model overviews (no numbers)</h2>
-            <div className="mt-3 space-y-3 text-sm">
+            <h2 className="text-h4 font-semibold">Model overviews (no numbers)</h2>
+            <div className="mt-3 space-y-3 text-small">
               <p>
                 <strong>Line graph:</strong> Overall, internet use in A <em>rose steadily</em>, B <em>hovered</em> at a modest level, and C <em>accelerated markedly</em> in the second decade.
               </p>
@@ -85,8 +85,8 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Common pitfalls</h2>
-            <ul className="mt-3 list-disc pl-6 text-sm">
+            <h2 className="text-h4 font-semibold">Common pitfalls</h2>
+            <ul className="mt-3 list-disc pl-6 text-small">
               <li>Including numbers in the overview.</li>
               <li>Listing every category instead of summarising groups.</li>
               <li>Writing a mini-body paragraph as an “overview”.</li>
@@ -95,11 +95,11 @@ export default function Task1OverviewGuide() {
           </Card>
 
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-semibold">Practice now</h2>
-            <p className="mt-2 text-sm">
+            <h2 className="text-h4 font-semibold">Practice now</h2>
+            <p className="mt-2 text-small">
               Data (table): “Four products, 2000→2020; A and D rise strongly, B stays low, C dips then recovers.” Write a <strong>single overview sentence</strong>.
             </p>
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-small">
               Data (maps): “Town before/after redevelopment; new pedestrian zone; relocated bus station; added green areas.” Write a <strong>two-sentence</strong> overview (no directions like north/south).
             </p>
           </Card>

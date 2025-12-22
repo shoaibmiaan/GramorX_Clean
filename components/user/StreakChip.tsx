@@ -19,7 +19,7 @@ function ChipContent({ value, loading }: { value: number; loading?: boolean }) {
     >
       <Icon name="fire" size={16} aria-hidden />
       <span className="tabular-nums text-body">{label}</span>
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">days</span>
+      <span className="text-caption uppercase tracking-wide text-muted-foreground">days</span>
       <span className="sr-only">{description}</span>
     </span>
   );

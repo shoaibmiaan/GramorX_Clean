@@ -122,7 +122,7 @@ const AttemptTable: React.FC<{
                     key={row.id}
                     className={`border-b border-border/40 ${isActive ? 'bg-primary/5' : ''}`}
                   >
-                    <td className="py-3 pr-3 font-mono text-xs">{row.id}</td>
+                    <td className="py-3 pr-3 font-mono text-caption">{row.id}</td>
                     <td className="py-3 pr-3">
                       <div className="flex flex-col">
                         <span className="font-medium">{row.user.name ?? '—'}</span>
@@ -210,7 +210,7 @@ const AttemptDetailCard: React.FC<{
         </div>
         <div>
           <span className="font-medium">Attempt ID:</span>{' '}
-          <code className="text-xs">{attempt.id}</code>
+          <code className="text-caption">{attempt.id}</code>
         </div>
         <div>
           <span className="font-medium">Scenario:</span>{' '}
@@ -256,7 +256,7 @@ const AttemptDetailCard: React.FC<{
         <div className="space-y-4">
           {Object.entries(attempt.audio).map(([label, files]) => (
             <div key={label}>
-              <div className="font-medium uppercase tracking-wide text-xs mb-1">{label}</div>
+              <div className="font-medium uppercase tracking-wide text-caption mb-1">{label}</div>
               <div className="space-y-2">
                 {files.map((file) => (
                   <AudioPlayer key={file.path} src={file.signedUrl} preload="metadata" className="w-full" />

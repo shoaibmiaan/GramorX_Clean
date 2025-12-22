@@ -31,18 +31,18 @@ const renderCheck = (check: DrillCheck, showAnswers: boolean) => {
     case 'rewrite':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Rewrite: <span className="text-foreground">{check.input}</span></p>
+          <p className="text-small text-muted-foreground">Rewrite: <span className="text-foreground">{check.input}</span></p>
           {showAnswers && (
-            <p className="text-sm text-success">Model answer: {check.target}</p>
+            <p className="text-small text-success">Model answer: {check.target}</p>
           )}
         </div>
       );
     case 'compare':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Prompt: {check.question}</p>
+          <p className="text-small text-muted-foreground">Prompt: {check.question}</p>
           {showAnswers && (
-            <div className="grid gap-1 text-sm text-muted-foreground">
+            <div className="grid gap-1 text-small text-muted-foreground">
               <p>✅ Strong: <span className="text-success">{check.strong}</span></p>
               <p>⚠️ Weak: <span className="text-danger">{check.weak}</span></p>
             </div>
@@ -52,9 +52,9 @@ const renderCheck = (check: DrillCheck, showAnswers: boolean) => {
     case 'fill':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">{check.question}</p>
+          <p className="text-small text-muted-foreground">{check.question}</p>
           {showAnswers ? (
-            <p className="text-sm text-success">Answer: {check.answer}</p>
+            <p className="text-small text-success">Answer: {check.answer}</p>
           ) : (
             <Input placeholder="Type your answer" />
           )}
@@ -63,15 +63,15 @@ const renderCheck = (check: DrillCheck, showAnswers: boolean) => {
     case 'timer':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Set a timer for {Math.round(check.durationSeconds / 60)} minutes and complete the goal:</p>
-          <p className="text-sm text-foreground font-medium">{check.goal}</p>
+          <p className="text-small text-muted-foreground">Set a timer for {Math.round(check.durationSeconds / 60)} minutes and complete the goal:</p>
+          <p className="text-small text-foreground font-medium">{check.goal}</p>
         </div>
       );
     case 'ordering':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Arrange these steps:</p>
-          <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">Arrange these steps:</p>
+          <ul className="list-disc space-y-1 pl-4 text-small text-muted-foreground">
             {check.items.map((item) => (
               <li key={item}>{item}</li>
             ))}
@@ -81,8 +81,8 @@ const renderCheck = (check: DrillCheck, showAnswers: boolean) => {
     case 'match':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Match each item:</p>
-          <ul className="space-y-1 text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">Match each item:</p>
+          <ul className="space-y-1 text-small text-muted-foreground">
             {check.pairs.map(([left, right]) => (
               <li key={left}>
                 <span className="font-medium text-foreground">{left}</span> → {showAnswers ? right : '________'}
@@ -94,22 +94,22 @@ const renderCheck = (check: DrillCheck, showAnswers: boolean) => {
     case 'wordcount':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Stay under {check.maxWords} words for this exercise.</p>
-          {!showAnswers && <TextareaAutosize minRows={4} className="w-full rounded-2xl border border-border/60 bg-card px-4 py-2 text-sm text-foreground" placeholder="Draft your response here" />}
+          <p className="text-small text-muted-foreground">Stay under {check.maxWords} words for this exercise.</p>
+          {!showAnswers && <TextareaAutosize minRows={4} className="w-full rounded-2xl border border-border/60 bg-card px-4 py-2 text-small text-foreground" placeholder="Draft your response here" />}
         </div>
       );
     case 'reflection':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Reflect: {check.question}</p>
-          {!showAnswers && <TextareaAutosize minRows={3} className="w-full rounded-2xl border border-border/60 bg-card px-4 py-2 text-sm text-foreground" placeholder="Jot down your notes" />}
+          <p className="text-small text-muted-foreground">Reflect: {check.question}</p>
+          {!showAnswers && <TextareaAutosize minRows={3} className="w-full rounded-2xl border border-border/60 bg-card px-4 py-2 text-small text-foreground" placeholder="Jot down your notes" />}
         </div>
       );
     case 'checklist':
       return (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Tick off each item:</p>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">Tick off each item:</p>
+          <ul className="space-y-2 text-small text-muted-foreground">
             {check.items.map((item) => (
               <li key={item} className="flex items-center gap-3">
                 <Checkbox checked={showAnswers} readOnly />
@@ -166,22 +166,22 @@ const DrillRunner = ({ drill, completed }: DrillPageProps) => {
                 <Badge variant="soft" tone="info" size="sm">
                   {drill.criterion} • {criteriaLabels[drill.criterion]}
                 </Badge>
-                <h1 className="text-2xl font-semibold text-foreground">{drill.title}</h1>
-                <p className="text-sm text-muted-foreground">{drill.prompt}</p>
+                <h1 className="text-h2 font-semibold text-foreground">{drill.title}</h1>
+                <p className="text-small text-muted-foreground">{drill.prompt}</p>
               </div>
-              <div className="flex flex-col items-end gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-col items-end gap-2 text-caption text-muted-foreground">
                 <span>{drill.durationMinutes} min</span>
                 {done && <Badge variant="soft" tone="success" size="sm">Completed</Badge>}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
               {drill.tags.map((tag) => (
                 <Badge key={tag} variant="soft" tone="default" size="sm">
                   #{tag}
                 </Badge>
               ))}
             </div>
-            <ol className="list-decimal space-y-3 pl-6 text-sm text-muted-foreground">
+            <ol className="list-decimal space-y-3 pl-6 text-small text-muted-foreground">
               {drill.steps.map((step) => (
                 <li key={step}>{step}</li>
               ))}
@@ -194,7 +194,7 @@ const DrillRunner = ({ drill, completed }: DrillPageProps) => {
                 Mark drill complete
               </Button>
             </div>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-small text-danger">{error}</p>}
           </Card>
 
           <div className="grid gap-4">

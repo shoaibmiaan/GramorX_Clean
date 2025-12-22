@@ -65,13 +65,13 @@ export default function PartnerReview() {
           {loading ? (
             <div className="animate-pulse h-24 rounded-xl bg-black/5 dark:bg-white/10" />
           ) : err ? (
-            <div className="text-small px-3 py-2 rounded-xl bg-danger/10 text-danger dark:text-red-300">
+            <div className="text-small px-3 py-2 rounded-xl bg-danger/10 text-danger dark:text-danger/90">
               {err}
             </div>
           ) : data?.feedback ? (
             <p className="leading-7 whitespace-pre-wrap">{data.feedback}</p>
           ) : (
-            <p className="text-grayish dark:text-gray-300">No feedback yet.</p>
+            <p className="text-grayish dark:text-mutedText">No feedback yet.</p>
           )}
 
           <div className="mt-6 flex gap-3">
@@ -94,13 +94,13 @@ export default function PartnerReview() {
           {loading ? (
             <div className="animate-pulse h-40 rounded-xl bg-black/5 dark:bg-white/10" />
           ) : err ? (
-            <p className="text-small px-3 py-2 rounded-xl bg-danger/10 text-danger dark:text-red-300">
+            <p className="text-small px-3 py-2 rounded-xl bg-danger/10 text-danger dark:text-danger/90">
               {err}
             </p>
           ) : data?.transcript ? (
             <pre className="leading-7 whitespace-pre-wrap">{data.transcript}</pre>
           ) : (
-            <p className="text-grayish dark:text-gray-300">No transcript saved yet.</p>
+            <p className="text-grayish dark:text-mutedText">No transcript saved yet.</p>
           )}
         </Card>
       </div>

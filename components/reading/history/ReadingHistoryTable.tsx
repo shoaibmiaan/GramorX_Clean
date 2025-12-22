@@ -49,7 +49,7 @@ export const ReadingHistoryTable: React.FC<ReadingHistoryTableProps> = ({
     return (
       <Card
         className={cn(
-          'p-6 text-center text-sm text-muted-foreground rounded-xl border border-border/60 bg-card/95 shadow-sm',
+          'p-6 text-center text-small text-muted-foreground rounded-xl border border-border/60 bg-card/95 shadow-sm',
           className
         )}
       >
@@ -100,12 +100,12 @@ export const ReadingHistoryTable: React.FC<ReadingHistoryTableProps> = ({
             : `/mock/reading/result/${row.attemptId}`;
 
           // Band tone
-          let toneClass = 'bg-amber-500/15 text-amber-700 border border-amber-500/30';
+          let toneClass = 'bg-warning/15 text-warning border border-warning/30';
           if (band !== null) {
             if (band >= 7.0) {
-              toneClass = 'bg-emerald-600/15 text-emerald-700 border border-emerald-600/40';
+              toneClass = 'bg-success/15 text-success border border-success/70/40';
             } else if (band < 6.0) {
-              toneClass = 'bg-red-500/15 text-red-600 border border-red-500/40';
+              toneClass = 'bg-danger/15 text-danger border border-danger/40';
             }
           }
 
@@ -129,7 +129,7 @@ export const ReadingHistoryTable: React.FC<ReadingHistoryTableProps> = ({
               className={cn(
                 'grid items-center',
                 'grid-cols-[minmax(0,2.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.2fr)]',
-                'gap-3 px-4 py-3 text-xs transition-colors cursor-pointer',
+                'gap-3 px-4 py-3 text-caption transition-colors cursor-pointer',
                 'hover:bg-muted/30',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
                 isInProgress && 'opacity-85'
@@ -137,7 +137,7 @@ export const ReadingHistoryTable: React.FC<ReadingHistoryTableProps> = ({
             >
               {/* TEST INFO */}
               <div className="space-y-1 pr-4">
-                <span className="text-sm font-medium truncate block">
+                <span className="text-small font-medium truncate block">
                   {row.testTitle}
                 </span>
 

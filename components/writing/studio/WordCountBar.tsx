@@ -38,13 +38,13 @@ export const WordCountBar = ({ taskType, wordCount }: WordCountBarProps) => {
   return (
     <div className="space-y-2 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Word count</p>
-        <span className={clsx('text-xs font-medium', withinIdeal ? 'text-success' : 'text-muted-foreground')}>
+        <p className="text-small font-semibold text-foreground">Word count</p>
+        <span className={clsx('text-caption font-medium', withinIdeal ? 'text-success' : 'text-muted-foreground')}>
           {wordCount} words
         </span>
       </div>
       <ProgressBar value={progress} tone={toneForCount(taskType, wordCount)} ariaLabel="Word count progress" />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-caption text-muted-foreground">
         <span>
           Target range{' '}
           <span className="font-semibold text-foreground">

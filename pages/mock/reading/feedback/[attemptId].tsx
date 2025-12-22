@@ -34,8 +34,8 @@ const ReadingFeedbackPage: NextPage<PageProps> = ({ attemptId, allowed }) => {
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface-elevated">
               <Icon name="lock" className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-semibold">Feedback not available</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-small font-semibold">Feedback not available</p>
+            <p className="text-caption text-muted-foreground">
               Either this attempt does not exist, or you are not allowed to attach feedback to it.
             </p>
           </Card>
@@ -83,13 +83,13 @@ const ReadingFeedbackPage: NextPage<PageProps> = ({ attemptId, allowed }) => {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="text-caption uppercase tracking-[0.16em] text-muted-foreground">
                 Reading feedback
               </p>
-              <h1 className="mt-1 text-lg font-semibold tracking-tight">
+              <h1 className="mt-1 text-h4 font-semibold tracking-tight">
                 Add a note for this attempt
               </h1>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-caption text-muted-foreground">
                 This is for you and your coach. Summarise what felt hard, what mistakes you keep
                 repeating, and anything you want to remember for next time.
               </p>
@@ -98,7 +98,7 @@ const ReadingFeedbackPage: NextPage<PageProps> = ({ attemptId, allowed }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label className="text-caption font-medium text-muted-foreground">
               Your feedback
             </label>
             <Textarea

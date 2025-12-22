@@ -37,7 +37,7 @@ export function ListeningFilterBar({ value, onChange, allTopics }: Props) {
       <div className="flex flex-col gap-4">
         {/* Level */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="opacity-70 text-sm">Level</span>
+          <span className="opacity-70 text-small">Level</span>
           <div className="flex flex-wrap gap-2">
             {LEVELS.map((lvl) => (
               <Button
@@ -55,7 +55,7 @@ export function ListeningFilterBar({ value, onChange, allTopics }: Props) {
 
         {/* Accent */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="opacity-70 text-sm">Accent</span>
+          <span className="opacity-70 text-small">Accent</span>
           <div className="flex flex-wrap gap-2">
             {ACCENTS.map((acc) => (
               <Button
@@ -73,7 +73,7 @@ export function ListeningFilterBar({ value, onChange, allTopics }: Props) {
 
         {/* Topics */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="opacity-70 text-sm">Topics</span>
+          <span className="opacity-70 text-small">Topics</span>
           <div className="flex flex-wrap gap-2">
             {allTopics.map((t) => {
               const active = value.topics.includes(t);

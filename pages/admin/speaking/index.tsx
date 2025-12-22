@@ -155,8 +155,8 @@ const AdminSpeakingPrompts: React.FC = () => {
 
         <Card className="rounded-ds-2xl p-8 space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-1">Add a new prompt</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h3 font-semibold mb-1">Add a new prompt</h2>
+            <p className="text-small text-muted-foreground">
               Provide a short title, the actual speaking prompt, and optional metadata.
             </p>
           </div>
@@ -218,8 +218,8 @@ const AdminSpeakingPrompts: React.FC = () => {
         <Card className="rounded-ds-2xl p-0 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/10">
             <div>
-              <h2 className="text-lg font-semibold">Existing prompts</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-h4 font-semibold">Existing prompts</h2>
+              <p className="text-small text-muted-foreground">
                 Showing the {prompts.length} most recent prompts.
               </p>
             </div>
@@ -235,7 +235,7 @@ const AdminSpeakingPrompts: React.FC = () => {
               <div className="animate-pulse h-5 w-5/6 bg-muted rounded" />
             </div>
           ) : prompts.length === 0 ? (
-            <div className="px-6 py-10 text-center text-muted-foreground text-sm">
+            <div className="px-6 py-10 text-center text-muted-foreground text-small">
               No prompts saved yet. Start by creating one above.
             </div>
           ) : (
@@ -244,18 +244,18 @@ const AdminSpeakingPrompts: React.FC = () => {
                 <li key={row.id} className="px-6 py-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-base font-semibold text-foreground">
+                      <h3 className="text-body font-semibold text-foreground">
                         {row.title || 'Untitled prompt'}
                       </h3>
-                      <p className="text-sm text-muted-foreground">{mapPartLabel(row.part_type)}</p>
+                      <p className="text-small text-muted-foreground">{mapPartLabel(row.part_type)}</p>
                     </div>
-                    <div className="text-xs text-muted-foreground">{formatDate(row.created_at)}</div>
+                    <div className="text-caption text-muted-foreground">{formatDate(row.created_at)}</div>
                   </div>
-                  <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">
+                  <p className="text-small leading-relaxed whitespace-pre-line text-foreground/90">
                     {row.prompt}
                   </p>
                   {typeof row.estimated_minutes === 'number' && row.estimated_minutes >= 0 && (
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <p className="text-caption uppercase tracking-wide text-muted-foreground">
                       Estimated time: {row.estimated_minutes} min
                     </p>
                   )}

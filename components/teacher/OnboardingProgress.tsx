@@ -19,7 +19,7 @@ const OnboardingProgress: React.FC<Props> = ({ percentKey }) => {
     <Card className="space-y-2">
       <div className="font-semibold">Onboarding Progress</div>
       <ProgressBar value={percent} />
-      <div className="text-xs text-mutedText">{percent}% completed</div>
+      <div className="text-caption text-mutedText">{percent}% completed</div>
     </Card>
   );
 };

@@ -198,10 +198,10 @@ export default function SpeakingTopicPage() {
           <Card className="mb-8 rounded-ds-2xl border border-border/60 bg-card/60 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   How to use this pack
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   Pick a few phrases you actually like and build your own answers around
                   them. You don&apos;t need to memorise everything here.
                 </p>
@@ -218,7 +218,7 @@ export default function SpeakingTopicPage() {
             <Card className="rounded-ds-2xl border border-border/60 bg-card/60 p-5 flex flex-col">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                     Part 1
                   </p>
                   <h2 className="font-slab text-h3">Small talk & easy questions</h2>
@@ -228,7 +228,7 @@ export default function SpeakingTopicPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-small">
                 {(pack?.part1 ?? []).map((item, idx) => (
                   <div
                     key={`${item.phrase}-${idx}`}
@@ -236,12 +236,12 @@ export default function SpeakingTopicPage() {
                   >
                     <p className="font-medium">&quot;{item.phrase}&quot;</p>
                     {item.note && (
-                      <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
+                      <p className="mt-1 text-caption text-muted-foreground">{item.note}</p>
                     )}
                   </div>
                 ))}
                 {(!pack || pack.part1.length === 0) && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Part 1 phrases for this topic will appear here.
                   </p>
                 )}
@@ -258,7 +258,7 @@ export default function SpeakingTopicPage() {
             <Card className="rounded-ds-2xl border border-border/60 bg-card/60 p-5 flex flex-col">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                     Part 2
                   </p>
                   <h2 className="font-slab text-h3">Long turn description</h2>
@@ -268,7 +268,7 @@ export default function SpeakingTopicPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-small">
                 {(pack?.part2 ?? []).map((item, idx) => (
                   <div
                     key={`${item.phrase}-${idx}`}
@@ -276,12 +276,12 @@ export default function SpeakingTopicPage() {
                   >
                     <p className="font-medium">&quot;{item.phrase}&quot;</p>
                     {item.note && (
-                      <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
+                      <p className="mt-1 text-caption text-muted-foreground">{item.note}</p>
                     )}
                   </div>
                 ))}
                 {(!pack || pack.part2.length === 0) && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Part 2 &quot;describe&quot; phrases will appear here.
                   </p>
                 )}
@@ -298,7 +298,7 @@ export default function SpeakingTopicPage() {
             <Card className="rounded-ds-2xl border border-border/60 bg-card/60 p-5 flex flex-col">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="text-caption font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                     Part 3
                   </p>
                   <h2 className="font-slab text-h3">Opinion & deeper discussion</h2>
@@ -308,7 +308,7 @@ export default function SpeakingTopicPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-small">
                 {(pack?.part3 ?? []).map((item, idx) => (
                   <div
                     key={`${item.phrase}-${idx}`}
@@ -316,12 +316,12 @@ export default function SpeakingTopicPage() {
                   >
                     <p className="font-medium">&quot;{item.phrase}&quot;</p>
                     {item.note && (
-                      <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
+                      <p className="mt-1 text-caption text-muted-foreground">{item.note}</p>
                     )}
                   </div>
                 ))}
                 {(!pack || pack.part3.length === 0) && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Higher-level opinion phrases will appear here.
                   </p>
                 )}
@@ -336,7 +336,7 @@ export default function SpeakingTopicPage() {
           </div>
 
           {/* Footer note */}
-          <p className="mt-8 text-xs text-muted-foreground">
+          <p className="mt-8 text-caption text-muted-foreground">
             Later, you can connect these packs to your Speaking attempts so the system
             suggests phrases based on your weak topics and typical mistakes.
           </p>

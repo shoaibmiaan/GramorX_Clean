@@ -145,7 +145,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
         <header className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Writing • Tips & Resources</h1>
+              <h1 className="text-h2 font-semibold tracking-tight">Writing • Tips & Resources</h1>
               <p className="text-muted mt-1">
                 {userName ? `Welcome, ${userName}. ` : ''}Target Band: {targetBand ?? '—'} • Practice beats passive reading.
               </p>
@@ -176,7 +176,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
 
         {/* Downloadables */}
 <Card className="mb-8 p-4">
-  <h3 className="text-lg font-semibold">Downloadables</h3>
+  <h3 className="text-h4 font-semibold">Downloadables</h3>
   <p className="text-muted mt-1">Print-friendly references for quick revision.</p>
   <div className="mt-4 grid gap-3 md:grid-cols-3">
     <Link
@@ -233,7 +233,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
                 <Card key={tip.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold">{tip.title}</h3>
+                      <h3 className="text-h4 font-semibold">{tip.title}</h3>
                       <div className="mt-1 flex gap-2">
                         <Badge variant="neutral">{FOCUS_LABEL[tip.focus]}</Badge>
                         <Badge variant={tip.level === 'beginner' ? 'success' : 'warning'}>
@@ -248,7 +248,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
 
                   <div className="mt-4">
                     <p className="mb-2 font-medium">Quick Practice</p>
-                    <p className="text-sm">{tip.practicePrompt}</p>
+                    <p className="text-small">{tip.practicePrompt}</p>
                     <label className="sr-only" htmlFor={`draft-${tip.id}`}>Your response</label>
                     <textarea
                       id={`draft-${tip.id}`}
@@ -301,7 +301,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
                 <Card key={t.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold">{t.title}</h3>
+                      <h3 className="text-h4 font-semibold">{t.title}</h3>
                       <div className="mt-1 flex gap-2">
                         <Badge variant="neutral">{FOCUS_LABEL[t.focus]}</Badge>
                         <Badge variant={t.level === 'beginner' ? 'success' : 'warning'}>
@@ -313,7 +313,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
                     {isDone ? <Badge variant="success">Done</Badge> : null}
                   </div>
 
-                  <p className="mt-3 text-sm">{t.prompt}</p>
+                  <p className="mt-3 text-small">{t.prompt}</p>
                   <label className="sr-only" htmlFor={`draft-${t.id}`}>Your response</label>
                   <textarea
                     id={`draft-${t.id}`}
@@ -357,7 +357,7 @@ export default function WritingResources({ userId, userName, targetBand, complet
         {/* AI INSIGHTS */}
         <div id="panel-insights" role="tabpanel" hidden={tab !== 'insights'}>
           <Card className="p-6">
-            <h3 className="text-lg font-semibold">AI Insights</h3>
+            <h3 className="text-h4 font-semibold">AI Insights</h3>
 
             {aiLoading && <p className="mt-2 text-muted">Loading your recent trends…</p>}
 
@@ -404,15 +404,15 @@ export default function WritingResources({ userId, userName, targetBand, complet
               <>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <Card className="p-4">
-                    <p className="text-sm font-medium">Weakest Criterion</p>
+                    <p className="text-small font-medium">Weakest Criterion</p>
                     <p className="text-muted mt-1">
                       {insights.weakestCriterion ? FOCUS_LABEL[insights.weakestCriterion] : '—'}
                     </p>
                   </Card>
 
                   <Card className="p-4">
-                    <p className="text-sm font-medium">Recommended Focus</p>
-                    <ul className="mt-2 list-disc pl-5 text-sm">
+                    <p className="text-small font-medium">Recommended Focus</p>
+                    <ul className="mt-2 list-disc pl-5 text-small">
                       {insights.recommendations.length === 0 && <li>—</li>}
                       {insights.recommendations.map((r) => (
                         <li key={r.id}>
@@ -423,8 +423,8 @@ export default function WritingResources({ userId, userName, targetBand, complet
                   </Card>
 
                   <Card className="p-4">
-                    <p className="text-sm font-medium">Next 3 Micro-Tasks</p>
-                    <ul className="mt-2 list-disc pl-5 text-sm">
+                    <p className="text-small font-medium">Next 3 Micro-Tasks</p>
+                    <ul className="mt-2 list-disc pl-5 text-small">
                       {insights.tasks.length === 0 && <li>—</li>}
                       {insights.tasks.map((t) => (
                         <li key={t.id}>

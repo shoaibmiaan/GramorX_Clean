@@ -97,7 +97,7 @@ export const LaunchCountdown: React.FC<LaunchCountdownProps> = ({
           <div key={label} className="min-w-[5.5rem] text-center">
             <div
               className={clsx(
-                'font-slab text-3xl sm:text-4xl md:text-5xl font-bold',
+                'font-slab text-h1 sm:text-display md:text-displayLg font-bold',
                 isLive
                   ? 'text-success'
                   : 'text-gradient-vertical',

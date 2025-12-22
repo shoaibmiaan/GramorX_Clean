@@ -507,11 +507,11 @@ export default function SpeakingPromptPage() {
       return (
         <div className="space-y-4">
           {prompt.part1.introSeconds ? (
-            <p className="text-muted-foreground text-sm">Intro time: {prompt.part1.introSeconds}s</p>
+            <p className="text-muted-foreground text-small">Intro time: {prompt.part1.introSeconds}s</p>
           ) : null}
           <ol className="space-y-2 list-decimal pl-4">
             {prompt.part1.questions.map((question, idx) => (
-              <li key={idx} className="text-base text-foreground">
+              <li key={idx} className="text-body text-foreground">
                 {question}
               </li>
             ))}
@@ -522,15 +522,15 @@ export default function SpeakingPromptPage() {
     if (activePart === 'p2' && prompt.part2) {
       return (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-4 text-small text-muted-foreground">
             {prompt.part2.prepSeconds ? <span>Prep time: {prompt.part2.prepSeconds}s</span> : null}
             {prompt.part2.speakSeconds ? <span>Speak for: {prompt.part2.speakSeconds}s</span> : null}
           </div>
-          {prompt.part2.cueCard ? <p className="text-lg font-medium">{prompt.part2.cueCard}</p> : null}
+          {prompt.part2.cueCard ? <p className="text-h4 font-medium">{prompt.part2.cueCard}</p> : null}
           {prompt.part2.bullets?.length ? (
             <ul className="space-y-2 list-disc pl-4">
               {prompt.part2.bullets.map((item, idx) => (
-                <li key={idx} className="text-base text-foreground">
+                <li key={idx} className="text-body text-foreground">
                   {item}
                 </li>
               ))}
@@ -543,14 +543,14 @@ export default function SpeakingPromptPage() {
       return (
         <ol className="space-y-2 list-decimal pl-4">
           {prompt.part3.questions.map((question, idx) => (
-            <li key={idx} className="text-base text-foreground">
+            <li key={idx} className="text-body text-foreground">
               {question}
             </li>
           ))}
         </ol>
       );
     }
-    return <p className="text-sm text-muted-foreground">No prompt content available for this part.</p>;
+    return <p className="text-small text-muted-foreground">No prompt content available for this part.</p>;
   }, [activePart, prompt]);
 
   const title = prompt?.title || FALLBACK_TITLE;
@@ -575,7 +575,7 @@ export default function SpeakingPromptPage() {
         <Card>
           <CardContent>
             <p className="text-danger font-medium">{promptError || 'Invalid prompt id.'}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-small text-muted-foreground">
               <Link href="/speaking">Go back to speaking practice</Link>
             </p>
           </CardContent>
@@ -590,7 +590,7 @@ export default function SpeakingPromptPage() {
         <title>{title}</title>
       </Head>
       <div>
-        <h1 className="text-3xl font-semibold text-foreground">{title}</h1>
+        <h1 className="text-h1 font-semibold text-foreground">{title}</h1>
         {prompt?.description ? (
           <p className="mt-2 max-w-3xl text-muted-foreground">{prompt.description}</p>
         ) : null}
@@ -600,9 +600,9 @@ export default function SpeakingPromptPage() {
         <Card className="h-fit">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Prompt</span>
+              <span className="text-small font-medium text-muted-foreground">Prompt</span>
               {currentAttemptId ? (
-                <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+                <span className="rounded-full bg-success/10 px-3 py-1 text-caption font-semibold text-success">
                   Attempt {currentAttemptId.slice(0, 6)}…
                 </span>
               ) : null}
@@ -615,7 +615,7 @@ export default function SpeakingPromptPage() {
                   key={part.key}
                   type="button"
                   onClick={() => setActivePart(part.key)}
-                  className={`rounded-full border px-3 py-1 text-sm transition ${
+                  className={`rounded-full border px-3 py-1 text-small transition ${
                     part.key === activePart
                       ? 'border-primary bg-primary text-white'
                       : 'border-border bg-background text-muted-foreground hover:bg-border/40'
@@ -632,13 +632,13 @@ export default function SpeakingPromptPage() {
         <div className="space-y-6">
           <Card className="h-fit" aria-busy={busy}>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Record your answer</h2>
+              <h2 className="text-h4 font-semibold">Record your answer</h2>
             </CardHeader>
             <CardContent>
               <Recorder onComplete={handleRecordingComplete} maxDurationSec={180} />
-              {status ? <p className="mt-4 text-sm text-muted-foreground">{status}</p> : null}
-              {uploadError ? <p className="mt-4 text-sm text-danger">{uploadError}</p> : null}
-              <p className="mt-4 text-xs text-muted-foreground">
+              {status ? <p className="mt-4 text-small text-muted-foreground">{status}</p> : null}
+              {uploadError ? <p className="mt-4 text-small text-danger">{uploadError}</p> : null}
+              <p className="mt-4 text-caption text-muted-foreground">
                 Audio uploads are stored securely in Supabase Storage for grading. You can re-record as many times as you like.
               </p>
             </CardContent>
@@ -646,25 +646,25 @@ export default function SpeakingPromptPage() {
 
           <Card className="h-fit" aria-busy={scoring}>
             <CardHeader>
-              <h2 className="text-lg font-semibold">AI feedback</h2>
+              <h2 className="text-h4 font-semibold">AI feedback</h2>
             </CardHeader>
             <CardContent className="space-y-4">
               {scoreResult ? (
                 <div className="space-y-4">
                   <div>
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Overall band</span>
+                    <span className="text-caption uppercase tracking-wide text-muted-foreground">Overall band</span>
                     <div className="flex items-baseline gap-3">
-                      <span className="text-3xl font-semibold text-foreground">
+                      <span className="text-h1 font-semibold text-foreground">
                         {scoreResult.bandOverall.toFixed(1)}
                       </span>
-                      <span className="text-sm text-muted-foreground">/ 9.0</span>
+                      <span className="text-small text-muted-foreground">/ 9.0</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-small">
                     {SCORE_CRITERIA.map(({ key, label }) => (
                       <div key={key} className="rounded-lg border border-border/60 p-3">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">
+                        <div className="text-caption uppercase tracking-wide text-muted-foreground">{label}</div>
+                        <div className="mt-1 text-h4 font-semibold text-foreground">
                           {scoreResult.criteria[key].toFixed(1)}
                         </div>
                       </div>
@@ -672,28 +672,28 @@ export default function SpeakingPromptPage() {
                   </div>
                   {scoreResult.notes ? (
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">Feedback</h3>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                      <h3 className="text-small font-semibold text-foreground">Feedback</h3>
+                      <p className="mt-1 whitespace-pre-wrap text-small text-muted-foreground">
                         {scoreResult.notes}
                       </p>
                     </div>
                   ) : null}
                   {scoreResult.transcript ? (
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">Transcript</h3>
-                      <p className="mt-1 whitespace-pre-wrap rounded-md border border-border/60 p-3 text-sm text-muted-foreground">
+                      <h3 className="text-small font-semibold text-foreground">Transcript</h3>
+                      <p className="mt-1 whitespace-pre-wrap rounded-md border border-border/60 p-3 text-small text-muted-foreground">
                         {scoreResult.transcript}
                       </p>
                     </div>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   Record your answer to receive IELTS-style scoring and examiner feedback automatically.
                 </p>
               )}
-              {scoring ? <p className="text-xs text-muted-foreground">Scoring in progress…</p> : null}
-              {scoringError ? <p className="text-sm text-danger">{scoringError}</p> : null}
+              {scoring ? <p className="text-caption text-muted-foreground">Scoring in progress…</p> : null}
+              {scoringError ? <p className="text-small text-danger">{scoringError}</p> : null}
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   type="button"
@@ -705,7 +705,7 @@ export default function SpeakingPromptPage() {
                   {scoring ? 'Scoring…' : 'Re-score this attempt'}
                 </Button>
                 {currentAttemptId ? (
-                  <span className="text-xs text-muted-foreground">Attempt {currentAttemptId.slice(0, 8)}…</span>
+                  <span className="text-caption text-muted-foreground">Attempt {currentAttemptId.slice(0, 8)}…</span>
                 ) : null}
               </div>
             </CardContent>
@@ -713,15 +713,15 @@ export default function SpeakingPromptPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Previous uploads</h2>
+              <h2 className="text-h4 font-semibold">Previous uploads</h2>
             </CardHeader>
             <CardContent>
               {uploads.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recordings saved yet.</p>
+                <p className="text-small text-muted-foreground">No recordings saved yet.</p>
               ) : (
                 <ul className="space-y-4">
                   {uploads.map((upload) => (
-                    <li key={upload.id} className="rounded-lg border border-border/70 p-3 text-sm">
+                    <li key={upload.id} className="rounded-lg border border-border/70 p-3 text-small">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-foreground">Part {upload.part.slice(-1)}</span>
                         <span className="text-muted-foreground">• {Math.round(upload.durationSec)}s</span>
@@ -729,13 +729,13 @@ export default function SpeakingPromptPage() {
                           Saved {new Date(upload.createdAt).toLocaleString()}
                         </span>
                       </div>
-                      <div className="mt-2 break-all text-xs text-muted-foreground">{upload.path}</div>
+                      <div className="mt-2 break-all text-caption text-muted-foreground">{upload.path}</div>
                       <div className="mt-3">
                         <a
                           href={upload.signedUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-caption font-medium text-primary hover:underline"
                         >
                           Open signed audio URL
                         </a>

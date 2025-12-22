@@ -170,7 +170,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
               {/* Left */}
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     IELTS Reading · Full mocks
                   </p>
                   <h1 className="font-slab text-h1 leading-tight text-foreground">
@@ -198,7 +198,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   </Button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 pt-4 text-caption text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
                     <Icon name="Fire" size={14} />
                     Streak: {streakCurrent || 0} day{streakCurrent === 1 ? '' : 's'}
@@ -236,7 +236,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                 <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         Snapshot
                       </p>
                       <p className="text-small text-grayish">Your reading momentum, at a glance.</p>
@@ -250,8 +250,8 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
 
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">Best band</div>
-                      <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                      <div className="text-caption text-muted-foreground">Best band</div>
+                      <div className="flex items-center gap-1 text-small font-semibold text-foreground">
                         <Icon name="Trophy" className="h-4 w-4 text-primary" />
                         <span>{stats.bestBand ?? '--'}</span>
                       </div>
@@ -259,8 +259,8 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                     </div>
 
                     <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">Recent avg band</div>
-                      <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                      <div className="text-caption text-muted-foreground">Recent avg band</div>
+                      <div className="flex items-center gap-1 text-small font-semibold text-foreground">
                         <Icon name="Medal" className="h-4 w-4 text-primary" />
                         <span>{stats.avgBand ?? '--'}</span>
                       </div>
@@ -280,7 +280,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                 <Card className="rounded-ds-2xl border border-border/60 bg-card/80 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         Next mock in queue
                       </p>
                       <p className="text-small text-grayish">
@@ -289,13 +289,13 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                     </div>
                     <div className="text-right">
                       <p className="font-slab text-h3 leading-none">{featuredTest ? 'Ready' : 'Soon'}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         {featuredTest ? featuredTest.title : 'New mocks rolling out'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <div className="mt-4 flex flex-wrap gap-2 text-caption text-muted-foreground">
                     <Badge variant="neutral" size="xs">
                       3 passages
                     </Badge>
@@ -332,7 +332,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   placeholder="Search Reading mocks by title or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 w-full rounded-ds-xl border border-border bg-background px-10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  className="h-10 w-full rounded-ds-xl border border-border bg-background px-10 text-small text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
                 />
                 {searchQuery && (
                   <button
@@ -351,7 +351,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   <select
                     value={selectedDifficulty}
                     onChange={(e) => setSelectedDifficulty(e.target.value)}
-                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-small text-foreground outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All difficulty</option>
                     <option value="easy">Easy</option>
@@ -362,7 +362,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-small text-foreground outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All types</option>
                     <option value="Academic">Academic</option>
@@ -374,7 +374,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                     onChange={(e) =>
                       setStatusFilter(e.target.value as 'all' | 'attempted' | 'not_attempted')
                     }
-                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                    className="h-10 rounded-ds-xl border border-border bg-background px-3 text-small text-foreground outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All status</option>
                     <option value="attempted">Attempted</option>
@@ -382,7 +382,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   </select>
                 </div>
 
-                <div className="text-xs text-muted-foreground">
+                <div className="text-caption text-muted-foreground">
                   Showing <span className="font-semibold text-foreground">{filteredTests.length}</span> of{' '}
                   <span className="font-semibold text-foreground">{tests.length}</span>
                 </div>
@@ -426,7 +426,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                           <Badge variant="success" size="xs" className="rounded-ds-xl">
                             Live
                           </Badge>
-                          <p className="text-sm font-semibold text-foreground">Speed Drill</p>
+                          <p className="text-small font-semibold text-foreground">Speed Drill</p>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Timed sets to build pace, scanning, and exam-pressure control.
@@ -457,7 +457,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                           <Badge variant="info" size="xs" className="rounded-ds-xl">
                             Daily
                           </Badge>
-                          <p className="text-sm font-semibold text-foreground">Daily Drill</p>
+                          <p className="text-small font-semibold text-foreground">Daily Drill</p>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Lightweight daily practice for consistency + streak momentum.
@@ -488,7 +488,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                           <Badge variant="neutral" size="xs" className="rounded-ds-xl">
                             Weekly
                           </Badge>
-                          <p className="text-sm font-semibold text-foreground">Weekly Drill</p>
+                          <p className="text-small font-semibold text-foreground">Weekly Drill</p>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Longer session to build endurance without doing a full mock.
@@ -577,7 +577,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                           </div>
                         </div>
 
-                        <h3 className="mt-3 text-sm font-semibold leading-snug line-clamp-2">{t.title}</h3>
+                        <h3 className="mt-3 text-small font-semibold leading-snug line-clamp-2">{t.title}</h3>
 
                         {t.description && (
                           <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
@@ -656,7 +656,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
             <div className="mt-8 lg:mt-0">
               <div className="sticky top-24 space-y-6">
                 <div className="space-y-4">
-                  <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     <span className="inline-block h-1.5 w-6 rounded-full bg-primary" />
                     Reading AI predictions
                   </h3>
@@ -694,7 +694,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                   <div className="mt-4 grid gap-2">
                     <Link
                       href="/mock/reading/history"
-                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small hover:border-primary/30"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icon name="History" size={16} />
@@ -705,7 +705,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
 
                     <Link
                       href="/mock/reading/analytics"
-                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small hover:border-primary/30"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icon name="BarChart3" size={16} />
@@ -716,7 +716,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
 
                     <Link
                       href="/mock/reading/challenges"
-                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small hover:border-primary/30"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icon name="Swords" size={16} />
@@ -728,7 +728,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                     {/* NEW: Daily Drill */}
                     <Link
                       href="/mock/reading/daily"
-                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small hover:border-primary/30"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icon name="Calendar" size={16} />
@@ -740,7 +740,7 @@ const ReadingMockIndexPage: NextPage<PageProps> = ({
                     {/* NEW: Weekly Drill */}
                     <Link
                       href="/mock/reading/weekly"
-                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-sm hover:border-primary/30"
+                      className="flex items-center justify-between rounded-ds-xl border border-border/60 bg-background/40 px-3 py-2 text-small hover:border-primary/30"
                     >
                       <span className="inline-flex items-center gap-2">
                         <Icon name="Clock" size={16} />

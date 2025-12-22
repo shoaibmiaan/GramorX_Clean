@@ -236,7 +236,7 @@ export function MobileNav({
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-border dark:border-border-dark bg-surface-muted dark:bg-surface-muted-dark px-10 py-3 text-sm placeholder:text-muted-foreground dark:placeholder:text-muted-foreground-dark focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark"
+                className="w-full rounded-xl border border-border dark:border-border-dark bg-surface-muted dark:bg-surface-muted-dark px-10 py-3 text-small placeholder:text-muted-foreground dark:placeholder:text-muted-foreground-dark focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark"
               />
             </div>
           </form>
@@ -289,7 +289,7 @@ export function MobileNav({
                           <Link
                             href={`/practice/${moduleLabel.toLowerCase()}`}
                             onClick={closeMenu}
-                            className="group flex items-start gap-3 rounded-lg p-3 text-sm transition"
+                            className="group flex items-start gap-3 rounded-lg p-3 text-small transition"
                           >
                             <span
                               className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ring-2 transition ${getToneClass(
@@ -301,7 +301,7 @@ export function MobileNav({
                             <div className="min-w-0 flex-1">
                               <span className="block font-medium">{moduleLabel}</span>
                               {desc && (
-                                <span className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
+                                <span className="text-caption text-muted-foreground dark:text-muted-foreground-dark">
                                   {desc}
                                 </span>
                               )}
@@ -347,7 +347,7 @@ export function MobileNav({
                         <li key={item.id}>
                           <NavLink
                             href={item.href}
-                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-small"
                             onClick={closeMenu}
                           >
                             <span>{item.label}</span>
@@ -396,7 +396,7 @@ export function MobileNav({
           <div className="mt-8 space-y-6">
             {sidebarSections.map((section) => (
               <div key={section.id}>
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
+                <div className="mb-3 flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
                   {section.icon && <Icon name={section.icon} className="h-3.5 w-3.5" />}
                   <span>{section.label}</span>
                 </div>
@@ -405,7 +405,7 @@ export function MobileNav({
                     <li key={item.id}>
                       <NavLink
                         href={item.href}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-small"
                         onClick={closeMenu}
                       >
                         <span>{item.label}</span>
@@ -420,7 +420,7 @@ export function MobileNav({
           {/* Account Section */}
           {profileMenu.length > 0 && user?.id && (
             <div className="mt-8 pt-6 border-t border-border dark:border-border-dark">
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
+              <div className="mb-3 flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground-dark px-1">
                 <Icon name="User" className="h-3.5 w-3.5" />
                 <span>Account</span>
               </div>
@@ -429,7 +429,7 @@ export function MobileNav({
                   <li key={item.id}>
                     <NavLink
                       href={item.href}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-sm"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted dark:hover:bg-muted-dark transition-colors text-small"
                       onClick={closeMenu}
                     >
                       <span>{item.label}</span>
@@ -442,7 +442,7 @@ export function MobileNav({
                       closeMenu();
                       void signOut?.();
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-destructive dark:text-destructive-dark hover:bg-destructive/10 dark:hover:bg-destructive-dark/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-small font-medium text-destructive dark:text-destructive-dark hover:bg-destructive/10 dark:hover:bg-destructive-dark/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border dark:focus-visible:ring-border-dark focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <Icon name="LogOut" size={16} />
                     <span>Sign out</span>
@@ -488,7 +488,7 @@ export function MobileNav({
           {/* Premium summary (optional bottom section) */}
           {hasPremiumAccess && premiumRooms.length > 0 && (
             <div className="mt-8 pt-4 border-t border-border dark:border-border-dark">
-              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground dark:text-muted-foreground-dark">
+              <div className="mb-2 flex items-center justify-between text-caption text-muted-foreground dark:text-muted-foreground-dark">
                 <span>Premium access</span>
                 <button
                   type="button"
@@ -498,7 +498,7 @@ export function MobileNav({
                   Clear
                 </button>
               </div>
-              <div className="max-h-20 overflow-y-auto text-xs text-muted-foreground dark:text-muted-foreground-dark space-y-1">
+              <div className="max-h-20 overflow-y-auto text-caption text-muted-foreground dark:text-muted-foreground-dark space-y-1">
                 {premiumRooms.slice(0, 4).map((room, idx) => (
                   <div key={idx} className="truncate">
                     • {room}

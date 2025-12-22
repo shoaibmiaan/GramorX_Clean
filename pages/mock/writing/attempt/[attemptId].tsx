@@ -38,17 +38,11 @@ type GetAttemptOk = {
   tasks?: TaskPrompt[];
 };
 
-type GetAttemptResp =
-  | GetAttemptOk
-  | { ok: false; error: string; details?: unknown };
+type GetAttemptResp = GetAttemptOk | { ok: false; error: string; details?: unknown };
 
-type AutosaveResp =
-  | { ok: true; savedAt: string; wordCount: number }
-  | { ok: false; error: string; details?: unknown };
+type AutosaveResp = { ok: true; savedAt: string; wordCount: number } | { ok: false; error: string; details?: unknown };
 
-type SubmitResp =
-  | { ok: true; status?: 'submitted' | 'evaluated'; attemptId?: string }
-  | { ok: false; error: string; details?: unknown };
+type SubmitResp = { ok: true; status?: 'submitted' | 'evaluated'; attemptId?: string } | { ok: false; error: string; details?: unknown };
 
 function wordCount(text: string) {
   const t = text.trim();
@@ -78,10 +72,36 @@ function getTaskFromList(tasks: TaskPrompt[] | undefined, n: 1 | 2) {
   return (tasks ?? []).find((t) => t.taskNumber === n) ?? null;
 }
 
+/**
+ * "Cheat" logger: warn + log attempts.
+ * Uses sendBeacon when possible (doesn't block navigation, Safari friendly).
+ * If endpoint doesn't exist, it fails silently.
+ */
+function logCheatAttempt(payload: { attemptId: string; type: string; meta?: Record<string, unknown> }) {
+  try {
+    const body = JSON.stringify({ ...payload, ts: new Date().toISOString() });
+
+    if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+      const blob = new Blob([body], { type: 'application/json' });
+      // You can implement this route later. This call won't crash if 404.
+      navigator.sendBeacon('/api/writing/log-cheat', blob);
+      return;
+    }
+
+    void fetch('/api/writing/log-cheat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
 const WritingAttemptPage: NextPage = () => {
   const router = useRouter();
-  const attemptId =
-    typeof router.query.attemptId === 'string' ? router.query.attemptId : null;
+  const attemptId = typeof router.query.attemptId === 'string' ? router.query.attemptId : null;
 
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
@@ -106,6 +126,11 @@ const WritingAttemptPage: NextPage = () => {
   const [submitOpen, setSubmitOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
+  // Focus-loss / tab switch detection (warn + log)
+  const [focusWarnCount, setFocusWarnCount] = React.useState(0);
+  const [showFocusWarn, setShowFocusWarn] = React.useState(false);
+  const focusWarnTimer = React.useRef<number | null>(null);
+
   const [now, setNow] = React.useState(Date.now());
   const isLocked = status === 'submitted' || status === 'evaluated';
 
@@ -123,6 +148,7 @@ const WritingAttemptPage: NextPage = () => {
 
   const timeIsUp = timeLeftSeconds <= 0;
 
+  // Load attempt
   React.useEffect(() => {
     if (!attemptId) return;
 
@@ -132,9 +158,7 @@ const WritingAttemptPage: NextPage = () => {
       setLoading(true);
       setErr(null);
       try {
-        const r = await fetch(
-          `/api/writing/get-attempt?attemptId=${encodeURIComponent(attemptId)}`
-        );
+        const r = await fetch(`/api/writing/get-attempt?attemptId=${encodeURIComponent(attemptId)}`);
         const json = (await r.json()) as GetAttemptResp;
 
         if (!json.ok) throw new Error(json.error);
@@ -172,15 +196,69 @@ const WritingAttemptPage: NextPage = () => {
     };
   }, [attemptId]);
 
+  // Safari-safe unload guard:
+  // - beforeunload is flaky in Safari unless returnValue is set
+  // - also handle pagehide (more reliable for Safari)
   React.useEffect(() => {
     if (isLocked) return;
+
     const onBeforeUnload = (ev: BeforeUnloadEvent) => {
+      // Safari requires returnValue to show prompt
       ev.preventDefault();
       ev.returnValue = '';
+      return '';
     };
+
+    const onPageHide = () => {
+      // If user navigates away, log it
+      if (!attemptId) return;
+      logCheatAttempt({ attemptId, type: 'pagehide' });
+    };
+
     window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [isLocked]);
+    window.addEventListener('pagehide', onPageHide);
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [isLocked, attemptId]);
+
+  // Tab / focus-loss detection (warn + log)
+  React.useEffect(() => {
+    if (!attemptId) return;
+    if (isLocked) return;
+
+    const warn = (type: string, meta?: Record<string, unknown>) => {
+      setFocusWarnCount((c) => c + 1);
+      setShowFocusWarn(true);
+
+      logCheatAttempt({ attemptId, type, meta });
+
+      if (focusWarnTimer.current) window.clearTimeout(focusWarnTimer.current);
+      focusWarnTimer.current = window.setTimeout(() => setShowFocusWarn(false), 4500);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') warn('visibility_hidden');
+    };
+
+    const onBlur = () => warn('window_blur');
+    const onFocus = () => {
+      // optional: could log focus return
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+      if (focusWarnTimer.current) window.clearTimeout(focusWarnTimer.current);
+    };
+  }, [attemptId, isLocked]);
 
   const saveTimer = React.useRef<number | null>(null);
 
@@ -226,7 +304,7 @@ const WritingAttemptPage: NextPage = () => {
         }
       }, 550);
     },
-    [attemptId, isLocked]
+    [attemptId, isLocked],
   );
 
   const onChangeActive = (v: string) => {
@@ -239,8 +317,10 @@ const WritingAttemptPage: NextPage = () => {
     }
   };
 
-  const submit = async () => {
+  const submit = React.useCallback(async () => {
     if (!attemptId) return;
+    if (submitting) return;
+    if (isLocked) return;
 
     setSubmitting(true);
     setErr(null);
@@ -258,13 +338,26 @@ const WritingAttemptPage: NextPage = () => {
       setStatus('submitted');
       setSubmitOpen(false);
 
-      await router.replace(`/mock/writing/result/${attemptId}`);
+      await router.replace(`/mock/writing/result/${encodeURIComponent(attemptId)}`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [attemptId, router, submitting, isLocked]);
+
+  // ✅ Auto-submit at 00:00 (real IELTS CBE vibe)
+  const autoSubmittedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!attemptId) return;
+    if (isLocked) return;
+    if (!timeIsUp) return;
+    if (autoSubmittedRef.current) return;
+
+    autoSubmittedRef.current = true;
+    logCheatAttempt({ attemptId, type: 'time_up_auto_submit' });
+    void submit();
+  }, [attemptId, isLocked, timeIsUp, submit]);
 
   const activeText = activeTask === 1 ? t1 : t2;
   const activeWords = wordCount(activeText);
@@ -272,13 +365,10 @@ const WritingAttemptPage: NextPage = () => {
   const activeSavedAt = activeTask === 1 ? t1SavedAt : t2SavedAt;
   const activeIsSaving = savingTask === activeTask;
 
-  const submitDisabled = isLocked || submitting || timeIsUp;
-
+  const submitDisabled = isLocked || submitting;
   const activePrompt = activeTask === 1 ? task1 : task2;
-  const wordHint =
-    activeTask === 1
-      ? (activePrompt?.wordLimit ?? 150)
-      : (activePrompt?.wordLimit ?? 250);
+
+  const wordHint = activeTask === 1 ? activePrompt?.wordLimit ?? 150 : activePrompt?.wordLimit ?? 250;
 
   return (
     <>
@@ -286,27 +376,35 @@ const WritingAttemptPage: NextPage = () => {
         <title>Writing Exam Room · GramorX</title>
       </Head>
 
-      {/* ✅ One-screen. No page scroll. */}
       <main className="h-[100svh] overflow-hidden bg-background text-foreground">
-        {/* ✅ Body */}
+        {/* Focus-loss warning toast */}
+        {showFocusWarn ? (
+          <div className="fixed left-1/2 top-3 z-50 w-[min(92vw,520px)] -translate-x-1/2 rounded-ds-xl border border-border/60 bg-card px-4 py-3 shadow-lg">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                <Icon name="AlertTriangle" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Focus lost detected</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Switching tabs / minimizing is logged. Warnings: <span className="font-semibold text-foreground">{focusWarnCount}</span>
+                </p>
+              </div>
+              <Button size="xs" variant="ghost" onClick={() => setShowFocusWarn(false)} aria-label="Dismiss">
+                <Icon name="X" size={16} />
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <section className="h-full w-full px-2 py-3">
           <div className="flex h-full min-h-0 flex-col gap-3">
-            {/* ✅ Controls row (NOT a header) */}
+            {/* Controls row (NOT a header) */}
             <div className="shrink-0 flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant={activeTask === 1 ? 'primary' : 'secondary'}
-                onClick={() => setActiveTask(1)}
-                disabled={loading}
-              >
+              <Button size="sm" variant={activeTask === 1 ? 'primary' : 'secondary'} onClick={() => setActiveTask(1)} disabled={loading}>
                 Task 1
               </Button>
-              <Button
-                size="sm"
-                variant={activeTask === 2 ? 'primary' : 'secondary'}
-                onClick={() => setActiveTask(2)}
-                disabled={loading}
-              >
+              <Button size="sm" variant={activeTask === 2 ? 'primary' : 'secondary'} onClick={() => setActiveTask(2)} disabled={loading}>
                 Task 2
               </Button>
 
@@ -317,12 +415,10 @@ const WritingAttemptPage: NextPage = () => {
 
                 <div className="flex items-center gap-1 rounded-ds-xl border border-border/60 bg-card px-3 py-2">
                   <Icon name="Timer" size={16} />
-                  <span className="text-sm font-semibold">
-                    {formatTimeLeft(timeLeftSeconds)}
-                  </span>
+                  <span className="text-sm font-semibold">{formatTimeLeft(timeLeftSeconds)}</span>
                 </div>
 
-                <Badge tone="neutral" size="xs">
+                <Badge tone={timeIsUp ? 'danger' : 'neutral'} size="xs">
                   {activeWords} words
                 </Badge>
 
@@ -340,19 +436,14 @@ const WritingAttemptPage: NextPage = () => {
                   )}
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={submitDisabled}
-                  onClick={() => setSubmitOpen(true)}
-                >
+                <Button size="sm" variant="primary" disabled={submitDisabled} onClick={() => setSubmitOpen(true)}>
                   <Icon name="Send" size={16} className="mr-1" />
                   Submit
                 </Button>
               </div>
             </div>
 
-            {/* ✅ Content fills remaining height */}
+            {/* Content */}
             <div className="flex-1 min-h-0 overflow-hidden">
               {loading ? (
                 <div className="h-full overflow-auto rounded-ds-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
@@ -366,22 +457,12 @@ const WritingAttemptPage: NextPage = () => {
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">Something went wrong</p>
-                      <p className="mt-1 break-words text-xs text-muted-foreground">
-                        {err}
-                      </p>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">{err}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => router.reload()}
-                        >
+                        <Button size="sm" variant="secondary" onClick={() => router.reload()}>
                           Retry
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => router.push('/mock/writing')}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => router.push('/mock/writing')}>
                           Back
                         </Button>
                       </div>
@@ -390,14 +471,12 @@ const WritingAttemptPage: NextPage = () => {
                 </div>
               ) : (
                 <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
-                  {/* Prompt panel (internal scroll) */}
+                  {/* Prompt panel */}
                   <div className="flex h-full min-h-0 flex-col rounded-ds-2xl border border-border/60 bg-card">
                     <div className="shrink-0 border-b border-border/60 px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-semibold">
-                            {activeTask === 1 ? 'Writing Task 1' : 'Writing Task 2'}
-                          </p>
+                          <p className="text-sm font-semibold">{activeTask === 1 ? 'Writing Task 1' : 'Writing Task 2'}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {mode === 'academic'
                               ? 'Read the task carefully and plan before you write.'
@@ -412,42 +491,30 @@ const WritingAttemptPage: NextPage = () => {
 
                     <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
                       {activePrompt?.instruction ? (
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {activePrompt.instruction}
-                        </p>
+                        <p className="text-xs font-medium text-muted-foreground">{activePrompt.instruction}</p>
                       ) : null}
 
                       {activePrompt?.prompt ? (
-                        <div className="mt-3 whitespace-pre-wrap text-sm leading-6">
-                          {activePrompt.prompt}
-                        </div>
+                        <div className="mt-3 whitespace-pre-wrap text-sm leading-6">{activePrompt.prompt}</div>
                       ) : (
                         <div className="mt-3 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
                           Prompt is not available yet.
                           <br />
-                          Your API must return{' '}
-                          <span className="font-medium text-foreground">tasks</span>{' '}
-                          with <span className="font-medium text-foreground">prompt</span>{' '}
-                          for Task 1/2 in{' '}
-                          <span className="font-medium text-foreground">
-                            /api/writing/get-attempt
-                          </span>
-                          .
+                          Your API must return <span className="font-medium text-foreground">tasks</span> with{' '}
+                          <span className="font-medium text-foreground">prompt</span> for Task 1/2 in{' '}
+                          <span className="font-medium text-foreground">/api/writing/get-attempt</span>.
                         </div>
                       )}
 
                       {activePrompt?.wordLimit ? (
                         <p className="mt-4 text-xs text-muted-foreground">
-                          Minimum word count:{' '}
-                          <span className="font-medium text-foreground">
-                            {activePrompt.wordLimit}
-                          </span>
+                          Minimum word count: <span className="font-medium text-foreground">{activePrompt.wordLimit}</span>
                         </p>
                       ) : null}
                     </div>
                   </div>
 
-                  {/* Answer panel (textarea fills height) */}
+                  {/* Answer panel */}
                   <div className="flex h-full min-h-0 flex-col rounded-ds-2xl border border-border/60 bg-card">
                     <div className="shrink-0 border-b border-border/60 px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
@@ -457,9 +524,7 @@ const WritingAttemptPage: NextPage = () => {
                           </span>
                           <div>
                             <p className="text-sm font-semibold">Answer sheet</p>
-                            <p className="text-xs text-muted-foreground">
-                              {isLocked ? 'Locked after submission' : 'Write your answer below.'}
-                            </p>
+                            <p className="text-xs text-muted-foreground">{isLocked ? 'Locked after submission' : 'Write your answer below.'}</p>
                           </div>
                         </div>
 
@@ -476,19 +541,11 @@ const WritingAttemptPage: NextPage = () => {
                         onChange={(e) => onChangeActive(e.target.value)}
                         disabled={isLocked || timeIsUp}
                         className="flex-1 min-h-0 w-full resize-none rounded-ds-xl border border-border/60 bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                        placeholder={
-                          activeTask === 1
-                            ? 'Write your Task 1 response…'
-                            : 'Write your Task 2 essay…'
-                        }
+                        placeholder={activeTask === 1 ? 'Write your Task 1 response…' : 'Write your Task 2 essay…'}
                       />
 
                       <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>
-                          {activeTask === 1
-                            ? 'Task 1 recommended: 150+ words'
-                            : 'Task 2 recommended: 250+ words'}
-                        </span>
+                        <span>{activeTask === 1 ? 'Task 1 recommended: 150+ words' : 'Task 2 recommended: 250+ words'}</span>
                         <span className="flex items-center gap-2">
                           {activeIsSaving ? (
                             <>
@@ -503,6 +560,12 @@ const WritingAttemptPage: NextPage = () => {
                           )}
                         </span>
                       </div>
+
+                      {timeIsUp && !isLocked ? (
+                        <div className="mt-2 rounded-ds-xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                          Time is up. Auto-submitting…
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -517,16 +580,9 @@ const WritingAttemptPage: NextPage = () => {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold">Submit your writing?</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    After submission, your answers are locked. No edits.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">After submission, your answers are locked. No edits.</p>
                 </div>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  onClick={() => setSubmitOpen(false)}
-                  disabled={submitting}
-                >
+                <Button size="xs" variant="ghost" onClick={() => setSubmitOpen(false)} disabled={submitting}>
                   <Icon name="X" size={16} />
                 </Button>
               </div>
@@ -543,20 +599,10 @@ const WritingAttemptPage: NextPage = () => {
               </div>
 
               <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSubmitOpen(false)}
-                  disabled={submitting}
-                >
+                <Button variant="secondary" size="sm" onClick={() => setSubmitOpen(false)} disabled={submitting}>
                   Cancel
                 </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={submit}
-                  disabled={submitting}
-                >
+                <Button variant="primary" size="sm" onClick={submit} disabled={submitting}>
                   {submitting ? (
                     <>
                       <Icon name="Loader2" size={16} className="mr-1 animate-spin" />

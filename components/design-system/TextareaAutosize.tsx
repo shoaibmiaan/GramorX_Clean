@@ -37,7 +37,7 @@ export const TextareaAutosize = forwardRef<HTMLTextAreaElement, TextareaAutosize
       <textarea
         ref={handleRef}
         className={clsx(
-          'w-full resize-none rounded-lg border border-border bg-background px-4 py-3 font-sans text-base text-foreground shadow-inner focus:outline-none focus:ring-2 focus:ring-primary',
+          'w-full resize-none rounded-lg border border-border bg-background px-4 py-3 font-sans text-body text-foreground shadow-inner focus:outline-none focus:ring-2 focus:ring-primary',
           className,
         )}
         rows={minRows}

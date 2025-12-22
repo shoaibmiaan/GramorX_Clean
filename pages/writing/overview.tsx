@@ -63,12 +63,12 @@ export const StatItem: React.FC<{
 }> = ({ label, value, meta, progress }) => {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between text-caption uppercase tracking-wider text-muted-foreground">
         <span>{label}</span>
         <span className="font-semibold text-foreground">{value}</span>
       </div>
       {typeof progress === 'number' && <ProgressBar value={progress} tone="info" ariaLabel={`${label} progress`} />}
-      {meta && <div className="text-xs text-muted-foreground">{meta}</div>}
+      {meta && <div className="text-caption text-muted-foreground">{meta}</div>}
     </div>
   );
 };
@@ -77,11 +77,11 @@ export const AttemptCard: React.FC<{ attempt: AttemptSummary; compact?: boolean 
   return (
     <li className={`flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm transition-transform ${compact ? 'sm:flex-row sm:items-center' : ''}`}>
       <div className="flex-1">
-        <p className="text-sm font-medium text-foreground">{attempt.promptTopic}</p>
-        <p className="text-xs text-muted-foreground">Updated {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(attempt.updatedAt))}</p>
+        <p className="text-small font-medium text-foreground">{attempt.promptTopic}</p>
+        <p className="text-caption text-muted-foreground">Updated {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(attempt.updatedAt))}</p>
       </div>
 
-      <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground sm:mt-0 sm:flex-col sm:items-end">
+      <div className="mt-3 flex items-center gap-3 text-small text-muted-foreground sm:mt-0 sm:flex-col sm:items-end">
         <span>{attempt.wordCount} words</span>
         {attempt.overallBand ? <span className="font-semibold text-foreground">Band {attempt.overallBand.toFixed(1)}</span> : <span>Awaiting score</span>}
       </div>
@@ -255,8 +255,8 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
             </Badge>
 
             <div className="space-y-3">
-              <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Your writing overview</h2>
-              <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
+              <h2 className="text-h1 font-semibold text-foreground sm:text-display">Your writing overview</h2>
+              <p className="text-body leading-relaxed text-muted-foreground sm:text-h4">
                 Track readiness, review reminders, and hop into focused drills. Use the navigation above to explore the full prompt library and analyze your history.
               </p>
             </div>
@@ -274,11 +274,11 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
             </div>
 
             {!passReadiness && missingSummary.length > 0 && (
-              <p className="text-sm text-muted-foreground">Unlock redrafts by completing: {missingSummary.join(', ')}</p>
+              <p className="text-small text-muted-foreground">Unlock redrafts by completing: {missingSummary.join(', ')}</p>
             )}
           </div>
 
-          <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-background/70 p-5 text-sm text-muted-foreground shadow-inner lg:max-w-xs">
+          <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-background/70 p-5 text-small text-muted-foreground shadow-inner lg:max-w-xs">
             <div className="flex items-center justify-between">
               <span className="font-medium text-foreground">Study window</span>
               <Badge variant="default" tone="info" size="sm">
@@ -304,15 +304,15 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
         <OverviewCard>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-2xl font-semibold text-foreground">Prompt access</h3>
-              <p className="text-sm text-muted-foreground">{currentPlanCopy.description}</p>
+              <h3 className="text-h2 font-semibold text-foreground">Prompt access</h3>
+              <p className="text-small text-muted-foreground">{currentPlanCopy.description}</p>
             </div>
             <Badge variant="default" tone="default" size="sm">
               {currentPlanCopy.label}
             </Badge>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-dashed border-border/50 bg-muted/40 p-4 text-sm text-muted-foreground">
+          <div className="mt-4 rounded-2xl border border-dashed border-border/50 bg-muted/40 p-4 text-small text-muted-foreground">
             <p>{currentPlanCopy.description}</p>
           </div>
 
@@ -325,21 +325,21 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
         <OverviewCard>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Daily micro prompt</h3>
-              <p className="text-sm text-muted-foreground">A quick nudge to sharpen today&apos;s session.</p>
+              <h3 className="text-h3 font-semibold text-foreground">Daily micro prompt</h3>
+              <p className="text-small text-muted-foreground">A quick nudge to sharpen today&apos;s session.</p>
             </div>
             <Badge variant="default" tone="info" size="sm">Updated daily</Badge>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-dashed border-border/50 bg-muted/50 p-3 text-sm text-foreground">{microPromptState.message}</div>
+          <div className="mt-3 rounded-2xl border border-dashed border-border/50 bg-muted/50 p-3 text-small text-foreground">{microPromptState.message}</div>
 
           {microPromptState.retakeReminder && (
-            <div className="mt-3 rounded-2xl border border-dashed border-border/40 bg-card/60 p-3 text-xs text-muted-foreground">{microPromptState.retakeReminder.message}</div>
+            <div className="mt-3 rounded-2xl border border-dashed border-border/40 bg-card/60 p-3 text-caption text-muted-foreground">{microPromptState.retakeReminder.message}</div>
           )}
 
-          {microPromptError && <p className="mt-2 text-sm text-danger">{microPromptError}</p>}
+          {microPromptError && <p className="mt-2 text-small text-danger">{microPromptError}</p>}
 
-          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="mt-3 flex items-center justify-between gap-3 text-caption text-muted-foreground">
             <span>{microPromptState.lastSentAt ? `Last nudged ${formatDateTime(microPromptState.lastSentAt)}` : 'Not delivered yet today'}</span>
             {!microPromptState.canSendWhatsApp && (
               <span>
@@ -359,7 +359,7 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
             <ActionButton size="sm" variant="ghost" onClick={refreshMicroPrompt}>Refresh tip</ActionButton>
           </div>
 
-          {microPromptState.alreadySentToday && <p className="mt-2 text-xs text-muted-foreground">Tip already delivered today &mdash; check back tomorrow for a fresh cue.</p>}
+          {microPromptState.alreadySentToday && <p className="mt-2 text-caption text-muted-foreground">Tip already delivered today &mdash; check back tomorrow for a fresh cue.</p>}
         </OverviewCard>
       </section>
 
@@ -368,8 +368,8 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
         <OverviewCard>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Active drafts</h3>
-              <p className="text-sm text-muted-foreground">Pick up where you left off with autosaved work.</p>
+              <h3 className="text-h3 font-semibold text-foreground">Active drafts</h3>
+              <p className="text-small text-muted-foreground">Pick up where you left off with autosaved work.</p>
             </div>
             <Badge variant="default" tone="default" size="sm">{stats.activeDrafts} active</Badge>
           </div>
@@ -394,8 +394,8 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
         <OverviewCard>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Recent submissions</h3>
-              <p className="text-sm text-muted-foreground">See what you submitted recently and track your scores.</p>
+              <h3 className="text-h3 font-semibold text-foreground">Recent submissions</h3>
+              <p className="text-small text-muted-foreground">See what you submitted recently and track your scores.</p>
             </div>
             <Badge variant="default" tone="default" size="sm">Last {Math.min(stats.recentAttempts.length, 6)}</Badge>
           </div>
@@ -418,8 +418,8 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
       <OverviewCard className="mt-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-foreground">Boost your next attempt</h3>
-            <p className="text-sm text-muted-foreground">Layer drills, reviews, and mock feedback to sharpen your routine.</p>
+            <h3 className="text-h3 font-semibold text-foreground">Boost your next attempt</h3>
+            <p className="text-small text-muted-foreground">Layer drills, reviews, and mock feedback to sharpen your routine.</p>
           </div>
           <Badge variant="default" tone="info" size="sm">Curated resources</Badge>
         </div>
@@ -427,25 +427,25 @@ const WritingOverview = ({ readiness, planSummary, microPrompt, stats, __plan }:
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <Link href="/writing/drills" className="group block rounded-2xl border border-border/60 bg-card/60 p-4 transition hover:border-primary/60 hover:bg-card">
             <div className="flex flex-col h-full">
-              <span className="text-sm font-semibold text-foreground">Skill drills</span>
-              <span className="mt-2 text-sm text-muted-foreground">Target coherence, task achievement, and grammar with 10-minute micro drills.</span>
-              <span className="mt-auto text-sm font-medium text-primary group-hover:underline">Visit drills</span>
+              <span className="text-small font-semibold text-foreground">Skill drills</span>
+              <span className="mt-2 text-small text-muted-foreground">Target coherence, task achievement, and grammar with 10-minute micro drills.</span>
+              <span className="mt-auto text-small font-medium text-primary group-hover:underline">Visit drills</span>
             </div>
           </Link>
 
           <Link href="/writing/reviews" className="group block rounded-2xl border border-border/60 bg-card/60 p-4 transition hover:border-primary/60 hover:bg-card">
             <div className="flex flex-col h-full">
-              <span className="text-sm font-semibold text-foreground">AI reviews</span>
-              <span className="mt-2 text-sm text-muted-foreground">Compare attempts, highlight improvements, and plan your next rewrite.</span>
-              <span className="mt-auto text-sm font-medium text-primary group-hover:underline">Open reviews</span>
+              <span className="text-small font-semibold text-foreground">AI reviews</span>
+              <span className="mt-2 text-small text-muted-foreground">Compare attempts, highlight improvements, and plan your next rewrite.</span>
+              <span className="mt-auto text-small font-medium text-primary group-hover:underline">Open reviews</span>
             </div>
           </Link>
 
           <Link href="/writing/drills?tab=mocks" className="group block rounded-2xl border border-border/60 bg-card/60 p-4 transition hover:border-primary/60 hover:bg-card">
             <div className="flex flex-col h-full">
-              <span className="text-sm font-semibold text-foreground">Mock library</span>
-              <span className="mt-2 text-sm text-muted-foreground">Revisit scored mocks, analyse feedback themes, and schedule your next redraft.</span>
-              <span className="mt-auto text-sm font-medium text-primary group-hover:underline">Browse mocks</span>
+              <span className="text-small font-semibold text-foreground">Mock library</span>
+              <span className="mt-2 text-small text-muted-foreground">Revisit scored mocks, analyse feedback themes, and schedule your next redraft.</span>
+              <span className="mt-auto text-small font-medium text-primary group-hover:underline">Browse mocks</span>
             </div>
           </Link>
         </div>

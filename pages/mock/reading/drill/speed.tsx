@@ -78,7 +78,7 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error,
                 </div>
                 <div className="space-y-2">
                   <h1 className="font-slab text-h3 text-foreground">Couldn’t load Speed Drill</h1>
-                  <p className="text-sm text-muted-foreground">{error}</p>
+                  <p className="text-small text-muted-foreground">{error}</p>
                   <Button asChild variant="secondary" className="rounded-ds-2xl">
                     <Link href="/mock/reading">
                       <Icon name="ChevronLeft" className="h-4 w-4 mr-1" />
@@ -115,8 +115,8 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error,
                 </Badge>
               </div>
 
-              <h1 className="text-lg font-semibold">Reading Speed Training</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-h4 font-semibold">Reading Speed Training</h1>
+              <p className="text-small text-muted-foreground">
                 Train your reading pace under strict time pressure.
               </p>
             </div>
@@ -155,8 +155,8 @@ const SpeedDrillPage: NextPage<PageProps> = ({ test, passages, questions, error,
               </div>
 
               <div>
-                <div className="text-sm font-medium">Speed Mode</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-small font-medium">Speed Mode</div>
+                <p className="text-caption text-muted-foreground">
                   Shorter time · fewer questions · no distractions
                 </p>
               </div>

@@ -66,10 +66,10 @@ const ListeningResultPage: NextPage<PageProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
+                  <p className="text-small font-semibold tracking-wide uppercase text-muted-foreground">
                     Result not available
                   </p>
-                  <p className="text-sm text-grayish">
+                  <p className="text-small text-grayish">
                     {isLoggedIn
                       ? "We couldn't find that attempt. Please retry a Listening mock."
                       : "You need to be logged in to view this result."}
@@ -114,7 +114,7 @@ const ListeningResultPage: NextPage<PageProps> = ({
         <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
           <Container className="space-y-4">
 
-            <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
               <Icon name="Headphones" size={14} />
               <span>Listening Result</span>
             </div>
@@ -123,7 +123,7 @@ const ListeningResultPage: NextPage<PageProps> = ({
               Your Listening Score
             </h1>
 
-            <p className="text-sm text-muted-foreground max-w-xl">
+            <p className="text-small text-muted-foreground max-w-xl">
               Full breakdown of your Listening mock: band score, raw score,
               section accuracy, and improvement suggestions.
             </p>
@@ -164,22 +164,22 @@ const ListeningResultPage: NextPage<PageProps> = ({
                 <div className="grid grid-cols-3 gap-4 text-center">
 
                   <div>
-                    <p className="text-xs text-muted-foreground">Band score</p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-caption text-muted-foreground">Band score</p>
+                    <p className="text-h1 font-bold text-foreground">
                       {attempt.bandScore ?? "—"}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-muted-foreground">Correct answers</p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-caption text-muted-foreground">Correct answers</p>
+                    <p className="text-h1 font-bold text-foreground">
                       {attempt.rawScore ?? "—"}/{attempt.questionCount ?? test.totalQuestions ?? 40}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-caption text-muted-foreground">Duration</p>
+                    <p className="text-h1 font-bold text-foreground">
                       {attempt.durationSeconds
                         ? `${Math.round(attempt.durationSeconds / 60)}m`
                         : "—"}
@@ -188,7 +188,7 @@ const ListeningResultPage: NextPage<PageProps> = ({
 
                 </div>
 
-                <p className="text-xs text-muted-foreground mt-3">
+                <p className="text-caption text-muted-foreground mt-3">
                   Attempted on {new Date(attempt.createdAt).toLocaleDateString()}
                 </p>
               </Card>
@@ -197,7 +197,7 @@ const ListeningResultPage: NextPage<PageProps> = ({
               <Card className="rounded-ds-2xl p-6 border border-border/60 bg-card/80">
                 <h2 className="font-slab text-h4 mb-4">Test Details</h2>
 
-                <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="space-y-3 text-small text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Test</span>
                     <span className="font-medium text-foreground">{test.title}</span>
@@ -234,8 +234,8 @@ const ListeningResultPage: NextPage<PageProps> = ({
                   key={s.section}
                   className="rounded-ds-2xl p-5 border border-border/60 bg-card/80 text-center"
                 >
-                  <p className="text-xs text-muted-foreground">Section {s.section}</p>
-                  <p className="mt-2 text-lg font-semibold">
+                  <p className="text-caption text-muted-foreground">Section {s.section}</p>
+                  <p className="mt-2 text-h4 font-semibold">
                     {s.correct}/{s.total}
                   </p>
 
@@ -268,7 +268,7 @@ const ListeningResultPage: NextPage<PageProps> = ({
               <div className="grid md:grid-cols-2 gap-6">
 
                 <div className="space-y-2">
-                  <p className="text-xs tracking-wide uppercase text-primary font-semibold">
+                  <p className="text-caption tracking-wide uppercase text-primary font-semibold">
                     Next smart move
                   </p>
 
@@ -276,19 +276,19 @@ const ListeningResultPage: NextPage<PageProps> = ({
                     Send this attempt to AI Lab for deeper insights.
                   </h3>
 
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-small text-muted-foreground">
                     Find your weakest sections, accent issues, question types, and
                     get personalised practice drills based on this attempt.
                   </p>
                 </div>
 
-                <div className="bg-muted rounded-ds-2xl p-4 space-y-3 text-sm">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                <div className="bg-muted rounded-ds-2xl p-4 space-y-3 text-small">
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground font-medium">
                     <Icon name="Sparkles" size={14} />
                     <span>Recommended flow</span>
                   </div>
 
-                  <ol className="text-xs text-muted-foreground space-y-2">
+                  <ol className="text-caption text-muted-foreground space-y-2">
                     <li>1. Review your accuracy above.</li>
                     <li>2. Send this attempt to AI Lab.</li>
                     <li>3. Get section-wise weakness mapping.</li>

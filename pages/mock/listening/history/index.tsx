@@ -67,7 +67,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
         <section className="py-10 md:py-14 border-b border-border/40 bg-card/70 backdrop-blur">
           <Container>
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <div className="inline-flex items-center gap-2 rounded-ds-full bg-primary/10 px-3 py-1 text-caption font-medium text-primary">
                 <Icon name="Headphones" size={14} />
                 <span>Listening attempt history</span>
                 {!isLoggedIn && (
@@ -81,7 +81,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                 Every Listening mock. Every band.
               </h1>
 
-              <p className="text-sm text-muted-foreground max-w-xl">
+              <p className="text-small text-muted-foreground max-w-xl">
                 See how your Listening band is moving over time — scores, timing,
                 section accuracy, and question-type breakdown for all your mocks.
               </p>
@@ -123,7 +123,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                     <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                       Listening progress snapshot
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-caption text-muted-foreground">
                       Quick view of your bands and attempts so far.
                     </p>
                   </div>
@@ -138,22 +138,22 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-4 text-center text-xs">
+                <div className="mt-4 grid gap-3 md:grid-cols-4 text-center text-caption">
                   <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
                     <p className="text-[11px] text-muted-foreground">Best band</p>
-                    <p className="mt-1 text-lg font-semibold">
+                    <p className="mt-1 text-h4 font-semibold">
                       {bestBand ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
                     <p className="text-[11px] text-muted-foreground">Last band</p>
-                    <p className="mt-1 text-lg font-semibold">
+                    <p className="mt-1 text-h4 font-semibold">
                       {lastBand ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-ds-xl bg-muted/70 px-3 py-3">
                     <p className="text-[11px] text-muted-foreground">Avg band</p>
-                    <p className="mt-1 text-lg font-semibold">
+                    <p className="mt-1 text-h4 font-semibold">
                       {analytics?.averageBand ?? "—"}
                     </p>
                   </div>
@@ -161,7 +161,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                     <p className="text-[11px] text-muted-foreground">
                       Total attempts
                     </p>
-                    <p className="mt-1 text-lg font-semibold">
+                    <p className="mt-1 text-h4 font-semibold">
                       {totalAttempts}
                     </p>
                   </div>
@@ -206,7 +206,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
               />
 
               <h2 className="font-slab text-h3">No Listening mocks yet</h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 Once you attempt a Listening mock, all your results, band
                 history, and section analytics will appear here.
               </p>
@@ -231,7 +231,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
             <Container>
               <div className="mb-6">
                 <h2 className="font-slab text-h3">Your Listening attempts</h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-small text-muted-foreground">
                   Click any attempt to view detailed breakdown and section-wise scores.
                 </p>
               </div>
@@ -244,13 +244,13 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                   >
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-sm">{a.testTitle}</h3>
+                        <h3 className="font-semibold text-small">{a.testTitle}</h3>
                         <Badge variant="neutral" size="xs">
                           {new Date(a.createdAt).toLocaleDateString()}
                         </Badge>
                       </div>
 
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         {a.rawScore !== null
                           ? `${a.rawScore} correct · Band ${a.bandScore ?? "—"}`
                           : "Not submitted"}
@@ -296,26 +296,26 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
               <Card className="max-w-4xl mx-auto rounded-ds-2xl p-6 bg-card/90 border border-border/60">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <p className="text-xs tracking-wide uppercase text-primary font-semibold">
+                    <p className="text-caption tracking-wide uppercase text-primary font-semibold">
                       Next smart move
                     </p>
                     <h3 className="font-slab text-h3">
                       Fix your Listening weaknesses with AI.
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-small text-muted-foreground">
                       AI Lab will show your weak sections, accent difficulty,
                       question types you keep missing, and targeted drills for
                       improvement.
                     </p>
                   </div>
 
-                  <div className="bg-muted rounded-ds-2xl p-4 space-y-3 text-sm">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                  <div className="bg-muted rounded-ds-2xl p-4 space-y-3 text-small">
+                    <div className="flex items-center gap-2 text-caption text-muted-foreground font-medium">
                       <Icon name="Sparkles" size={14} />
                       <span>Recommended flow</span>
                     </div>
 
-                    <ol className="text-xs text-muted-foreground space-y-2">
+                    <ol className="text-caption text-muted-foreground space-y-2">
                       <li>1. Pick any past attempt from above.</li>
                       <li>2. Send its score to AI Lab.</li>
                       <li>3. Get deep section-wise analysis.</li>
@@ -364,7 +364,7 @@ const ListeningHistoryPage: React.FC<PageProps> = ({
                     <h3 className="font-slab text-h4">
                       Turn your history into auto-generated drill plans.
                     </h3>
-                    <p className="text-xs md:text-sm text-muted-foreground max-w-xl">
+                    <p className="text-caption md:text-small text-muted-foreground max-w-xl">
                       Soon you’ll be able to auto-generate weakness drills, retry packs,
                       and technique checklists straight from your attempt history — no
                       manual planning needed.

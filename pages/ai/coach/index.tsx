@@ -104,7 +104,7 @@ export default function CoachUIPage() {
       {/* Header / breadcrumbs */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AI Coach</h1>
+          <h1 className="text-h2 font-semibold tracking-tight">AI Coach</h1>
           <p className="text-muted-foreground">Smart, actionable IELTS practice suggestions powered by your existing /api/ai/coach.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -121,32 +121,32 @@ export default function CoachUIPage() {
       <Card className="p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-12">
           <div className="md:col-span-6 space-y-2">
-            <label className="text-sm font-medium">Goal</label>
+            <label className="text-small font-medium">Goal</label>
             <input
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              className="w-full rounded-md border bg-background px-3 py-2 text-small outline-none focus:ring-2"
               placeholder="Your target (e.g., Band 7 in 6 weeks)"
             />
           </div>
 
           <div className="md:col-span-6 space-y-2">
-            <label className="text-sm font-medium">Optional User ID</label>
+            <label className="text-small font-medium">Optional User ID</label>
             <input
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              className="w-full rounded-md border bg-background px-3 py-2 text-small outline-none focus:ring-2"
               placeholder="(For saving logs in Supabase)"
             />
           </div>
 
           <div className="md:col-span-12 space-y-2">
-            <label className="text-sm font-medium">Context</label>
+            <label className="text-small font-medium">Context</label>
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
               rows={4}
-              className="w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2"
+              className="w-full resize-y rounded-md border bg-background px-3 py-2 text-small outline-none focus:ring-2"
               placeholder="Share issues, time availability, recent scores, etc."
             />
           </div>
@@ -158,7 +158,7 @@ export default function CoachUIPage() {
             {loading && (
               <Button type="button" variant="destructive" onClick={cancel}>Cancel</Button>
             )}
-            <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="ml-auto flex items-center gap-2 text-caption text-muted-foreground">
               <Badge variant="outline">Groq</Badge>
               <Badge variant="outline">Gemini</Badge>
               <Badge variant="outline">OpenAI</Badge>
@@ -173,8 +173,8 @@ export default function CoachUIPage() {
       {loading && (
         <Card className="mt-6 p-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm">Generating plan…</p>
-            <span className="text-xs text-muted-foreground">Provider fallback chain active</span>
+            <p className="text-small">Generating plan…</p>
+            <span className="text-caption text-muted-foreground">Provider fallback chain active</span>
           </div>
           <div className="mt-4 space-y-3">
             <SkeletonLine />
@@ -187,12 +187,12 @@ export default function CoachUIPage() {
       {/* Error state */}
       {!loading && error && (
         <Card className="mt-6 p-6">
-          <h3 className="mb-2 text-lg font-semibold">All providers failed</h3>
-          <p className="text-sm text-destructive">{error}</p>
+          <h3 className="mb-2 text-h4 font-semibold">All providers failed</h3>
+          <p className="text-small text-destructive">{error}</p>
           {!!attempts?.length && (
             <div className="mt-4 space-y-2">
               {attempts.map((a, i) => (
-                <div key={i} className="rounded-md border p-3 text-xs">
+                <div key={i} className="rounded-md border p-3 text-caption">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{a.provider}</span>
                     <Badge variant="secondary">{a.status ?? '—'}</Badge>
@@ -211,13 +211,13 @@ export default function CoachUIPage() {
           <Card className="mt-6 p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Your plan</h3>
+                <h3 className="text-h4 font-semibold">Your plan</h3>
                 {data.summary && (
-                  <p className="text-sm text-muted-foreground">{data.summary}</p>
+                  <p className="text-small text-muted-foreground">{data.summary}</p>
                 )}
               </div>
               <div className="w-full md:w-72">
-                <div className="mb-1 flex items-center justify-between text-xs">
+                <div className="mb-1 flex items-center justify-between text-caption">
                   <span>Total minutes</span>
                   <span className="font-medium">{totalMinutes} min</span>
                 </div>
@@ -230,10 +230,10 @@ export default function CoachUIPage() {
             {(data.suggestions || []).map((s) => (
               <Card key={s.id} className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <h4 className="text-base font-semibold leading-tight">{s.title}</h4>
+                  <h4 className="text-body font-semibold leading-tight">{s.title}</h4>
                   <Badge>{s.estimatedMinutes} min</Badge>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{s.detail}</p>
+                <p className="mt-2 text-small text-muted-foreground">{s.detail}</p>
                 <Separator className="my-4" />
                 <div className="flex items-center justify-end gap-2">
                   <Button size="sm" variant="secondary" onClick={() => addToPlan(s)}>
@@ -247,8 +247,8 @@ export default function CoachUIPage() {
 
           {data.reasoning && (
             <Card className="mt-6 p-6">
-              <h3 className="text-sm font-semibold">Model reasoning</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{data.reasoning}</p>
+              <h3 className="text-small font-semibold">Model reasoning</h3>
+              <p className="mt-2 text-small text-muted-foreground">{data.reasoning}</p>
             </Card>
           )}
         </>

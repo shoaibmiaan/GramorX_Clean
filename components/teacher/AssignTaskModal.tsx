@@ -93,7 +93,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-background p-6 rounded-lg max-w-md w-full">
-        <h2 className="text-xl font-semibold mb-4">Assign New Task</h2>
+        <h2 className="text-h3 font-semibold mb-4">Assign New Task</h2>
         {error && <Alert variant="warning" className="mb-4">{error}</Alert>}
         <form onSubmit={handleSubmit} className="grid gap-4">
           <Input

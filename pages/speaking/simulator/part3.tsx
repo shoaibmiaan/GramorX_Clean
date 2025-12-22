@@ -229,7 +229,7 @@ export default function SpeakingPart3() {
 
           <div className="mt-4 flex gap-2">
             <button onClick={start} disabled={stage !== 'idle' && stage !== 'done' && stage !== 'error'}
-              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-gray-300">
+              className="px-4 py-2 rounded-xl bg-success text-white disabled:bg-lightBg">
               {stage === 'done' ? 'Discuss Again' : 'Start Discussion'}
             </button>
             <button onClick={newPrompt} className="px-4 py-2 rounded-xl border border-lightBorder dark:border-white/10">New Question</button>
@@ -287,7 +287,7 @@ export default function SpeakingPart3() {
                     </div>
                   )}
                   {result.feedback && (
-                    <p className="mt-3 text-small text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{result.feedback}</p>
+                    <p className="mt-3 text-small text-foreground/80 dark:text-mutedText whitespace-pre-wrap">{result.feedback}</p>
                   )}
                   <div className="mt-4 flex gap-2">
                     <button onClick={saveAttempt} className="px-3 py-2 rounded-xl bg-electricBlue text-white">Save as Attempt</button>

@@ -187,7 +187,7 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
     return (
       <Container className="py-20">
         <Card className="p-10 text-center">
-          <h1 className="text-2xl font-semibold">Session not found</h1>
+          <h1 className="text-h2 font-semibold">Session not found</h1>
           <p className="mt-2 text-muted-foreground">Create a new Study Buddy plan to see your post-session insights.</p>
           <Button className="mt-6" asChild>
             <Link href="/ai/study-buddy">Back to Study Buddy</Link>
@@ -206,10 +206,10 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <Badge variant="success">Session logged</Badge>
-            <h1 className="mt-3 text-3xl font-semibold">
+            <h1 className="mt-3 text-h1 font-semibold">
               Great job! <GradientText className="font-semibold">Session recap</GradientText>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Completed on {new Date(session.ended_at ?? session.updated_at ?? session.created_at).toLocaleString()}
             </p>
           </div>
@@ -225,31 +225,31 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
 
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="p-6">
-            <p className="text-sm text-muted-foreground">Total focus time</p>
-            <p className="mt-3 text-3xl font-semibold">{duration} min</p>
-            <p className="mt-2 text-xs text-muted-foreground">Across {session.items.length} guided blocks.</p>
+            <p className="text-small text-muted-foreground">Total focus time</p>
+            <p className="mt-3 text-h1 font-semibold">{duration} min</p>
+            <p className="mt-2 text-caption text-muted-foreground">Across {session.items.length} guided blocks.</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm text-muted-foreground">XP earned</p>
-            <p className="mt-3 text-3xl font-semibold">{session.xp_earned ?? 0} XP</p>
-            <p className="mt-2 text-xs text-muted-foreground">Keep stacking XP to boost your weekly streak.</p>
+            <p className="text-small text-muted-foreground">XP earned</p>
+            <p className="mt-3 text-h1 font-semibold">{session.xp_earned ?? 0} XP</p>
+            <p className="mt-2 text-caption text-muted-foreground">Keep stacking XP to boost your weekly streak.</p>
           </Card>
           <Card className="p-6">
-            <p className="text-sm text-muted-foreground">Completion rate</p>
-            <p className="mt-3 text-3xl font-semibold">{completionRate}%</p>
-            <p className="mt-2 text-xs text-muted-foreground">{completedBlocks} of {session.items.length} blocks completed.</p>
+            <p className="text-small text-muted-foreground">Completion rate</p>
+            <p className="mt-3 text-h1 font-semibold">{completionRate}%</p>
+            <p className="mt-2 text-caption text-muted-foreground">{completedBlocks} of {session.items.length} blocks completed.</p>
           </Card>
         </div>
 
         <Card className="p-6">
-          <h2 className="text-lg font-semibold">Skill breakdown</h2>
-          <p className="text-sm text-muted-foreground">Where your focus minutes landed this session.</p>
+          <h2 className="text-h4 font-semibold">Skill breakdown</h2>
+          <p className="text-small text-muted-foreground">Where your focus minutes landed this session.</p>
           <div className="mt-4 space-y-3">
             {Object.entries(skillTotals).map(([skill, minutes]) => (
               <div key={skill} className="flex items-center gap-3">
-                <span className="w-28 text-sm font-medium text-foreground">{skill}</span>
+                <span className="w-28 text-small font-medium text-foreground">{skill}</span>
                 <ProgressBar value={Math.round((minutes / duration) * 100)} className="h-2 flex-1" />
-                <span className="w-16 text-right text-sm font-medium text-foreground">{minutes}m</span>
+                <span className="w-16 text-right text-small font-medium text-foreground">{minutes}m</span>
               </div>
             ))}
           </div>
@@ -257,8 +257,8 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold">Highlights</h2>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+            <h2 className="text-h4 font-semibold">Highlights</h2>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-small text-muted-foreground">
               <li>You protected your streak with a {duration}-minute deep focus session.</li>
               {topSkill && <li>Your strongest coverage today was {topSkill}. Keep the momentum!</li>}
               <li>Log fresh insights in the Mistakes Book to reinforce progress.</li>
@@ -272,11 +272,11 @@ const SummaryPage: NextPage<Props> = ({ session }) => {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold">Next recommendation</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h2 className="text-h4 font-semibold">Next recommendation</h2>
+            <p className="mt-2 text-small text-muted-foreground">
               Rotate in a fresh speaking drill tomorrow to balance your skill mix. Aim for at least 20 minutes of speaking to stay on track.
             </p>
-            <div className="mt-4 space-y-2 text-sm">
+            <div className="mt-4 space-y-2 text-small">
               <div className="flex justify-between">
                 <span>Suggested duration</span>
                 <span className="font-medium text-foreground">35 min</span>
