@@ -1,0 +1,39 @@
+{
+  "evaluation_version": "task2_fixture_v1",
+  "overall_band": 6.5,
+  "task1": {
+    "band": 0,
+    "criteria": { "TR": 0, "CC": 0, "LR": 0, "GRA": 0 },
+    "strengths": [],
+    "weaknesses": [],
+    "fixes": [],
+    "warnings": [],
+    "reasoning": "Not evaluated in this fixture."
+  },
+  "task2": {
+    "band": 6.5,
+    "criteria": { "TR": 6.5, "CC": 6.0, "LR": 6.5, "GRA": 6.5 },
+    "strengths": [
+      "Clear position stated in the introduction and maintained.",
+      "Examples support main ideas."
+    ],
+    "weaknesses": [
+      "Paragraph progression is uneven.",
+      "Some lexical repetition reduces precision."
+    ],
+    "fixes": [
+      "Use clearer topic sentences to preview each paragraph.",
+      "Vary connectors beyond 'also' and 'therefore'."
+    ],
+    "warnings": [],
+    "reasoning": "Addresses both parts with a clear stance; cohesion and precision need work.",
+    "short_verdict": "Good position; tighten cohesion and vocabulary range."
+  },
+  "summary": [
+    "Task 2 carries higher weight; band limited by cohesion and repetition."
+  ],
+  "next_steps": [
+    "Add signposting for paragraph starts.",
+    "Reduce connector and phrase repetition."
+  ]
+}

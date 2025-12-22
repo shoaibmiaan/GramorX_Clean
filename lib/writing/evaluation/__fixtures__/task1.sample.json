@@ -1,0 +1,34 @@
+{
+  "evaluation_version": "task1_fixture_v1",
+  "overall_band": 6.5,
+  "task1": {
+    "band": 6.5,
+    "criteria": { "TR": 6.5, "CC": 6.5, "LR": 6.0, "GRA": 6.5 },
+    "strengths": [
+      "Overview highlights main comparisons.",
+      "Key figures reported without unnecessary detail."
+    ],
+    "weaknesses": [
+      "Some comparisons are missing for 2025 projections.",
+      "Paragraphing could be clearer."
+    ],
+    "fixes": [
+      "Group countries by similar trends before describing numbers.",
+      "Add a brief overall trend sentence after the introduction."
+    ],
+    "warnings": [],
+    "reasoning": "Addresses task with some missed comparisons; language mostly accurate with minor slips.",
+    "short_verdict": "Solid overview but comparisons are uneven."
+  },
+  "task2": {
+    "band": 0,
+    "criteria": { "TR": 0, "CC": 0, "LR": 0, "GRA": 0 },
+    "strengths": [],
+    "weaknesses": [],
+    "fixes": [],
+    "warnings": [],
+    "reasoning": "Not evaluated in this fixture."
+  },
+  "summary": ["Task 1 evaluated; Task 2 placeholder."],
+  "next_steps": ["Apply grouping and add an explicit overall trend."]
+}
