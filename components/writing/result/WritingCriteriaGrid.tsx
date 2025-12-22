@@ -2,15 +2,14 @@
 import * as React from 'react';
 import { Card } from '@/components/design-system/Card';
 import { Badge } from '@/components/design-system/Badge';
-
-type Key = 'TR' | 'CC' | 'LR' | 'GRA';
+import type { CriteriaKey } from '@/lib/writing/types';
 
 type Props = {
-  criteriaBands: Record<Key, string>;
-  criteriaNotes: Record<Key, string[]>;
+  criteriaBands: Record<CriteriaKey, string>;
+  criteriaNotes: Record<CriteriaKey, string[]>;
 };
 
-const labels: Record<Key, { title: string; desc: string }> = {
+const labels: Record<CriteriaKey, { title: string; desc: string }> = {
   TR: { title: 'Task Response', desc: 'Answers the question fully, develops ideas.' },
   CC: { title: 'Coherence & Cohesion', desc: 'Paragraphing, flow, linking.' },
   LR: { title: 'Lexical Resource', desc: 'Vocabulary range, precision, repetition.' },
@@ -18,7 +17,7 @@ const labels: Record<Key, { title: string; desc: string }> = {
 };
 
 export const WritingCriteriaGrid: React.FC<Props> = ({ criteriaBands, criteriaNotes }) => {
-  const keys: Key[] = ['TR', 'CC', 'LR', 'GRA'];
+  const keys: CriteriaKey[] = ['TR', 'CC', 'LR', 'GRA'];
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

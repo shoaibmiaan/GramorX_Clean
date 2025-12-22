@@ -5,22 +5,26 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { getServerClient } from '@/lib/supabaseServer';
 import { writingDraftSchema } from '@/lib/validation/writing';
+import { latencyLogger } from '@/lib/writing/performance/latencyLogger';
 
 const ok = (res: NextApiResponse, payload: Record<string, unknown> = {}) => res.status(200).json({ ok: true, ...payload });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const endTimer = latencyLogger('api/mock/writing/save-draft');
   const supabase = getServerClient(req, res);
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
   if (authError || !user) {
+    endTimer();
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   if (req.method === 'GET') {
     const attemptId = req.query.attemptId as string | undefined;
     if (!attemptId) {
+      endTimer();
       return res.status(400).json({ error: 'Missing attemptId' });
     }
     const { data, error } = await supabase
@@ -33,9 +37,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(1)
       .maybeSingle();
     if (error || !data) {
+      endTimer();
       return ok(res, { draft: null });
     }
     const payload = (data.payload || {}) as any;
+    endTimer();
     return ok(res, {
       draft: {
         attemptId,
@@ -53,10 +59,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'PUT') {
     const parsed = writingDraftSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
+      endTimer();
       return res.status(400).json({ error: 'Invalid payload', issues: parsed.error.flatten() });
     }
     const { attemptId, event, payload } = parsed.data;
     if (!event) {
+      endTimer();
       return res.status(400).json({ error: 'Event type required' });
     }
     await supabase.from('exam_events').insert({
@@ -65,21 +73,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       event_type: event,
       payload: payload ?? {},
     });
+    endTimer();
     return ok(res);
   }
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET,POST,PUT');
+    endTimer();
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const parsed = writingDraftSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
+    endTimer();
     return res.status(400).json({ error: 'Invalid payload', issues: parsed.error.flatten() });
   }
 
   const { attemptId, tasks, activeTask, elapsedSeconds } = parsed.data;
   if (!attemptId) {
+    endTimer();
     return res.status(400).json({ error: 'attemptId is required' });
   }
 
@@ -127,5 +139,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('[writing/save-draft] event insert failed', eventError);
   }
 
+  endTimer();
   return ok(res, { savedAt: nowIso });
 }
