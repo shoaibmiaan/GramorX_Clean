@@ -108,6 +108,20 @@ const quotaLimitText = (key: QuotaKey, limit: number) => {
   }
 };
 
+const clampBand = (value: number) => Math.max(0, Math.min(9, value));
+const roundToHalf = (value: number) => Math.round(value * 2) / 2;
+
+const getTaskBand = (results: PageProps['results'], task: WritingTaskType) =>
+  results.find((result) => result.task === task)?.score.overallBand ?? null;
+
+const getWeightedBand = (task1Band: number | null, task2Band: number | null, fallback: number) => {
+  if (typeof task1Band === 'number' && typeof task2Band === 'number') {
+    const weighted = (task1Band + task2Band * 2) / 3;
+    return Number(weighted.toFixed(1));
+  }
+  return Number(fallback.toFixed(1));
+};
+
 type QuotaUpgradeNoticeProps = {
   plan: PlanId;
   quota: { key: QuotaKey; used: number } | null;
@@ -188,6 +202,31 @@ const WritingResultsPage: React.FC<PageProps> = ({
   quota,
   referralCode,
 }) => {
+  const task1Band = getTaskBand(results, 'task1');
+  const task2Band = getTaskBand(results, 'task2');
+  const weightedBand = getWeightedBand(task1Band, task2Band, averageBand);
+  const confidenceLow = clampBand(roundToHalf(weightedBand - 0.5));
+  const confidenceHigh = clampBand(roundToHalf(weightedBand + 0.5));
+  const sortedProgress = [...progressPoints].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+  const currentIndex = sortedProgress.findIndex((point) => point.attemptId === attemptId);
+  const previousPoint = currentIndex > 0 ? sortedProgress[currentIndex - 1] : null;
+  const delta = previousPoint ? Number((weightedBand - previousPoint.overallBand).toFixed(1)) : null;
+  const deltaLabel =
+    delta === null ? 'No previous attempt' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} vs last attempt`;
+  const weightedExplanation =
+    typeof task1Band === 'number' && typeof task2Band === 'number'
+      ? task2Band > task1Band
+        ? 'Task 2 carries more weight and lifted your overall estimate.'
+        : task2Band < task1Band
+          ? 'Task 2 carries more weight and pulled the overall estimate down.'
+          : 'Task 2 carries more weight and kept your overall estimate steady.'
+      : 'Task 2 carries more weight in the IELTS Writing score.';
+  const highlightErrors = highlight?.feedback.errors ?? [];
+  const bandBlockingErrors = highlightErrors.filter((error) => error.severity === 'high');
+  const bandLimitingIssues = highlightErrors.filter((error) => error.severity === 'medium');
+  const bandBoostOpportunities = highlight?.feedback.improvements ?? [];
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared' | 'error'>('idle');
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { isInstalled } = useInstalledApp();
@@ -258,9 +297,9 @@ const WritingResultsPage: React.FC<PageProps> = ({
   }, [plan, quota, quotaEvaluation?.exceeded]);
 
   useEffect(() => {
-    logWritingCoachEntry({ attemptId, tasks: results.length, averageBand });
-    logWritingResultsView({ attemptId, tasks: results.length, averageBand });
-  }, [attemptId, results.length, averageBand]);
+    logWritingCoachEntry({ attemptId, tasks: results.length, averageBand: weightedBand });
+    logWritingResultsView({ attemptId, tasks: results.length, averageBand: weightedBand });
+  }, [attemptId, results.length, weightedBand]);
 
   const shareLabel = useMemo(() => {
     if (shareStatus === 'copied') return 'Link copied!';
@@ -277,7 +316,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
   }, [shareStatus]);
 
   const handleShare = useCallback(async () => {
-    const shareText = `I just logged a band ${averageBand.toFixed(1)} IELTS writing mock on GramorX!`;
+    const shareText = `I just logged a band ${weightedBand.toFixed(1)} IELTS writing mock on GramorX!`;
     const shareUrl =
       typeof window !== 'undefined'
         ? `${window.location.origin}/writing/mock/${attemptId}/results`
@@ -308,7 +347,7 @@ const WritingResultsPage: React.FC<PageProps> = ({
       setShareStatus('error');
       logWritingResultsShare({ attemptId, method: 'fallback', status: 'error' });
     }
-  }, [attemptId, averageBand]);
+  }, [attemptId, weightedBand]);
 
   const handleAnalyticsClick = useCallback(() => {
     logWritingResultsAnalyticsClick({ attemptId });
@@ -342,23 +381,62 @@ const WritingResultsPage: React.FC<PageProps> = ({
         />
       ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
-        <header className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold text-foreground">Mock writing results</h1>
-          <p className="text-sm text-muted-foreground">Attempt ID: {attemptId}</p>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="rounded-full border border-border px-3 py-1 font-medium text-foreground">
-              Average band {averageBand.toFixed(1)}
-            </span>
-            <Badge variant="success" size="sm">
-              +{xp.points} XP
-            </Badge>
+        <header className="flex flex-col gap-5">
+          <section className="rounded-ds-xl border border-border/60 bg-card/70 p-6 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="info" size="sm">
+                AI Evaluated (Beta)
+              </Badge>
+              <span className="rounded-full border border-border px-3 py-1">Attempt ID {attemptId}</span>
+              <Badge variant="success" size="sm">
+                +{xp.points} XP
+              </Badge>
+            </div>
+            <h1 className="mt-4 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Estimated Band
+            </h1>
+            <div className="mt-2 text-5xl font-semibold text-foreground">{weightedBand.toFixed(1)}</div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Confidence range: Band {confidenceLow.toFixed(1)}–{confidenceHigh.toFixed(1)}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              This evaluation is based on IELTS public band descriptors and trained examiner patterns. Final scores may vary.
+            </p>
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-ds-xl border border-border/60 bg-muted/20 p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Task 1</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {typeof task1Band === 'number' ? task1Band.toFixed(1) : '—'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Lower weight in overall score.</p>
+            </div>
+            <div className="rounded-ds-xl border border-border/60 bg-muted/20 p-4 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Task 2</p>
+                <Badge variant="accent" size="sm">
+                  Higher weight
+                </Badge>
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {typeof task2Band === 'number' ? task2Band.toFixed(1) : '—'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{weightedExplanation}</p>
+            </div>
+            <div className="rounded-ds-xl border border-border/60 bg-muted/20 p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Progress</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{deltaLabel}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Compare against your previous writing attempt.</p>
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center gap-3">
             <Link href={`/writing/mock/${attemptId}/review`}>
               <Button size="sm" variant="secondary">
                 Detailed review
               </Button>
             </Link>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
             <Button size="sm" variant="primary" onClick={handleShare} aria-describedby="share-status">
               {shareLabel}
             </Button>
@@ -443,6 +521,69 @@ const WritingResultsPage: React.FC<PageProps> = ({
             <WritingResultCard key={result.task} task={result.task} result={result.score} essay={result.essay} />
           ))
         )}
+
+        <section className="rounded-ds-xl border border-border/60 bg-muted/20 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-foreground">Language feedback priority</h2>
+            <span className="text-xs text-muted-foreground">Focus on blocking issues first, then lift your range.</span>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-border/60 bg-background/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Band-Blocking Errors
+              </p>
+              <ul className="mt-2 space-y-2 text-sm text-foreground">
+                {(bandBlockingErrors.length ? bandBlockingErrors : []).slice(0, 3).map((error) => (
+                  <li key={`${error.excerpt}-${error.message ?? ''}`} className="space-y-1">
+                    <span className="font-semibold">{error.excerpt}</span>
+                    {error.suggestion ? (
+                      <p className="text-xs text-muted-foreground">Fix: {error.suggestion}</p>
+                    ) : null}
+                  </li>
+                ))}
+                {!bandBlockingErrors.length ? (
+                  <li className="text-xs text-muted-foreground">No critical blockers detected in this task.</li>
+                ) : null}
+              </ul>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Band-Limiting Issues
+              </p>
+              <ul className="mt-2 space-y-2 text-sm text-foreground">
+                {(bandLimitingIssues.length ? bandLimitingIssues : []).slice(0, 3).map((error) => (
+                  <li key={`${error.excerpt}-${error.message ?? ''}`} className="space-y-1">
+                    <span className="font-semibold">{error.excerpt}</span>
+                    {error.suggestion ? (
+                      <p className="text-xs text-muted-foreground">Fix: {error.suggestion}</p>
+                    ) : null}
+                  </li>
+                ))}
+                {!bandLimitingIssues.length ? (
+                  <li className="text-xs text-muted-foreground">No major limiting issues detected.</li>
+                ) : null}
+              </ul>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Band-Boost Opportunities
+              </p>
+              <ul className="mt-2 space-y-2 text-sm text-foreground">
+                {(bandBoostOpportunities.length ? bandBoostOpportunities : []).slice(0, 3).map((tip) => (
+                  <li key={tip} className="flex items-start gap-2">
+                    <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />
+                    <span>{tip}</span>
+                  </li>
+                ))}
+                {!bandBoostOpportunities.length ? (
+                  <li className="text-xs text-muted-foreground">
+                    Add stronger collocations, paraphrases, and complex sentences to push higher.
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          </div>
+        </section>
 
         {highlight ? (
           <BandDiffView essay={highlight.essay} feedback={highlight.feedback} />
