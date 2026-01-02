@@ -51,6 +51,7 @@ type Theme = 'light' | 'dark' | 'system';
 const THEME_KEY = 'rx-reading-theme';
 const FOCUS_KEY = 'rx-reading-focus';
 const ZOOM_KEY = 'rx-reading-zoom';
+const ATTEMPT_KEY_PREFIX = 'rx-reading-attempt';
 
 // Split layout support (draggable)
 const SPLIT_KEY = 'rx-reading-split-step';
@@ -170,10 +171,12 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const [highlightsByPassage, setHighlightsByPassage] = React.useState<Record<string, string[]>>({});
 
   const [started, setStarted] = React.useState(readOnly);
+  const [attemptId, setAttemptId] = React.useState<string | null>(null);
 
   const questionRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const startTimeRef = React.useRef<number | null>(null);
   const submitting = React.useRef(false);
+  const savingDraft = React.useRef(false);
 
   // strict CBE modals
   const [showSubmitConfirm, setShowSubmitConfirm] = React.useState(false);
@@ -379,11 +382,17 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
     const el = questionRefs.current[id];
     if (el && typeof window !== 'undefined') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void saveDraft();
   };
 
-  const goNextPassage = () =>
+  const goNextPassage = () => {
     setCurrentPassageIdx((idx) => (idx + 1 < passages.length ? idx + 1 : idx));
-  const goPrevPassage = () => setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
+    void saveDraft();
+  };
+  const goPrevPassage = () => {
+    setCurrentPassageIdx((idx) => (idx > 0 ? idx - 1 : idx));
+    void saveDraft();
+  };
 
   const handleAnswerChange = (questionId: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -408,6 +417,142 @@ const ReadingExamShellInner: React.FC<Props> = ({
   const handleClearHighlights = (passageId: string) => {
     setHighlightsByPassage((prev) => ({ ...prev, [passageId]: [] }));
   };
+
+  const attemptStorageKey = React.useMemo(() => {
+    const testId = t.id ?? 'unknown';
+    return `${ATTEMPT_KEY_PREFIX}:${testId}`;
+  }, [t.id]);
+
+  const hydrateFromAttempt = React.useCallback((meta: any) => {
+    if (!meta || typeof meta !== 'object') return;
+    if (meta.answers && typeof meta.answers === 'object') {
+      setAnswers(meta.answers as Record<string, AnswerValue>);
+    }
+    if (meta.flags && typeof meta.flags === 'object') {
+      setFlags(meta.flags as Record<string, boolean>);
+    }
+    if (meta.highlights && typeof meta.highlights === 'object') {
+      setHighlightsByPassage(meta.highlights as Record<string, string[]>);
+    }
+  }, []);
+
+  const saveDraft = React.useCallback(
+    async (overrides?: { durationSeconds?: number }) => {
+      if (readOnly || isDrill || !started) return;
+      if (!attemptId) return;
+      if (savingDraft.current) return;
+
+      savingDraft.current = true;
+      try {
+        const durationSecondsOverride = overrides?.durationSeconds;
+        const durationSecondsSafe =
+          typeof durationSecondsOverride === 'number'
+            ? durationSecondsOverride
+            : startTimeRef.current
+            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+            : 0;
+
+        const { error } = await supabase
+          .from('reading_attempts')
+          .update({
+            status: 'in_progress',
+            duration_seconds: durationSecondsSafe,
+            meta: { flags, answers, highlights: highlightsByPassage },
+          })
+          .eq('id', attemptId);
+
+        if (error) {
+          console.warn('Failed to auto-save reading attempt', error);
+        }
+      } finally {
+        savingDraft.current = false;
+      }
+    },
+    [answers, flags, highlightsByPassage, attemptId, isDrill, readOnly, started],
+  );
+
+  React.useEffect(() => {
+    if (readOnly || isDrill || !started) return;
+    if (!t.id) return;
+    if (attemptId) return;
+    if (typeof window === 'undefined') return;
+
+    const ensureAttempt = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const storedId = window.localStorage.getItem(attemptStorageKey);
+        if (storedId) {
+          const { data: existing, error } = await supabase
+            .from('reading_attempts')
+            .select('id, user_id, status, submitted_at, duration_seconds, meta')
+            .eq('id', storedId)
+            .maybeSingle();
+
+          if (!error && existing && existing.user_id === user.id && !existing.submitted_at) {
+            setAttemptId(existing.id);
+            hydrateFromAttempt(existing.meta);
+            if (typeof existing.duration_seconds === 'number') {
+              startTimeRef.current = Date.now() - existing.duration_seconds * 1000;
+              setRemainingSeconds((prev) =>
+                Math.max(0, durationSeconds - existing.duration_seconds),
+              );
+            }
+            return;
+          }
+
+          window.localStorage.removeItem(attemptStorageKey);
+        }
+
+        const { data: created, error: createError } = await supabase
+          .from('reading_attempts')
+          .insert({
+            user_id: user.id,
+            test_id: t.id,
+            status: 'in_progress',
+            started_at: new Date().toISOString(),
+            duration_seconds: 0,
+            meta: { flags: {}, answers: {}, highlights: {} },
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (createError || !created) {
+          console.warn('Failed to create reading attempt', createError);
+          return;
+        }
+
+        setAttemptId(created.id as string);
+        window.localStorage.setItem(attemptStorageKey, created.id as string);
+      } catch (error) {
+        console.warn('Failed to initialize reading attempt', error);
+      }
+    };
+
+    void ensureAttempt();
+  }, [
+    attemptId,
+    attemptStorageKey,
+    durationSeconds,
+    hydrateFromAttempt,
+    isDrill,
+    readOnly,
+    started,
+    t.id,
+  ]);
+
+  React.useEffect(() => {
+    if (readOnly || isDrill || !started) return;
+    if (!attemptId) return;
+    const interval = window.setInterval(() => {
+      void saveDraft();
+    }, 20000);
+
+    return () => window.clearInterval(interval);
+  }, [attemptId, isDrill, readOnly, saveDraft, started]);
 
   const computeScore = () => {
     let correct = 0;
@@ -529,23 +674,46 @@ const ReadingExamShellInner: React.FC<Props> = ({
 
       const band = readingBandFromRaw(correct, total);
 
-      const { data: attemptRow, error: attemptError } = await supabase
-        .from('reading_attempts')
-        .insert({
-          user_id: user.id,
-          test_id: t.id,
-          status: 'submitted',
-          duration_seconds: durationSec,
-          raw_score: correct,
-          band_score: band,
-          section_stats: {},
-          meta: { flags, answers, highlights: highlightsByPassage },
-        })
-        .select()
-        .maybeSingle();
+      const metaPayload = { flags, answers, highlights: highlightsByPassage };
+      const basePayload = {
+        status: 'submitted',
+        duration_seconds: durationSec,
+        raw_score: correct,
+        band_score: band,
+        section_stats: {},
+        meta: metaPayload,
+        submitted_at: new Date().toISOString(),
+      };
+
+      let attemptRow: any = null;
+      let attemptError: any = null;
+
+      if (attemptId) {
+        const updateRes = await supabase
+          .from('reading_attempts')
+          .update(basePayload)
+          .eq('id', attemptId)
+          .select()
+          .maybeSingle();
+        attemptRow = updateRes.data;
+        attemptError = updateRes.error;
+      } else {
+        const insertRes = await supabase
+          .from('reading_attempts')
+          .insert({
+            user_id: user.id,
+            test_id: t.id,
+            started_at: new Date().toISOString(),
+            ...basePayload,
+          })
+          .select()
+          .maybeSingle();
+        attemptRow = insertRes.data;
+        attemptError = insertRes.error;
+      }
 
       if (attemptError || !attemptRow) {
-        console.error('Failed to insert reading_attempt', attemptError);
+        console.error('Failed to submit reading_attempt', attemptError);
         const message = attemptError?.message ?? '';
 
         if (message.includes('uq_reading_attempt_in_progress')) {
@@ -567,8 +735,11 @@ const ReadingExamShellInner: React.FC<Props> = ({
         return;
       }
 
-      const attemptId: string = (attemptRow as any).id;
-      if (typeof window !== 'undefined') window.location.href = `/mock/reading/result/${attemptId}`;
+      const resolvedAttemptId: string = (attemptRow as any).id;
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(attemptStorageKey);
+        window.location.href = `/mock/reading/result/${resolvedAttemptId}`;
+      }
     } catch (err: any) {
       console.error('Unexpected error during reading submit', err);
       toast({
