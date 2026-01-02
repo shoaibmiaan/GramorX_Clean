@@ -3,9 +3,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerClient } from '@/lib/supabaseServer';
 import { withPlan } from '@/lib/withPlan';
 import {
-  computeAccuracyByQuestionType,
   computeAttemptsTimeline,
   computeTimePerQuestionStats,
+  computeAccuracyByQuestionTypeFromAttempts,
+  type ReadingAttemptAnalyticsRow,
+  type ReadingQuestionRow,
 } from '@/lib/reading/analytics';
 
 async function baseHandler(req: NextApiRequest, res: NextApiResponse) {
@@ -24,8 +26,8 @@ async function baseHandler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const { data: attemptsRows, error } = await supabase
-    .from('attempts_reading')
-    .select('id, test_id, created_at, raw_score, question_count, duration_seconds, section_stats')
+    .from('reading_attempts')
+    .select('id, test_id, created_at, raw_score, duration_seconds, section_stats, meta, band_score')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(30);
@@ -45,10 +47,52 @@ async function baseHandler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
+  const testIds = Array.from(new Set(attempts.map((a: any) => a.test_id).filter(Boolean)));
+
+  const { data: questionRows, error: questionError } = await supabase
+    .from('reading_questions')
+    .select('id, test_id, question_type_id, correct_answer')
+    .in('test_id', testIds);
+
+  if (questionError) {
+    return res.status(500).json({ error: 'Unable to load question data' });
+  }
+
+  const questionsByTest = new Map<string, ReadingQuestionRow[]>();
+  (questionRows ?? []).forEach((row) => {
+    const list = questionsByTest.get(row.test_id) ?? [];
+    list.push(row as ReadingQuestionRow);
+    questionsByTest.set(row.test_id, list);
+  });
+
+  const analyticsAttempts: ReadingAttemptAnalyticsRow[] = attempts.map((attempt: any) => ({
+    id: attempt.id,
+    test_id: attempt.test_id,
+    created_at: attempt.created_at,
+    raw_score: attempt.raw_score,
+    band_score: attempt.band_score ?? null,
+    duration_seconds: attempt.duration_seconds,
+    meta: attempt.meta ?? {},
+  }));
+
+  const attemptQuestionCounts = new Map<string, number>();
+  analyticsAttempts.forEach((attempt) => {
+    const count = questionsByTest.get(attempt.test_id)?.length ?? 0;
+    attemptQuestionCounts.set(attempt.id, count);
+  });
+
+  const timelineInput = attempts.map((attempt: any) => ({
+    ...attempt,
+    question_count: attemptQuestionCounts.get(attempt.id) ?? null,
+  }));
+
   return res.status(200).json({
     hasData: true,
-    accuracyByType: computeAccuracyByQuestionType(attempts),
-    timeline: computeAttemptsTimeline(attempts),
+    accuracyByType: computeAccuracyByQuestionTypeFromAttempts(
+      analyticsAttempts,
+      questionsByTest,
+    ),
+    timeline: computeAttemptsTimeline(timelineInput),
     timeStats: computeTimePerQuestionStats(attempts),
   });
 }

@@ -15,9 +15,11 @@ import { hasAtLeast, type PlanTier } from '@/lib/plans';
 import { UpgradeGate } from '@/components/payments/UpgradeGate';
 
 import {
-  computeAccuracyByQuestionType,
   computeAttemptsTimeline,
   computeTimePerQuestionStats,
+  computeAccuracyByQuestionTypeFromAttempts,
+  type ReadingAttemptAnalyticsRow,
+  type ReadingQuestionRow,
 } from '@/lib/reading/analytics';
 import { formatDateTime } from '@/lib/mock/format';
 
@@ -26,9 +28,10 @@ type AttemptsRow = {
   test_id: string;
   created_at: string;
   raw_score: number | null;
-  question_count: number | null;
   duration_seconds: number | null;
   section_stats: any;
+  meta: any;
+  band_score: number | null;
 };
 
 type QuestionTypeAccuracy = {
@@ -241,8 +244,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free'
 
   // Get last N attempts for this user
   const { data: attemptsRows } = await supabase
-    .from('attempts_reading')
-    .select('id, test_id, created_at, raw_score, question_count, duration_seconds, section_stats')
+    .from('reading_attempts')
+    .select('id, test_id, created_at, raw_score, duration_seconds, section_stats, meta, band_score')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(30);
@@ -262,8 +265,60 @@ export const getServerSideProps: GetServerSideProps<PageProps> = withPlan('free'
     };
   }
 
-  const accuracyByType = computeAccuracyByQuestionType(attempts) as QuestionTypeAccuracy[];
-  const timeline = computeAttemptsTimeline(attempts) as TimelinePoint[];
+  const testIds = Array.from(new Set(attempts.map((a) => a.test_id).filter(Boolean)));
+
+  const { data: questionRows, error: questionError } = await supabase
+    .from('reading_questions')
+    .select('id, test_id, question_type_id, correct_answer')
+    .in('test_id', testIds);
+
+  if (questionError) {
+    return {
+      props: {
+        hasData: false,
+        accuracyByType: [],
+        timeline: [],
+        timeStats: [],
+        tier: planCtx.tier,
+      },
+    };
+  }
+
+  const questionsByTest = new Map<string, ReadingQuestionRow[]>();
+  (questionRows ?? []).forEach((row) => {
+    const list = questionsByTest.get(row.test_id) ?? [];
+    list.push(row as ReadingQuestionRow);
+    questionsByTest.set(row.test_id, list);
+  });
+
+  const analyticsAttempts: ReadingAttemptAnalyticsRow[] = attempts.map((attempt) => ({
+    id: attempt.id,
+    test_id: attempt.test_id,
+    created_at: attempt.created_at,
+    raw_score: attempt.raw_score,
+    band_score: attempt.band_score ?? null,
+    duration_seconds: attempt.duration_seconds,
+    meta: attempt.meta ?? {},
+  }));
+
+  const attemptQuestionCounts = new Map<string, number>();
+  analyticsAttempts.forEach((attempt) => {
+    const count = questionsByTest.get(attempt.test_id)?.length ?? 0;
+    attemptQuestionCounts.set(attempt.id, count);
+  });
+
+  const accuracyByType = computeAccuracyByQuestionTypeFromAttempts(
+    analyticsAttempts,
+    questionsByTest,
+  ) as QuestionTypeAccuracy[];
+
+  const timelineInput = attempts.map((attempt) => ({
+    ...attempt,
+    question_count: attemptQuestionCounts.get(attempt.id) ?? null,
+  }));
+
+  const timeline = computeAttemptsTimeline(timelineInput) as TimelinePoint[];
+
   const timeStats = computeTimePerQuestionStats(attempts) as TimePerQuestionStat[];
 
   return {

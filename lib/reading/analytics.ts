@@ -26,6 +26,34 @@ export type QuestionTypeAccuracy = {
   accuracy: number;
 };
 
+export type ReadingAttemptMeta = {
+  answers?: Record<string, any>;
+};
+
+export type ReadingAttemptAnalyticsRow = {
+  id: string;
+  test_id: string;
+  created_at: string;
+  raw_score: number | null;
+  band_score?: number | null;
+  duration_seconds: number | null;
+  meta?: ReadingAttemptMeta | null;
+};
+
+export type ReadingQuestionRow = {
+  id: string;
+  test_id: string;
+  question_type_id: string | null;
+  correct_answer: any;
+};
+
+export type ReadingAttemptAccuracyRow = {
+  questionTypeId: string;
+  questionTypeLabel: string;
+  attempts: number;
+  accuracy: number;
+};
+
 /**
  * computeAccuracyByQuestionType groups questions by their type and tallies
  * the number of correct answers versus total questions. It returns an
@@ -59,6 +87,81 @@ export function computeAccuracyByQuestionType(
     const accuracy = total > 0 ? correct / total : 0;
     return { questionTypeId, correct, total, accuracy };
   });
+}
+
+const normalizeQuestionTypeId = (value: string) => {
+  const id = value.toLowerCase();
+  if (id === 'tfng' || id === 'true_false_not_given') return 'tfng';
+  if (id === 'yynn' || id === 'yes_no_not_given') return 'yynn';
+  if (id.startsWith('mcq') || id.includes('choice')) return 'mcq';
+  if (id.includes('gap') || id.includes('blank') || id.includes('summary')) return 'gap';
+  if (id.includes('match')) return 'match';
+  if (id.includes('short') || id.includes('sentence_completion')) return 'short';
+  return id || 'other';
+};
+
+const questionTypeLabels: Record<string, string> = {
+  tfng: 'True / False / Not Given',
+  yynn: 'Yes / No / Not Given',
+  mcq: 'Multiple Choice',
+  gap: 'Gap Fill',
+  match: 'Matching',
+  short: 'Short Answer',
+  other: 'Other',
+};
+
+const resolveQuestionTypeLabel = (value: string) => questionTypeLabels[value] ?? value;
+
+const isAnswerCorrect = (correct: any, selected: any) => {
+  if (correct == null) return false;
+  if (typeof correct === 'string') {
+    return selected != null && selected === correct;
+  }
+  if (Array.isArray(correct)) {
+    if (!Array.isArray(selected)) return false;
+    const given = new Set(selected as any[]);
+    return (correct as any[]).every((v) => given.has(v));
+  }
+  if (typeof correct === 'object' && selected && typeof selected === 'object') {
+    const cObj = correct as Record<string, any>;
+    const gObj = selected as Record<string, any>;
+    const keys = Object.keys(cObj);
+    return keys.every((k) => gObj[k] === cObj[k]);
+  }
+  return false;
+};
+
+export function computeAccuracyByQuestionTypeFromAttempts(
+  attempts: ReadingAttemptAnalyticsRow[],
+  questionsByTest: Map<string, ReadingQuestionRow[]>,
+): ReadingAttemptAccuracyRow[] {
+  const tally = new Map<string, { correct: number; total: number }>();
+
+  attempts.forEach((attempt) => {
+    const questions = questionsByTest.get(attempt.test_id) ?? [];
+    const answers = attempt.meta?.answers ?? {};
+
+    questions.forEach((question) => {
+      const rawType = question.question_type_id ?? 'other';
+      const typeId = normalizeQuestionTypeId(String(rawType));
+      const entry = tally.get(typeId) ?? { correct: 0, total: 0 };
+      entry.total += 1;
+      const selected = (answers as Record<string, any>)[question.id];
+      if (isAnswerCorrect(question.correct_answer, selected)) {
+        entry.correct += 1;
+      }
+      tally.set(typeId, entry);
+    });
+  });
+
+  return Array.from(tally.entries())
+    .map(([questionTypeId, { correct, total }]) => ({
+      questionTypeId,
+      questionTypeLabel: resolveQuestionTypeLabel(questionTypeId),
+      attempts: total,
+      accuracy: total > 0 ? (correct / total) * 100 : 0,
+    }))
+    .sort((a, b) => b.accuracy - a.accuracy);
 }
 
 type AttemptLike = {
