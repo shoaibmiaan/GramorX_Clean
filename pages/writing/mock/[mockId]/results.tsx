@@ -25,7 +25,7 @@ import { getServerClient } from '@/lib/supabaseServer';
 import { computeCriterionDeltas, trimProgressPoints } from '@/lib/writing/progress';
 import { calculateWritingXp, type WritingAchievement } from '@/lib/gamification/xp';
 import type { CriterionDelta, WritingProgressPoint } from '@/types/analytics';
-import type { WritingFeedback, WritingScorePayload, WritingTaskType } from '@/types/writing';
+import type { WritingError, WritingFeedback, WritingScorePayload, WritingTaskType } from '@/types/writing';
 import type { PlanId } from '@/types/pricing';
 import { resolveFlags } from '@/lib/flags';
 import { track } from '@/lib/analytics/track';
@@ -106,6 +106,18 @@ const quotaLimitText = (key: QuotaKey, limit: number) => {
     default:
       return isUnlimited ? 'unlimited usage' : `${limit}`;
   }
+};
+
+const getConfidenceRange = (band: number) => {
+  const low = Math.max(0, Number((band - 0.5).toFixed(1)));
+  const high = Math.min(9, Number((band + 0.5).toFixed(1)));
+  return { low, high };
+};
+
+const formatDelta = (value: number | null | undefined) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  if (value === 0) return '0.0';
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 };
 
 type QuotaUpgradeNoticeProps = {
@@ -314,6 +326,41 @@ const WritingResultsPage: React.FC<PageProps> = ({
     logWritingResultsAnalyticsClick({ attemptId });
   }, [attemptId]);
 
+  const task1Band = results.find((result) => result.task === 'task1')?.score.overallBand ?? null;
+  const task2Band = results.find((result) => result.task === 'task2')?.score.overallBand ?? null;
+  const weightedBand = useMemo(() => {
+    if (task1Band === null || task2Band === null) return averageBand;
+    return Number(((task1Band + task2Band * 2) / 3).toFixed(1));
+  }, [averageBand, task1Band, task2Band]);
+  const confidenceRange = useMemo(() => getConfidenceRange(averageBand), [averageBand]);
+
+  const progressSummary = useMemo(() => {
+    const sorted = [...progressPoints].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    const currentIndex = sorted.findIndex((point) => point.attemptId === attemptId);
+    const current = currentIndex >= 0 ? sorted[currentIndex] : null;
+    const previous = currentIndex > 0 ? sorted[currentIndex - 1] : null;
+    return { current, previous };
+  }, [attemptId, progressPoints]);
+
+  const overallDelta = progressDeltas.find((delta) => delta.criterion === 'overall')?.delta ?? null;
+
+  const languageZones = useMemo(() => {
+    const errors = highlight?.feedback.errors ?? [];
+    const buckets: Record<'blocking' | 'limiting' | 'boost', WritingError[]> = {
+      blocking: [],
+      limiting: [],
+      boost: [],
+    };
+    errors.forEach((error) => {
+      if (error.severity === 'high') buckets.blocking.push(error);
+      else if (error.severity === 'medium') buckets.limiting.push(error);
+      else buckets.boost.push(error);
+    });
+    return buckets;
+  }, [highlight?.feedback.errors]);
+
   const openUpgrade = useCallback(() => setUpgradeOpen(true), []);
   const closeUpgrade = useCallback(() => setUpgradeOpen(false), []);
 
@@ -342,6 +389,56 @@ const WritingResultsPage: React.FC<PageProps> = ({
         />
       ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
+        <section className="rounded-ds-xl border border-border/60 bg-muted/10 p-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">Estimated band</p>
+          <div className="mt-3 text-5xl font-semibold text-foreground">{averageBand.toFixed(1)}</div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Confidence range: {confidenceRange.low.toFixed(1)}–{confidenceRange.high.toFixed(1)}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Badge variant="secondary" size="sm">
+              AI Evaluated (Beta)
+            </Badge>
+            <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+              Weighted overall: {weightedBand.toFixed(1)} (Task 2 counts more)
+            </span>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            This evaluation is based on IELTS public band descriptors and trained on real examiner patterns. Final
+            scores may vary.
+          </p>
+        </section>
+
+        <section className="rounded-ds-xl border border-border/60 bg-background p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Task-wise bands</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Task 2 carries more weight in your overall score.
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-center">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Task 1</p>
+                <p className="mt-1 text-xl font-semibold text-foreground">
+                  {task1Band !== null ? task1Band.toFixed(1) : '—'}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-center">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Task 2</p>
+                <p className="mt-1 text-xl font-semibold text-foreground">
+                  {task2Band !== null ? task2Band.toFixed(1) : '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {task1Band !== null && task2Band !== null && task2Band !== task1Band
+              ? `Task 2 ${task2Band > task1Band ? 'lifted' : 'pulled down'} your overall score.`
+              : 'Both tasks contributed evenly to your overall score.'}
+          </p>
+        </section>
+
         <header className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold text-foreground">Mock writing results</h1>
           <p className="text-sm text-muted-foreground">Attempt ID: {attemptId}</p>
@@ -436,6 +533,39 @@ const WritingResultsPage: React.FC<PageProps> = ({
 
         <AccessibilityHints />
 
+        <section className="rounded-ds-xl border border-border/60 bg-muted/10 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Progress since last attempt</h2>
+              <p className="text-sm text-muted-foreground">
+                {progressSummary.previous
+                  ? `Overall change: ${formatDelta(overallDelta)}`
+                  : 'Complete another mock to unlock trend insights.'}
+              </p>
+            </div>
+            {progressSummary.previous ? (
+              <Badge variant={overallDelta && overallDelta > 0 ? 'success' : overallDelta && overallDelta < 0 ? 'danger' : 'secondary'} size="sm">
+                {formatDelta(overallDelta)} overall
+              </Badge>
+            ) : null}
+          </div>
+          {progressSummary.previous ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {progressDeltas
+                .filter((delta) => delta.criterion !== 'overall')
+                .map((delta) => (
+                  <div key={delta.criterion} className="rounded-lg border border-border/60 bg-background/70 p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">{delta.criterion}</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {delta.current.toFixed(1)}{' '}
+                      <span className="text-muted-foreground">({formatDelta(delta.delta)})</span>
+                    </p>
+                  </div>
+                ))}
+            </div>
+          ) : null}
+        </section>
+
         {results.length === 0 ? (
           <p className="text-sm text-muted-foreground">Scores are still processing. Refresh this page in a few seconds.</p>
         ) : (
@@ -443,6 +573,51 @@ const WritingResultsPage: React.FC<PageProps> = ({
             <WritingResultCard key={result.task} task={result.task} result={result.score} essay={result.essay} />
           ))
         )}
+
+        <section className="rounded-ds-xl border border-border/60 bg-background p-5">
+          <h2 className="text-lg font-semibold text-foreground">Language feedback</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Focus on the highest-impact issues first to protect your band.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+              <p className="text-xs font-semibold uppercase text-destructive">Band-blocking</p>
+              {languageZones.blocking.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                  {languageZones.blocking.slice(0, 3).map((error, index) => (
+                    <li key={`${error.excerpt}-${index}`}>{error.message ?? error.excerpt}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No critical blockers detected.</p>
+              )}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+              <p className="text-xs font-semibold uppercase text-warning">Band-limiting</p>
+              {languageZones.limiting.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                  {languageZones.limiting.slice(0, 3).map((error, index) => (
+                    <li key={`${error.excerpt}-${index}`}>{error.message ?? error.excerpt}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No major limiting patterns detected.</p>
+              )}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+              <p className="text-xs font-semibold uppercase text-emerald-600">Band-boost</p>
+              {languageZones.boost.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                  {languageZones.boost.slice(0, 3).map((error, index) => (
+                    <li key={`${error.excerpt}-${index}`}>{error.message ?? error.excerpt}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">Look for opportunities to add advanced structures.</p>
+              )}
+            </div>
+          </div>
+        </section>
 
         {highlight ? (
           <BandDiffView essay={highlight.essay} feedback={highlight.feedback} />
@@ -459,10 +634,34 @@ const WritingResultsPage: React.FC<PageProps> = ({
         {referralVariant}
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Need a next step?</h2>
-          <p className="text-sm text-muted-foreground">
-            Chat with the AI writing coach to plan rewrites, upgrade paragraphs, or build lexical drills using this attempt.
-          </p>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Next actions</h2>
+            <p className="text-sm text-muted-foreground">
+              Close the loop with targeted practice and a guided rewrite.
+            </p>
+          </div>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-foreground">
+            <li>Practice Task 2 opinion essays to stabilize your weighted score.</li>
+            <li>Review linking words to tighten coherence and cohesion.</li>
+            <li>Rewrite Task 2 using the feedback above for a higher band.</li>
+          </ul>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/practice/writing">
+              <Button size="sm" variant="primary">
+                Practice writing
+              </Button>
+            </Link>
+            <Link href="/vocabulary/linking-words">
+              <Button size="sm" variant="secondary">
+                Review linking words
+              </Button>
+            </Link>
+            <Link href={`/writing/mock/${attemptId}/review`}>
+              <Button size="sm" variant="outline">
+                Rewrite with feedback
+              </Button>
+            </Link>
+          </div>
           <CoachDock attemptId={attemptId} />
         </section>
       </div>
