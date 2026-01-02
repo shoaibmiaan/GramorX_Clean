@@ -6,8 +6,6 @@
 // admins. All routes now live under `/account`, replacing older
 // `/profile` and `/settings` paths.
 
-'use client';
-
 import * as React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -21,8 +19,10 @@ import { Badge } from '@/components/design-system/Badge';
 import { Alert } from '@/components/design-system/Alert';
 import { useToast } from '@/components/design-system/Toaster';
 import { useStreak } from '@/hooks/useStreak';
-import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
+import { supabaseBrowser } from '@/lib/supabaseBrowser';
 import { getPlan, isPaidPlan, type PlanId } from '@/types/pricing';
+import type { GetServerSideProps } from 'next';
+import { getServerClient } from '@/lib/supabaseServer';
 
 // Icons from lucide-react – import only what we need
 import {
@@ -57,9 +57,42 @@ export type BillingSummaryResponse =
   | { ok: true; summary: BillingSummary; customerId?: string | null; needsStripeSetup?: boolean }
   | { ok: false; error: string };
 
+type AccountSummaryResponse =
+  | {
+      ok: true;
+      email: string | null;
+      roleFlags: { isAdmin: boolean; isTeacher: boolean };
+      stats: {
+        totalActivities: number;
+        recentActivities: number;
+        pendingTasks: number;
+        completedTasks: number;
+      };
+    }
+  | { ok: false; error: string };
+
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  const supabase = getServerClient(req, res);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      redirect: {
+        destination: '/auth/login?next=/account',
+        permanent: false,
+      },
+    };
+  }
+
+  return { props: {} };
+};
+
 export default function AccountHubPage() {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
+  const supabase = supabaseBrowser();
 
   // User role flags
   const [isAdmin, setIsAdmin] = React.useState(false);
@@ -79,6 +112,8 @@ export default function AccountHubPage() {
   const [summary, setSummary] = React.useState<BillingSummary | null>(null);
   const [portalAvailable, setPortalAvailable] = React.useState(false);
   const [portalLoading, setPortalLoading] = React.useState(false);
+  const [summaryLoading, setSummaryLoading] = React.useState(true);
+  const [summaryError, setSummaryError] = React.useState<string | null>(null);
 
   // Password reset state
   const [sending, setSending] = React.useState(false);
@@ -116,55 +151,28 @@ export default function AccountHubPage() {
     };
   }, []);
 
-  // Fetch profile role and activity stats
+  // Fetch profile role and activity stats via API to keep logic server-side
   React.useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setEmail(sessionData.session?.user?.email ?? null);
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, teacher_approved')
-        .eq('id', sessionData.session?.user?.id)
-        .single();
-      if (profile) {
-        setIsAdmin(profile.role === 'admin');
-        setIsTeacher(profile.teacher_approved === true || profile.role === 'teacher');
-      }
-      if (sessionData.session?.user?.id) {
-        const userId = sessionData.session.user.id;
-        // Total activities count
-        const { count: activityCount } = await supabase
-          .from('user_activities')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId);
-        // Activities in last 7 days
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const { count: recentCount } = await supabase
-          .from('user_activities')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .gte('created_at', weekAgo.toISOString());
-        // Pending tasks
-        const { count: pendingTasks } = await supabase
-          .from('task_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_to', userId)
-          .eq('status', 'pending');
-        // Completed tasks
-        const { count: completedTasks } = await supabase
-          .from('task_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_to', userId)
-          .eq('status', 'completed');
-        setActivityStats({
-          totalActivities: activityCount ?? 0,
-          recentActivities: recentCount ?? 0,
-          pendingTasks: pendingTasks ?? 0,
-          completedTasks: completedTasks ?? 0,
-        });
+      try {
+        setSummaryLoading(true);
+        setSummaryError(null);
+        const response = await fetch('/api/account/summary', { credentials: 'include' });
+        const data: AccountSummaryResponse = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error((!response.ok ? response.statusText : data.error) || 'Failed to load account summary');
+        }
+        if (!mounted) return;
+        setEmail(data.email);
+        setIsAdmin(data.roleFlags.isAdmin);
+        setIsTeacher(data.roleFlags.isTeacher);
+        setActivityStats(data.stats);
+      } catch (err) {
+        if (!mounted) return;
+        setSummaryError(err instanceof Error ? err.message : 'Failed to load account summary');
+      } finally {
+        if (mounted) setSummaryLoading(false);
       }
     })();
     return () => {
@@ -194,7 +202,11 @@ export default function AccountHubPage() {
     setSending(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset`,
+        redirectTo: `${
+          typeof window !== 'undefined'
+            ? window.location.origin
+            : process.env.NEXT_PUBLIC_SITE_URL || ''
+        }/auth/reset`,
       });
       if (error) throw new Error(error.message);
       toastSuccess('Reset link sent to your email');
@@ -327,13 +339,20 @@ export default function AccountHubPage() {
                 </Badge>
               </div>
               <div className="space-y-3">
+                {summaryError && (
+                  <Alert variant="warning" title="Account summary unavailable">
+                    {summaryError}
+                  </Alert>
+                )}
                 <div className="flex items-center justify-between text-small">
                   <span className="text-muted-foreground">Recent activities:</span>
-                  <span className="font-medium">{activityStats.recentActivities}</span>
+                  <span className="font-medium">
+                    {summaryLoading ? '—' : activityStats.recentActivities}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-small">
                   <span className="text-muted-foreground">Total logged:</span>
-                  <span className="font-medium">{activityStats.totalActivities}</span>
+                  <span className="font-medium">{summaryLoading ? '—' : activityStats.totalActivities}</span>
                 </div>
                 <div className="mt-4 border-t border-border pt-4">
                   <h3 className="mb-2 text-xs font-semibold text-muted-foreground">Quick actions</h3>
