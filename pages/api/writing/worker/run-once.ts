@@ -8,13 +8,15 @@ import type { WritingEvalInput } from '@/lib/writing/evaluation/types';
 import { latencyLogger } from '@/lib/writing/performance/latencyLogger';
 
 type ApiOk =
-  | { ok: true; processed: true; attemptId: string; mode: 'queued' | 'forced' | 'already_done' }
+  | { ok: true; processed: true; attemptId: string; mode: 'queued' | 'forced' | 'already_done' | 'already_claimed' }
   | { ok: true; processed: false; reason: 'no_jobs' };
 
 type ApiErr = { ok: false; error: string };
 
 const Body = z.object({
   attemptId: z.string().uuid().optional(),
+  // optional: set true if you REALLY want forced to re-queue an existing job (running/failed/done)
+  forceRequeue: z.boolean().optional(),
 });
 
 function fallbackPrompts(mode: 'academic' | 'general') {
@@ -48,10 +50,7 @@ function fallbackPrompts(mode: 'academic' | 'general') {
 
 const safeText = (v: unknown) => String(v ?? '').trim();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ApiOk | ApiErr>,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiOk | ApiErr>) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
   // ✅ internal worker auth
@@ -65,8 +64,9 @@ export default async function handler(
   const parse = Body.safeParse(req.body ?? {});
   if (!parse.success) return res.status(400).json({ ok: false, error: 'Invalid body' });
 
-  const forcedAttemptId = parse.data.attemptId;
   const admin = supabaseAdmin;
+  const forcedAttemptId = parse.data.attemptId ?? null;
+  const forceRequeue = Boolean(parse.data.forceRequeue);
 
   // 1) Pick attemptId (forced OR oldest queued)
   let attemptId: string | null = null;
@@ -74,17 +74,32 @@ export default async function handler(
   if (forcedAttemptId) {
     attemptId = forcedAttemptId;
 
-    // ensure job exists
-    await admin.from('writing_eval_jobs').upsert(
-      {
+    // Ensure job exists, but DO NOT clobber an active/done job unless forceRequeue is true.
+    const { data: existingJob, error: exJobErr } = await admin
+      .from('writing_eval_jobs')
+      .select('attempt_id,status,locked_at,attempts')
+      .eq('attempt_id', attemptId)
+      .maybeSingle();
+
+    if (exJobErr) return res.status(500).json({ ok: false, error: exJobErr.message });
+
+    if (!existingJob) {
+      const { error: insErr } = await admin.from('writing_eval_jobs').insert({
         attempt_id: attemptId,
         status: 'queued',
         attempts: 0,
         locked_at: null,
         last_error: null,
-      },
-      { onConflict: 'attempt_id' },
-    );
+      });
+      if (insErr) return res.status(500).json({ ok: false, error: insErr.message });
+    } else if (forceRequeue) {
+      // Explicit retry mode
+      const { error: rqErr } = await admin
+        .from('writing_eval_jobs')
+        .update({ status: 'queued', locked_at: null, last_error: null })
+        .eq('attempt_id', attemptId);
+      if (rqErr) return res.status(500).json({ ok: false, error: rqErr.message });
+    }
   } else {
     const { data: jobRow, error: jobErr } = await admin
       .from('writing_eval_jobs')
@@ -102,20 +117,42 @@ export default async function handler(
 
   if (!attemptId) return res.status(200).json({ ok: true, processed: false, reason: 'no_jobs' });
 
-  // 2) Lock job
-  const { data: job, error: jobFetchErr } = await admin
-    .from('writing_eval_jobs')
-    .select('attempt_id,status,attempts')
+  // 2) Idempotency check early (fast exit)
+  const { data: existingEval, error: existingEvalErr } = await admin
+    .from('writing_evaluations')
+    .select('attempt_id')
     .eq('attempt_id', attemptId)
     .maybeSingle();
 
-  if (jobFetchErr || !job) {
-    return res.status(500).json({ ok: false, error: 'Job not found (unexpected)' });
+  if (existingEvalErr) return res.status(500).json({ ok: false, error: existingEvalErr.message });
+
+  if (existingEval?.attempt_id) {
+    // mark job done if it exists
+    await admin.from('writing_eval_jobs').update({ status: 'done', last_error: null }).eq('attempt_id', attemptId);
+    await admin
+      .from('writing_attempts')
+      .update({ evaluated_at: new Date().toISOString() })
+      .eq('id', attemptId)
+      .is('evaluated_at', null);
+
+    return res.status(200).json({ ok: true, processed: true, attemptId, mode: 'already_done' });
   }
 
-  const nextAttempts = Number(job.attempts ?? 0) + 1;
+  // 3) Atomic claim (prevents double workers)
+  const claimTimer = latencyLogger('writing/worker/claim');
+  // fetch current attempts to increment safely-ish
+  const { data: jobBefore, error: jobBeforeErr } = await admin
+    .from('writing_eval_jobs')
+    .select('attempt_id,status,attempts,locked_at')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
 
-  const { error: lockErr } = await admin
+  if (jobBeforeErr) return res.status(500).json({ ok: false, error: jobBeforeErr.message });
+  if (!jobBefore) return res.status(500).json({ ok: false, error: 'Job not found (unexpected)' });
+
+  const nextAttempts = Number(jobBefore.attempts ?? 0) + 1;
+
+  const { data: claimed, error: claimErr } = await admin
     .from('writing_eval_jobs')
     .update({
       status: 'running',
@@ -123,31 +160,22 @@ export default async function handler(
       attempts: nextAttempts,
       last_error: null,
     })
-    .eq('attempt_id', attemptId);
+    .eq('attempt_id', attemptId)
+    .eq('status', 'queued') // must still be queued
+    .is('locked_at', null) // must not be locked already
+    .select('attempt_id,status,attempts')
+    .maybeSingle();
 
-  if (lockErr) return res.status(500).json({ ok: false, error: 'Failed to lock job' });
+  claimTimer();
+
+  if (claimErr) return res.status(500).json({ ok: false, error: `Failed to lock job: ${claimErr.message}` });
+  if (!claimed) {
+    // someone else claimed it
+    return res.status(200).json({ ok: true, processed: true, attemptId, mode: 'already_claimed' });
+  }
 
   try {
     const doneTimer = latencyLogger('writing/worker/evaluate');
-    // 3) Idempotency: already evaluated?
-    const { data: existingEval, error: existingEvalErr } = await admin
-      .from('writing_evaluations')
-      .select('attempt_id')
-      .eq('attempt_id', attemptId)
-      .maybeSingle();
-
-    if (existingEvalErr) throw new Error(existingEvalErr.message);
-
-   if (existingEval?.attempt_id) {
-      await admin.from('writing_eval_jobs').update({ status: 'done', last_error: null }).eq('attempt_id', attemptId);
-      await admin
-        .from('writing_attempts')
-        .update({ evaluated_at: new Date().toISOString() })
-        .eq('id', attemptId)
-        .is('evaluated_at', null);
-
-      return res.status(200).json({ ok: true, processed: true, attemptId, mode: 'already_done' });
-    }
 
     // 4) Load attempt (✅ ADMIN to bypass RLS)
     const { data: attempt, error: attemptErr } = await admin
@@ -166,7 +194,7 @@ export default async function handler(
       throw new Error(`Attempt not ready (status=${status})`);
     }
 
-    // 5) Load answers + prompts from canonical table
+    // 5) Load answers + prompts
     const { data: answers, error: ansErr } = await admin
       .from('writing_attempt_answers')
       .select('task_number, answer_text, prompt_text, word_limit')
@@ -181,10 +209,10 @@ export default async function handler(
     const task1Text = safeText(r1?.answer_text);
     const task2Text = safeText(r2?.answer_text);
 
-    // Your SQL shows len = 0 for both → this will now fail with a REAL message.
-    if (!task1Text && !task2Text) {
+    // Stronger validation: Task 2 is required for meaningful IELTS Writing eval
+    if (!task2Text) {
       throw new Error(
-        'No answers found (both Task 1 and Task 2 are empty). This usually means autosave did not persist OR submit did not send answers.',
+        'Task 2 answer is empty. This usually means autosave/submit didn’t persist the answer.',
       );
     }
 
@@ -206,7 +234,7 @@ export default async function handler(
 
     const evalResult = await evaluateWritingAttempt(input);
 
-    // 6) Store evaluation (✅ matches your table: NO user_id column)
+    // 6) Store evaluation (✅ no user_id column)
     const { error: storeErr } = await admin.from('writing_evaluations').upsert(
       {
         attempt_id: attemptId,
@@ -238,11 +266,12 @@ export default async function handler(
 
     if (storeErr) throw new Error(storeErr.message);
 
-    // 7) Mark attempt evaluated
+    // 7) Mark attempt evaluated (idempotent)
     const { error: attemptUpdErr } = await admin
       .from('writing_attempts')
       .update({ evaluated_at: new Date().toISOString() })
-      .eq('id', attemptId);
+      .eq('id', attemptId)
+      .is('evaluated_at', null);
 
     if (attemptUpdErr) throw new Error(attemptUpdErr.message);
 
@@ -255,6 +284,7 @@ export default async function handler(
     if (doneErr) throw new Error(doneErr.message);
 
     doneTimer();
+
     return res.status(200).json({
       ok: true,
       processed: true,
@@ -264,12 +294,17 @@ export default async function handler(
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Worker failed';
 
-    await admin
+    // Don’t overwrite done status if something weird happens after success
+    const { data: curJob } = await admin
       .from('writing_eval_jobs')
-      .update({ status: 'failed', last_error: msg })
-      .eq('attempt_id', attemptId);
+      .select('status')
+      .eq('attempt_id', attemptId)
+      .maybeSingle();
 
-    // Ensure timer still logs in failure paths
+    if (curJob?.status !== 'done') {
+      await admin.from('writing_eval_jobs').update({ status: 'failed', last_error: msg }).eq('attempt_id', attemptId);
+    }
+
     latencyLogger('writing/worker/evaluate-error')();
     return res.status(500).json({ ok: false, error: msg });
   }

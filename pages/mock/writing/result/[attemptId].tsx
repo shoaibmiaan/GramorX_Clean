@@ -1,298 +1,270 @@
 // pages/mock/writing/result/[attemptId].tsx
-import * as React from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
 import type { GetServerSideProps, NextPage } from 'next';
-import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { z } from 'zod';
 
 import { getServerClient } from '@/lib/supabaseServer';
 
-import { Container } from '@/components/design-system/Container';
-import { Card } from '@/components/design-system/Card';
-import { Button } from '@/components/design-system/Button';
-import { Badge } from '@/components/design-system/Badge';
-import { Icon } from '@/components/design-system/Icon';
+const Params = z.object({
+  attemptId: z.string().uuid(),
+});
 
-import { WritingResultSummary } from '@/components/writing/result/WritingResultSummary';
-import { WritingTaskBreakdown } from '@/components/writing/result/WritingTaskBreakdown';
-import { WritingCriteriaGrid } from '@/components/writing/result/WritingCriteriaGrid';
-import { WritingWarnings } from '@/components/writing/result/WritingWarnings';
-import { WritingNextSteps } from '@/components/writing/result/WritingNextSteps';
-import { WritingResultLoading } from '@/components/writing/result/WritingResultLoading';
-import { WritingResultEmptyState } from '@/components/writing/result/WritingResultEmptyState';
-import { getWritingAttempt, getWritingEvaluation } from '@/lib/writing/api';
-import { WritingFeedbackBlocks } from '@/components/writing/result/WritingFeedbackBlocks';
-import { WritingBandReasoning } from '@/components/writing/result/WritingBandReasoning';
-import { WritingImprovementsTable } from '@/components/writing/result/WritingImprovementsTable';
-import { formatFeedback } from '@/lib/writing/format/formatFeedback';
-import { WritingExamplesPanel } from '@/components/writing/result/WritingExamplesPanel';
-import { ExaminerNotesCallout } from '@/components/writing/result/ExaminerNotesCallout';
-import { getExaminerNotes, getWritingExamples } from '@/lib/writing/content/writingContent';
-import {
-  formatBandScore,
-  hasSubmittedStatus,
-  type WritingAnswer,
-  type WritingEvaluation,
-  type WritingAttemptMeta,
-} from '@/lib/writing/types';
+type AttemptRow = {
+  id: string;
+  user_id: string;
+  mode: 'academic' | 'general' | string | null;
+  status: string | null;
+  created_at?: string | null;
+  submitted_at?: string | null;
+  evaluated_at?: string | null;
+};
+
+type EvaluationRow = {
+  attempt_id: string;
+
+  overall_band: number | null;
+  task1_band: number | null;
+  task2_band: number | null;
+
+  criteria_tr: number | null;
+  criteria_cc: number | null;
+  criteria_lr: number | null;
+  criteria_gra: number | null;
+
+  short_verdict_task1: string | null;
+  short_verdict_task2: string | null;
+
+  criteria_notes: Record<string, unknown> | null;
+  task_notes: Record<string, unknown> | null;
+
+  warnings: string[] | null;
+  next_steps: string[] | null;
+
+  provider: string | null;
+  model: string | null;
+  meta: Record<string, unknown> | null;
+
+  // ✅ this is the one that was coming as undefined in your props
+  warningNotes?: unknown;
+};
 
 type PageProps = {
   attemptId: string;
-  attempt: WritingAttemptMeta | null;
-  answers: WritingAnswer[];
-  evaluation: WritingEvaluation | null;
-  viewerHasAccess: boolean;
-  pending: boolean;
-  examples: { task1: string; task2: string };
-  examinerNotes: { task1: string; task2: string };
+  attempt: AttemptRow;
+  evaluation: (EvaluationRow & { warningNotes: unknown | null }) | null;
+  jobStatus: 'queued' | 'running' | 'done' | 'failed' | 'missing';
+  jobLastError: string | null;
+};
+
+function sanitizeForNext<T>(value: T): T {
+  // ✅ replaces any undefined anywhere with null so Next can serialize props
+  return JSON.parse(JSON.stringify(value, (_k, v) => (v === undefined ? null : v))) as T;
+}
+
+const WritingResultPage: NextPage<PageProps> = ({ attempt, evaluation, jobStatus, jobLastError }) => {
+  const isPending = !evaluation;
+
+  return (
+    <div className="min-h-screen bg-bg">
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-fg">Writing Mock</h1>
+            <p className="mt-1 text-sm text-muted">
+              Training band can be slightly stricter than IELTS. Real exam is usually within ±0.5.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/mock/writing"
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            >
+              Retry test
+            </Link>
+            <Link href="/mock" className="rounded-xl border border-border px-4 py-2 text-sm text-fg">
+              Back
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-fg">
+              Status: {attempt.status ?? '—'}
+            </span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-fg">
+              Mode: {attempt.mode ?? 'academic'}
+            </span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-fg">
+              Job: {jobStatus}
+            </span>
+          </div>
+
+          {jobStatus === 'failed' && jobLastError ? (
+            <div className="mt-3 rounded-xl border border-border bg-muted p-3 text-sm text-fg">
+              <div className="font-medium">Worker failed</div>
+              <div className="mt-1 text-muted">{jobLastError}</div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          {isPending ? (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-base font-semibold text-fg">Evaluation pending</div>
+                <div className="mt-1 text-sm text-muted">
+                  Your attempt is submitted. Evaluation hasn’t been stored yet.
+                </div>
+                <div className="mt-1 text-xs text-muted">Auto-refresh will keep checking.</div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                >
+                  Refresh now
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="text-base font-semibold text-fg">Training Band</div>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <div className="rounded-xl border border-border bg-muted px-4 py-3">
+                  <div className="text-xs text-muted">Overall</div>
+                  <div className="text-lg font-semibold text-fg">{evaluation?.overall_band ?? '—'}</div>
+                </div>
+                <div className="rounded-xl border border-border bg-muted px-4 py-3">
+                  <div className="text-xs text-muted">Task 1</div>
+                  <div className="text-lg font-semibold text-fg">{evaluation?.task1_band ?? '—'}</div>
+                </div>
+                <div className="rounded-xl border border-border bg-muted px-4 py-3">
+                  <div className="text-xs text-muted">Task 2</div>
+                  <div className="text-lg font-semibold text-fg">{evaluation?.task2_band ?? '—'}</div>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <div className="text-sm font-medium text-fg">Next steps</div>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+                  {(evaluation?.next_steps ?? []).map((s, idx) => (
+                    <li key={idx}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-5">
+                <div className="text-sm font-medium text-fg">Warnings</div>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+                  {(evaluation?.warnings ?? []).map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Debug safe values */}
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="text-sm font-medium text-fg">Debug</div>
+          <div className="mt-2 text-xs text-muted">
+            evaluation.warningNotes: {String(evaluation?.warningNotes ?? null)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
-  const attemptId = typeof ctx.params?.attemptId === 'string' ? ctx.params.attemptId : null;
-  if (!attemptId) return { notFound: true };
+  const parse = Params.safeParse(ctx.params ?? {});
+  if (!parse.success) return { notFound: true };
+
+  const { attemptId } = parse.data;
 
   const supabase = getServerClient(ctx.req, ctx.res);
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return {
       redirect: {
-        destination: `/login?next=/mock/writing/result/${encodeURIComponent(attemptId)}`,
+        destination: '/auth/login',
         permanent: false,
       },
     };
   }
 
-  const { attempt, viewerHasAccess } = await getWritingAttempt(attemptId, ctx.req, ctx.res);
-  const { answers, evaluation } = viewerHasAccess
-    ? await getWritingEvaluation(attemptId, ctx.req, ctx.res)
-    : { answers: [], evaluation: null };
+  // Attempt (ownership enforced)
+  const { data: attempt, error: attemptErr } = await supabase
+    .from('writing_attempts')
+    .select('id,user_id,mode,status,created_at,submitted_at,evaluated_at')
+    .eq('id', attemptId)
+    .maybeSingle();
 
-  const pending = Boolean(attempt && hasSubmittedStatus(attempt.status) && !evaluation);
-  const overallBand = evaluation?.overallBand ?? 0;
-  const bandBracket = overallBand >= 8 ? '8' : overallBand >= 6.5 ? '7' : '6';
+  if (attemptErr) {
+    return { notFound: true };
+  }
+  if (!attempt) return { notFound: true };
+  if (attempt.user_id !== user.id) return { notFound: true };
 
-  const examples = {
-    task1: getWritingExamples('task1', bandBracket as '6' | '7' | '8'),
-    task2: getWritingExamples('task2', bandBracket as '6' | '7' | '8'),
+  // Evaluation (can be missing while pending)
+  const { data: evaluation } = await supabase
+    .from('writing_evaluations')
+    .select(
+      [
+        'attempt_id',
+        'overall_band',
+        'task1_band',
+        'task2_band',
+        'criteria_tr',
+        'criteria_cc',
+        'criteria_lr',
+        'criteria_gra',
+        'short_verdict_task1',
+        'short_verdict_task2',
+        'criteria_notes',
+        'task_notes',
+        'warnings',
+        'next_steps',
+        'provider',
+        'model',
+        'meta',
+      ].join(','),
+    )
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  // Job status (optional)
+  const { data: job } = await supabase
+    .from('writing_eval_jobs')
+    .select('status,last_error')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  // ✅ IMPORTANT: warningNotes must never be undefined in props
+  const evaluationSafe = evaluation
+    ? ({
+        ...evaluation,
+        warningNotes: (evaluation as any)?.warningNotes ?? null,
+      } as EvaluationRow & { warningNotes: unknown | null })
+    : null;
+
+  const props: PageProps = {
+    attemptId,
+    attempt: attempt as AttemptRow,
+    evaluation: evaluationSafe,
+    jobStatus: (job?.status as PageProps['jobStatus']) ?? 'missing',
+    jobLastError: job?.last_error ?? null,
   };
 
-  const examinerNotes = {
-    task1: getExaminerNotes('task1'),
-    task2: getExaminerNotes('task2'),
-  };
-
-  return {
-    props: {
-      attemptId,
-      attempt,
-      answers,
-      evaluation,
-      viewerHasAccess,
-      pending,
-      examples,
-      examinerNotes,
-    },
-  };
-};
-
-const WritingResultPage: NextPage<PageProps> = ({
-  attemptId,
-  attempt,
-  answers,
-  evaluation,
-  viewerHasAccess,
-  pending,
-  examples,
-  examinerNotes,
-}) => {
-  const router = useRouter();
-  const [autoRefresh, setAutoRefresh] = React.useState(true);
-
-  React.useEffect(() => {
-    if (!pending || !autoRefresh) return;
-
-    let ticks = 0;
-    const id = window.setInterval(() => {
-      ticks += 1;
-      if (ticks > 60) {
-        window.clearInterval(id);
-        setAutoRefresh(false);
-        return;
-      }
-      void router.replace(router.asPath, undefined, { scroll: false });
-    }, 3000);
-
-    return () => window.clearInterval(id);
-  }, [pending, autoRefresh, router]);
-
-  if (router.isFallback) return <WritingResultLoading />;
-  if (!viewerHasAccess) return <WritingResultEmptyState reason="no_access" attemptId={attemptId} />;
-  if (!attempt) return <WritingResultEmptyState reason="not_found" attemptId={attemptId} />;
-  if (!evaluation && !pending) return <WritingResultEmptyState reason="not_evaluated" attemptId={attemptId} />;
-
-  const overallBandLabel = evaluation ? formatBandScore(evaluation.overallBand) : '—';
-  const formatted = formatFeedback(evaluation, answers);
-  const bandValue = evaluation?.overallBand ?? 0;
-
-  // ✅ Retry link: if slug missing, go to writing hub (no more 404)
-  const retryHref = attempt.testSlug ? `/mock/writing/${encodeURIComponent(attempt.testSlug)}` : '/mock/writing';
-
-  return (
-    <>
-      <Head>
-        <title>{attempt.testTitle} · Result · GramorX</title>
-      </Head>
-
-      <main className="min-h-[100dvh] bg-background">
-        <section className="border-b border-border/60 bg-card/60">
-          <Container className="max-w-6xl py-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="neutral" size="xs">
-                    Writing Result
-                  </Badge>
-
-                  {attempt.autoSubmitted ? (
-                    <Badge tone="warning" size="xs">
-                      Auto-submitted
-                    </Badge>
-                  ) : null}
-
-                  <Badge tone="neutral" size="xs">
-                    Attempt {attempt.attemptId.slice(0, 8)}
-                  </Badge>
-
-                  {pending ? (
-                    <Badge tone="info" size="xs">
-                      Evaluating…
-                    </Badge>
-                  ) : null}
-                </div>
-
-                <h1 className="text-xl font-semibold text-foreground">{attempt.testTitle}</h1>
-                <p className="text-xs text-muted-foreground">
-                  Training band can be slightly stricter than IELTS. Real exam is usually within ±0.5.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button asChild variant="secondary" size="sm">
-                  <Link href={retryHref}>
-                    <Icon name="RotateCcw" size={16} className="mr-1.5" />
-                    Retry test
-                  </Link>
-                </Button>
-
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/mock/writing">
-                    <Icon name="ArrowLeft" size={16} className="mr-1.5" />
-                    Back
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </Container>
-        </section>
-
-        <Container className="max-w-6xl py-6">
-          <div className="grid gap-5">
-            <WritingResultSummary
-              overallBandLabel={overallBandLabel}
-              submittedAt={attempt.submittedAt}
-              status={attempt.status}
-              hasEvaluation={Boolean(evaluation)}
-            />
-            {formatted.summary.length ? (
-              <Card className="rounded-ds-2xl border border-border/60 bg-muted/20 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Summary
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-foreground">
-                  {formatted.summary.slice(0, 3).map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-border" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ) : null}
-
-            {evaluation ? (
-              <>
-                <WritingTaskBreakdown
-                  task1Band={formatBandScore(evaluation.task1.band)}
-                  task2Band={formatBandScore(evaluation.task2.band)}
-                  verdictTask1={evaluation.task1.shortVerdict ?? ''}
-                  verdictTask2={evaluation.task2.shortVerdict ?? ''}
-                />
-
-                <WritingCriteriaGrid
-                  criteriaBands={{
-                    TR: formatBandScore(evaluation.criteria.TR.band),
-                    CC: formatBandScore(evaluation.criteria.CC.band),
-                    LR: formatBandScore(evaluation.criteria.LR.band),
-                    GRA: formatBandScore(evaluation.criteria.GRA.band),
-                  }}
-                  criteriaNotes={{
-                    TR: evaluation.criteria.TR.notes,
-                    CC: evaluation.criteria.CC.notes,
-                    LR: evaluation.criteria.LR.notes,
-                    GRA: evaluation.criteria.GRA.notes,
-                  }}
-                />
-
-                <WritingWarnings warnings={formatted.warnings} answers={answers} />
-                <WritingExamplesPanel band={bandValue} task="task2" content={examples.task2} />
-                <WritingExamplesPanel band={bandValue} task="task1" content={examples.task1} />
-                <ExaminerNotesCallout task="task2" notes={examinerNotes.task2} />
-                <WritingFeedbackBlocks blocks={formatted.blocks} />
-                <WritingBandReasoning items={formatted.bandReasoning} />
-                <WritingImprovementsTable rows={formatted.improvements} />
-                <WritingNextSteps nextSteps={evaluation.nextSteps ?? []} exampleBand={evaluation.overallBand} />
-                <ExaminerNotesCallout task="task1" notes={examinerNotes.task1} />
-              </>
-            ) : (
-              <Card className="rounded-ds-2xl border border-border/60 bg-card p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Icon name="Loader2" size={18} className="animate-spin" />
-                    </span>
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-foreground">Evaluation pending</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your attempt is submitted. Evaluation hasn’t been stored yet.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Auto-refresh is on. It will stop automatically after ~3 minutes.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => void router.replace(router.asPath, undefined, { scroll: false })}
-                    >
-                      Refresh now
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setAutoRefresh(false)}>
-                      Stop auto-refresh
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-        </Container>
-      </main>
-    </>
-  );
+  return { props: sanitizeForNext(props) };
 };
 
 export default WritingResultPage;
