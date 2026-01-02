@@ -69,6 +69,43 @@ type MutationResponse =
   | { ok: true; deleted: true }
   | { ok: false; error: string };
 
+type AttemptLockInfo = {
+  ok: boolean;
+  status: number;
+  error?: string;
+};
+
+async function ensureAttemptOwner(
+  supabase: ReturnType<typeof getServerClient>,
+  attemptId: string,
+  userId: string,
+  { requireEditable }: { requireEditable: boolean },
+): Promise<AttemptLockInfo> {
+  const { data: attempt, error } = await supabase
+    .from('reading_attempts')
+    .select('id, user_id, submitted_at')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, status: 500, error: 'Failed to load attempt' };
+  }
+
+  if (!attempt) {
+    return { ok: false, status: 404, error: 'Attempt not found' };
+  }
+
+  if (attempt.user_id !== userId) {
+    return { ok: false, status: 403, error: 'Not your attempt' };
+  }
+
+  if (requireEditable && attempt.submitted_at) {
+    return { ok: false, status: 409, error: 'Attempt already submitted' };
+  }
+
+  return { ok: true, status: 200 };
+}
+
 async function handler(req: NextApiRequest, res: NextApiResponse<GetResponse | MutationResponse>) {
   if (req.method === 'GET') {
     return getHandler(req, res);
@@ -98,6 +135,14 @@ async function getHandler(req: NextApiRequest, res: NextApiResponse<GetResponse>
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData?.user?.id) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
+  const attemptCheck = await ensureAttemptOwner(supabase, attemptId, userData.user.id, {
+    requireEditable: false,
+  });
+
+  if (!attemptCheck.ok) {
+    return res.status(attemptCheck.status).json({ ok: false, error: attemptCheck.error ?? 'Forbidden' });
   }
 
   try {
@@ -133,6 +178,14 @@ async function postHandler(req: NextApiRequest, res: NextApiResponse<MutationRes
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData?.user?.id) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
+  const attemptCheck = await ensureAttemptOwner(supabase, parsed.data.attemptId, userData.user.id, {
+    requireEditable: true,
+  });
+
+  if (!attemptCheck.ok) {
+    return res.status(attemptCheck.status).json({ ok: false, error: attemptCheck.error ?? 'Forbidden' });
   }
 
   const ranges = parsed.data.ranges.map((range) => {
@@ -194,6 +247,29 @@ async function patchHandler(req: NextApiRequest, res: NextApiResponse<MutationRe
   }
 
   try {
+    const { data: noteRow, error: noteError } = await supabase
+      .from('reading_notes')
+      .select('id, attempt_id')
+      .eq('id', parsed.data.id)
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (noteError) {
+      throw noteError;
+    }
+
+    if (!noteRow) {
+      return res.status(404).json({ ok: false, error: 'Note not found' });
+    }
+
+    const attemptCheck = await ensureAttemptOwner(supabase, noteRow.attempt_id, userData.user.id, {
+      requireEditable: true,
+    });
+
+    if (!attemptCheck.ok) {
+      return res.status(attemptCheck.status).json({ ok: false, error: attemptCheck.error ?? 'Forbidden' });
+    }
+
     const { data, error } = await supabase
       .from('reading_notes')
       .update({ note_text: parsed.data.noteText ?? null })
@@ -227,6 +303,29 @@ async function deleteHandler(req: NextApiRequest, res: NextApiResponse<MutationR
   }
 
   try {
+    const { data: noteRow, error: noteError } = await supabase
+      .from('reading_notes')
+      .select('id, attempt_id')
+      .eq('id', parsed.data.id)
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (noteError) {
+      throw noteError;
+    }
+
+    if (!noteRow) {
+      return res.status(404).json({ ok: false, error: 'Note not found' });
+    }
+
+    const attemptCheck = await ensureAttemptOwner(supabase, noteRow.attempt_id, userData.user.id, {
+      requireEditable: true,
+    });
+
+    if (!attemptCheck.ok) {
+      return res.status(attemptCheck.status).json({ ok: false, error: attemptCheck.error ?? 'Forbidden' });
+    }
+
     const { error } = await supabase
       .from('reading_notes')
       .delete()

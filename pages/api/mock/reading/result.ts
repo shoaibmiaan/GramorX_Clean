@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { randomUUID } from 'crypto';
 
 import { readingBandFromRaw } from '@/lib/reading/band';
-import { supabaseServer, supabaseService } from '@/lib/supabaseServer';
+import { getServerClient } from '@/lib/supabaseServer';
 import { syncStreak } from '@/lib/streaks';
 import { trackor } from '@/lib/analytics/trackor.server';
 import {
@@ -56,9 +56,12 @@ function parseScore(row: any) {
   };
 }
 
-async function loadAttemptSummary(userId: string, attemptId: string) {
-  const svc = supabaseService();
-  const { data, error } = await svc
+async function loadAttemptSummary(
+  supabase: ReturnType<typeof getServerClient>,
+  userId: string,
+  attemptId: string,
+) {
+  const { data, error } = await supabase
     .from('attempts_reading')
     .select('id, paper_id, submitted_at, score_json')
     .eq('user_id', userId)
@@ -88,9 +91,8 @@ async function loadAttemptSummary(userId: string, attemptId: string) {
   };
 }
 
-async function aggregateXp(userId: string) {
-  const svc = supabaseService();
-  const { data, error } = await svc
+async function aggregateXp(supabase: ReturnType<typeof getServerClient>, userId: string) {
+  const { data, error } = await supabase
     .from('attempts_reading')
     .select('score_json')
     .eq('user_id', userId);
@@ -109,9 +111,11 @@ async function aggregateXp(userId: string) {
   return sumReadingMockXp(attempts);
 }
 
-async function loadCurrentStreak(userId: string): Promise<number> {
-  const svc = supabaseService();
-  const { data, error } = await svc
+async function loadCurrentStreak(
+  supabase: ReturnType<typeof getServerClient>,
+  userId: string,
+): Promise<number> {
+  const { data, error } = await supabase
     .from('user_streaks')
     .select('current_streak')
     .eq('user_id', userId)
@@ -128,8 +132,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<MockReadingResultResponse>,
 ) {
-  const client = supabaseServer(req, res);
-  const { data: auth } = await client.auth.getUser();
+  const supabase = getServerClient(req, res);
+  const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
 
   if (!user) {
@@ -153,8 +157,25 @@ export default async function handler(
         ? body.attemptId
         : randomUUID();
 
-      const svc = supabaseService();
-      const { error: upsertError } = await svc
+      const { data: existingAttempt, error: existingAttemptError } = await supabase
+        .from('attempts_reading')
+        .select('id, user_id, submitted_at')
+        .eq('id', attemptId)
+        .maybeSingle();
+
+      if (existingAttemptError) {
+        throw existingAttemptError;
+      }
+
+      if (existingAttempt && existingAttempt.user_id !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Not your attempt' });
+      }
+
+      if (existingAttempt?.submitted_at) {
+        return res.status(409).json({ ok: false, error: 'Attempt already submitted' });
+      }
+
+      const { error: upsertError } = await supabase
         .from('attempts_reading')
         .upsert(
           {
@@ -182,7 +203,7 @@ export default async function handler(
       let profileTimezone = DEFAULT_TIMEZONE;
       let goalBand: number | null = null;
       try {
-        const { data: profile } = await svc
+        const { data: profile } = await supabase
           .from('profiles')
           .select('timezone, goal_band')
           .eq('id', user.id)
@@ -193,7 +214,7 @@ export default async function handler(
         console.warn('[mock/reading/result] profile lookup failed', err);
       }
 
-      const totalXp = await aggregateXp(user.id);
+      const totalXp = await aggregateXp(supabase, user.id);
       const { xp: awarded } = computeReadingMockXp(correct, total, durationSec);
       const targetBand = resolveTargetBand(band, goalBand ?? undefined);
       const requiredXp = xpRequiredForBand(targetBand);
@@ -201,7 +222,7 @@ export default async function handler(
 
       let streak = 0;
       try {
-        streak = await syncStreak(svc, user.id, profileTimezone);
+        streak = await syncStreak(supabase, user.id, profileTimezone);
       } catch (err) {
         console.warn('[mock/reading/result] streak sync failed', err);
       }
@@ -223,7 +244,7 @@ export default async function handler(
         console.warn('[mock/reading/result] analytics failed', err);
       }
 
-      const attempt = await loadAttemptSummary(user.id, attemptId);
+      const attempt = await loadAttemptSummary(supabase, user.id, attemptId);
       if (!attempt) {
         return res.status(200).json({
           ok: true,
@@ -269,14 +290,14 @@ export default async function handler(
         return res.status(400).json({ ok: false, error: 'attemptId is required' });
       }
 
-      const attempt = await loadAttemptSummary(user.id, attemptId);
+      const attempt = await loadAttemptSummary(supabase, user.id, attemptId);
       if (!attempt) {
         return res.status(404).json({ ok: false, error: 'Attempt not found' });
       }
 
       let goalBand: number | null = null;
       try {
-        const { data: profile } = await supabaseService()
+        const { data: profile } = await supabase
           .from('profiles')
           .select('goal_band')
           .eq('id', user.id)
@@ -286,7 +307,7 @@ export default async function handler(
         console.warn('[mock/reading/result] profile goal lookup failed', err);
       }
 
-      const totalXp = await aggregateXp(user.id);
+      const totalXp = await aggregateXp(supabase, user.id);
       const { xp: awarded } = computeReadingMockXp(attempt.correct, attempt.total, attempt.durationSec);
       const targetBand = resolveTargetBand(attempt.band, goalBand ?? undefined);
       const requiredXp = xpRequiredForBand(targetBand);
@@ -294,7 +315,7 @@ export default async function handler(
 
       let currentStreak = 0;
       try {
-        currentStreak = await loadCurrentStreak(user.id);
+        currentStreak = await loadCurrentStreak(supabase, user.id);
       } catch (err) {
         console.warn('[mock/reading/result] streak fetch failed', err);
       }
