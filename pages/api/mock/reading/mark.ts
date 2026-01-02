@@ -61,6 +61,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const { data: attemptRow, error: attemptError } = await supabase
+    .from('attempts_reading')
+    .select('id, user_id, submitted_at')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (attemptError) {
+    return res.status(500).json({ error: 'Failed to load attempt' });
+  }
+
+  if (attemptRow && attemptRow.user_id !== user.id) {
+    return res.status(403).json({ error: 'Not your attempt' });
+  }
+
+  if (attemptRow?.submitted_at) {
+    return res.status(409).json({ error: 'Attempt already submitted' });
+  }
+
   const { data: keys, error: keysError } = await supabase
     .from('reading_keys')
     .select('question_id, acceptable, strict')
